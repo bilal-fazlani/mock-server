@@ -46,6 +46,33 @@ curl -s -X POST http://localhost:3000/hello/world \
   -d '{"customerId":"customer-123"}'
 ```
 
+## Running via Docker
+
+Published images live in the GitHub Container Registry at
+[`ghcr.io/bilal-fazlani/mock-server`](https://github.com/bilal-fazlani/mock-server/pkgs/container/mock-server)
+(multi-arch: `linux/amd64` and `linux/arm64`). Use `latest`, a pinned version tag like
+`1.2.0`, or `edge` for the current `main`.
+
+```bash
+docker run --rm -p 3000:3000 \
+  -e MONGODB_CONNECTION_STRING='mongodb://host.docker.internal:27017' \
+  ghcr.io/bilal-fazlani/mock-server:latest
+```
+
+The server listens on port `3000`; mocks answer at the root and the UI at `/ui`, exactly
+as with the dev server. It needs a reachable MongoDB — pass its URI via
+`MONGODB_CONNECTION_STRING` (plus any other variables from the table below).
+
+The image bakes in the example `catalog/` tree. To serve your own catalog without
+rebuilding, mount it over the baked-in one:
+
+```bash
+docker run --rm -p 3000:3000 \
+  -e MONGODB_CONNECTION_STRING='mongodb://host.docker.internal:27017' \
+  -v "$(pwd)/catalog:/app/catalog:ro" \
+  ghcr.io/bilal-fazlani/mock-server:latest
+```
+
 ## Configuration
 
 Environment variables (see `.env.example` for the full list):
