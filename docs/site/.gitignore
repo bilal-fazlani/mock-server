@@ -1,0 +1,7 @@
+# Zensical build output
+/site/
+
+# Local Python environment for the docs toolchain
+/.venv/
+
+.cache

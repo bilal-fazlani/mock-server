@@ -1,0 +1,40 @@
+[project]
+site_name = "Mock Server"
+site_description = "How to create and configure mock endpoints in the mock server."
+
+nav = [
+  { "Home" = "index.md" },
+  { "Guide" = [
+    { "Getting started" = "guide/getting-started.md" },
+    { "Reference" = [
+      { "Endpoints" = "guide/reference/endpoints.md" },
+      { "Profiles" = "guide/reference/profiles.md" },
+      { "Scenarios" = "guide/reference/scenarios.md" },
+      { "Fixtures" = "guide/reference/fixtures.md" },
+      { "Schemas" = "guide/reference/schemas.md" },
+      { "Configuration" = "guide/reference/configuration.md" },
+      { "Request logs" = "guide/reference/request-logs.md" },
+    ] },
+    { "Gotchas" = "guide/gotchas.md" },
+  ] },
+  { "Request lifecycle" = "request-lifecycle.md" },
+]
+
+[project.theme]
+features = [
+  "navigation.sections",   # top-level sections as sidebar groups
+  "navigation.footer",     # prev/next links in the footer
+  "navigation.top",        # back-to-top button
+  "content.code.select",   # line-selection button on code blocks
+]
+
+# Light + dark, with a toggle in the header (defaults to the reader's OS setting).
+[[project.theme.palette]]
+scheme = "default"
+toggle.icon = "lucide/sun"
+toggle.name = "Switch to dark mode"
+
+[[project.theme.palette]]
+scheme = "slate"
+toggle.icon = "lucide/moon"
+toggle.name = "Switch to light mode"

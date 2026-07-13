@@ -1,0 +1,9 @@
+{
+  "description": "Active",
+  "status": 200,
+  "body": {
+    "customerId": "{{path:customerId}}",
+    "status": "ACTIVE",
+    "checkedAt": "{{now:iso}}"
+  }
+}

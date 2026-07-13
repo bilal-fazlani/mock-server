@@ -1,0 +1,6 @@
+{
+  "displayName": "Hello World",
+  "method": "POST",
+  "path": "/hello/world",
+  "profileIdSelector": "$.customerId"
+}

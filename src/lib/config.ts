@@ -1,0 +1,43 @@
+export type UnmockedUsers = 'ERROR' | 'DEFAULT_MOCK' | 'REAL'
+export type ConsoleLogLevel = 'info' | 'warn' | 'error'
+
+// UI label for the implicit "real" scenario — never declared in the catalog,
+// so its display name lives here.
+export const REAL_LABEL = 'Passthrough'
+
+export class ConfigError extends Error {}
+
+const UNMOCKED_USERS_VALUES: UnmockedUsers[] = ['ERROR', 'DEFAULT_MOCK', 'REAL']
+const CONSOLE_LOG_LEVEL_VALUES: ConsoleLogLevel[] = ['info', 'warn', 'error']
+
+export function parsePassthroughAsDefault(raw: string | undefined): boolean {
+  if (raw === undefined) return false
+  const upper = raw.toUpperCase()
+  if (upper === 'TRUE') return true
+  if (upper === 'FALSE') return false
+  throw new ConfigError(
+    `PASSTHROUGH_AS_DEFAULT must be either true or false, got "${raw}"`,
+  )
+}
+
+export function parseUnmockedUsers(raw: string | undefined): UnmockedUsers {
+  if (raw === undefined) return 'ERROR'
+  const upper = raw.toUpperCase()
+  if (!UNMOCKED_USERS_VALUES.includes(upper as UnmockedUsers)) {
+    throw new ConfigError(
+      `UNMOCKED_USERS must be one of ${UNMOCKED_USERS_VALUES.join(', ')}, got "${raw}"`,
+    )
+  }
+  return upper as UnmockedUsers
+}
+
+export function parseConsoleLogLevel(raw: string | undefined): ConsoleLogLevel {
+  if (raw === undefined) return 'info'
+  const lower = raw.toLowerCase()
+  if (!CONSOLE_LOG_LEVEL_VALUES.includes(lower as ConsoleLogLevel)) {
+    throw new ConfigError(
+      `MOCK_CONSOLE_LOG_LEVEL must be one of ${CONSOLE_LOG_LEVEL_VALUES.join(', ')}, got "${raw}"`,
+    )
+  }
+  return lower as ConsoleLogLevel
+}

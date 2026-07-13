@@ -1,0 +1,166 @@
+.form {
+  display: grid;
+  gap: 20px;
+  width: 100%;
+  max-width: 1200px;
+  min-width: 0;
+}
+
+.card {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-m);
+  box-shadow: var(--shadow-card);
+  padding: 18px 20px;
+}
+
+.field {
+  display: grid;
+  gap: 4px;
+  max-width: 420px;
+}
+
+.identityCard {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+}
+
+.identityCard .field {
+  grid-template-rows: auto minmax(1rem, auto) auto;
+  max-width: none;
+}
+
+.identityCard .field > input {
+  grid-row: 3;
+}
+
+.profileIdControl {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  grid-row: 3;
+}
+
+.readOnlyInput {
+  cursor: default;
+}
+
+.profileIdControl input.readOnlyInput[readonly] {
+  cursor: default;
+  color: var(--text-muted);
+  background: var(--background);
+  border-color: color-mix(in srgb, var(--border) 75%, var(--background));
+}
+
+.profileIdControl input.readOnlyInput[readonly]:focus-visible {
+  border-color: color-mix(in srgb, var(--border) 75%, var(--background));
+  box-shadow: none;
+}
+
+.copyButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 39px;
+  height: 39px;
+  min-width: 39px;
+  padding: 0;
+  color: var(--text-secondary);
+  background: var(--background);
+}
+
+.copyButton:hover {
+  color: var(--text-primary);
+  border-color: var(--text-muted);
+}
+
+.copyIcon {
+  width: 16px;
+  height: 16px;
+}
+
+.fieldLabel {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.fieldHint {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.optional {
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.system {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.systemName {
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.endpointHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.path {
+  min-width: 0;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.endpointName {
+  min-width: 0;
+  font-weight: 550;
+}
+
+.cardFooter {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: -4px;
+}
+
+.catalogLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.catalogLink:hover {
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.catalogLinkIcon {
+  width: 12px;
+  height: 12px;
+}
+
+@media (max-width: 700px) {
+  .identityCard {
+    grid-template-columns: 1fr;
+  }
+
+  .identityCard .field > input {
+    grid-row: auto;
+  }
+
+  .identityCard .field {
+    grid-template-rows: none;
+  }
+}

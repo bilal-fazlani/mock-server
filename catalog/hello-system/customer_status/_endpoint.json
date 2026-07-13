@@ -1,0 +1,6 @@
+{
+  "displayName": "Customer Status",
+  "method": "GET",
+  "path": "/customers/{customerId}/status",
+  "profileIdSelector": "path:customerId"
+}

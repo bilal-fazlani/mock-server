@@ -1,0 +1,9 @@
+{
+  "description": "Greeting",
+  "status": 200,
+  "body": {
+    "customerId": "{{$.customerId}}",
+    "status": "success",
+    "message": "Hello, {{$.customerId}}!"
+  }
+}

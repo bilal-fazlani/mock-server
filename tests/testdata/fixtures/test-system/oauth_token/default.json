@@ -1,0 +1,7 @@
+{
+  "status": 200,
+  "body": {
+    "access_token": "mock-token",
+    "token_type": "Bearer"
+  }
+}

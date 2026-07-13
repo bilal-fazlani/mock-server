@@ -1,0 +1,9 @@
+{
+  "description": "Frozen",
+  "status": 200,
+  "body": {
+    "customerId": "{{path:customerId}}",
+    "status": "FROZEN",
+    "checkedAt": "{{now:iso}}"
+  }
+}

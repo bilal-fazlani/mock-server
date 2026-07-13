@@ -1,0 +1,8 @@
+{
+  "description": "Greeting unavailable",
+  "status": 503,
+  "body": {
+    "status": "failure",
+    "message": "Greeting service unavailable"
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "requestBody": {
+    "required": true,
+    "content": {
+      "application/json": {
+        "schema": {
+          "type": "object",
+          "required": ["customerId"],
+          "properties": {
+            "customerId": { "type": "string" }
+          }
+        }
+      }
+    }
+  },
+  "responses": {
+    "200": {
+      "content": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "required": ["customerId", "status", "message"],
+            "properties": {
+              "customerId": { "type": "string" },
+              "status": { "type": "string", "enum": ["success"] },
+              "message": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "5XX": {
+      "content": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "required": ["status", "message"],
+            "properties": {
+              "status": { "type": "string", "enum": ["failure"] },
+              "message": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  }
+}
