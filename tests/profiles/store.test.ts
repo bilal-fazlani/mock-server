@@ -1,6 +1,7 @@
 import { Db, MongoClient } from 'mongodb'
 import { MongoMemoryServer } from 'mongodb-memory-server'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { appendDynamicHistory, getDynamicHistory } from '../../src/lib/dynamic/history-store'
 import {
   advanceScenarioProgress,
   captureProfileKeyMapping,
@@ -41,6 +42,7 @@ beforeEach(async () => {
   await db.collection('profileKeyMappings').deleteMany({})
   await db.collection('globalMockScenarios').deleteMany({})
   await db.collection('scenarioProgress').deleteMany({})
+  await db.collection('dynamicHistory').deleteMany({})
 })
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
@@ -369,6 +371,28 @@ describe('global mock scenario store', () => {
     })
     await clearGlobalMockScenario(db, 'hello-system', 'oauth_token')
     await expect(getGlobalMockScenario(db, 'hello-system', 'oauth_token')).resolves.toBeNull()
+  })
+
+  it('clearing a global selection also drops its global dynamic history', async () => {
+    await upsertGlobalMockScenario(db, {
+      system: 'hello-system',
+      endpoint: 'oauth_token',
+      scenario: 'dynamic',
+    })
+    await appendDynamicHistory(db, 'global', 'hello-system', 'oauth_token', 'expired', 10)
+
+    await clearGlobalMockScenario(db, 'hello-system', 'oauth_token')
+
+    expect(await getDynamicHistory(db, 'global', 'hello-system', 'oauth_token')).toEqual([])
+  })
+
+  it('clearing one global selection leaves another endpoint\'s dynamic history intact', async () => {
+    await appendDynamicHistory(db, 'global', 'hello-system', 'oauth_token', 'expired', 10)
+    await appendDynamicHistory(db, 'global', 'hello-system', 'other_endpoint', 'ok', 10)
+
+    await clearGlobalMockScenario(db, 'hello-system', 'oauth_token')
+
+    expect(await getDynamicHistory(db, 'global', 'hello-system', 'other_endpoint')).toEqual(['ok'])
   })
 
   it('lists global scenario selections sorted by modifiedAt descending', async () => {
