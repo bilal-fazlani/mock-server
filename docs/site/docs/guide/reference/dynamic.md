@@ -121,14 +121,18 @@ request logs, so resolver behavior never depends on log retention:
   `real` proxying happens. An invalid return, a thrown error, or a timeout
   appends **nothing**. `"real"` is recorded like any other slug, so
   `history.at(-1) === 'real'` is meaningful on the next call.
-- **Resettable.** The profile page shows a **Reset dynamic history** button
-  next to an endpoint pinned to `Dynamic`, mirroring the sequence
-  **Reset progress** button — useful for restarting a "pending twice then
-  success" resolver mid-test.
-- **Cleaned up with the profile.** Deleting a profile deletes its dynamic
-  history rows along with its scenario progress. History for an endpoint whose
-  `_dynamic.ts` is later removed is simply orphaned in Mongo (no cleanup job);
-  it resumes being read if the file comes back.
+- **Resettable.** Both the profile page and the global-mocks form show a
+  **Reset dynamic history** button next to an endpoint pinned to `Dynamic`,
+  mirroring the sequence **Reset progress** button — useful for restarting a
+  "pending twice then success" resolver mid-test.
+- **Cleaned up with its owner.** Deleting a profile deletes its dynamic history
+  rows along with its scenario progress. Clearing a global-mock selection
+  (resetting the endpoint back to its default) likewise drops that endpoint's
+  `(global, systemSlug, endpoint)` history — re-pinning it to `Dynamic` later
+  starts fresh. Switching a selection from `Dynamic` to another scenario keeps
+  the history, as does removing an endpoint's `_dynamic.ts`: that history is
+  simply orphaned in Mongo (no cleanup job) and resumes being read if the file
+  comes back.
 
 ## Errors and drift
 
@@ -192,8 +196,10 @@ more entry in its **Single**-mode scenario picker, alongside `default`, any
 other declared scenarios, and `Passthrough`. Selecting it and saving means
 every future call to that endpoint, for that profile, runs the resolver; once
 selected, a **Reset dynamic history** button appears for clearing that
-profile's history window. The same `Dynamic` entry is available on the
-**global mocks** form for global endpoints. On the `/ui/catalog` endpoint page
+profile's history window. The same `Dynamic` entry — and its **Reset dynamic
+history** button — is available on the **global mocks** form for global
+endpoints, clearing that endpoint's global history window. On the
+`/ui/catalog` endpoint page
 it shows up as an expandable card alongside the fixture scenarios and
 `Passthrough`, describing itself as resolved at request time by
 `_dynamic.ts` rather than showing fixture JSON.

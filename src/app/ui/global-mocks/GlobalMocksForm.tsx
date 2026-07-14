@@ -1,6 +1,8 @@
+import { RotateCcw } from 'lucide-react'
 import type { Catalog, EndpointDef, SystemDef } from '../../../lib/catalog/types'
 import type { GlobalMockScenario } from '../../../lib/profiles/store'
 import {
+  DYNAMIC_SCENARIO,
   implicitScenario,
   scenarioOptionsWithDangling,
   scenariosWithPassthrough,
@@ -8,7 +10,7 @@ import {
 import { Alert } from '../../components/Alert'
 import { MethodBadge } from '../../components/MethodBadge'
 import { ScenarioPicker } from '../../components/ScenarioPicker'
-import { saveGlobalMocks } from './actions'
+import { resetGlobalDynamicHistoryAction, saveGlobalMocks } from './actions'
 import styles from '../profiles/ProfileForm.module.css'
 
 function key(system: string, endpoint: string): string {
@@ -95,6 +97,21 @@ export function GlobalMocksForm({
                       selected={selected}
                       unavailable={unavailable}
                     />
+                    {stored === DYNAMIC_SCENARIO && (
+                      <div className={styles.resetFooter}>
+                        <button
+                          formAction={resetGlobalDynamicHistoryAction.bind(
+                            null,
+                            system.slug,
+                            endpoint.name,
+                          )}
+                          className={styles.resetButton}
+                        >
+                          <RotateCcw className={styles.resetIcon} aria-hidden="true" />
+                          Reset dynamic history
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )
               })}
