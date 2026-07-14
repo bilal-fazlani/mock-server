@@ -1,3 +1,5 @@
+import path from 'node:path'
+
 export type UnmockedUsers = 'ERROR' | 'DEFAULT_MOCK' | 'REAL'
 export type ConsoleLogLevel = 'info' | 'warn' | 'error'
 
@@ -49,4 +51,12 @@ export function parseDynamicHistoryLimit(raw: string | undefined): number {
     throw new ConfigError(`DYNAMIC_HISTORY_LIMIT must be a positive integer, got "${raw}"`)
   }
   return n
+}
+
+// Resolve the catalog directory from CATALOG_PATH. A relative value is
+// resolved against the current working directory; an absolute value is used
+// as-is. Defaults to ./catalog. The npx launcher always passes an absolute
+// path here (its own cwd differs from the user's), so this stays cwd-agnostic.
+export function resolveCatalogDir(raw: string | undefined): string {
+  return path.resolve(raw ?? 'catalog')
 }

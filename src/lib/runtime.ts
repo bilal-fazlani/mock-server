@@ -1,5 +1,4 @@
 import fs from 'node:fs'
-import path from 'node:path'
 import { loadCatalog } from './catalog/load'
 import { schemaKey, type SchemaRegistry } from './catalog/schema'
 import type { Catalog } from './catalog/types'
@@ -9,6 +8,7 @@ import {
   parseDynamicHistoryLimit,
   parsePassthroughAsDefault,
   parseUnmockedUsers,
+  resolveCatalogDir,
   type ConsoleLogLevel,
   type UnmockedUsers,
 } from './config'
@@ -87,8 +87,7 @@ export function getRuntime(): Runtime {
   const consoleLogLevel = parseConsoleLogLevel(process.env.MOCK_CONSOLE_LOG_LEVEL)
   const dynamicHistoryLimit = parseDynamicHistoryLimit(process.env.DYNAMIC_HISTORY_LIMIT)
 
-  const root = process.cwd()
-  const catalogDir = path.join(root, 'catalog')
+  const catalogDir = resolveCatalogDir(process.env.CATALOG_PATH)
   const catalog = loadCatalog(catalogDir)
   const { errors: catalogErrors, fixtures, schemas } = validateCatalog(catalog, catalogDir)
   const configErrors = validateAppConfig(catalog, process.env, passthroughAsDefault)
