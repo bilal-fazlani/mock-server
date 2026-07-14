@@ -45,6 +45,16 @@ describe('compileResolver', () => {
     expect(() => r.invoke(input(), 100)).toThrow(ResolverRuntimeError)
   })
 
+  it('classifies a throw whose message contains "timed out" as ResolverRuntimeError', () => {
+    const r = compileResolver(
+      `export default () => { throw new Error('operation timed out while calling upstream') }`,
+      'x/y',
+    )
+    expect(() => r.invoke(input(), 100)).toThrow(ResolverRuntimeError)
+    expect(() => r.invoke(input(), 100)).not.toThrow(ResolverTimeoutError)
+    expect(() => r.invoke(input(), 100)).toThrow(/operation timed out while calling upstream/)
+  })
+
   it('interrupts an infinite loop as ResolverTimeoutError', () => {
     const r = compileResolver(`export default () => { while (true) {} }`, 'x/y')
     expect(() => r.invoke(input(), 50)).toThrow(ResolverTimeoutError)

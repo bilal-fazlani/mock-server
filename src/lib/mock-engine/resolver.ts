@@ -71,8 +71,18 @@ export function compileResolver(source: string, label: string): CompiledResolver
   }
 }
 
+// Real vm timeouts carry Node's documented, stable error code
+// `ERR_SCRIPT_EXECUTION_TIMEOUT`. Detect them by code rather than by matching
+// the message text, so a resolver that legitimately throws an error whose
+// message merely contains "timed out" is still surfaced as a runtime error
+// with its original message intact. Like `.message`, this own-property `code`
+// survives the vm realm crossing, and regular thrown errors do not have it.
 function isTimeout(err: unknown): boolean {
-  return /timed out/i.test(message(err))
+  return (
+    err !== null &&
+    typeof err === 'object' &&
+    (err as { code?: unknown }).code === 'ERR_SCRIPT_EXECUTION_TIMEOUT'
+  )
 }
 
 // Errors thrown by vm timeouts are constructed in the sandbox's realm, so
