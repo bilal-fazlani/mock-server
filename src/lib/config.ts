@@ -57,6 +57,15 @@ export function parseDynamicHistoryLimit(raw: string | undefined): number {
 // resolved against the current working directory; an absolute value is used
 // as-is. Defaults to ./catalog. The npx launcher always passes an absolute
 // path here (its own cwd differs from the user's), so this stays cwd-agnostic.
+//
+// The catalog directory lives outside this project entirely (it's supplied
+// by the user at runtime), so its resolved path is never used to require or
+// bundle repo-internal modules. Without the turbopackIgnore hint, Next's
+// output-file-tracing sees a dynamic path.resolve() argument feeding into
+// later fs reads and — unable to prove it's confined to a safe subfolder —
+// falls back to sweeping the entire project into the standalone build
+// (leaking src/, tests/, docs/, etc.). See the "Encountered unexpected file
+// in NFT list" build warning this silences.
 export function resolveCatalogDir(raw: string | undefined): string {
-  return path.resolve(raw ?? 'catalog')
+  return path.resolve(/*turbopackIgnore: true*/ raw ?? 'catalog')
 }
