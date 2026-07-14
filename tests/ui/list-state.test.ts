@@ -6,6 +6,7 @@ import {
   DOM_CAP,
   flushToTail,
   mergeTail,
+  PENDING_CAP,
   TAIL_CAP,
 } from '../../src/app/ui/logs/list-state'
 import type { LogSummaryView } from '../../src/app/ui/logs/types'
@@ -57,6 +58,13 @@ describe('list-state', () => {
     const known = new Set(['a', 'b'])
     const pending = bufferPending(rows('c'), rows('d', 'c', 'a'), known)
     expect(pending.map((r) => r.logId)).toEqual(['d', 'c'])
+  })
+
+  it('bufferPending caps the buffer at PENDING_CAP, keeping newest', () => {
+    const fresh = rows(...Array.from({ length: PENDING_CAP + 30 }, (_, i) => `f${i}`))
+    const pending = bufferPending([], fresh, new Set<string>())
+    expect(pending).toHaveLength(PENDING_CAP)
+    expect(pending[0].logId).toBe('f0')
   })
 
   it('flushToTail prepends pending, drops older rows, trims to TAIL_CAP', () => {

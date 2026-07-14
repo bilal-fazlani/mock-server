@@ -4,6 +4,7 @@ export const TAIL_CAP = 100
 export const DOM_CAP = 500
 export const OLDER_PAGE_SIZE = 50
 export const TOP_THRESHOLD_PX = 8
+export const PENDING_CAP = 200
 
 /** Unique by logId, keeping the first occurrence (order preserved). */
 function dedupe(entries: LogSummaryView[]): LogSummaryView[] {
@@ -45,7 +46,9 @@ export function bufferPending(
   const additions = fresh.filter((e) => !knownIds.has(e.logId) && !buffered.has(e.logId))
   // Fresh arrivals are newer than everything already buffered, so they go in
   // front to keep the buffer newest-first (matching the list sort).
-  return [...additions, ...pending]
+  // Bound the buffer — under sustained load a scrolled-away user must not
+  // accumulate entries without limit. Newest are kept.
+  return [...additions, ...pending].slice(0, PENDING_CAP)
 }
 
 /** Return to tail: prepend buffered entries, drop loaded-older rows, trim. */

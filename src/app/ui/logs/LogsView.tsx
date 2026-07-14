@@ -11,6 +11,7 @@ import {
   flushToTail,
   mergeTail,
   OLDER_PAGE_SIZE,
+  PENDING_CAP,
 } from './list-state'
 import type { LogSummaryView } from './types'
 import styles from './logs.module.css'
@@ -114,11 +115,13 @@ export function LogsView({
   // Live poll: prepend in tail mode, buffer in browse mode.
   useEffect(() => {
     if (paused) return
+    let cancelled = false
     const timer = setInterval(() => {
       const newest = entriesRef.current[0]?.logId
       fetch(query({ since: newest }))
         .then((res) => res.json())
         .then((data: { entries: LogSummaryView[] }) => {
+          if (cancelled) return
           if (data.entries.length === 0) return
           if (browsingRef.current) {
             const known = new Set(entriesRef.current.map((e) => e.logId))
@@ -129,7 +132,10 @@ export function LogsView({
         })
         .catch(() => {})
     }, POLL_INTERVAL_MS)
-    return () => clearInterval(timer)
+    return () => {
+      cancelled = true
+      clearInterval(timer)
+    }
   }, [query, paused])
 
   const loadOlder = useCallback(() => {
@@ -140,6 +146,7 @@ export function LogsView({
     fetch(query({ before: oldest }))
       .then((res) => res.json())
       .then((data: { entries: LogSummaryView[] }) => {
+        if (!browsingRef.current) return
         if (data.entries.length < OLDER_PAGE_SIZE) setAtFloor(true)
         if (data.entries.length > 0) {
           setEntries((current) => {
@@ -250,7 +257,7 @@ export function LogsView({
       {pending.length > 0 && (
         <button type="button" className={styles.newPill} onClick={jumpToLatest}>
           <ArrowUp style={{ width: 13, height: 13, marginRight: 6, verticalAlign: '-2px' }} aria-hidden="true" />
-          {pending.length} new
+          {pending.length >= PENDING_CAP ? `${PENDING_CAP}+` : pending.length} new
         </button>
       )}
 
