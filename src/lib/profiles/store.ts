@@ -1,4 +1,5 @@
 import { Db, MongoClient, MongoServerError } from 'mongodb'
+import { resolveMongoUri } from '../mongo/embedded'
 
 /**
  * A profile's scenario selection for one endpoint: a single scenario key, or
@@ -78,8 +79,7 @@ let client: MongoClient | null = null
 
 export async function getDb(): Promise<Db> {
   if (!client) {
-    const uri = process.env.MONGODB_CONNECTION_STRING
-    if (!uri) throw new Error('MONGODB_CONNECTION_STRING is not set')
+    const uri = await resolveMongoUri()
     client = new MongoClient(uri)
     await client.connect()
     await ensureIndexes(client.db(dbName()))
