@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { resetDynamicHistory } from '../../../lib/dynamic/history-store'
-import { insertLogEntry, newLogId } from '../../../lib/logs/store'
+import { writeAdminLog } from '../../../lib/logs/admin-log'
 import { parseEndpointScenarios } from '../../../lib/profiles/form'
 import {
   deleteProfile,
@@ -14,24 +14,6 @@ import {
 import { getRuntime } from '../../../lib/runtime'
 import { implicitScenario } from '../../../lib/scenarios'
 
-async function writeAdminLog(
-  profileId: string,
-  adminAction: 'profile_saved' | 'progress_reset',
-  adminEndpoint?: string,
-): Promise<void> {
-  try {
-    await insertLogEntry(await getDb(), {
-      logId: newLogId(),
-      ts: new Date(),
-      kind: 'admin',
-      profileId,
-      trace: { adminAction, ...(adminEndpoint && { adminEndpoint }) },
-    })
-  } catch (err) {
-    console.warn('[mock-log] failed to write admin log entry:', err)
-  }
-}
-
 export async function saveProfile(formData: FormData): Promise<void> {
   const profileId = String(formData.get('profileId') ?? '').trim() || crypto.randomUUID()
   const displayName = String(formData.get('displayName') ?? '').trim() || undefined
@@ -41,7 +23,7 @@ export async function saveProfile(formData: FormData): Promise<void> {
   const endpointScenarios = parseEndpointScenarios(formData, catalog, implicit)
 
   await upsertProfile(await getDb(), { profileId, displayName, endpointScenarios })
-  await writeAdminLog(profileId, 'profile_saved')
+  await writeAdminLog(await getDb(), profileId, 'profile_saved')
   redirect('/ui')
 }
 
@@ -61,7 +43,7 @@ export async function resetScenarioProgressAction(
   if (!profileId || !endpointName) throw new Error('profileId and endpoint are required')
 
   await resetScenarioProgress(await getDb(), profileId, endpointName)
-  await writeAdminLog(profileId, 'progress_reset', endpointName)
+  await writeAdminLog(await getDb(), profileId, 'progress_reset', endpointName)
   revalidatePath(`/ui/profiles/${encodeURIComponent(profileId)}`)
 }
 
@@ -73,6 +55,6 @@ export async function resetDynamicHistoryAction(
   if (!profileId || !endpointName) throw new Error('profileId and endpoint are required')
 
   await resetDynamicHistory(await getDb(), 'profile', profileId, endpointName)
-  await writeAdminLog(profileId, 'progress_reset', endpointName)
+  await writeAdminLog(await getDb(), profileId, 'progress_reset', endpointName)
   revalidatePath(`/ui/profiles/${encodeURIComponent(profileId)}`)
 }
