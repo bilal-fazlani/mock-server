@@ -105,7 +105,8 @@ Add these tests to `tests/logs/store.test.ts`. Import the new names by extending
     )
 
     const [summary] = await listLogSummaries(db, {})
-    expect(summary.request).toBeUndefined()
+    // `request` is projected out; assert absence with `in` (the type omits it).
+    expect('request' in summary).toBe(false)
     expect(summary.response).toEqual({ status: 201 })
     expect(summary.trace).toEqual({ scenario: 'default', scenarioSource: 'implicit' })
     expect('_id' in summary).toBe(false)
