@@ -49,6 +49,9 @@ function handlerWith(
     getProfileKeyMapping: async () => null,
     captureProfileKeyMapping: async () => {},
     advanceScenarioProgress: async () => 1,
+    getCompiledResolver: () => null,
+    getDynamicHistory: async () => [],
+    appendDynamicHistory: async () => {},
     passthrough: async () => {
       throw new Error('not used')
     },

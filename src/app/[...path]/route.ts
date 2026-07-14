@@ -1,3 +1,4 @@
+import { appendDynamicHistory, getDynamicHistory } from '../../lib/dynamic/history-store'
 import { insertLogEntry } from '../../lib/logs/store'
 import {
   advanceScenarioProgress,
@@ -27,6 +28,10 @@ async function handle(
     captureProfileKeyMapping: async (input) => captureProfileKeyMapping(await getDb(), input),
     advanceScenarioProgress: async (profileId, endpointName, steps) =>
       advanceScenarioProgress(await getDb(), profileId, endpointName, steps),
+    getDynamicHistory: async (ownerType, ownerKey, endpointName) =>
+      getDynamicHistory(await getDb(), ownerType, ownerKey, endpointName),
+    appendDynamicHistory: async (ownerType, ownerKey, endpointName, slug) =>
+      appendDynamicHistory(await getDb(), ownerType, ownerKey, endpointName, slug, rt.dynamicHistoryLimit),
     passthrough,
     writeLog: async (entry) => insertLogEntry(await getDb(), entry),
   })
