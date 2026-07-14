@@ -1147,3 +1147,25 @@ Check `docs/site/docs/guide/reference/request-logs.md` for any description of th
 - **Spec coverage:** summary projection + lazy fetch (Tasks 1–3); `before` keyset cursor (Task 1); `since` keyset fix (Task 1); single-entry fetch + detail route (Tasks 1, 3); two-mode polling + "N new ↑" pill (Tasks 4–5); infinite-scroll sentinel + end-of-list floor (Tasks 4–5); ~500 DOM cap + hint (Tasks 4–5); tail cap ~100 (Task 4); filter-change refetch resets to tail (Task 5); testing across store/pure-module/UI (all tasks). Out-of-scope items (numbered pages, virtualization, TTL changes) are not implemented, as intended.
 - **Placeholder scan:** none — every code and test block is complete.
 - **Type consistency:** `LogSummary` (lib) → `toLogSummaryView` → `LogSummaryView` (view) used consistently across store, API, `LogRow`, `LogsView`, and `list-state`; `getLogEntry` → detail route → `initialDetail: LogEntryView` consistent; `list-state` export names match their call sites in `LogsView`.
+
+---
+
+## Post-final-review fixes
+
+The whole-branch review surfaced two Important issues and one related Minor, fixed in a
+follow-up commit after Task 5:
+
+1. **Bound the pending buffer (spec said "bounded"; it wasn't).** `list-state.ts` gains
+   `export const PENDING_CAP = 200`; `bufferPending` returns
+   `[...additions, ...pending].slice(0, PENDING_CAP)`. The "N new ↑" pill shows
+   `PENDING_CAP + '+'` once at the cap. A pure-module test asserts the cap.
+2. **Generation-guard the live poll.** The poll `useEffect` captures `let cancelled = false`,
+   sets it in cleanup, and each fetch `.then` returns early if `cancelled` — so a poll fired
+   just before a filter change can't merge stale-filtered rows.
+3. **Gate `loadOlder`'s response on browse mode.** Its `.then` returns early if
+   `!browsingRef.current`, so a fetch resolving after the user scrolled back to the top can no
+   longer re-assert `atFloor`/`capped`.
+
+Deferred as follow-ups (dev-tool corner cases, self-healing on next refetch): browse-mode poll
+can under-count when >100 entries arrive between polls (the `since` cursor doesn't advance while
+browsing); a paused+capped list scrolled to top isn't trimmed until polling resumes.
