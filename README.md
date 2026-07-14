@@ -25,7 +25,9 @@ Built with [Next.js](https://nextjs.org) and MongoDB.
 
 ## Getting started
 
-Requirements: Node.js 20+ and a MongoDB instance.
+Requirements: Node.js 22+. MongoDB is optional — if `MONGODB_CONNECTION_STRING` isn't
+set, an in-memory MongoDB starts automatically (data is ephemeral); set it to use an
+external MongoDB instead. (The `.env.example` used below points at a local MongoDB.)
 
 ```bash
 npm install
@@ -113,6 +115,7 @@ Environment variables (see `.env.example` for the full list):
 | --- | --- |
 | `MONGODB_CONNECTION_STRING` | MongoDB URI for profiles, global mocks, mappings, and logs. Optional — if unset, an in-memory MongoDB starts automatically (ephemeral data). |
 | `MONGODB_DB` | Database name (default `mockDB`). |
+| `CATALOG_PATH` | Path to the catalog directory (default `./catalog`). A relative path resolves against the server's working directory; an absolute path is used as-is. The `mock-server [catalogPath]` CLI argument, when given, overrides this variable. |
 | `PASSTHROUGH_AS_DEFAULT` | Whether `real` is the implicit scenario. |
 | `UNMOCKED_USERS` | Fallback for unknown profile IDs (`ERROR` / `DEFAULT_MOCK` / `REAL`). |
 | `MOCK_CONSOLE_LOG_LEVEL` | Console request-log threshold. |
