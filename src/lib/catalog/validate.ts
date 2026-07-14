@@ -19,6 +19,7 @@ import type { Catalog } from './types'
 
 const DEFAULT_SCENARIO = 'default'
 const REAL_SCENARIO = 'real'
+const DYNAMIC_SCENARIO = 'dynamic'
 const PROFILE_KEY_NAMESPACE_RE = /^[a-z0-9][a-z0-9_-]*$/
 
 export interface ValidationResult {
@@ -119,9 +120,16 @@ export function validateCatalog(catalog: Catalog, catalogDir: string): Validatio
           `${label}: scenario "${REAL_SCENARIO}" must not exist (real.json) — passthrough is implicit`,
         )
       }
+      if (DYNAMIC_SCENARIO in endpoint.scenarios) {
+        errors.push(
+          `${label}: scenario "${DYNAMIC_SCENARIO}" must not exist (dynamic.json) — ` +
+            `it is reserved for the _dynamic.ts resolver`,
+        )
+      }
 
       for (const scenario of Object.keys(endpoint.scenarios)) {
         if (scenario === REAL_SCENARIO) continue // already flagged above
+        if (scenario === DYNAMIC_SCENARIO) continue // reserved; flagged above
         const file = fixtureFilePath(catalogDir, system.slug, endpoint.name, scenario)
         if (!fs.existsSync(file)) {
           errors.push(`${label}: missing fixture for scenario "${scenario}" (${file})`)

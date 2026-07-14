@@ -14,6 +14,8 @@ export interface EndpointDef {
   scenarios: Record<string, string>
   /** Raw parsed _schema.json (OpenAPI 3.1 operation object), if present. */
   schema?: Record<string, unknown>
+  /** True when a _dynamic.ts resolver file exists in the endpoint directory. */
+  hasResolver?: boolean
 }
 
 export interface SystemDef {

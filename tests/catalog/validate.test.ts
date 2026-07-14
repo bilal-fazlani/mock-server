@@ -267,6 +267,17 @@ describe('validateCatalog', () => {
     expect(errors.join('\n')).toMatch(/"real" must not exist/)
   })
 
+  it('rejects a scenario named "dynamic"', () => {
+    const dir = tmpCatalogDir({
+      'test-system/hello_world/default.json': GOOD_FIXTURE,
+    })
+    const { errors } = validateCatalog(
+      catalog([endpoint({ scenarios: { default: 'Success', dynamic: 'Nope' } })]),
+      dir,
+    )
+    expect(errors.some((e) => e.includes('"dynamic" must not exist'))).toBe(true)
+  })
+
   it('flags invalid fixture shape, malformed placeholders, and undeclared path placeholders', () => {
     const dir = tmpCatalogDir({
       'test-system/hello_world/default.json': { body: {} }, // no status
