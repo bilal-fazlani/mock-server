@@ -1,14 +1,21 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Check, ChevronsUpDown, Trash2 } from 'lucide-react'
+import { ArrowUp, Check, ChevronsUpDown, Trash2 } from 'lucide-react'
 import { clearLogsAction } from './actions'
 import { LogRow } from './LogRow'
-import type { LogEntryView } from './types'
+import {
+  appendOlder,
+  atTop,
+  bufferPending,
+  flushToTail,
+  mergeTail,
+  OLDER_PAGE_SIZE,
+} from './list-state'
+import type { LogSummaryView } from './types'
 import styles from './logs.module.css'
 
 const POLL_INTERVAL_MS = 2000
-const MAX_ENTRIES = 200
 const MAX_SUGGESTIONS = 8
 
 export interface ProfileOption {
@@ -36,42 +43,67 @@ export function LogsView({
   options,
   initialProfile = '',
 }: {
-  initialEntries: LogEntryView[]
+  initialEntries: LogSummaryView[]
   options: LogFilterOptions
   initialProfile?: string
 }) {
-  const [entries, setEntries] = useState<LogEntryView[]>(initialEntries)
+  const [entries, setEntries] = useState<LogSummaryView[]>(initialEntries)
+  const [pending, setPending] = useState<LogSummaryView[]>([])
   const [profile, setProfile] = useState(initialProfile)
   const [endpoint, setEndpoint] = useState('')
   const [errorsOnly, setErrorsOnly] = useState(false)
   const [logIdQuery, setLogIdQuery] = useState('')
   const [paused, setPaused] = useState(false)
+  const [browsing, setBrowsing] = useState(false)
+  const [atFloor, setAtFloor] = useState(false)
+  const [capped, setCapped] = useState(false)
 
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const sentinelRef = useRef<HTMLDivElement>(null)
   const entriesRef = useRef(entries)
+  const pendingRef = useRef(pending)
+  const browsingRef = useRef(browsing)
+  const loadingOlderRef = useRef(false)
   useEffect(() => {
     entriesRef.current = entries
   }, [entries])
+  useEffect(() => {
+    pendingRef.current = pending
+  }, [pending])
+  useEffect(() => {
+    browsingRef.current = browsing
+  }, [browsing])
 
   const query = useCallback(
-    (since?: string) => {
+    (extra?: { since?: string; before?: string }) => {
       const params = new URLSearchParams()
       if (profile) params.set('profile', profile)
       if (endpoint) params.set('endpoint', endpoint)
       if (errorsOnly) params.set('errorsOnly', '1')
       if (logIdQuery) params.set('logId', logIdQuery)
-      if (since) params.set('since', since)
+      if (extra?.since) params.set('since', extra.since)
+      if (extra?.before) {
+        params.set('before', extra.before)
+        params.set('limit', String(OLDER_PAGE_SIZE))
+      }
       return `/ui/api/logs?${params}`
     },
     [profile, endpoint, errorsOnly, logIdQuery],
   )
 
-  // Filter change: full refetch.
+  // Filter change: full refetch, reset to tail.
   useEffect(() => {
     let cancelled = false
     fetch(query())
       .then((res) => res.json())
-      .then((data: { entries: LogEntryView[] }) => {
-        if (!cancelled) setEntries(data.entries)
+      .then((data: { entries: LogSummaryView[] }) => {
+        if (cancelled) return
+        setEntries(data.entries)
+        setPending([])
+        setBrowsing(false)
+        setAtFloor(false)
+        setCapped(false)
+        scrollRef.current?.scrollTo({ top: 0 })
       })
       .catch(() => {})
     return () => {
@@ -79,25 +111,86 @@ export function LogsView({
     }
   }, [query])
 
-  // Live tail: poll for entries newer than the newest one we have.
+  // Live poll: prepend in tail mode, buffer in browse mode.
   useEffect(() => {
     if (paused) return
     const timer = setInterval(() => {
       const newest = entriesRef.current[0]?.logId
-      fetch(query(newest))
+      fetch(query({ since: newest }))
         .then((res) => res.json())
-        .then((data: { entries: LogEntryView[] }) => {
+        .then((data: { entries: LogSummaryView[] }) => {
           if (data.entries.length === 0) return
-          setEntries((current) => {
-            const known = new Set(current.map((e) => e.logId))
-            const fresh = data.entries.filter((e) => !known.has(e.logId))
-            return fresh.length === 0 ? current : [...fresh, ...current].slice(0, MAX_ENTRIES)
-          })
+          if (browsingRef.current) {
+            const known = new Set(entriesRef.current.map((e) => e.logId))
+            setPending((current) => bufferPending(current, data.entries, known))
+          } else {
+            setEntries((current) => mergeTail(current, data.entries))
+          }
         })
         .catch(() => {})
     }, POLL_INTERVAL_MS)
     return () => clearInterval(timer)
   }, [query, paused])
+
+  const loadOlder = useCallback(() => {
+    if (loadingOlderRef.current || atFloor || capped) return
+    const oldest = entriesRef.current[entriesRef.current.length - 1]?.logId
+    if (!oldest) return
+    loadingOlderRef.current = true
+    fetch(query({ before: oldest }))
+      .then((res) => res.json())
+      .then((data: { entries: LogSummaryView[] }) => {
+        if (data.entries.length < OLDER_PAGE_SIZE) setAtFloor(true)
+        if (data.entries.length > 0) {
+          setEntries((current) => {
+            const { rows, capped: hitCap } = appendOlder(current, data.entries)
+            if (hitCap) setCapped(true)
+            return rows
+          })
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        loadingOlderRef.current = false
+      })
+  }, [query, atFloor, capped])
+
+  // Infinite scroll: load older when the sentinel enters view.
+  useEffect(() => {
+    const sentinel = sentinelRef.current
+    if (!sentinel || atFloor || capped) return
+    const observer = new IntersectionObserver(
+      (records) => {
+        if (records[0]?.isIntersecting) loadOlder()
+      },
+      { root: scrollRef.current, rootMargin: '200px' },
+    )
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [loadOlder, atFloor, capped, entries.length])
+
+  const onScroll = useCallback(() => {
+    const top = scrollRef.current?.scrollTop ?? 0
+    const nowBrowsing = !atTop(top)
+    setBrowsing(nowBrowsing)
+    // Returning to the top snaps back to the bounded tail (the next poll trims
+    // via mergeTail). Clear the floor/cap markers so the sentinel re-arms —
+    // otherwise a stale "Beginning of logs"/"Showing latest 500" sticks and
+    // infinite scroll stays dead for the session.
+    if (!nowBrowsing) {
+      setAtFloor(false)
+      setCapped(false)
+    }
+  }, [])
+
+  const jumpToLatest = useCallback(() => {
+    setEntries((current) => flushToTail(current, pendingRef.current))
+    setPending([])
+    setBrowsing(false)
+    setAtFloor(false)
+    setCapped(false)
+    scrollRef.current?.scrollTo({ top: 0 })
+  }, [])
 
   return (
     <div className={styles.page}>
@@ -139,6 +232,10 @@ export function LogsView({
             action={clearLogsAction}
             onSubmit={() => {
               setEntries([])
+              setPending([])
+              setBrowsing(false)
+              setAtFloor(false)
+              setCapped(false)
             }}
           >
             {profile && <input type="hidden" name="profileId" value={profile} />}
@@ -150,10 +247,17 @@ export function LogsView({
         </div>
       </div>
 
+      {pending.length > 0 && (
+        <button type="button" className={styles.newPill} onClick={jumpToLatest}>
+          <ArrowUp style={{ width: 13, height: 13, marginRight: 6, verticalAlign: '-2px' }} aria-hidden="true" />
+          {pending.length} new
+        </button>
+      )}
+
       {entries.length === 0 ? (
         <p className={styles.empty}>No log entries yet — send a request to the mock server.</p>
       ) : (
-        <div className={styles.list}>
+        <div className={styles.list} data-logs-scroll ref={scrollRef} onScroll={onScroll}>
           {entries.map((entry) => (
             <LogRow
               key={entry.logId}
@@ -163,6 +267,13 @@ export function LogsView({
               captureSelectorLabels={options.captureSelectorLabels}
             />
           ))}
+          {capped ? (
+            <p className={styles.floorMarker}>Showing latest 500 — narrow your filters to see older entries.</p>
+          ) : atFloor ? (
+            <p className={styles.floorMarker}>Beginning of logs.</p>
+          ) : (
+            <div data-logs-sentinel ref={sentinelRef} className={styles.sentinel} aria-hidden="true" />
+          )}
         </div>
       )}
     </div>

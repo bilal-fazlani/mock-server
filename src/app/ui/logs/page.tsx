@@ -1,8 +1,8 @@
-import { listLogEntries } from '../../../lib/logs/store'
+import { listLogSummaries } from '../../../lib/logs/store'
 import { getDb, listProfiles } from '../../../lib/profiles/store'
 import { getRuntime } from '../../../lib/runtime'
 import { LogsView } from './LogsView'
-import { toLogEntryView } from './types'
+import { toLogSummaryView } from './types'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,7 +15,7 @@ export default async function LogsPage({
   const db = await getDb()
   const runtime = getRuntime()
   const [entries, profiles] = await Promise.all([
-    listLogEntries(db, { profileId: profile || undefined }),
+    listLogSummaries(db, { profileId: profile || undefined }),
     listProfiles(db, 100),
   ])
   const endpoints = runtime
@@ -42,7 +42,7 @@ export default async function LogsPage({
     <main>
       <h1 style={{ marginBottom: 16 }}>Request logs</h1>
       <LogsView
-        initialEntries={entries.map(toLogEntryView)}
+        initialEntries={entries.map(toLogSummaryView)}
         options={{
           profiles: profiles.map((p) => ({ profileId: p.profileId, displayName: p.displayName })),
           endpoints,
