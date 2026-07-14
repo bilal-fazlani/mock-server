@@ -25,7 +25,12 @@ export function ProfilePageHeader({
         </div>
         <div className={styles.headerActions}>
           {formId && (
-            <button type="submit" form={formId} className={`btnPrimary ${styles.saveButton}`}>
+            <button
+              type="submit"
+              id="profile-save-button"
+              form={formId}
+              className={`btnPrimary ${styles.saveButton}`}
+            >
               <Save className={styles.actionIcon} aria-hidden="true" />
               Save profile
             </button>

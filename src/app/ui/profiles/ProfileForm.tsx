@@ -9,6 +9,7 @@ import { MethodBadge } from '../../components/MethodBadge'
 import { resetScenarioProgressAction, saveProfile } from './actions'
 import { CopyProfileIdButton } from './CopyProfileIdButton'
 import { ScenarioConfig } from './ScenarioConfig'
+import { StaleSelectionGuard } from './StaleSelectionGuard'
 import styles from './ProfileForm.module.css'
 
 export function ProfileForm({
@@ -26,6 +27,9 @@ export function ProfileForm({
   formId?: string
 }) {
   const stale = profile ? staleScenarios(profile, catalog) : {}
+  const staleByEndpoint = Object.fromEntries(
+    Object.entries(stale).map(([name, joined]) => [name, joined.split(', ')]),
+  )
   const gapFallback = implicitScenario(passthroughAsDefault)
   return (
     <>
@@ -76,7 +80,7 @@ export function ProfileForm({
                   <ScenarioConfig
                     endpointName={endpoint.name}
                     scenarios={scenariosWithPassthrough(endpoint, passthroughAsDefault)}
-                    selection={isStale ? undefined : selected}
+                    selection={selected}
                     fallback={gapFallback}
                     servedCount={scenarioProgress[endpoint.name]}
                     resetAction={
@@ -97,6 +101,13 @@ export function ProfileForm({
             })}
           </section>
         ))}
+        {profile && Object.keys(stale).length > 0 && (
+          <StaleSelectionGuard
+            formId={formId}
+            saveButtonId="profile-save-button"
+            staleByEndpoint={staleByEndpoint}
+          />
+        )}
       </form>
     </>
   )

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Catalog } from '../../src/lib/catalog/types'
-import { staleScenarios } from '../../src/lib/profiles/stale'
+import { staleScenarios, unresolvedStaleEndpoints } from '../../src/lib/profiles/stale'
 
 const catalog: Catalog = {
   systems: [
@@ -16,6 +16,15 @@ const catalog: Catalog = {
           path: '/hello/world',
           profileIdSelector: '$.customerId',
           scenarios: { default: 'Success' },
+        },
+        {
+          name: 'resolver_ep',
+          displayName: 'Resolver Endpoint',
+          method: 'GET',
+          path: '/resolver',
+          profileIdSelector: '$.customerId',
+          scenarios: { default: 'Success' },
+          hasResolver: true,
         },
       ],
     },
@@ -71,5 +80,72 @@ describe('staleScenarios', () => {
     expect(
       staleScenarios({ ...base, endpointScenarios: { removed_ep: ['default'] } }, catalog),
     ).toEqual({ removed_ep: 'default' })
+  })
+
+  it('does not flag a "dynamic" pin on an endpoint that has a resolver', () => {
+    expect(
+      staleScenarios({ ...base, endpointScenarios: { resolver_ep: 'dynamic' } }, catalog),
+    ).toEqual({})
+  })
+
+  it('flags a "dynamic" pin on an endpoint that has no resolver', () => {
+    expect(
+      staleScenarios({ ...base, endpointScenarios: { hello_world: 'dynamic' } }, catalog),
+    ).toEqual({ hello_world: 'dynamic' })
+  })
+
+  it('does not flag a "dynamic" step within a sequence on a resolver endpoint', () => {
+    expect(
+      staleScenarios(
+        { ...base, endpointScenarios: { resolver_ep: ['default', 'dynamic'] } },
+        catalog,
+      ),
+    ).toEqual({})
+  })
+})
+
+describe('unresolvedStaleEndpoints', () => {
+  it('flags an endpoint whose single dangling slug is still selected', () => {
+    expect(
+      unresolvedStaleEndpoints({ hello_world: ['legacy'] }, { hello_world: ['legacy'] }),
+    ).toEqual(['hello_world'])
+  })
+
+  it('clears an endpoint once a valid scenario is selected instead', () => {
+    expect(
+      unresolvedStaleEndpoints({ hello_world: ['legacy'] }, { hello_world: ['default'] }),
+    ).toEqual([])
+  })
+
+  it('flags a sequence that still contains a dangling step', () => {
+    expect(
+      unresolvedStaleEndpoints(
+        { hello_world: ['gone'] },
+        { hello_world: ['default', 'gone', 'default'] },
+      ),
+    ).toEqual(['hello_world'])
+  })
+
+  it('clears a sequence once the dangling step is replaced', () => {
+    expect(
+      unresolvedStaleEndpoints(
+        { hello_world: ['gone'] },
+        { hello_world: ['default', 'default'] },
+      ),
+    ).toEqual([])
+  })
+
+  it('treats a stale endpoint absent from selections as unresolved', () => {
+    expect(unresolvedStaleEndpoints({ hello_world: ['legacy'] }, {})).toEqual(['hello_world'])
+  })
+
+  it('treats a stale endpoint with an empty selection as unresolved', () => {
+    expect(unresolvedStaleEndpoints({ hello_world: ['legacy'] }, { hello_world: [] })).toEqual([
+      'hello_world',
+    ])
+  })
+
+  it('returns empty when nothing is stale', () => {
+    expect(unresolvedStaleEndpoints({}, { hello_world: ['legacy'] })).toEqual([])
   })
 })
