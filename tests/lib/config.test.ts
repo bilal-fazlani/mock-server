@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   ConfigError,
   parseConsoleLogLevel,
+  parseDynamicHistoryLimit,
   parsePassthroughAsDefault,
   parseUnmockedUsers,
 } from '../../src/lib/config'
@@ -52,5 +53,20 @@ describe('parseConsoleLogLevel', () => {
 
   it('throws ConfigError for an unrecognized value', () => {
     expect(() => parseConsoleLogLevel('debug')).toThrow(ConfigError)
+  })
+})
+
+describe('parseDynamicHistoryLimit', () => {
+  it('defaults to 10 when unset', () => {
+    expect(parseDynamicHistoryLimit(undefined)).toBe(10)
+  })
+  it('parses a positive integer', () => {
+    expect(parseDynamicHistoryLimit('25')).toBe(25)
+  })
+  it('rejects zero, negatives, and non-integers', () => {
+    expect(() => parseDynamicHistoryLimit('0')).toThrow(ConfigError)
+    expect(() => parseDynamicHistoryLimit('-3')).toThrow(ConfigError)
+    expect(() => parseDynamicHistoryLimit('abc')).toThrow(ConfigError)
+    expect(() => parseDynamicHistoryLimit('1.5')).toThrow(ConfigError)
   })
 })

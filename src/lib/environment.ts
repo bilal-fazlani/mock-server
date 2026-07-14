@@ -69,6 +69,13 @@ export const APP_ENVIRONMENT: EnvironmentDefinition[] = [
     display: true,
   },
   {
+    name: 'DYNAMIC_HISTORY_LIMIT',
+    category: 'Routing',
+    description: 'Number of past returned slugs passed to _dynamic.ts resolvers as history.',
+    defaultValue: '10',
+    display: true,
+  },
+  {
     name: 'NODE_ENV',
     category: 'Runtime',
     description: 'Runtime mode reported by Next.js and Node.',
