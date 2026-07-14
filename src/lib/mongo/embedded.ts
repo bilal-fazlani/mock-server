@@ -21,7 +21,14 @@ async function bootEmbedded(): Promise<string> {
 export async function resolveMongoUri(): Promise<string> {
   const configured = process.env.MONGODB_CONNECTION_STRING
   if (configured) return configured
-  if (!embeddedPromise) embeddedPromise = bootEmbedded()
+  if (!embeddedPromise) {
+    embeddedPromise = bootEmbedded().catch((err) => {
+      // A failed boot must not poison the singleton — clear it so the next
+      // call retries a fresh start rather than returning the dead rejection.
+      embeddedPromise = null
+      throw err
+    })
+  }
   return embeddedPromise
 }
 
