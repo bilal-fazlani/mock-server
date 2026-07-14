@@ -1060,10 +1060,10 @@ Append to `src/app/ui/logs/logs.module.css`:
   align-self: center;
   margin: 8px 0;
   padding: 5px 14px;
-  border: 1px solid var(--border, #e5e7eb);
+  border: 1px solid var(--border);
   border-radius: 999px;
-  background: var(--accent, #2563eb);
-  color: #fff;
+  background: var(--accent);
+  color: var(--button-primary-text);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -1077,9 +1077,11 @@ Append to `src/app/ui/logs/logs.module.css`:
   padding: 12px 14px;
   text-align: center;
   font-size: 12px;
-  color: var(--muted, #6b7280);
+  color: var(--text-muted);
 }
 ```
+
+Also correct the `.detailLoading` rule added in Task 3: change its `color: var(--muted, #6b7280)` to `color: var(--text-muted)` — this codebase defines `--text-muted` (used 18× in this stylesheet), not `--muted`, so the theme-adaptive value applies in both light and dark. (Available tokens: `--accent`, `--border`, `--text-muted`, `--button-primary-text` are all defined in `src/app/globals.css`.)
 
 If `.list` is not already a scroll container, ensure it can scroll by adding to the existing `.list` rule (do not duplicate the selector — edit the current one): `max-height: calc(100vh - 180px); overflow-y: auto;`. Inspect the current `.list` block first; only add the two properties if absent.
 
