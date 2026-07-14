@@ -101,6 +101,14 @@ function ScenarioContent({ scenario }: { scenario: ScenarioView }) {
     )
   }
 
+  if (scenario.kind === 'dynamic') {
+    return (
+      <p className={styles.passthrough}>
+        Resolved at request time by <code>_dynamic.ts</code> — returns a scenario slug per request.
+      </p>
+    )
+  }
+
   if (scenario.kind === 'error') {
     return <p className={styles.error}>{scenario.message}</p>
   }
