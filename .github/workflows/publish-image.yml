@@ -1,15 +1,13 @@
 name: Publish container image
 
-# Links git tags + GitHub Releases + image publishing into one flow:
-#   - Publish a GitHub Release "v1.2.0"  -> tag, notes, and a semver-tagged
+# Build and publish images only for releases (keeps CI minutes down):
+#   - Publish a GitHub Release "v1.2.0" -> tag, notes, and a semver-tagged
 #     image (1.2.0, 1.2, 1, latest) are produced together.
-#   - Every push to main             -> a rolling "edge" image.
-#   - Manual runs                    -> on demand via the Actions UI.
+#   - Manual runs are supported for re-publishing a release: dispatch this
+#     workflow against a tag ref (v*) so the semver tags resolve.
 on:
   release:
     types: [published]
-  push:
-    branches: [main]
   workflow_dispatch:
 
 env:
@@ -24,17 +22,16 @@ jobs:
       packages: write # push to GitHub Packages (ghcr.io)
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
-      # Derive image tags/labels from the triggering ref.
-      # On a release: 1.2.0, 1.2, 1, latest. On main: edge.
+      # Derive image tags/labels from the triggering ref:
+      # a release/tag v1.2.0 -> 1.2.0, 1.2, 1, latest.
       - name: Compute tags and labels
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=edge,branch=main
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
@@ -42,20 +39,20 @@ jobs:
 
       # QEMU + Buildx enable the linux/arm64 build on an amd64 runner.
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile

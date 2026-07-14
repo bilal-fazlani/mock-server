@@ -50,8 +50,8 @@ curl -s -X POST http://localhost:3000/hello/world \
 
 Published images live in the GitHub Container Registry at
 [`ghcr.io/bilal-fazlani/mock-server`](https://github.com/bilal-fazlani/mock-server/pkgs/container/mock-server)
-(multi-arch: `linux/amd64` and `linux/arm64`). Use `latest`, a pinned version tag like
-`1.2.0`, or `edge` for the current `main`.
+(multi-arch: `linux/amd64` and `linux/arm64`). Use `latest` or a pinned version tag
+like `1.2.0`. Images are published only for tagged releases.
 
 ```bash
 docker run --rm -p 3000:3000 \
