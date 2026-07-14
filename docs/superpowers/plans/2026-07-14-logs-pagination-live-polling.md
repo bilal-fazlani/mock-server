@@ -953,7 +953,16 @@ export function LogsView({
 
   const onScroll = useCallback(() => {
     const top = scrollRef.current?.scrollTop ?? 0
-    setBrowsing(!atTop(top))
+    const nowBrowsing = !atTop(top)
+    setBrowsing(nowBrowsing)
+    // Returning to the top snaps back to the bounded tail (the next poll trims
+    // via mergeTail). Clear the floor/cap markers so the sentinel re-arms —
+    // otherwise a stale "Beginning of logs"/"Showing latest 500" sticks and
+    // infinite scroll stays dead for the session.
+    if (!nowBrowsing) {
+      setAtFloor(false)
+      setCapped(false)
+    }
   }, [])
 
   const jumpToLatest = useCallback(() => {
@@ -1006,6 +1015,9 @@ export function LogsView({
             onSubmit={() => {
               setEntries([])
               setPending([])
+              setBrowsing(false)
+              setAtFloor(false)
+              setCapped(false)
             }}
           >
             {profile && <input type="hidden" name="profileId" value={profile} />}
