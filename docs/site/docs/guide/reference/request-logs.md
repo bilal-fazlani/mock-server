@@ -32,6 +32,9 @@ failures. `/_next/` paths are filtered out of console request logs too.
 
 Browse and filter the log at `/ui/logs` (live-updating; filter by profile,
 endpoint, errors, or log ID), or from a profile page's **Recent activity** card.
+New requests stream in at the top; scroll down to load older entries on demand.
+While you are scrolled into history, new arrivals are held behind a **"N new"**
+button instead of jumping the list — click it to return to the live view.
 Every logged request response carries an `x-mock-log-id` header naming its entry —
 print it on a test failure and paste it into the log-ID filter to jump straight to
 that request's trace. Ignored `/_next/` responses do not carry that header.
