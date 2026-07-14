@@ -3,6 +3,7 @@
 
 const path = require('node:path')
 const fs = require('node:fs')
+const os = require('node:os')
 const { spawn } = require('node:child_process')
 const { parseArgs, HELP } = require('./args')
 
@@ -54,7 +55,7 @@ function main() {
   process.on('SIGTERM', () => forward('SIGTERM'))
 
   child.on('exit', (code, signal) => {
-    if (signal) process.kill(process.pid, signal)
+    if (signal) process.exit(128 + (os.constants.signals[signal] ?? 0))
     else process.exit(code ?? 0)
   })
 }
