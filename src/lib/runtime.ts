@@ -37,7 +37,7 @@ let runtime: Runtime | null = null
 // Compiles every endpoint's _dynamic.ts at startup, aggregating failures so
 // they fold into the same fail-fast error list as catalog/config problems —
 // a broken resolver means the server won't boot.
-function compileResolvers(
+export function compileResolvers(
   catalog: Catalog,
   catalogDir: string,
 ): { resolvers: Map<string, CompiledResolver>; errors: string[] } {

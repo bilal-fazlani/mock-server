@@ -1,6 +1,8 @@
 'use server'
 
+import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { resetDynamicHistory } from '../../../lib/dynamic/history-store'
 import {
   clearGlobalMockScenario,
   getDb,
@@ -35,4 +37,14 @@ export async function saveGlobalMocks(formData: FormData): Promise<void> {
   }
 
   redirect('/ui/global-mocks')
+}
+
+export async function resetGlobalDynamicHistoryAction(
+  systemSlug: string,
+  endpointName: string,
+): Promise<void> {
+  if (!systemSlug || !endpointName) throw new Error('system and endpoint are required')
+
+  await resetDynamicHistory(await getDb(), 'global', systemSlug, endpointName)
+  revalidatePath('/ui/global-mocks')
 }

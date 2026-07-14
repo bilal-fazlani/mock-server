@@ -187,6 +187,15 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  max-height: calc(100vh - 180px);
+  overflow-y: auto;
+}
+
+/* Keep rows (and the sentinel) at their natural height — without this, the
+   flex column shrinks children to fit the capped height instead of scrolling,
+   collapsing every row into a thin line. */
+.list > * {
+  flex-shrink: 0;
 }
 
 .empty {
@@ -768,4 +777,34 @@
 .recentEmpty {
   color: var(--text-muted);
   font-size: 0.85rem;
+}
+
+.detailLoading {
+  padding: 10px 14px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.newPill {
+  align-self: center;
+  margin: 8px 0;
+  padding: 5px 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--button-primary-text);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sentinel {
+  height: 1px;
+}
+
+.floorMarker {
+  padding: 12px 14px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
 }

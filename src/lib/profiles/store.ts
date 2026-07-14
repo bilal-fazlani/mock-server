@@ -337,4 +337,9 @@ export async function clearGlobalMockScenario(
   endpoint: string,
 ): Promise<void> {
   await db.collection<GlobalMockScenario>('globalMockScenarios').deleteOne({ system, endpoint })
+  // Mirror deleteProfile's cleanup: clearing a global selection is the
+  // deletion-equivalent, so drop the endpoint's orphaned dynamic history.
+  await db
+    .collection('dynamicHistory')
+    .deleteMany({ ownerType: 'global', ownerKey: system, endpointName: endpoint })
 }

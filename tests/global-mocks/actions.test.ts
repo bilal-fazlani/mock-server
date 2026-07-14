@@ -2,11 +2,21 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const upsertGlobalMockScenarioMock = vi.fn()
 const clearGlobalMockScenarioMock = vi.fn()
+const resetDynamicHistoryMock = vi.fn()
+const revalidatePathMock = vi.fn()
 
 vi.mock('../../src/lib/profiles/store', () => ({
   getDb: vi.fn(async () => ({})),
   upsertGlobalMockScenario: (...args: unknown[]) => upsertGlobalMockScenarioMock(...args),
   clearGlobalMockScenario: (...args: unknown[]) => clearGlobalMockScenarioMock(...args),
+}))
+
+vi.mock('../../src/lib/dynamic/history-store', () => ({
+  resetDynamicHistory: (...args: unknown[]) => resetDynamicHistoryMock(...args),
+}))
+
+vi.mock('next/cache', () => ({
+  revalidatePath: (...args: unknown[]) => revalidatePathMock(...args),
 }))
 
 const redirectMock = vi.fn((url: string) => {
@@ -50,7 +60,9 @@ vi.mock('../../src/lib/runtime', () => ({
   }),
 }))
 
-const { saveGlobalMocks } = await import('../../src/app/ui/global-mocks/actions')
+const { saveGlobalMocks, resetGlobalDynamicHistoryAction } = await import(
+  '../../src/app/ui/global-mocks/actions'
+)
 
 function formData(fields: Record<string, string>): FormData {
   const fd = new FormData()
@@ -61,6 +73,8 @@ function formData(fields: Record<string, string>): FormData {
 beforeEach(() => {
   upsertGlobalMockScenarioMock.mockClear()
   clearGlobalMockScenarioMock.mockClear()
+  resetDynamicHistoryMock.mockClear()
+  revalidatePathMock.mockClear()
   redirectMock.mockClear()
   passthroughAsDefault = false
 })
@@ -123,5 +137,25 @@ describe('saveGlobalMocks', () => {
     ).rejects.toThrow(/not declared/)
     expect(upsertGlobalMockScenarioMock).not.toHaveBeenCalled()
     expect(clearGlobalMockScenarioMock).not.toHaveBeenCalled()
+  })
+})
+
+describe('resetGlobalDynamicHistoryAction', () => {
+  it('resets the global dynamic history and revalidates the page', async () => {
+    await resetGlobalDynamicHistoryAction('hello-system', 'oauth_token')
+
+    expect(resetDynamicHistoryMock).toHaveBeenCalledWith(
+      expect.anything(),
+      'global',
+      'hello-system',
+      'oauth_token',
+    )
+    expect(revalidatePathMock).toHaveBeenCalledWith('/ui/global-mocks')
+  })
+
+  it('rejects a missing system or endpoint', async () => {
+    await expect(resetGlobalDynamicHistoryAction('', 'oauth_token')).rejects.toThrow()
+    await expect(resetGlobalDynamicHistoryAction('hello-system', '')).rejects.toThrow()
+    expect(resetDynamicHistoryMock).not.toHaveBeenCalled()
   })
 })
