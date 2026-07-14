@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import type { Catalog } from '../../src/lib/catalog/types'
-import { staleScenarios, unresolvedStaleEndpoints } from '../../src/lib/profiles/stale'
+import {
+  renderableStaleEndpoints,
+  staleScenarios,
+  unresolvedStaleEndpoints,
+} from '../../src/lib/profiles/stale'
 
 const catalog: Catalog = {
   systems: [
@@ -147,5 +151,23 @@ describe('unresolvedStaleEndpoints', () => {
 
   it('returns empty when nothing is stale', () => {
     expect(unresolvedStaleEndpoints({}, { hello_world: ['legacy'] })).toEqual([])
+  })
+})
+
+describe('renderableStaleEndpoints', () => {
+  it('keeps a stale endpoint that still exists in the catalog', () => {
+    expect(renderableStaleEndpoints({ hello_world: ['legacy'] }, catalog)).toEqual({
+      hello_world: ['legacy'],
+    })
+  })
+
+  it('drops a stale endpoint the catalog no longer has (not user-resolvable)', () => {
+    expect(renderableStaleEndpoints({ removed_ep: ['default'] }, catalog)).toEqual({})
+  })
+
+  it('keeps present endpoints and drops absent ones together', () => {
+    expect(
+      renderableStaleEndpoints({ hello_world: ['legacy'], removed_ep: ['default'] }, catalog),
+    ).toEqual({ hello_world: ['legacy'] })
   })
 })

@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { SquareArrowOutUpRight } from 'lucide-react'
 import type { Catalog } from '../../../lib/catalog/types'
-import { staleScenarios } from '../../../lib/profiles/stale'
+import { renderableStaleEndpoints, staleScenarios } from '../../../lib/profiles/stale'
 import type { MockProfile } from '../../../lib/profiles/store'
 import { implicitScenario, scenariosWithPassthrough } from '../../../lib/scenarios'
 import { Alert } from '../../components/Alert'
@@ -27,8 +27,12 @@ export function ProfileForm({
   formId?: string
 }) {
   const stale = profile ? staleScenarios(profile, catalog) : {}
-  const staleByEndpoint = Object.fromEntries(
-    Object.entries(stale).map(([name, joined]) => [name, joined.split(', ')]),
+  // Only endpoints that still render a control can be resolved by the user, so
+  // the Save guard must ignore pins to endpoints the catalog no longer has
+  // (those self-heal on save via parseEndpointScenarios).
+  const staleByEndpoint = renderableStaleEndpoints(
+    Object.fromEntries(Object.entries(stale).map(([name, joined]) => [name, joined.split(', ')])),
+    catalog,
   )
   const gapFallback = implicitScenario(passthroughAsDefault)
   return (
@@ -101,7 +105,7 @@ export function ProfileForm({
             })}
           </section>
         ))}
-        {profile && Object.keys(stale).length > 0 && (
+        {profile && Object.keys(staleByEndpoint).length > 0 && (
           <StaleSelectionGuard
             formId={formId}
             saveButtonId="profile-save-button"

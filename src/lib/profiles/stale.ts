@@ -24,6 +24,22 @@ export function staleScenarios(profile: MockProfile, catalog: Catalog): Record<s
 }
 
 /**
+ * Restricts a stale-by-endpoint map to endpoints that still exist in the
+ * catalog. A pin to an endpoint the catalog no longer has renders no
+ * card/control the user could touch, and `parseEndpointScenarios` drops it on
+ * save anyway (self-heal) — so it must not gate the Save button.
+ */
+export function renderableStaleEndpoints(
+  staleByEndpoint: Record<string, string[]>,
+  catalog: Catalog,
+): Record<string, string[]> {
+  const present = new Set(catalog.systems.flatMap((s) => s.endpoints.map((e) => e.name)))
+  return Object.fromEntries(
+    Object.entries(staleByEndpoint).filter(([name]) => present.has(name)),
+  )
+}
+
+/**
  * Given the dangling slugs per endpoint (`staleByEndpoint`, e.g. from
  * `staleScenarios` split back into arrays) and the user's current in-form
  * selections per endpoint, returns the endpoint names whose stale pin is not
