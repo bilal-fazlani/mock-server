@@ -12,6 +12,7 @@ shows how they steer routing.
 | `UNMOCKED_USERS` | `ERROR` (default)<br>`DEFAULT_MOCK`<br>`REAL` | What happens when a profiled endpoint extracts a profile ID but **no profile exists** for it. `ERROR`: loud `404`. `DEFAULT_MOCK`: serve the endpoint's `default` fixture. `REAL`: proxy to the live upstream — the classic "mock a few curated users, pass everyone else through" setup. |
 | `PASSTHROUGH_TIMEOUT_MS` | Number of milliseconds<br>(default `30000`) | Timeout for `real` upstream requests. A timeout returns `504`. |
 | `MOCK_CONSOLE_LOG_LEVEL` | `info` (default)<br>`warn`<br>`error` | Controls one-line console request logs. `info` logs every matched or unmatched mock request. `warn` logs warnings and errors. `error` logs only framework/routing/setup failures. See [Request logs](request-logs.md). |
+| `DYNAMIC_HISTORY_LIMIT` | Positive integer<br>(default `10`) | Number of previously-returned scenario slugs kept and passed as `history` to each endpoint's `_dynamic.ts` resolver. See [Dynamic scenarios](dynamic.md). |
 
 !!! note "Scope"
 
@@ -44,9 +45,10 @@ runs until the tree itself is well-formed:
   `mockType` is `profiled` or `global`; `profileIdSelector` is a non-empty string;
   and `captureProfileKeys` is an array of objects with non-empty `namespace` and
   `keySelector` strings.
-- Every entry inside an endpoint directory (other than `_endpoint.json`) is a file
-  named `<scenario>.json`, where `<scenario>` matches `[a-z0-9][a-z0-9_-]*` —
-  anything else (wrong case, bad characters, a sub-directory) is a stray entry.
+- Every entry inside an endpoint directory (other than `_endpoint.json`,
+  `_schema.json`, and `_dynamic.ts`) is a file named `<scenario>.json`, where
+  `<scenario>` matches `[a-z0-9][a-z0-9_-]*` — anything else (wrong case, bad
+  characters, a sub-directory) is a stray entry.
 - Dotfiles anywhere in the tree are silently ignored, not flagged.
 
 Once the tree parses structurally, a second pass checks **semantics** against the
@@ -64,7 +66,8 @@ now-known catalog and reports its own list of errors:
   `captureProfileKeys` is allowed only when a profiled endpoint's
   `profileIdSelector` resolves the profile directly.
 - Every endpoint has a `default.json` scenario file, and **must not** have a
-  `real.json`.
+  `real.json` or a `dynamic.json` — both are reserved slugs, regardless of
+  whether the endpoint has a `_dynamic.ts` (see [Dynamic scenarios](dynamic.md)).
 - Each scenario file is valid JSON with a numeric `status` and a `body` key.
   Fixtures are loaded into memory as part of this pass.
 - Every placeholder inside a fixture is either `now:iso` / `now:YYYYMMDD` or a
@@ -76,6 +79,10 @@ now-known catalog and reports its own list of errors:
   every scenario fixture's `body` must match its status-matched response schema —
   see [Schemas](schemas.md).
 - `PASSTHROUGH_AS_DEFAULT=true` → every system's `baseUrlEnv` is set.
+- Every endpoint's `_dynamic.ts`, if present, compiles and default-exports a
+  function. `npm run validate:catalog` runs this same compilation step, so a
+  broken resolver is caught before deploy — see
+  [Dynamic scenarios](dynamic.md#compilation-sandboxing-and-timeouts).
 
 Since scenarios are now just the files present on disk, there's no such thing as
 an "orphan" fixture anymore — every `<scenario>.json` that structurally belongs in

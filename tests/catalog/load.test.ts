@@ -136,6 +136,19 @@ describe('loadCatalog', () => {
     expect(catalog.systems[0].endpoints[0].scenarios).toEqual({})
   })
 
+  it('marks an endpoint with _dynamic.ts as hasResolver and ignores the file as a scenario', () => {
+    const dir = tmpCatalogDir({
+      'sys/_system.json': SYSTEM_META,
+      'sys/ep/_endpoint.json': ENDPOINT_META,
+      'sys/ep/default.json': FIXTURE,
+      'sys/ep/_dynamic.ts': `export default () => 'default'`,
+    })
+    const catalog = loadCatalog(dir)
+    const ep = catalog.systems[0].endpoints[0]
+    expect(ep.hasResolver).toBe(true)
+    expect(Object.keys(ep.scenarios)).toEqual(['default'])
+  })
+
   it('loads captureProfileKeys from endpoint metadata', () => {
     const dir = tmpCatalogDir({
       'sys/_system.json': SYSTEM_META,

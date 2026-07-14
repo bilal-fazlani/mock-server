@@ -81,4 +81,30 @@ describe('ScenarioPicker', () => {
     expect(css).toMatch(/\.nonDefault:has\(\.input:checked\)\s*{[^}]*background:\s*var\(--warning-bg\);/s)
     expect(css).toMatch(/\.nonDefault:has\(\.input:checked\) \.dot\s*{[^}]*border-color:\s*var\(--warning-text\);/s)
   })
+
+  it('renders an unavailable scenario as a disabled radio that still shows as selected', () => {
+    const html = renderToStaticMarkup(
+      <ScenarioPicker
+        endpointName="hello_world"
+        scenarios={{ ...scenarios, dynamic: 'Dynamic — unavailable (no _dynamic.ts)' }}
+        selected="dynamic"
+        unavailable={['dynamic']}
+      />,
+    )
+    expect(labelClassForValue(html, 'dynamic')).toContain('unavailable')
+    expect(html).toMatch(/<input type="radio" disabled=""[^>]*checked="" value="dynamic"/)
+  })
+
+  it('does not disable scenarios outside the unavailable list', () => {
+    const html = renderToStaticMarkup(
+      <ScenarioPicker
+        endpointName="hello_world"
+        scenarios={scenarios}
+        selected="success"
+        unavailable={['failure']}
+      />,
+    )
+    expect(labelClassForValue(html, 'success')).not.toContain('unavailable')
+    expect(html).not.toContain('disabled="" value="success"')
+  })
 })

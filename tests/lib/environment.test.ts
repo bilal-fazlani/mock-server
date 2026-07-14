@@ -46,6 +46,7 @@ describe('buildEnvironmentRows', () => {
       'UNMOCKED_USERS',
       'MOCK_CONSOLE_LOG_LEVEL',
       'PASSTHROUGH_TIMEOUT_MS',
+      'DYNAMIC_HISTORY_LIMIT',
       'HELLO_SYSTEM_URL',
       'ORDERS_URL',
     ])
@@ -103,5 +104,11 @@ describe('buildEnvironmentRows', () => {
       value: '(not set)',
       status: 'unset',
     })
+  })
+
+  it('includes DYNAMIC_HISTORY_LIMIT with a default of 10', () => {
+    const rows = buildEnvironmentRows({ systems: [] }, {})
+    const row = rows.find((r) => r.name === 'DYNAMIC_HISTORY_LIMIT')
+    expect(row?.value).toBe('(default: 10)')
   })
 })

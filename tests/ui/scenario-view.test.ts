@@ -54,4 +54,16 @@ describe('buildScenarioViews', () => {
     expect(views[0]).toMatchObject({ key: 'real', kind: 'passthrough', url: null })
     expect(views[1]).toMatchObject({ key: 'default' })
   })
+
+  it('includes a dynamic view when the endpoint has a resolver', () => {
+    const views = buildScenarioViews(
+      system,
+      { ...endpoint, hasResolver: true },
+      fixturesDir,
+      {},
+      false,
+    )
+    const dyn = views.find((v) => v.key === 'dynamic')
+    expect(dyn?.kind).toBe('dynamic')
+  })
 })

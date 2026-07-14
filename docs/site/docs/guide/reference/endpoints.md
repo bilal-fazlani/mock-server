@@ -28,6 +28,12 @@ There is no `scenarios` field to fill in. Scenarios are discovered from the
 scenario fixture may carry an optional `description` string used as its UI label —
 see [Fixtures](fixtures.md).
 
+An endpoint directory may also hold an optional `_dynamic.ts` — a code-driven
+scenario picker, sitting alongside the same `_endpoint.json`. Its presence adds
+a reserved `dynamic` scenario to the endpoint (also never a `<scenario>.json`
+file) that defers the pick to that code at request time. See
+[Dynamic scenarios](dynamic.md) for the full contract.
+
 To create a profile-less endpoint, set `"mockType": "global"` and omit
 `profileIdSelector` and `captureProfileKeys`. It still appears in the catalog, but
 its active scenario is edited on the separate `/ui/global-mocks` page instead of

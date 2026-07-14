@@ -3,8 +3,8 @@
 ## Scenarios & the `real` passthrough
 
 Each `<scenario>.json` file in an endpoint directory is a fixture-backed outcome
-the endpoint can produce; the filename (minus `.json`) is the scenario key. Two
-names are reserved:
+the endpoint can produce; the filename (minus `.json`) is the scenario key. A
+few names are reserved:
 
 - `default` — **required on every endpoint** (`default.json` must exist). Served
   when a selection resolves to `default`, and under `UNMOCKED_USERS=DEFAULT_MOCK`.
@@ -14,6 +14,11 @@ names are reserved:
   error). Every endpoint implicitly supports proxying the request to the live
   upstream whose base URL is read from the system's `baseUrlEnv`. The proxied
   status, headers, and body are returned as-is.
+- `dynamic` — **must never have a fixture file** either (a `dynamic.json` is a
+  validation error, same as `real.json`), and only appears **conditionally**:
+  it's offered as a scenario only for endpoints that have a `_dynamic.ts` file
+  in their directory. Selecting it hands the pick to that code instead of a
+  fixed slug — see [Dynamic scenarios](dynamic.md) for the full contract.
 
 !!! warning "Base URL checks depend on the default"
 
@@ -22,6 +27,22 @@ names are reserved:
     startup allows missing base URLs; the UI warns on explicit `real` picks and
     the mock API returns `500` if a request resolves to `real` without an upstream
     URL.
+
+## The `dynamic` scenario
+
+`dynamic` is modeled directly on `real`: a reserved slug that's never a
+fixture file, and is available on every endpoint that qualifies for it. The
+difference is that `real` is unconditional, while `dynamic` only shows up when
+the endpoint directory has a `_dynamic.ts` resolver next to `_endpoint.json`.
+
+Picking `dynamic` for a profile (or a global mock selection) doesn't itself
+determine the response — it defers that decision to the resolver, which runs
+on every request and returns the actual scenario slug (or `real`) to serve.
+That returned slug then flows through the normal pipeline: fixture load or
+`real` passthrough, placeholder templating, schema validation, and logging,
+exactly as if it had been picked directly. The full contract — the input a
+resolver receives, its history window, error handling, and how it shows up in
+the UI — is in [Dynamic scenarios](dynamic.md).
 
 ## Scenario sequences
 
@@ -43,7 +64,9 @@ Sequences are configured in the profile editor at `/ui`: switch an endpoint's ca
 from **Single** to **Sequence**, pick a scenario per step, reorder or remove
 steps, and save. Any declared scenario is a valid step, including `real` — so
 "first call hits the live upstream, later calls are mocked" (or the reverse) is
-expressible. A one-step sequence is saved as a plain single pick.
+expressible — and, for an endpoint with a resolver, `dynamic` too, so one step
+of an otherwise fixed sequence can defer to the resolver. A one-step sequence
+is saved as a plain single pick.
 
 Mechanics worth knowing:
 

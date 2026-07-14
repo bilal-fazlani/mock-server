@@ -10,6 +10,7 @@ nav = [
       { "Endpoints" = "guide/reference/endpoints.md" },
       { "Profiles" = "guide/reference/profiles.md" },
       { "Scenarios" = "guide/reference/scenarios.md" },
+      { "Dynamic scenarios" = "guide/reference/dynamic.md" },
       { "Fixtures" = "guide/reference/fixtures.md" },
       { "Schemas" = "guide/reference/schemas.md" },
       { "Configuration" = "guide/reference/configuration.md" },

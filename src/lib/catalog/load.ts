@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import { DYNAMIC_FILE } from '../mock-engine/resolver'
 import type { Catalog, EndpointDef, SystemDef } from './types'
 
 const SYSTEM_META = '_system.json'
@@ -45,8 +46,13 @@ export function loadCatalog(catalogDir: string): Catalog {
       const schemaFile = path.join(endpointDir, SCHEMA_META)
       const schemaMeta = fs.existsSync(schemaFile) ? readMetaFile(schemaFile, problems) : null
 
+      let hasResolver = false
       const scenarios: Record<string, string> = {}
       for (const fixEntry of sortedEntries(endpointDir)) {
+        if (fixEntry.name === DYNAMIC_FILE) {
+          hasResolver = true
+          continue
+        }
         if (fixEntry.name === ENDPOINT_META || fixEntry.name === SCHEMA_META) continue
         const match = fixEntry.isFile() ? SCENARIO_FILE.exec(fixEntry.name) : null
         if (!match) {
@@ -71,6 +77,7 @@ export function loadCatalog(catalogDir: string): Catalog {
         ...optionalProfileIdSelector(epMeta),
         ...optionalCaptureProfileKeys(epMeta, label, problems),
         scenarios: orderDefaultFirst(scenarios),
+        ...(hasResolver ? { hasResolver: true } : {}),
         ...(schemaMeta ? { schema: schemaMeta } : {}),
       })
     }

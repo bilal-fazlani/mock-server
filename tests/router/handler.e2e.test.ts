@@ -24,6 +24,9 @@ function handlerWith(profiles: Record<string, Partial<MockProfile>>, overrides: 
     getGlobalMockScenario: async () => null,
     captureProfileKeyMapping: async () => {},
     advanceScenarioProgress: async () => 1,
+    getCompiledResolver: () => null,
+    getDynamicHistory: async () => [],
+    appendDynamicHistory: async () => {},
     passthrough: async () => ({
       status: 299,
       headers: { 'x-proxied': '1' },

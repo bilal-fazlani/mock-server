@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Check, ChevronsUpDown, GripVertical, Plus, Repeat, RotateCcw, X } from 'lucide-react'
 import type { ScenarioSelection } from '../../../lib/profiles/store'
+import { scenarioOptionsWithDangling } from '../../../lib/scenarios'
 import { ScenarioPicker } from '../../components/ScenarioPicker'
 import styles from './ScenarioConfig.module.css'
 
@@ -15,6 +16,7 @@ export function ScenarioConfig({
   fallback,
   servedCount,
   resetAction,
+  resetDynamicAction,
 }: {
   endpointName: string
   scenarios: Record<string, string>
@@ -24,7 +26,10 @@ export function ScenarioConfig({
   servedCount?: number
   /** Server action for the reset-progress button; omitted for new profiles. */
   resetAction?: (formData: FormData) => Promise<void>
+  /** Server action for the reset-dynamic-history button; omitted for new profiles. */
+  resetDynamicAction?: (formData: FormData) => Promise<void>
 }) {
+  const { options, unavailable } = scenarioOptionsWithDangling(scenarios, selection)
   const savedSteps = Array.isArray(selection) ? selection : null
   const [mode, setMode] = useState<Mode>(savedSteps ? 'sequence' : 'single')
   const [steps, setSteps] = useState<string[]>(savedSteps ?? [])
@@ -87,7 +92,20 @@ export function ScenarioConfig({
             if (target?.name === `scenario:${endpointName}`) setSingleValue(target.value)
           }}
         >
-          <ScenarioPicker endpointName={endpointName} scenarios={scenarios} selected={singleValue} />
+          <ScenarioPicker
+            endpointName={endpointName}
+            scenarios={options}
+            selected={singleValue}
+            unavailable={unavailable}
+          />
+          {singleValue === 'dynamic' && resetDynamicAction && (
+            <div className={styles.sequenceFooter}>
+              <button formAction={resetDynamicAction} className={styles.resetButton}>
+                <RotateCcw className={styles.stepButtonIcon} aria-hidden="true" />
+                Reset dynamic history
+              </button>
+            </div>
+          )}
         </div>
       ) : (
         <div
@@ -166,7 +184,7 @@ export function ScenarioConfig({
                 </span>
                 <ScenarioSelect
                   value={step}
-                  scenarios={scenarios}
+                  scenarios={options}
                   onChange={(value) => setStep(index, value)}
                   ariaLabel={`Scenario for step ${index + 1}`}
                 />

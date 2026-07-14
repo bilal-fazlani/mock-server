@@ -100,6 +100,9 @@ export async function ensureIndexes(db: Db): Promise<void> {
   await db
     .collection('scenarioProgress')
     .createIndex({ profileId: 1, endpointName: 1 }, { unique: true })
+  await db
+    .collection('dynamicHistory')
+    .createIndex({ ownerType: 1, ownerKey: 1, endpointName: 1 }, { unique: true })
   // Request logs expire after 24 hours; see src/lib/logs/store.ts.
   await db.collection('requestLogs').createIndex({ ts: 1 }, { expireAfterSeconds: 86400 })
   await db.collection('requestLogs').createIndex({ logId: 1 }, { unique: true })
@@ -151,6 +154,7 @@ export async function deleteProfile(db: Db, profileId: string): Promise<void> {
   await db.collection<ProfileKeyMapping>('profileKeyMappings').deleteMany({ profileId })
   await db.collection<ScenarioProgress>('scenarioProgress').deleteMany({ profileId })
   await db.collection('requestLogs').deleteMany({ profileId })
+  await db.collection('dynamicHistory').deleteMany({ ownerType: 'profile', ownerKey: profileId })
 }
 
 /**
@@ -333,4 +337,9 @@ export async function clearGlobalMockScenario(
   endpoint: string,
 ): Promise<void> {
   await db.collection<GlobalMockScenario>('globalMockScenarios').deleteOne({ system, endpoint })
+  // Mirror deleteProfile's cleanup: clearing a global selection is the
+  // deletion-equivalent, so drop the endpoint's orphaned dynamic history.
+  await db
+    .collection('dynamicHistory')
+    .deleteMany({ ownerType: 'global', ownerKey: system, endpointName: endpoint })
 }

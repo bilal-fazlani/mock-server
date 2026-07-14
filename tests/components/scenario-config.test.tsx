@@ -129,4 +129,29 @@ describe('ScenarioConfig', () => {
     )
     expect(html).not.toContain('calls served')
   })
+
+  it('shows a dangling single selection as a disabled, checked, labeled option', () => {
+    const html = renderToStaticMarkup(
+      <ScenarioConfig
+        endpointName="hello_world"
+        scenarios={scenarios}
+        selection="dynamic"
+        fallback="default"
+      />,
+    )
+    expect(html).toContain('Dynamic — unavailable (no _dynamic.ts)')
+    expect(html).toMatch(/<input type="radio" disabled=""[^>]*checked="" value="dynamic"/)
+  })
+
+  it('shows a dangling sequence step with its unavailable label', () => {
+    const html = renderToStaticMarkup(
+      <ScenarioConfig
+        endpointName="hello_world"
+        scenarios={scenarios}
+        selection={['default', 'gone']}
+        fallback="default"
+      />,
+    )
+    expect(html).toContain('gone — unavailable')
+  })
 })

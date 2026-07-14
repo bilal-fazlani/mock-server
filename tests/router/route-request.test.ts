@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { buildSchemaRegistry } from '../../src/lib/catalog/schema'
 import type { Catalog } from '../../src/lib/catalog/types'
 import { loadFixture } from '../../src/lib/mock-engine/fixtures'
+import { ResolverRuntimeError } from '../../src/lib/mock-engine/resolver'
 import {
   ProfileKeyMappingConflictError,
   type MockProfile,
@@ -101,6 +102,15 @@ const CATALOG: Catalog = {
           scenarios: { default: 'Success' },
         },
         {
+          name: 'dynamic_ep',
+          displayName: 'Dynamic Ep',
+          method: 'POST',
+          path: '/dynamic-ep',
+          profileIdSelector: '$.customerId',
+          scenarios: { default: 'Success', failure: 'Failure' },
+          hasResolver: true,
+        },
+        {
           name: 'schema_checked',
           displayName: 'Schema Checked',
           method: 'POST',
@@ -177,6 +187,9 @@ function deps(overrides: Partial<RouterDeps> = {}): RouterDeps & {
     getProfileKeyMapping: async () => null,
     captureProfileKeyMapping: async () => {},
     advanceScenarioProgress: async () => 1,
+    getCompiledResolver: () => null,
+    getDynamicHistory: async () => [],
+    appendDynamicHistory: async () => {},
     passthrough: async (req) => {
       passthroughCalls.push(req)
       return proxied
@@ -963,5 +976,114 @@ describe('schema drift probe (proxy path, warn-only)', () => {
     await routeRequest(post('/hello/world', { customerId: 'c1' }), d)
     expect(warn).not.toHaveBeenCalled()
     warn.mockRestore()
+  })
+})
+
+describe('dynamic resolver', () => {
+  it('runs the resolver, serves the returned fixture, and records history', async () => {
+    const appended: string[] = []
+    const d = deps({
+      getProfile: async () => profile({ endpointScenarios: { dynamic_ep: 'dynamic' } }),
+      getCompiledResolver: () => ({ invoke: (i) => (i.history.length === 0 ? 'failure' : 'default') }),
+      getDynamicHistory: async () => [],
+      appendDynamicHistory: async (_t, _k, _e, slug) => {
+        appended.push(slug)
+      },
+    })
+    const trace: RouteTrace = {}
+    const res = await routeRequest(post('/dynamic-ep', { customerId: 'c1' }), { ...d, trace })
+    expect(res.status).toBe(422) // failure.json status
+    expect(trace.scenarioSource).toBe('dynamic')
+    expect(trace.dynamic).toEqual({ returned: 'failure' })
+    expect(trace.scenario).toBe('failure')
+    expect(appended).toEqual(['failure'])
+  })
+
+  it('returning "real" triggers passthrough', async () => {
+    const d = deps({
+      getProfile: async () => profile({ endpointScenarios: { dynamic_ep: 'dynamic' } }),
+      getCompiledResolver: () => ({ invoke: () => 'real' }),
+    })
+    const trace: RouteTrace = {}
+    const res = await routeRequest(post('/dynamic-ep', { customerId: 'c1' }), { ...d, trace })
+    expect(res.status).toBe(299)
+    expect(d.passthroughCalls).toHaveLength(1)
+    expect(trace.outcome).toBe('passthrough')
+    expect(trace.dynamic).toEqual({ returned: 'real' })
+  })
+
+  it('500s when the pin is dynamic but there is no resolver (drift)', async () => {
+    const d = deps({
+      getProfile: async () => profile({ endpointScenarios: { dynamic_ep: 'dynamic' } }),
+      getCompiledResolver: () => null,
+    })
+    const trace: RouteTrace = {}
+    const res = await routeRequest(post('/dynamic-ep', { customerId: 'c1' }), { ...d, trace })
+    expect(res.status).toBe(500)
+    expect(trace.error?.code).toBe('dynamic_resolver_missing')
+  })
+
+  it('500s on a bad return value and records nothing', async () => {
+    const appended: string[] = []
+    const d = deps({
+      getProfile: async () => profile({ endpointScenarios: { dynamic_ep: 'dynamic' } }),
+      getCompiledResolver: () => ({ invoke: () => 'nonexistent' }),
+      appendDynamicHistory: async (_t, _k, _e, slug) => {
+        appended.push(slug)
+      },
+    })
+    const trace: RouteTrace = {}
+    const res = await routeRequest(post('/dynamic-ep', { customerId: 'c1' }), { ...d, trace })
+    expect(res.status).toBe(500)
+    expect(trace.error?.code).toBe('dynamic_bad_return')
+    expect(appended).toEqual([])
+  })
+
+  it('500s when the resolver throws', async () => {
+    const d = deps({
+      getProfile: async () => profile({ endpointScenarios: { dynamic_ep: 'dynamic' } }),
+      getCompiledResolver: () => ({
+        invoke: () => {
+          throw new ResolverRuntimeError('boom')
+        },
+      }),
+    })
+    const trace: RouteTrace = {}
+    const res = await routeRequest(post('/dynamic-ep', { customerId: 'c1' }), { ...d, trace })
+    expect(res.status).toBe(500)
+    expect(trace.error?.code).toBe('dynamic_threw')
+  })
+
+  it('500s with dynamic_compile_error when getCompiledResolver throws (dev-mode compile failure)', async () => {
+    const d = deps({
+      getProfile: async () => profile({ endpointScenarios: { dynamic_ep: 'dynamic' } }),
+      getCompiledResolver: () => {
+        throw new Error('_dynamic.ts:3 unexpected token')
+      },
+    })
+    const trace: RouteTrace = {}
+    const res = await routeRequest(post('/dynamic-ep', { customerId: 'c1' }), { ...d, trace })
+    expect(res.status).toBe(500)
+    expect(trace.error?.code).toBe('dynamic_compile_error')
+  })
+
+  it('does not let a resolver mutate its input affect the served response', async () => {
+    const d = deps({
+      getProfile: async () => profile({ endpointScenarios: { dynamic_ep: 'dynamic' } }),
+      getCompiledResolver: () => ({
+        invoke: (i) => {
+          // Attempt to corrupt the shared request context by reference.
+          ;(i.request.body as Record<string, unknown>).customerId = 'tampered'
+          i.request.headers['x-tampered'] = 'yes'
+          return 'default'
+        },
+      }),
+    })
+    const trace: RouteTrace = {}
+    const req = post('/dynamic-ep', { customerId: 'c1' })
+    const res = await routeRequest(req, { ...d, trace })
+    expect(res.status).toBe(200)
+    const body = JSON.parse(res.bodyBytes.toString('utf8'))
+    expect(body.customerId).toBe('c1')
   })
 })
