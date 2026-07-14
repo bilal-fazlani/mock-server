@@ -14,6 +14,15 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  {
+    // bin/ scripts are plain CommonJS (no "type": "module" in package.json,
+    // and no build step runs before they're executed by npx), so they use
+    // require() intentionally rather than ESM imports.
+    files: ["bin/**/*.js"],
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+    },
+  },
 ]);
 
 export default eslintConfig;

@@ -1,14 +1,24 @@
 {
   "name": "mock-server",
   "version": "0.1.0",
-  "private": true,
+  "bin": {
+    "mock-server": "bin/mock-server.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "files": [
+    ".next/standalone",
+    "bin"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "validate:catalog": "tsx scripts/validate-catalog.ts"
+    "validate:catalog": "tsx scripts/validate-catalog.ts",
+    "prepublishOnly": "npm run build && cp -r .next/static .next/standalone/.next/static && cp -r public .next/standalone/public"
   },
   "dependencies": {
     "ajv": "^8.20.0",
