@@ -51,7 +51,7 @@ curl -s -X POST http://localhost:3000/hello/world \
 ## Install via npm
 
 ```bash
-npx mock-server ./catalog
+npx @bilal-fazlani/mock-server ./catalog
 ```
 
 The positional argument is the catalog directory (default `./catalog`, relative

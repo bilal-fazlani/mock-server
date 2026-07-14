@@ -10,7 +10,7 @@ The fastest way to try it locally, against a `catalog/` directory in the current
 folder:
 
 ```bash
-npx mock-server ./catalog
+npx @bilal-fazlani/mock-server ./catalog
 ```
 
 No external MongoDB is required to get started — if `MONGODB_CONNECTION_STRING`

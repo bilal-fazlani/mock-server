@@ -8,7 +8,7 @@ shows how they steer routing.
 
 | Variable | Values | Meaning |
 | --- | --- | --- |
-| `CATALOG_PATH` | Directory path<br>(default `./catalog`) | Where the catalog tree is loaded from. A relative path resolves against the server's working directory; an absolute path is used as-is. The `npx mock-server [catalogPath]` CLI argument, when given, overrides this variable. |
+| `CATALOG_PATH` | Directory path<br>(default `./catalog`) | Where the catalog tree is loaded from. A relative path resolves against the server's working directory; an absolute path is used as-is. The `npx @bilal-fazlani/mock-server [catalogPath]` CLI argument, when given, overrides this variable. |
 | `MONGODB_CONNECTION_STRING` | Mongo connection URI<br>(optional) | External MongoDB for profiles, global mock selections, profile key mappings, and request logs. If unset, an in-memory MongoDB starts automatically on first use — data is ephemeral and lost on restart. The published Docker image bakes in a `mongod` binary so this embedded fallback works fully offline. |
 | `PASSTHROUGH_AS_DEFAULT` | `false` (default)<br>`true` | Controls what an omitted selection means. `false`: `default` is the implicit scenario, appears first in pickers, and is not stored when selected. `true`: `real` is the implicit scenario, appears first in pickers, and is not stored when selected. Passthrough itself is always allowed. |
 | `UNMOCKED_USERS` | `ERROR` (default)<br>`DEFAULT_MOCK`<br>`REAL` | What happens when a profiled endpoint extracts a profile ID but **no profile exists** for it. `ERROR`: loud `404`. `DEFAULT_MOCK`: serve the endpoint's `default` fixture. `REAL`: proxy to the live upstream — the classic "mock a few curated users, pass everyone else through" setup. |
