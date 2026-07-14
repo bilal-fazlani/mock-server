@@ -19,7 +19,7 @@ Six concepts:
 | **Profile** | A record keyed by a *business ID* (e.g. `customer-123`) that stores, per profiled endpoint, which scenario that caller should receive — but *only where it differs from* the configured implicit scenario. A pick can also be an ordered [scenario sequence](guide/reference/scenarios.md#scenario-sequences) served call-by-call. Stored in MongoDB, edited in the UI at `/ui`. |
 | **Global mock selection** | A shared scenario pick for a profile-less endpoint. Stored once in MongoDB, applies to every caller, and is edited on `/ui/global-mocks`. |
 | **Profile key mapping** | A MongoDB lookup from another request key to a profile ID, such as `event-id / evt-123 → customer-123`. Useful when a later callback has an event ID but no profile ID. |
-| **Scenario** | A named outcome for an endpoint, one `<scenario>.json` fixture file per scenario. Every endpoint must have a `default.json`; the special `real` scenario (proxy to the live upstream) is *implicit on every endpoint* and must never have a fixture file. |
+| **Scenario** | A named outcome for an endpoint, one `<scenario>.json` fixture file per scenario. Every endpoint must have a `default.json`; the special `real` scenario (proxy to the live upstream) is *implicit on every endpoint* and must never have a fixture file. An endpoint with a `_dynamic.ts` also gains a reserved `dynamic` scenario that defers the pick to that code — see [Dynamic scenarios](guide/reference/dynamic.md). |
 | **Fixture** | The canned JSON response (status + headers + body) backing one scenario file, with optional request-driven placeholders. |
 
 At request time the engine does this:
@@ -54,6 +54,7 @@ catalog/
     hello_world/                # endpoint directory; its name IS the endpoint name
       _endpoint.json            # { "displayName", "method", "path", optional "mockType", "profileIdSelector", "captureProfileKeys" }
       _schema.json              # optional — request/response JSON Schema, see Schemas
+      _dynamic.ts               # optional — code-driven scenario picker, see Dynamic scenarios
       default.json              # required — every endpoint needs a default scenario
       failure.json              # any other <scenario>.json is a scenario
 ```
