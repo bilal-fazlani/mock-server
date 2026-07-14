@@ -191,6 +191,13 @@
   overflow-y: auto;
 }
 
+/* Keep rows (and the sentinel) at their natural height — without this, the
+   flex column shrinks children to fit the capped height instead of scrolling,
+   collapsing every row into a thin line. */
+.list > * {
+  flex-shrink: 0;
+}
+
 .empty {
   padding: 24px;
   color: var(--text-muted);
