@@ -305,7 +305,21 @@ async function resolveDynamic(
   deps: RouterDeps,
   trace: RouteTrace,
 ): Promise<{ ok: true; scenario: string } | { ok: false; result: RouteResult }> {
-  const compiled = deps.getCompiledResolver(system.slug, endpoint.name)
+  let compiled: CompiledResolver | null
+  try {
+    compiled = deps.getCompiledResolver(system.slug, endpoint.name)
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    traceError(trace, 'dynamic_compile_error', message)
+    return {
+      ok: false,
+      result: jsonResult(500, {
+        error: 'dynamic resolver failed to compile',
+        endpoint: endpoint.name,
+        message,
+      }),
+    }
+  }
   if (!compiled) {
     traceError(
       trace,
@@ -336,10 +350,15 @@ async function resolveDynamic(
     history,
     profileId,
   }
+  // Isolate the resolver's input from the live request context: resolveDynamic
+  // runs before request-schema validation, captureProfileKeys, and template
+  // resolution, all of which still read ctx. A resolver that mutates its input
+  // by reference must not be able to corrupt the response served afterward.
+  const isolatedInput = structuredClone(input)
 
   let returned: unknown
   try {
-    returned = compiled.invoke(input, deps.dynamicResolverTimeoutMs ?? DEFAULT_DYNAMIC_TIMEOUT_MS)
+    returned = compiled.invoke(isolatedInput, deps.dynamicResolverTimeoutMs ?? DEFAULT_DYNAMIC_TIMEOUT_MS)
   } catch (err) {
     if (err instanceof ResolverTimeoutError) {
       traceError(trace, 'dynamic_timeout', err.message)

@@ -1053,4 +1053,37 @@ describe('dynamic resolver', () => {
     expect(res.status).toBe(500)
     expect(trace.error?.code).toBe('dynamic_threw')
   })
+
+  it('500s with dynamic_compile_error when getCompiledResolver throws (dev-mode compile failure)', async () => {
+    const d = deps({
+      getProfile: async () => profile({ endpointScenarios: { dynamic_ep: 'dynamic' } }),
+      getCompiledResolver: () => {
+        throw new Error('_dynamic.ts:3 unexpected token')
+      },
+    })
+    const trace: RouteTrace = {}
+    const res = await routeRequest(post('/dynamic-ep', { customerId: 'c1' }), { ...d, trace })
+    expect(res.status).toBe(500)
+    expect(trace.error?.code).toBe('dynamic_compile_error')
+  })
+
+  it('does not let a resolver mutate its input affect the served response', async () => {
+    const d = deps({
+      getProfile: async () => profile({ endpointScenarios: { dynamic_ep: 'dynamic' } }),
+      getCompiledResolver: () => ({
+        invoke: (i) => {
+          // Attempt to corrupt the shared request context by reference.
+          ;(i.request.body as Record<string, unknown>).customerId = 'tampered'
+          i.request.headers['x-tampered'] = 'yes'
+          return 'default'
+        },
+      }),
+    })
+    const trace: RouteTrace = {}
+    const req = post('/dynamic-ep', { customerId: 'c1' })
+    const res = await routeRequest(req, { ...d, trace })
+    expect(res.status).toBe(200)
+    const body = JSON.parse(res.bodyBytes.toString('utf8'))
+    expect(body.customerId).toBe('c1')
+  })
 })

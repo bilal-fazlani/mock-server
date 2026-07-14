@@ -2,6 +2,7 @@ import path from 'node:path'
 import { validateAppConfig, validateCatalog } from '../src/lib/catalog/validate'
 import { ConfigError, parsePassthroughAsDefault } from '../src/lib/config'
 import { CatalogLoadError, loadCatalog } from '../src/lib/catalog/load'
+import { compileResolvers } from '../src/lib/runtime'
 
 const root = process.cwd()
 let catalog
@@ -26,7 +27,9 @@ try {
   else throw err
 }
 
-const errors = [...catalogErrors, ...configErrors]
+const { errors: resolverErrors } = compileResolvers(catalog, path.join(root, 'catalog'))
+
+const errors = [...catalogErrors, ...configErrors, ...resolverErrors]
 if (errors.length > 0) {
   console.error('Catalog validation FAILED:')
   for (const e of errors) console.error(` - ${e}`)
