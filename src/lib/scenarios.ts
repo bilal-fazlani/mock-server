@@ -32,3 +32,18 @@ export function isScenarioDeclared(endpoint: EndpointDef, scenario: string): boo
 export function danglingScenarioLabel(slug: string): string {
   return slug === DYNAMIC_SCENARIO ? 'Dynamic — unavailable (no _dynamic.ts)' : `${slug} — unavailable`
 }
+
+export function scenarioOptionsWithDangling(
+  offered: Record<string, string>,
+  selection: string | string[] | undefined,
+): { options: Record<string, string>; unavailable: string[] } {
+  const selected = selection === undefined ? [] : Array.isArray(selection) ? selection : [selection]
+  const options = { ...offered }
+  const unavailable: string[] = []
+  for (const slug of selected) {
+    if (slug in options || unavailable.includes(slug)) continue
+    options[slug] = danglingScenarioLabel(slug)
+    unavailable.push(slug)
+  }
+  return { options, unavailable }
+}

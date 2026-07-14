@@ -77,3 +77,12 @@
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+
+.unavailable {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.unavailable .label {
+  text-decoration: line-through;
+}

@@ -3,6 +3,7 @@ import type { EndpointDef } from '../../src/lib/catalog/types'
 import {
   danglingScenarioLabel,
   DYNAMIC_SCENARIO,
+  scenarioOptionsWithDangling,
   scenariosWithPassthrough,
 } from '../../src/lib/scenarios'
 
@@ -29,5 +30,31 @@ describe('danglingScenarioLabel', () => {
   })
   it('generic for other slugs', () => {
     expect(danglingScenarioLabel('frozen')).toBe('frozen — unavailable')
+  })
+})
+
+describe('scenarioOptionsWithDangling', () => {
+  const offered = { default: 'Default', real: 'Passthrough' }
+
+  it('leaves options untouched when the selection is offered', () => {
+    const r = scenarioOptionsWithDangling(offered, 'default')
+    expect(r.options).toEqual(offered)
+    expect(r.unavailable).toEqual([])
+  })
+
+  it('adds a dangling entry for a missing single selection', () => {
+    const r = scenarioOptionsWithDangling(offered, 'dynamic')
+    expect(r.options.dynamic).toBe('Dynamic — unavailable (no _dynamic.ts)')
+    expect(r.unavailable).toEqual(['dynamic'])
+  })
+
+  it('adds dangling entries for missing sequence steps', () => {
+    const r = scenarioOptionsWithDangling(offered, ['default', 'gone', 'dynamic'])
+    expect(r.unavailable.sort()).toEqual(['dynamic', 'gone'])
+    expect(r.options.gone).toBe('gone — unavailable')
+  })
+
+  it('ignores an undefined selection', () => {
+    expect(scenarioOptionsWithDangling(offered, undefined).unavailable).toEqual([])
   })
 })

@@ -1,6 +1,10 @@
 import type { Catalog, EndpointDef, SystemDef } from '../../../lib/catalog/types'
 import type { GlobalMockScenario } from '../../../lib/profiles/store'
-import { implicitScenario, scenariosWithPassthrough } from '../../../lib/scenarios'
+import {
+  implicitScenario,
+  scenarioOptionsWithDangling,
+  scenariosWithPassthrough,
+} from '../../../lib/scenarios'
 import { Alert } from '../../components/Alert'
 import { MethodBadge } from '../../components/MethodBadge'
 import { ScenarioPicker } from '../../components/ScenarioPicker'
@@ -60,9 +64,10 @@ export function GlobalMocksForm({
               <h2 className={styles.systemName}>{system.name}</h2>
               {systemEndpoints.map((endpoint) => {
                 const stored = selectionMap.get(key(system.slug, endpoint.name))?.scenario
-                const stale =
-                  stored !== undefined && stored !== 'real' && !(stored in endpoint.scenarios)
-                const selected = stale ? implicit : (stored ?? implicit)
+                const offered = scenariosWithPassthrough(endpoint, passthroughAsDefault)
+                const { options, unavailable } = scenarioOptionsWithDangling(offered, stored)
+                const stale = unavailable.length > 0
+                const selected = stored ?? implicit
                 const missingPassthroughBaseUrl = selected === 'real' && !env[system.baseUrlEnv]
                 return (
                   <div key={endpoint.name} className={styles.card}>
@@ -86,8 +91,9 @@ export function GlobalMocksForm({
                     <ScenarioPicker
                       endpointName={endpoint.name}
                       fieldName={`scenario:${system.slug}:${endpoint.name}`}
-                      scenarios={scenariosWithPassthrough(endpoint, passthroughAsDefault)}
+                      scenarios={options}
                       selected={selected}
+                      unavailable={unavailable}
                     />
                   </div>
                 )
