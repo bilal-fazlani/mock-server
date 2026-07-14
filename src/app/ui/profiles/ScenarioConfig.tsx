@@ -16,6 +16,7 @@ export function ScenarioConfig({
   fallback,
   servedCount,
   resetAction,
+  resetDynamicAction,
 }: {
   endpointName: string
   scenarios: Record<string, string>
@@ -25,6 +26,8 @@ export function ScenarioConfig({
   servedCount?: number
   /** Server action for the reset-progress button; omitted for new profiles. */
   resetAction?: (formData: FormData) => Promise<void>
+  /** Server action for the reset-dynamic-history button; omitted for new profiles. */
+  resetDynamicAction?: (formData: FormData) => Promise<void>
 }) {
   const { options, unavailable } = scenarioOptionsWithDangling(scenarios, selection)
   const savedSteps = Array.isArray(selection) ? selection : null
@@ -95,6 +98,14 @@ export function ScenarioConfig({
             selected={singleValue}
             unavailable={unavailable}
           />
+          {singleValue === 'dynamic' && resetDynamicAction && (
+            <div className={styles.sequenceFooter}>
+              <button formAction={resetDynamicAction} className={styles.resetButton}>
+                <RotateCcw className={styles.stepButtonIcon} aria-hidden="true" />
+                Reset dynamic history
+              </button>
+            </div>
+          )}
         </div>
       ) : (
         <div

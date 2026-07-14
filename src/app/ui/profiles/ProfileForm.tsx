@@ -6,7 +6,7 @@ import type { MockProfile } from '../../../lib/profiles/store'
 import { implicitScenario, scenariosWithPassthrough } from '../../../lib/scenarios'
 import { Alert } from '../../components/Alert'
 import { MethodBadge } from '../../components/MethodBadge'
-import { resetScenarioProgressAction, saveProfile } from './actions'
+import { resetDynamicHistoryAction, resetScenarioProgressAction, saveProfile } from './actions'
 import { CopyProfileIdButton } from './CopyProfileIdButton'
 import { ScenarioConfig } from './ScenarioConfig'
 import { StaleSelectionGuard } from './StaleSelectionGuard'
@@ -89,6 +89,9 @@ export function ProfileForm({
                     servedCount={scenarioProgress[endpoint.name]}
                     resetAction={
                       profile ? resetScenarioProgressAction.bind(null, endpoint.name) : undefined
+                    }
+                    resetDynamicAction={
+                      profile ? resetDynamicHistoryAction.bind(null, endpoint.name) : undefined
                     }
                   />
                   <div className={styles.cardFooter}>

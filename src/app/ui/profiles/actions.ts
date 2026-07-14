@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { resetDynamicHistory } from '../../../lib/dynamic/history-store'
 import { insertLogEntry, newLogId } from '../../../lib/logs/store'
 import { parseEndpointScenarios } from '../../../lib/profiles/form'
 import {
@@ -60,6 +61,18 @@ export async function resetScenarioProgressAction(
   if (!profileId || !endpointName) throw new Error('profileId and endpoint are required')
 
   await resetScenarioProgress(await getDb(), profileId, endpointName)
+  await writeAdminLog(profileId, 'progress_reset', endpointName)
+  revalidatePath(`/ui/profiles/${encodeURIComponent(profileId)}`)
+}
+
+export async function resetDynamicHistoryAction(
+  endpointName: string,
+  formData: FormData,
+): Promise<void> {
+  const profileId = String(formData.get('profileId') ?? '').trim()
+  if (!profileId || !endpointName) throw new Error('profileId and endpoint are required')
+
+  await resetDynamicHistory(await getDb(), 'profile', profileId, endpointName)
   await writeAdminLog(profileId, 'progress_reset', endpointName)
   revalidatePath(`/ui/profiles/${encodeURIComponent(profileId)}`)
 }

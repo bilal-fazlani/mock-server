@@ -8,11 +8,21 @@ vi.mock('../../src/lib/profiles/store', () => ({
   deleteProfile: (...args: unknown[]) => deleteProfileMock(...args),
 }))
 
+const resetDynamicHistoryMock = vi.fn()
+vi.mock('../../src/lib/dynamic/history-store', () => ({
+  resetDynamicHistory: (...args: unknown[]) => resetDynamicHistoryMock(...args),
+}))
+
 const redirectMock = vi.fn((url: string) => {
   throw new Error(`REDIRECT:${url}`)
 })
 vi.mock('next/navigation', () => ({
   redirect: (url: string) => redirectMock(url),
+}))
+
+const revalidatePathMock = vi.fn()
+vi.mock('next/cache', () => ({
+  revalidatePath: (path: string) => revalidatePathMock(path),
 }))
 
 let passthroughAsDefault = false
@@ -44,6 +54,7 @@ vi.mock('../../src/lib/runtime', () => ({
 
 const { saveProfile } = await import('../../src/app/ui/profiles/actions')
 const { deleteProfileAction } = await import('../../src/app/ui/profiles/actions')
+const { resetDynamicHistoryAction } = await import('../../src/app/ui/profiles/actions')
 
 function formData(fields: Record<string, string>): FormData {
   const fd = new FormData()
@@ -54,7 +65,9 @@ function formData(fields: Record<string, string>): FormData {
 beforeEach(() => {
   upsertProfileMock.mockClear()
   deleteProfileMock.mockClear()
+  resetDynamicHistoryMock.mockClear()
   redirectMock.mockClear()
+  revalidatePathMock.mockClear()
   passthroughAsDefault = false
 })
 
@@ -146,5 +159,25 @@ describe('deleteProfileAction', () => {
       /profileId is required/,
     )
     expect(deleteProfileMock).not.toHaveBeenCalled()
+  })
+})
+
+describe('resetDynamicHistoryAction', () => {
+  it('resets the dynamic history for a profile/endpoint pair', async () => {
+    await resetDynamicHistoryAction('hello_world', formData({ profileId: 'c1' }))
+    expect(resetDynamicHistoryMock).toHaveBeenCalledWith(
+      expect.anything(),
+      'profile',
+      'c1',
+      'hello_world',
+    )
+    expect(revalidatePathMock).toHaveBeenCalledWith('/ui/profiles/c1')
+  })
+
+  it('requires a profileId before resetting', async () => {
+    await expect(
+      resetDynamicHistoryAction('hello_world', formData({ profileId: ' ' })),
+    ).rejects.toThrow(/profileId and endpoint are required/)
+    expect(resetDynamicHistoryMock).not.toHaveBeenCalled()
   })
 })
