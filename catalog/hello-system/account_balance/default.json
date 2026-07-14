@@ -1,0 +1,5 @@
+{
+  "description": "Settled",
+  "status": 200,
+  "body": { "state": "SETTLED", "checkedAt": "{{now:iso}}" }
+}

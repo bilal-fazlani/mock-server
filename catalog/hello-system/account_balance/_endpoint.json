@@ -1,0 +1,6 @@
+{
+  "displayName": "Account Balance",
+  "method": "POST",
+  "path": "/accounts/balance",
+  "mockType": "global"
+}

@@ -1,0 +1,5 @@
+{
+  "description": "Failure",
+  "status": 500,
+  "body": { "error": "balance service unavailable" }
+}
