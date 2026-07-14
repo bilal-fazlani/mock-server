@@ -4,6 +4,23 @@ How to add a new mocked endpoint to the catalog, what each field does, and every
 framework feature you get along the way — ID extraction, scenarios, fixtures,
 placeholders, and passthrough.
 
+## Running the server
+
+The fastest way to try it locally, against a `catalog/` directory in the current
+folder:
+
+```bash
+npx mock-server ./catalog
+```
+
+No external MongoDB is required to get started — if `MONGODB_CONNECTION_STRING`
+isn't set, an in-memory MongoDB starts automatically (data is ephemeral). The
+project also publishes a Docker image; see the
+[README](https://github.com/bilal-fazlani/mock-server#readme) for `docker run`
+instructions and the full environment variable list, or
+[Configuration](guide/reference/configuration.md) for `CATALOG_PATH`,
+`MONGODB_CONNECTION_STRING`, and every other setting.
+
 ## Mental model
 
 The mock server is **data-driven**. You never write request-handling code to add

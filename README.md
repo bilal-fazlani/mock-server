@@ -46,6 +46,32 @@ curl -s -X POST http://localhost:3000/hello/world \
   -d '{"customerId":"customer-123"}'
 ```
 
+## Install via npm
+
+```bash
+npx mock-server ./catalog
+```
+
+The positional argument is the catalog directory (default `./catalog`, relative
+to your current directory). No external MongoDB is required to get started — if
+`MONGODB_CONNECTION_STRING` isn't set, an in-memory MongoDB starts automatically
+(data is ephemeral, lost on restart). Set `MONGODB_CONNECTION_STRING` to persist
+profiles, global mock selections, mappings, and request logs across restarts.
+
+```text
+Usage:
+  mock-server [catalogPath] [options]
+
+Arguments:
+  catalogPath            Path to the catalog directory (default: ./catalog).
+                         Overrides the CATALOG_PATH environment variable.
+
+Options:
+  -p, --port <number>    Port to listen on (default: 3000, or $PORT).
+  -h, --help             Show this help and exit.
+  -v, --version          Print the version and exit.
+```
+
 ## Running via Docker
 
 Published images live in the GitHub Container Registry at
@@ -54,14 +80,20 @@ Published images live in the GitHub Container Registry at
 like `1.2.0`. Images are published only for tagged releases.
 
 ```bash
+docker run --rm -p 3000:3000 ghcr.io/bilal-fazlani/mock-server:latest
+```
+
+The server listens on port `3000`; mocks answer at the root and the UI at `/ui`, exactly
+as with the dev server. MongoDB is optional: the image bakes in `mongod`, so with no
+`MONGODB_CONNECTION_STRING` set it starts an in-memory MongoDB automatically (data is
+ephemeral — lost when the container stops). Pass `MONGODB_CONNECTION_STRING` (plus any
+other variables from the table below) to use a real, persistent MongoDB instead:
+
+```bash
 docker run --rm -p 3000:3000 \
   -e MONGODB_CONNECTION_STRING='mongodb://host.docker.internal:27017' \
   ghcr.io/bilal-fazlani/mock-server:latest
 ```
-
-The server listens on port `3000`; mocks answer at the root and the UI at `/ui`, exactly
-as with the dev server. It needs a reachable MongoDB — pass its URI via
-`MONGODB_CONNECTION_STRING` (plus any other variables from the table below).
 
 The image bakes in the example `catalog/` tree. To serve your own catalog without
 rebuilding, mount it over the baked-in one:
@@ -79,7 +111,7 @@ Environment variables (see `.env.example` for the full list):
 
 | Variable | Purpose |
 | --- | --- |
-| `MONGODB_CONNECTION_STRING` | MongoDB URI for profiles, global mocks, mappings, and logs. |
+| `MONGODB_CONNECTION_STRING` | MongoDB URI for profiles, global mocks, mappings, and logs. Optional — if unset, an in-memory MongoDB starts automatically (ephemeral data). |
 | `MONGODB_DB` | Database name (default `mockDB`). |
 | `PASSTHROUGH_AS_DEFAULT` | Whether `real` is the implicit scenario. |
 | `UNMOCKED_USERS` | Fallback for unknown profile IDs (`ERROR` / `DEFAULT_MOCK` / `REAL`). |

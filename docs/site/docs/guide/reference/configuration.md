@@ -8,10 +8,21 @@ shows how they steer routing.
 
 | Variable | Values | Meaning |
 | --- | --- | --- |
+| `CATALOG_PATH` | Directory path<br>(default `./catalog`) | Where the catalog tree is loaded from. A relative path resolves against the server's working directory; an absolute path is used as-is. The `npx mock-server [catalogPath]` CLI argument, when given, overrides this variable. |
+| `MONGODB_CONNECTION_STRING` | Mongo connection URI<br>(optional) | External MongoDB for profiles, global mock selections, profile key mappings, and request logs. If unset, an in-memory MongoDB starts automatically on first use — data is ephemeral and lost on restart. The published Docker image bakes in a `mongod` binary so this embedded fallback works fully offline. |
 | `PASSTHROUGH_AS_DEFAULT` | `false` (default)<br>`true` | Controls what an omitted selection means. `false`: `default` is the implicit scenario, appears first in pickers, and is not stored when selected. `true`: `real` is the implicit scenario, appears first in pickers, and is not stored when selected. Passthrough itself is always allowed. |
 | `UNMOCKED_USERS` | `ERROR` (default)<br>`DEFAULT_MOCK`<br>`REAL` | What happens when a profiled endpoint extracts a profile ID but **no profile exists** for it. `ERROR`: loud `404`. `DEFAULT_MOCK`: serve the endpoint's `default` fixture. `REAL`: proxy to the live upstream — the classic "mock a few curated users, pass everyone else through" setup. |
 | `PASSTHROUGH_TIMEOUT_MS` | Number of milliseconds<br>(default `30000`) | Timeout for `real` upstream requests. A timeout returns `504`. |
 | `MOCK_CONSOLE_LOG_LEVEL` | `info` (default)<br>`warn`<br>`error` | Controls one-line console request logs. `info` logs every matched or unmatched mock request. `warn` logs warnings and errors. `error` logs only framework/routing/setup failures. See [Request logs](request-logs.md). |
+
+!!! note "Embedded MongoDB is ephemeral"
+
+    `MONGODB_CONNECTION_STRING` is optional. Leave it unset for a quick local run
+    or a `docker run` with nothing else configured — an in-memory `mongod` boots
+    on first use and is discarded when the process exits, so profiles, global
+    mock selections, mappings, and request logs do **not** survive a restart.
+    Set `MONGODB_CONNECTION_STRING` to a real MongoDB instance for anything you
+    want to persist.
 
 !!! note "Scope"
 
