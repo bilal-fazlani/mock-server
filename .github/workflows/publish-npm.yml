@@ -1,0 +1,36 @@
+name: Publish npm package
+
+# Publish to npm only on releases, in lockstep with the container image:
+#   - Publishing a GitHub Release "v1.2.0" builds and publishes the package.
+#   - Manual runs are supported for re-publishing a release: dispatch against
+#     a tag ref (v*).
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # npm provenance
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: npm ci
+
+      # `prepack` runs `next build` and stages static/public into the
+      # standalone tree before packing.
+      - name: Publish
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
