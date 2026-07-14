@@ -24,6 +24,14 @@ export interface EnvironmentRow {
 
 export const APP_ENVIRONMENT: EnvironmentDefinition[] = [
   {
+    name: 'CATALOG_PATH',
+    category: 'System',
+    description:
+      'Path to the catalog directory. Relative paths resolve against the server working directory; absolute paths are used as-is.',
+    defaultValue: './catalog',
+    display: true,
+  },
+  {
     name: 'MONGODB_CONNECTION_STRING',
     category: 'System',
     description: 'MongoDB connection URI for profiles, global mocks, mappings, and logs.',

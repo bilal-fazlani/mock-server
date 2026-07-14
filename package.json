@@ -1,6 +1,20 @@
 {
   "name": "mock-server",
   "version": "0.1.0",
+  "description": "A generic, catalog-driven HTTP API mock server — run via npx or Docker, no request-handling code required.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bilal-fazlani/mock-server.git"
+  },
+  "homepage": "https://github.com/bilal-fazlani/mock-server#readme",
+  "keywords": [
+    "mock",
+    "mock-server",
+    "api",
+    "testing",
+    "http"
+  ],
   "bin": {
     "mock-server": "bin/mock-server.js"
   },

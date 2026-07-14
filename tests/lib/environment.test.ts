@@ -40,6 +40,7 @@ describe('buildEnvironmentRows', () => {
     })
 
     expect(rows.map((row) => row.name)).toEqual([
+      'CATALOG_PATH',
       'MONGODB_CONNECTION_STRING',
       'MONGODB_DB',
       'PASSTHROUGH_AS_DEFAULT',
