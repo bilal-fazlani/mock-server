@@ -101,13 +101,15 @@ describe('LogRow', () => {
   })
 
   it('shows the decision trace and payloads when expanded', () => {
+    const full = entry()
     const html = renderToStaticMarkup(
       <LogRow
-        entry={entry()}
+        entry={full}
         scenarioLabels={{
           'hello-system/hello_world/failure': 'Failure',
         }}
         defaultExpanded
+        initialDetail={full}
       />,
     )
     expect(html).toContain('$.accountID')
@@ -133,7 +135,10 @@ describe('LogRow', () => {
   })
 
   it('renders direct profile resolution under Profile ID as a selector to profile pill flow', () => {
-    const direct = renderToStaticMarkup(<LogRow entry={entry()} defaultExpanded />)
+    const full = entry()
+    const direct = renderToStaticMarkup(
+      <LogRow entry={full} defaultExpanded initialDetail={full} />,
+    )
     expect(direct).toContain('<dt>profile id</dt>')
     expect(direct).toContain('selectorChip')
     expect(direct).toContain('flowArrow')
@@ -148,18 +153,16 @@ describe('LogRow', () => {
   })
 
   it('renders path profile selectors as dual selector pills', () => {
+    const full = entry({
+      profileId: '00171001',
+      trace: {
+        profileResolution: { selector: 'path:accountId', value: '00171001', via: 'direct' },
+        scenario: 'default',
+        scenarioSource: 'implicit',
+      },
+    })
     const html = renderToStaticMarkup(
-      <LogRow
-        entry={entry({
-          profileId: '00171001',
-          trace: {
-            profileResolution: { selector: 'path:accountId', value: '00171001', via: 'direct' },
-            scenario: 'default',
-            scenarioSource: 'implicit',
-          },
-        })}
-        defaultExpanded
-      />,
+      <LogRow entry={full} defaultExpanded initialDetail={full} />,
     )
     expect(html).toContain('<dt>profile id</dt>')
     expect(html).toContain('selectorPill')
@@ -173,33 +176,29 @@ describe('LogRow', () => {
   })
 
   it('renders bearer profile selectors as segmented pills', () => {
+    const opaqueEntry = entry({
+      trace: {
+        profileResolution: { selector: 'bearer', value: 'customer-123', via: 'direct' },
+        scenario: 'default',
+        scenarioSource: 'implicit',
+      },
+    })
     const opaque = renderToStaticMarkup(
-      <LogRow
-        entry={entry({
-          trace: {
-            profileResolution: { selector: 'bearer', value: 'customer-123', via: 'direct' },
-            scenario: 'default',
-            scenarioSource: 'implicit',
-          },
-        })}
-        defaultExpanded
-      />,
+      <LogRow entry={opaqueEntry} defaultExpanded initialDetail={opaqueEntry} />,
     )
+    const claimEntry = entry({
+      trace: {
+        profileResolution: {
+          selector: 'bearer:sub',
+          value: 'customer-123',
+          via: 'direct',
+        },
+        scenario: 'default',
+        scenarioSource: 'implicit',
+      },
+    })
     const claim = renderToStaticMarkup(
-      <LogRow
-        entry={entry({
-          trace: {
-            profileResolution: {
-              selector: 'bearer:sub',
-              value: 'customer-123',
-              via: 'direct',
-            },
-            scenario: 'default',
-            scenarioSource: 'implicit',
-          },
-        })}
-        defaultExpanded
-      />,
+      <LogRow entry={claimEntry} defaultExpanded initialDetail={claimEntry} />,
     )
 
     expect(opaque).toContain('>bearer</code>')
@@ -209,21 +208,19 @@ describe('LogRow', () => {
   })
 
   it('renders mapped profile resolution under Profile ID', () => {
+    const full = entry({
+      trace: {
+        profileResolution: {
+          selector: 'profileKey:order-id:$.orderId',
+          value: 'evt-91',
+          via: { namespace: 'order-id', key: 'evt-91' },
+        },
+        scenario: 'default',
+        scenarioSource: 'implicit',
+      },
+    })
     const mapped = renderToStaticMarkup(
-      <LogRow
-        entry={entry({
-          trace: {
-            profileResolution: {
-              selector: 'profileKey:order-id:$.orderId',
-              value: 'evt-91',
-              via: { namespace: 'order-id', key: 'evt-91' },
-            },
-            scenario: 'default',
-            scenarioSource: 'implicit',
-          },
-        })}
-        defaultExpanded
-      />,
+      <LogRow entry={full} defaultExpanded initialDetail={full} />,
     )
     expect(mapped).toContain('<dt>profile id</dt>')
     expect(mapped).toContain('segProfileKey')
@@ -268,13 +265,11 @@ describe('LogRow', () => {
     ]
 
     for (const { source, label, tooltip } of sources) {
+      const full = entry({
+        trace: { scenario: 'default', scenarioSource: source },
+      })
       const html = renderToStaticMarkup(
-        <LogRow
-          entry={entry({
-            trace: { scenario: 'default', scenarioSource: source },
-          })}
-          defaultExpanded
-        />,
+        <LogRow entry={full} defaultExpanded initialDetail={full} />,
       )
       expect(html).toContain(label)
       expect(html).toContain(tooltip)
@@ -293,20 +288,22 @@ describe('LogRow', () => {
   })
 
   it('renders captured profile keys as selector to segmented key/value flows', () => {
+    const full = entry({
+      trace: {
+        profileResolution: { selector: '$.accountID', value: 'customer-123', via: 'direct' },
+        scenario: 'default',
+        scenarioSource: 'implicit',
+        captures: [{ namespace: 'order-id', key: '<orderId>' }],
+      },
+    })
     const html = renderToStaticMarkup(
       <LogRow
-        entry={entry({
-          trace: {
-            profileResolution: { selector: '$.accountID', value: 'customer-123', via: 'direct' },
-            scenario: 'default',
-            scenarioSource: 'implicit',
-            captures: [{ namespace: 'order-id', key: '<orderId>' }],
-          },
-        })}
+        entry={full}
         captureSelectorLabels={{
           'hello-system/hello_world/order-id': '$.orderId',
         }}
         defaultExpanded
+        initialDetail={full}
       />,
     )
     expect(html).toContain('captured')
@@ -321,18 +318,16 @@ describe('LogRow', () => {
   })
 
   it('renders passthrough timing with total and upstream duration in the body', () => {
+    const full = entry({
+      durationMs: 52,
+      trace: {
+        scenario: 'real',
+        scenarioSource: 'unmocked_policy',
+        upstream: { url: 'https://upstream.example/path', status: 200, durationMs: 48 },
+      },
+    })
     const html = renderToStaticMarkup(
-      <LogRow
-        entry={entry({
-          durationMs: 52,
-          trace: {
-            scenario: 'real',
-            scenarioSource: 'unmocked_policy',
-            upstream: { url: 'https://upstream.example/path', status: 200, durationMs: 48 },
-          },
-        })}
-        defaultExpanded
-      />,
+      <LogRow entry={full} defaultExpanded initialDetail={full} />,
     )
     expect(html).not.toContain('>52 ms</span></button>')
     expect(html).not.toContain('<dt>timing</dt>')
@@ -342,22 +337,20 @@ describe('LogRow', () => {
   })
 
   it('renders upstream as metadata with the base URL only', () => {
+    const full = entry({
+      response: { status: 401, headers: {}, body: {}, truncated: false },
+      trace: {
+        scenario: 'real',
+        scenarioSource: 'unmocked_policy',
+        upstream: {
+          url: 'https://upstream.example/v1/members/customer-123/accounts?expand=true',
+          status: 401,
+          durationMs: 48,
+        },
+      },
+    })
     const html = renderToStaticMarkup(
-      <LogRow
-        entry={entry({
-          response: { status: 401, headers: {}, body: {}, truncated: false },
-          trace: {
-            scenario: 'real',
-            scenarioSource: 'unmocked_policy',
-            upstream: {
-              url: 'https://upstream.example/v1/members/customer-123/accounts?expand=true',
-              status: 401,
-              durationMs: 48,
-            },
-          },
-        })}
-        defaultExpanded
-      />,
+      <LogRow entry={full} defaultExpanded initialDetail={full} />,
     )
 
     expect(html).toContain('<dt>upstream</dt>')
@@ -369,14 +362,18 @@ describe('LogRow', () => {
   })
 
   it('flags truncated payloads', () => {
+    const full = entry({
+      request: { headers: {}, body: 'xxxx', truncated: true },
+    })
     const html = renderToStaticMarkup(
-      <LogRow
-        entry={entry({
-          request: { headers: {}, body: 'xxxx', truncated: true },
-        })}
-        defaultExpanded
-      />,
+      <LogRow entry={full} defaultExpanded initialDetail={full} />,
     )
     expect(html).toContain('truncated')
+  })
+
+  it('shows a loading state when expanded without a seeded detail', () => {
+    const html = renderToStaticMarkup(<LogRow entry={entry()} defaultExpanded />)
+    expect(html).toContain('detailLoading')
+    expect(html).not.toContain('Copy as cURL')
   })
 })

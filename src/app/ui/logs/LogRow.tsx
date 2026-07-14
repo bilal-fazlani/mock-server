@@ -1,10 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Check, ChevronRight, Copy, Server, UserRound } from 'lucide-react'
 import Link from 'next/link'
 import { MethodBadge } from '../../components/MethodBadge'
-import type { LogEntryView } from './types'
+import type { LogEntryView, LogSummaryView } from './types'
 import styles from './logs.module.css'
 
 export function LogRow({
@@ -13,15 +13,37 @@ export function LogRow({
   scenarioLabels = {},
   captureSelectorLabels = {},
   defaultExpanded = false,
+  initialDetail,
 }: {
-  entry: LogEntryView
+  entry: LogSummaryView
   systemLabels?: Record<string, string>
   scenarioLabels?: Record<string, string>
   captureSelectorLabels?: Record<string, string>
   defaultExpanded?: boolean
+  initialDetail?: LogEntryView
 }) {
   const [expanded, setExpanded] = useState(defaultExpanded)
   const [copied, setCopied] = useState(false)
+  const [detail, setDetail] = useState<LogEntryView | null>(initialDetail ?? null)
+  const [detailError, setDetailError] = useState(false)
+
+  // Fetch the full entry (payloads) the first time the row opens.
+  useEffect(() => {
+    if (!expanded || detail || detailError) return
+    let cancelled = false
+    fetch(`/ui/api/logs/${encodeURIComponent(entry.logId)}`)
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error('not_found'))))
+      .then((data: { entry: LogEntryView }) => {
+        if (!cancelled) setDetail(data.entry)
+      })
+      .catch(() => {
+        if (!cancelled) setDetailError(true)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [expanded, detail, detailError, entry.logId])
+
   const isError = entry.outcome === 'error'
   const time = entry.ts.slice(11, 23)
   const systemLabel = entry.system ? (systemLabels[entry.system] ?? entry.system) : undefined
@@ -108,14 +130,19 @@ export function LogRow({
           </span>
         )}
       </button>
-      {expanded && (
-        <LogDetail
-          entry={entry}
-          copied={copied}
-          setCopied={setCopied}
-          captureSelectorLabels={captureSelectorLabels}
-        />
-      )}
+      {expanded &&
+        (detail ? (
+          <LogDetail
+            entry={detail}
+            copied={copied}
+            setCopied={setCopied}
+            captureSelectorLabels={captureSelectorLabels}
+          />
+        ) : (
+          <div className={styles.detailLoading}>
+            {detailError ? 'Entry no longer available.' : 'Loading…'}
+          </div>
+        ))}
     </article>
   )
 }
