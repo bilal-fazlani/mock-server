@@ -65,7 +65,7 @@ export default function pick(input: {
     method: string
     path: string
     pathParams: Record<string, string>
-    query: Record<string, string>
+    query: Record<string, string[]>   // every value is an array — lossless for repeated params
     headers: Record<string, string>
     body: unknown                    // parsed JSON, or null
   }
@@ -75,6 +75,13 @@ export default function pick(input: {
   return input.history.length < 2 ? 'pending' : 'success'
 }
 ```
+
+`query` is a plain object where **every value is a `string[]`** (single-value params are
+one-element arrays, e.g. `query.customerId?.[0]`). This is a deliberate choice: it stays plain
+serializable data — a live `URLSearchParams` and its methods would not cleanly survive being
+passed into the `vm` — it never drops repeated query parameters, and it is uniform (no
+`string | string[]` narrowing at every access). Built from
+`Object.fromEntries(searchParams.keys().map(k => [k, searchParams.getAll(k)]))` or equivalent.
 
 - **Pure and synchronous.** No `await`, no I/O, no network, no filesystem. State that a
   resolver needs comes entirely from `history` — `history.length` is the call count,
@@ -191,9 +198,12 @@ that is later removed from the catalog (`scenario_undeclared`, `route-request.ts
   at request time — exactly like today's dangling fixture pins.
 - **Orphaned history rows** for that key sit harmlessly in Mongo; left as-is, and resume if the
   file returns. No cleanup job.
-- **UI nicety (optional, generic):** render a dangling pin as `dynamic — unavailable (no
-  _dynamic.ts)` so the selector explains the 500s instead of showing a blank radio. This is the
-  same orphan-pin situation any removed scenario creates and can be handled generically.
+- **UI dangling-pin display (generic feature).** The scenario selector renders any pin whose
+  slug is no longer offered as a disabled entry labeled `<slug> — unavailable`, with a reason
+  when known (e.g. `dynamic — unavailable (no _dynamic.ts)`), instead of a blank/unselected
+  radio. This is built generically for *any* orphaned pin — a fixture scenario removed from the
+  catalog produces the same situation — so it also fixes the pre-existing dangling-fixture-pin
+  case, not just the `dynamic` one. It is part of v1.
 
 ## Allowing `"real"` — consequences
 
