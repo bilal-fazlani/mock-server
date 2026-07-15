@@ -18,7 +18,7 @@ isn't set, an in-memory MongoDB starts automatically (data is ephemeral). The
 project also publishes a Docker image; see the
 [README](https://github.com/bilal-fazlani/mock-server#readme) for `docker run`
 instructions and the full environment variable list, or
-[Configuration](guide/reference/configuration.md) for `CATALOG_PATH`,
+[Configuration](reference/configuration.md) for `CATALOG_PATH`,
 `MONGODB_CONNECTION_STRING`, and every other setting.
 
 ## Mental model
@@ -33,10 +33,10 @@ Six concepts:
 | --- | --- |
 | **System** | A group of endpoints belonging to one upstream service (e.g. "Hello System"), represented as a directory under `catalog/`. Carries the env var that holds the real upstream base URL. |
 | **Endpoint** | One mockable route: a method + path template, plus whether scenario selection is per-profile or global. Represented as a sub-directory of its system. |
-| **Profile** | A record keyed by a *business ID* (e.g. `customer-123`) that stores, per profiled endpoint, which scenario that caller should receive — but *only where it differs from* the configured implicit scenario. A pick can also be an ordered [scenario sequence](guide/reference/scenarios.md#scenario-sequences) served call-by-call. Stored in MongoDB, edited in the UI at `/ui`. |
+| **Profile** | A record keyed by a *business ID* (e.g. `customer-123`) that stores, per profiled endpoint, which scenario that caller should receive — but *only where it differs from* the configured implicit scenario. A pick can also be an ordered [scenario sequence](building/scenarios.md#scenario-sequences) served call-by-call. Stored in MongoDB, edited in the UI at `/ui`. |
 | **Global mock selection** | A shared scenario pick for a profile-less endpoint. Stored once in MongoDB, applies to every caller, and is edited on `/ui/global-mocks`. |
 | **Profile key mapping** | A MongoDB lookup from another request key to a profile ID, such as `event-id / evt-123 → customer-123`. Useful when a later callback has an event ID but no profile ID. |
-| **Scenario** | A named outcome for an endpoint, one `<scenario>.json` fixture file per scenario. Every endpoint must have a `default.json`; the special `real` scenario (proxy to the live upstream) is *implicit on every endpoint* and must never have a fixture file. An endpoint with a `_dynamic.ts` also gains a reserved `dynamic` scenario that defers the pick to that code — see [Dynamic scenarios](guide/reference/dynamic.md). |
+| **Scenario** | A named outcome for an endpoint, one `<scenario>.json` fixture file per scenario. Every endpoint must have a `default.json`; the special `real` scenario (proxy to the live upstream) is *implicit on every endpoint* and must never have a fixture file. An endpoint with a `_dynamic.ts` also gains a reserved `dynamic` scenario that defers the pick to that code — see [Dynamic scenarios](building/dynamic.md). |
 | **Fixture** | The canned JSON response (status + headers + body) backing one scenario file, with optional request-driven placeholders. |
 
 At request time the engine does this:
@@ -49,7 +49,7 @@ graph LR
     D --> E[Serve fixture or proxy “real”]
 ```
 
-The full ordered walk is documented in [Request lifecycle](request-lifecycle.md).
+The full ordered walk is documented in [Request lifecycle](reference/request-lifecycle.md).
 
 !!! note "Where endpoints are served"
 
@@ -89,7 +89,7 @@ reported at startup.
 
 ## Where to go next
 
-- **[Getting started](guide/getting-started.md)** — add an endpoint in five steps.
-- **[Reference](guide/reference/endpoints.md)** — every field and feature in detail.
-- **[Request lifecycle](request-lifecycle.md)** — what the engine does for every request.
-- **[Gotchas](guide/gotchas.md)** — rules of thumb and a worked GET example.
+- **[Getting started](get-started/first-mock.md)** — add an endpoint in five steps.
+- **[Reference](building/endpoints.md)** — every field and feature in detail.
+- **[Request lifecycle](reference/request-lifecycle.md)** — what the engine does for every request.
+- **[Gotchas](reference/gotchas.md)** — rules of thumb and a worked GET example.

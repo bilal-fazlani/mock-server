@@ -19,7 +19,7 @@ the literal `dynamic` that was pinned) — so a log entry reads as "pinned
 `dynamic` → resolver returned `pending` → outcome `fixture`", and a resolver
 that returns `"real"` still shows the upstream URL/status/latency for that call.
 Without `trace.dynamic`, a dynamic-then-real request would be indistinguishable
-from a bare `real` pin. See [Dynamic scenarios](dynamic.md) for the resolver
+from a bare `real` pin. See [Dynamic scenarios](../building/dynamic.md) for the resolver
 contract.
 
 Persisted request headers preserve their names and values except `Authorization`,
@@ -30,7 +30,7 @@ configured profile ID, that value still appears as the resolved profile ID and
 decision-trace value — use synthetic mock tokens rather than real credentials.
 
 The server also prints compact console request lines controlled by
-`MOCK_CONSOLE_LOG_LEVEL` (see [Configuration](configuration.md#app-configuration)).
+`MOCK_CONSOLE_LOG_LEVEL` (see [Configuration](../reference/configuration.md#app-configuration)).
 At `info`, each mock request logs method, path, status, duration, system/endpoint,
 profile ID when resolved, scenario, outcome, and error code when present. Fixture
 responses are `info` even when their fixture status is non-2xx, because the mock
@@ -42,7 +42,7 @@ scenario pins, template errors, missing passthrough base URLs, passthrough
 failures, and dynamic-resolver failures (`dynamic_resolver_missing`,
 `dynamic_threw`, `dynamic_timeout`, `dynamic_bad_return`, and — in
 development — `dynamic_compile_error`; see
-[Dynamic scenarios](dynamic.md#errors-and-drift)). `/_next/` paths are filtered
+[Dynamic scenarios](../building/dynamic.md#errors-and-drift)). `/_next/` paths are filtered
 out of console request logs too.
 
 Browse and filter the log at `/ui/logs` (live-updating; filter by profile,

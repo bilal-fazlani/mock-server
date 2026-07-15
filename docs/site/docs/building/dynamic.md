@@ -70,7 +70,7 @@ a test.
   slug in place of `dynamic` — then the normal pipeline runs exactly as if that
   slug had been picked directly: fixture load (or `real` passthrough),
   placeholder templating, request/response schema validation, and logging are
-  all unchanged. See [Request lifecycle](../../request-lifecycle.md) for where
+  all unchanged. See [Request lifecycle](../reference/request-lifecycle.md) for where
   this substitution happens in the ordered walk.
 
 ## The resolver contract
@@ -115,7 +115,7 @@ request logs, so resolver behavior never depends on log retention:
   endpoint)` for a profiled endpoint, `(global, systemSlug, endpoint)` for a
   global one.
 - **Capped** to the last `DYNAMIC_HISTORY_LIMIT` entries (default `10` — see
-  [Configuration](configuration.md#app-configuration)).
+  [Configuration](../reference/configuration.md#app-configuration)).
 - **What's recorded:** the slug the resolver *returned*, appended right after
   it passes return-value validation — *before* that slug's own fixture load or
   `real` proxying happens. An invalid return, a thrown error, or a timeout

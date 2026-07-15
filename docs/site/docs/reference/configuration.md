@@ -3,7 +3,7 @@
 ## App configuration
 
 Environment variables govern app-wide behavior. Values are case-insensitive. This
-is the canonical reference for each setting; [Request lifecycle](../../request-lifecycle.md)
+is the canonical reference for each setting; [Request lifecycle](request-lifecycle.md)
 shows how they steer routing.
 
 | Variable | Values | Meaning |
@@ -13,8 +13,8 @@ shows how they steer routing.
 | `PASSTHROUGH_AS_DEFAULT` | `false` (default)<br>`true` | Controls what an omitted selection means. `false`: `default` is the implicit scenario, appears first in pickers, and is not stored when selected. `true`: `real` is the implicit scenario, appears first in pickers, and is not stored when selected. Passthrough itself is always allowed. |
 | `UNMOCKED_USERS` | `ERROR` (default)<br>`DEFAULT_MOCK`<br>`REAL` | What happens when a profiled endpoint extracts a profile ID but **no profile exists** for it. `ERROR`: loud `404`. `DEFAULT_MOCK`: serve the endpoint's `default` fixture. `REAL`: proxy to the live upstream — the classic "mock a few curated users, pass everyone else through" setup. |
 | `PASSTHROUGH_TIMEOUT_MS` | Number of milliseconds<br>(default `30000`) | Timeout for `real` upstream requests. A timeout returns `504`. |
-| `MOCK_CONSOLE_LOG_LEVEL` | `info` (default)<br>`warn`<br>`error` | Controls one-line console request logs. `info` logs every matched or unmatched mock request. `warn` logs warnings and errors. `error` logs only framework/routing/setup failures. See [Request logs](request-logs.md). |
-| `DYNAMIC_HISTORY_LIMIT` | Positive integer<br>(default `10`) | Number of previously-returned scenario slugs kept and passed as `history` to each endpoint's `_dynamic.ts` resolver. See [Dynamic scenarios](dynamic.md). |
+| `MOCK_CONSOLE_LOG_LEVEL` | `info` (default)<br>`warn`<br>`error` | Controls one-line console request logs. `info` logs every matched or unmatched mock request. `warn` logs warnings and errors. `error` logs only framework/routing/setup failures. See [Request logs](../driving/request-logs.md). |
+| `DYNAMIC_HISTORY_LIMIT` | Positive integer<br>(default `10`) | Number of previously-returned scenario slugs kept and passed as `history` to each endpoint's `_dynamic.ts` resolver. See [Dynamic scenarios](../building/dynamic.md). |
 
 !!! note "Embedded MongoDB is ephemeral"
 
@@ -78,7 +78,7 @@ now-known catalog and reports its own list of errors:
   `profileIdSelector` resolves the profile directly.
 - Every endpoint has a `default.json` scenario file, and **must not** have a
   `real.json` or a `dynamic.json` — both are reserved slugs, regardless of
-  whether the endpoint has a `_dynamic.ts` (see [Dynamic scenarios](dynamic.md)).
+  whether the endpoint has a `_dynamic.ts` (see [Dynamic scenarios](../building/dynamic.md)).
 - Each scenario file is valid JSON with a numeric `status` and a `body` key.
   Fixtures are loaded into memory as part of this pass.
 - Every placeholder inside a fixture is either `now:iso` / `now:YYYYMMDD` or a
@@ -88,12 +88,12 @@ now-known catalog and reports its own list of errors:
   would make matching ambiguous).
 - If an endpoint has a `_schema.json`, it must compile as valid JSON Schema, and
   every scenario fixture's `body` must match its status-matched response schema —
-  see [Schemas](schemas.md).
+  see [Schemas](../building/schemas.md).
 - `PASSTHROUGH_AS_DEFAULT=true` → every system's `baseUrlEnv` is set.
 - Every endpoint's `_dynamic.ts`, if present, compiles and default-exports a
   function. `npm run validate:catalog` runs this same compilation step, so a
   broken resolver is caught before deploy — see
-  [Dynamic scenarios](dynamic.md#compilation-sandboxing-and-timeouts).
+  [Dynamic scenarios](../building/dynamic.md#compilation-sandboxing-and-timeouts).
 
 Since scenarios are now just the files present on disk, there's no such thing as
 an "orphan" fixture anymore — every `<scenario>.json` that structurally belongs in

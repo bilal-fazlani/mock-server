@@ -3,22 +3,26 @@ site_name = "Mock Server"
 site_description = "How to create and configure mock endpoints in the mock server."
 
 nav = [
-  { "Home" = "index.md" },
-  { "Guide" = [
-    { "Getting started" = "guide/getting-started.md" },
-    { "Reference" = [
-      { "Endpoints" = "guide/reference/endpoints.md" },
-      { "Profiles" = "guide/reference/profiles.md" },
-      { "Scenarios" = "guide/reference/scenarios.md" },
-      { "Dynamic scenarios" = "guide/reference/dynamic.md" },
-      { "Fixtures" = "guide/reference/fixtures.md" },
-      { "Schemas" = "guide/reference/schemas.md" },
-      { "Configuration" = "guide/reference/configuration.md" },
-      { "Request logs" = "guide/reference/request-logs.md" },
-    ] },
-    { "Gotchas" = "guide/gotchas.md" },
+  { "Overview" = "index.md" },
+  { "Get started" = [
+    { "Your first mock endpoint" = "get-started/first-mock.md" },
   ] },
-  { "Request lifecycle" = "request-lifecycle.md" },
+  { "Building mocks" = [
+    { "Endpoints" = "building/endpoints.md" },
+    { "Profiles" = "building/profiles.md" },
+    { "Scenarios" = "building/scenarios.md" },
+    { "Dynamic scenarios" = "building/dynamic.md" },
+    { "Fixtures" = "building/fixtures.md" },
+    { "Schemas" = "building/schemas.md" },
+  ] },
+  { "Driving mocks" = [
+    { "Request logs" = "driving/request-logs.md" },
+  ] },
+  { "Reference" = [
+    { "Configuration" = "reference/configuration.md" },
+    { "Request lifecycle" = "reference/request-lifecycle.md" },
+    { "Gotchas" = "reference/gotchas.md" },
+  ] },
 ]
 
 [project.theme]
