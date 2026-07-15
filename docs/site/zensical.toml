@@ -5,6 +5,7 @@ site_description = "How to create and configure mock endpoints in the mock serve
 nav = [
   { "Overview" = "index.md" },
   { "Get started" = [
+    { "Install & run" = "get-started/install.md" },
     { "Your first mock endpoint" = "get-started/first-mock.md" },
   ] },
   { "Building mocks" = [
@@ -16,6 +17,8 @@ nav = [
     { "Schemas" = "building/schemas.md" },
   ] },
   { "Driving mocks" = [
+    { "Runtime-control API" = "driving/api.md" },
+    { "Using it in dev & CI" = "driving/dev-and-ci.md" },
     { "Request logs" = "driving/request-logs.md" },
   ] },
   { "Reference" = [
