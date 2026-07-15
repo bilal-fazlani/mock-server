@@ -1,24 +1,26 @@
-# Creating a Mock Endpoint
+# Mock Server
 
-How to add a new mocked endpoint to the catalog, what each field does, and every
-framework feature you get along the way — ID extraction, scenarios, fixtures,
-placeholders, and passthrough.
+A **data-driven** mock server: you mock an upstream service by creating
+directories and JSON files under a `catalog/` tree — no request-handling code —
+and the routing engine serves them. Point your app at it in local dev or CI,
+switch scenarios per caller, and proxy to the real upstream when you want to.
+
+This guide covers the mental model below, then splits into **[Building
+mocks](building/endpoints.md)** (authoring the catalog) and **[Driving
+mocks](driving/api.md)** (controlling a running server from the UI or API).
 
 ## Running the server
 
-The fastest way to try it locally, against a `catalog/` directory in the current
-folder:
+The fastest start, against a `catalog/` directory in the current folder:
 
 ```bash
 npx @bilal-fazlani/mock-server ./catalog
 ```
 
-No external MongoDB is required to get started — if `MONGODB_CONNECTION_STRING`
-isn't set, an in-memory MongoDB starts automatically (data is ephemeral). The
-project also publishes a Docker image; see the
-[README](https://github.com/bilal-fazlani/mock-server#readme) for `docker run`
-instructions and the full environment variable list, or
-[Configuration](reference/configuration.md) for `CATALOG_PATH`,
+No external MongoDB is required — if `MONGODB_CONNECTION_STRING` isn't set, an
+in-memory MongoDB starts automatically (data is ephemeral). See **[Install &
+run](get-started/install.md)** for Docker, from-source, and CI setups, and
+**[Configuration](reference/configuration.md)** for `CATALOG_PATH`,
 `MONGODB_CONNECTION_STRING`, and every other setting.
 
 ## Mental model
@@ -89,7 +91,9 @@ reported at startup.
 
 ## Where to go next
 
-- **[Getting started](get-started/first-mock.md)** — add an endpoint in five steps.
-- **[Reference](building/endpoints.md)** — every field and feature in detail.
+- **[Install & run](get-started/install.md)** — npx, Docker, and from-source setup.
+- **[Your first mock endpoint](get-started/first-mock.md)** — add an endpoint in five steps.
+- **[Building mocks](building/endpoints.md)** — every catalog field and feature in detail.
+- **[Driving mocks](driving/api.md)** — control a running server from the UI or the API, and use it in dev & CI.
 - **[Request lifecycle](reference/request-lifecycle.md)** — what the engine does for every request.
 - **[Gotchas](reference/gotchas.md)** — rules of thumb and a worked GET example.
