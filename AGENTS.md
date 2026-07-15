@@ -10,15 +10,15 @@ catalog schema and endpoint fields, profile-ID selectors, path templates, scenar
 validation rules, and the request lifecycle. The guide pages are:
 
 - `docs/site/docs/index.md` — mental model and the catalog tree overview
-- `docs/site/docs/guide/getting-started.md` — the step-by-step walkthrough
-- `docs/site/docs/guide/reference/endpoints.md` — endpoint/system fields and path templates
-- `docs/site/docs/guide/reference/profiles.md` — profile-ID selectors and profile key mappings
-- `docs/site/docs/guide/reference/scenarios.md` — scenarios, `real` passthrough, and sequences
-- `docs/site/docs/guide/reference/fixtures.md` — fixture shape and placeholders
-- `docs/site/docs/guide/reference/schemas.md` — `_schema.json` request/response validation
-- `docs/site/docs/guide/reference/configuration.md` — env vars and catalog validation rules
-- `docs/site/docs/guide/reference/request-logs.md` — request logging
-- `docs/site/docs/request-lifecycle.md` — the full request routing flow
+- `docs/site/docs/get-started/first-mock.md` — the step-by-step walkthrough
+- `docs/site/docs/building/endpoints.md` — endpoint/system fields and path templates
+- `docs/site/docs/building/profiles.md` — profile-ID selectors and profile key mappings
+- `docs/site/docs/building/scenarios.md` — scenarios, `real` passthrough, and sequences
+- `docs/site/docs/building/fixtures.md` — fixture shape and placeholders
+- `docs/site/docs/building/schemas.md` — `_schema.json` request/response validation
+- `docs/site/docs/reference/configuration.md` — env vars and catalog validation rules
+- `docs/site/docs/driving/request-logs.md` — request logging
+- `docs/site/docs/reference/request-lifecycle.md` — the full request routing flow
 
 **Whenever you change app functionality that this guide describes, you MUST:**
 
@@ -26,25 +26,25 @@ validation rules, and the request lifecycle. The guide pages are:
    guide-affecting if it touches any of (→ names the page that documents it):
    - the catalog tree or its file schemas (`_system.json`, `_endpoint.json`,
      scenario fixture files) — `catalog/`, `src/lib/catalog/load.ts`,
-     `src/lib/catalog/types.ts` → `index.md`, `guide/reference/endpoints.md`
+     `src/lib/catalog/types.ts` → `index.md`, `building/endpoints.md`
    - profile-ID extraction / selectors and profile key mappings — `src/lib/catalog/selector.ts`
-     → `guide/reference/profiles.md`
+     → `building/profiles.md`
    - path templates and matching — `src/lib/catalog/path-template.ts`
-     → `guide/reference/endpoints.md`
+     → `building/endpoints.md`
    - scenarios or the `real` passthrough — `src/lib/router/passthrough.ts`,
-     `src/lib/router/route-request.ts` → `guide/reference/scenarios.md`, `request-lifecycle.md`
+     `src/lib/router/route-request.ts` → `building/scenarios.md`, `reference/request-lifecycle.md`
    - fixture shape or resolution — `src/lib/mock-engine/fixtures.ts`
-     → `guide/reference/fixtures.md`
+     → `building/fixtures.md`
    - placeholders / templating — `src/lib/mock-engine/template.ts`
-     → `guide/reference/fixtures.md`
+     → `building/fixtures.md`
    - strict-mode / env behavior — `src/lib/runtime.ts`, `route-request.ts`
-     → `guide/reference/configuration.md`, `request-lifecycle.md`
+     → `reference/configuration.md`, `reference/request-lifecycle.md`
    - catalog validation rules — `src/lib/catalog/validate.ts`
-     → `guide/reference/configuration.md`
-   - schema validation — `_schema.json` handling → `guide/reference/schemas.md`
-   - request logging — → `guide/reference/request-logs.md`
+     → `reference/configuration.md`
+   - schema validation — `_schema.json` handling → `building/schemas.md`
+   - request logging — → `driving/request-logs.md`
    - the request lifecycle, or the URL layout (mock at root `/…` vs. UI under `/ui/…`)
-     → `request-lifecycle.md`, `index.md`
+     → `reference/request-lifecycle.md`, `index.md`
 
 2. **Ask before editing.** If the change plausibly makes the guide stale, tell the user
    exactly what in the guide looks affected and **ask whether they want it updated**. Do not

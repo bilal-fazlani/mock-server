@@ -24,9 +24,9 @@ Note what's *not* here: no `name` field (the directory name `account_balance` *i
 the endpoint name) and no scenario list — scenarios are just the `<scenario>.json`
 files you drop in next, not something declared up front. There's also no `real`
 entry to write — passthrough is implicit on every endpoint. Every field is
-explained in the [Endpoints](reference/endpoints.md) reference. (If this is a
+explained in the [Endpoints](../building/endpoints.md) reference. (If this is a
 brand-new system, first create its directory with a `_system.json` — see
-[Endpoints](reference/endpoints.md).)
+[Endpoints](../building/endpoints.md).)
 
 ## 2. Write a fixture for each scenario
 
@@ -76,7 +76,7 @@ npm run validate:catalog
 ```
 
 This runs the same checks the server runs at startup — see
-[Validation rules](reference/configuration.md#validation-rules). Fix anything it
+[Validation rules](../reference/configuration.md#validation-rules). Fix anything it
 reports before moving on. A green `Catalog validation passed.` means catalog,
 fixtures, and app config are in sync.
 
@@ -97,7 +97,7 @@ Profiles are **deltas**: leaving an endpoint on `default` stores nothing — tha
 profile simply follows the catalog. Only picks that differ from `default`
 (another scenario, or `real` when enabled) are stored. Instead of a single pick,
 an endpoint can also be given an ordered
-[scenario sequence](reference/scenarios.md#scenario-sequences) served
+[scenario sequence](../building/scenarios.md#scenario-sequences) served
 call-by-call. You can browse all declared endpoints and their scenarios at
 `/ui/catalog`.
 

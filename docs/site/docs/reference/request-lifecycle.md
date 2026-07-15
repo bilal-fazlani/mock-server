@@ -14,7 +14,7 @@ What the engine does for every incoming request, in order:
 | 3a | For a profiled endpoint, resolve the profile ID. Reusable direct selectors use body/path/query values; Bearer selectors use the opaque credential or a top-level JWT claim; `profileKey` selectors first extract the nested body/path/query key, then look up `profileKeyMappings`. | Selector missing or malformed → `400`; mapping missing → `404 profile_key_mapping_not_found` |
 | 3b | For a global endpoint, skip profile ID resolution and read the saved shared selection from `globalMockScenarios`. | — |
 | 4 | For a profiled endpoint, load that profile from MongoDB. | Not found → `UNMOCKED_USERS` policy: `ERROR` → `404`; `DEFAULT_MOCK` → serve `default`; `REAL` → proxy |
-| 5 | Resolve the scenario: saved profile/global pick, else the implicit scenario from `PASSTHROUGH_AS_DEFAULT`. If the pick is a [sequence](guide/reference/scenarios.md#scenario-sequences), atomically advance its progress counter and take the step it lands on (sticking on the last step once exhausted). | Pinned key no longer declared → `500` |
+| 5 | Resolve the scenario: saved profile/global pick, else the implicit scenario from `PASSTHROUGH_AS_DEFAULT`. If the pick is a [sequence](../building/scenarios.md#scenario-sequences), atomically advance its progress counter and take the step it lands on (sticking on the last step once exhausted). | Pinned key no longer declared → `500` |
 | 6 | If the resolved scenario is `dynamic`, look up the endpoint's compiled `_dynamic.ts`, read its history window, and invoke it with the request + history + profile ID. Rewrite the scenario to its return value and append that value to history. | No compiled resolver → `500 dynamic_resolver_missing`; throws → `500 dynamic_threw`; exceeds its timeout → `500 dynamic_timeout`; returns anything other than a declared scenario or `"real"` → `500 dynamic_bad_return` (nothing appended to history) |
 | 7 | For direct-profile endpoints with `captureProfileKeys`, store each mapping before fixture serving or real proxying. | Capture key missing → `400`; same key for a different profile → `409 profile_key_mapping_conflict` |
 | 8a | If scenario is `real`: proxy to the `baseUrlEnv` upstream and return its response. | Missing base URL → `500` (startup prevents this only when `PASSTHROUGH_AS_DEFAULT=true`) |
@@ -24,12 +24,12 @@ Step 6 only runs when scenario resolution (step 5) lands on `dynamic` — for
 every other resolved scenario, routing falls straight from step 5 to step 7.
 Once step 6 rewrites the scenario, the rest of the walk (steps 7, 8a/8b)
 proceeds exactly as if that rewritten slug (including `real`) had been the
-original pick — see [Dynamic scenarios](guide/reference/dynamic.md).
+original pick — see [Dynamic scenarios](../building/dynamic.md).
 
 Three things wrap every logged request, whichever row it exits at: the server may
 print a one-line console summary depending on `MOCK_CONSOLE_LOG_LEVEL`; the
 response carries an `x-mock-log-id` header naming the
-[request log](guide/reference/request-logs.md) entry it produced; and after the
+[request log](../driving/request-logs.md) entry it produced; and after the
 response is sent that entry — request, response, and the decision trace from the
 steps above — is written fire-and-forget, so logging can never slow down or fail a
 mock response. Requests whose path begins with `/_next/` skip this wrapper
@@ -41,7 +41,7 @@ App-wide behavior is governed by a handful of environment variables —
 `PASSTHROUGH_AS_DEFAULT`, `UNMOCKED_USERS`, `PASSTHROUGH_TIMEOUT_MS`,
 `MOCK_CONSOLE_LOG_LEVEL`, and `DYNAMIC_HISTORY_LIMIT`. Each one's values and
 defaults are documented as settings in
-[Configuration](guide/reference/configuration.md#app-configuration); this page
+[Configuration](configuration.md#app-configuration); this page
 describes how they steer the flow.
 
 `PASSTHROUGH_AS_DEFAULT` controls the implicit scenario for missing profile/global
@@ -64,7 +64,7 @@ profile ID has been resolved and the profile itself is missing.
 
 If a mocked endpoint has an `_schema.json`, a request body that does not match its
 request schema is also a loud `400`. Request-schema validation is skipped when the
-resolved scenario is `real`. See [Schemas](guide/reference/schemas.md).
+resolved scenario is `real`. See [Schemas](../building/schemas.md).
 
 ## Endpoint modes
 
@@ -89,7 +89,7 @@ endpoints without `profileIdSelector`.
 - **`dynamic`** — must never have a fixture file either. Offered only on
   endpoints with a `_dynamic.ts` resolver; selecting it runs that resolver at
   request time and rewrites the scenario to whatever slug (or `real`) it
-  returns, per step 6 above. See [Dynamic scenarios](guide/reference/dynamic.md).
+  returns, per step 6 above. See [Dynamic scenarios](../building/dynamic.md).
 
 Profile and global selections are stored as deltas against the configured implicit
 scenario:
@@ -102,7 +102,7 @@ that reaches scenario resolution atomically advances the sequence by one step;
 after the final step, the endpoint keeps selecting that final scenario. An empty
 sequence behaves like no selection and uses the implicit scenario. Changing the
 saved sequence restarts its progress on the next request. See
-[Scenario sequences](guide/reference/scenarios.md#scenario-sequences).
+[Scenario sequences](../building/scenarios.md#scenario-sequences).
 
 ## Startup validation
 
@@ -118,7 +118,7 @@ Startup fails hard if any of:
   function.
 
 The full list of checks is in
-[Validation rules](guide/reference/configuration.md#validation-rules).
+[Validation rules](configuration.md#validation-rules).
 
 ## Flow
 
@@ -214,7 +214,7 @@ flowchart TD
   resolved slug is literally `dynamic`. It rewrites the scenario in place, so
   everything downstream — passthrough, fixture load, templating, schema
   checks, tracing — treats the resolver's return value exactly like a directly
-  picked scenario. See [Dynamic scenarios](guide/reference/dynamic.md).
+  picked scenario. See [Dynamic scenarios](../building/dynamic.md).
 - **Unmocked users** are still controlled by `UNMOCKED_USERS`; that policy is
   separate from the defaulting policy for existing profiles/global selections.
 - **Profile key capture** runs before the base-URL check on `real`, and after

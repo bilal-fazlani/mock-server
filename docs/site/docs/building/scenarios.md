@@ -68,6 +68,10 @@ expressible — and, for an endpoint with a resolver, `dynamic` too, so one step
 of an otherwise fixed sequence can defer to the resolver. A one-step sequence
 is saved as a plain single pick.
 
+Scenario picks — single or sequence — can also be set without the UI over the
+[Runtime-control API](../driving/api.md), which is how automated tests drive the
+server.
+
 Mechanics worth knowing:
 
 - **Progress is per profile + endpoint.** A counter in MongoDB
@@ -82,8 +86,9 @@ Mechanics worth knowing:
   next) with a **Reset progress** button for restarting manually mid-test.
 - **Fresh profile, fresh sequence.** Progress is deleted with its profile, so
   test suites that create a new profile per test case never see stale progress.
-  There is currently no API to reset progress — reset happens via the UI button,
-  by saving a changed sequence, or by recreating the profile.
+  Reset also happens via the UI button, by saving a changed sequence, by
+  recreating the profile, or over the
+  [Runtime-control API](../driving/api.md) (`POST /ui/api/profiles/{id}/reset`).
 - **The step is consumed at scenario-resolution time.** A call that later fails
   (e.g. schema validation of the request body) still advances the sequence.
 - **Profiled endpoints only.** Global endpoints (`mockType: "global"`) have a

@@ -23,24 +23,23 @@ Built with [Next.js](https://nextjs.org) and MongoDB.
 - **Request logs** — every request captured with a full decision trace, browsable in
   the UI.
 
-## Getting started
+## Quickstart
 
-Requirements: Node.js 22+. MongoDB is optional — if `MONGODB_CONNECTION_STRING` isn't
-set, an in-memory MongoDB starts automatically (data is ephemeral); set it to use an
-external MongoDB instead. (The `.env.example` used below points at a local MongoDB.)
+Requirements: **Node.js 22+**. MongoDB is optional — if `MONGODB_CONNECTION_STRING`
+isn't set, an in-memory MongoDB starts automatically (data is ephemeral).
 
 ```bash
-npm install
-cp .env.example .env.local   # then edit as needed
-npm run dev
+# via npx
+npx @bilal-fazlani/mock-server ./catalog
+
+# or via Docker
+docker run --rm -p 3000:3000 ghcr.io/bilal-fazlani/mock-server:latest
 ```
 
-- Mock endpoints are served at the **root** of the origin — an endpoint whose catalog
-  `path` is `/hello/world` answers at `http://localhost:3000/hello/world`.
-- The management UI lives under `http://localhost:3000/ui`.
-
-The repository ships a small example system (`catalog/hello-system/`) with a couple of
-endpoints so you have something to call and edit. Try it:
+Mock endpoints answer at the **root** — an endpoint whose catalog `path` is
+`/hello/world` responds at `http://localhost:3000/hello/world`; the management UI
+is at `http://localhost:3000/ui`. The repo ships an example system
+(`catalog/hello-system/`) to call and edit:
 
 ```bash
 curl -s -X POST http://localhost:3000/hello/world \
@@ -48,79 +47,9 @@ curl -s -X POST http://localhost:3000/hello/world \
   -d '{"customerId":"customer-123"}'
 ```
 
-## Install via npm
-
-```bash
-npx @bilal-fazlani/mock-server ./catalog
-```
-
-The positional argument is the catalog directory (default `./catalog`, relative
-to your current directory). No external MongoDB is required to get started — if
-`MONGODB_CONNECTION_STRING` isn't set, an in-memory MongoDB starts automatically
-(data is ephemeral, lost on restart). Set `MONGODB_CONNECTION_STRING` to persist
-profiles, global mock selections, mappings, and request logs across restarts.
-
-```text
-Usage:
-  mock-server [catalogPath] [options]
-
-Arguments:
-  catalogPath            Path to the catalog directory (default: ./catalog).
-                         Overrides the CATALOG_PATH environment variable.
-
-Options:
-  -p, --port <number>    Port to listen on (default: 3000, or $PORT).
-  -h, --help             Show this help and exit.
-  -v, --version          Print the version and exit.
-```
-
-## Running via Docker
-
-Published images live in the GitHub Container Registry at
-[`ghcr.io/bilal-fazlani/mock-server`](https://github.com/bilal-fazlani/mock-server/pkgs/container/mock-server)
-(multi-arch: `linux/amd64` and `linux/arm64`). Use `latest` or a pinned version tag
-like `1.2.0`. Images are published only for tagged releases.
-
-```bash
-docker run --rm -p 3000:3000 ghcr.io/bilal-fazlani/mock-server:latest
-```
-
-The server listens on port `3000`; mocks answer at the root and the UI at `/ui`, exactly
-as with the dev server. MongoDB is optional: the image bakes in `mongod`, so with no
-`MONGODB_CONNECTION_STRING` set it starts an in-memory MongoDB automatically (data is
-ephemeral — lost when the container stops). Pass `MONGODB_CONNECTION_STRING` (plus any
-other variables from the table below) to use a real, persistent MongoDB instead:
-
-```bash
-docker run --rm -p 3000:3000 \
-  -e MONGODB_CONNECTION_STRING='mongodb://host.docker.internal:27017' \
-  ghcr.io/bilal-fazlani/mock-server:latest
-```
-
-The image bakes in the example `catalog/` tree. To serve your own catalog without
-rebuilding, mount it over the baked-in one:
-
-```bash
-docker run --rm -p 3000:3000 \
-  -e MONGODB_CONNECTION_STRING='mongodb://host.docker.internal:27017' \
-  -v "$(pwd)/catalog:/app/catalog:ro" \
-  ghcr.io/bilal-fazlani/mock-server:latest
-```
-
-## Configuration
-
-Environment variables (see `.env.example` for the full list):
-
-| Variable | Purpose |
-| --- | --- |
-| `MONGODB_CONNECTION_STRING` | MongoDB URI for profiles, global mocks, mappings, and logs. Optional — if unset, an in-memory MongoDB starts automatically (ephemeral data). |
-| `MONGODB_DB` | Database name (default `mockDB`). |
-| `CATALOG_PATH` | Path to the catalog directory (default `./catalog`). A relative path resolves against the server's working directory; an absolute path is used as-is. The `mock-server [catalogPath]` CLI argument, when given, overrides this variable. |
-| `PASSTHROUGH_AS_DEFAULT` | Whether `real` is the implicit scenario. |
-| `UNMOCKED_USERS` | Fallback for unknown profile IDs (`ERROR` / `DEFAULT_MOCK` / `REAL`). |
-| `MOCK_CONSOLE_LOG_LEVEL` | Console request-log threshold. |
-| `PASSTHROUGH_TIMEOUT_MS` | Timeout for `real` upstream requests. |
-| `<SYSTEM>_URL` | Real upstream base URL per system (e.g. `HELLO_SYSTEM_URL`). |
+Full install (npx options, Docker, from-source), CI usage, the runtime-control
+API, and every environment variable are documented in the
+**[guide](docs/site/)** — see [Documentation](#documentation) to run it locally.
 
 ## Scripts
 
@@ -135,8 +64,11 @@ npm run validate:catalog  # validate the catalog the way startup does
 
 ## Documentation
 
-A full guide to authoring the catalog and every framework feature lives under
-[`docs/site/`](docs/site/) (built with [Zensical](https://zensical.org)):
+The full guide lives under [`docs/site/`](docs/site/) (built with
+[Zensical](https://zensical.org)) and is the canonical source for install, Docker,
+CI, configuration, and every framework feature. It's organized into **Building
+mocks** (authoring the catalog) and **Driving mocks** (controlling a running
+server from the UI or the runtime-control API). Run it locally:
 
 ```bash
 cd docs/site
@@ -144,5 +76,5 @@ python3 -m venv .venv && .venv/bin/pip install zensical
 .venv/bin/zensical serve
 ```
 
-Start with `docs/site/docs/index.md` for the mental model and the getting-started
-walkthrough.
+Start with `docs/site/docs/index.md` for the mental model, or
+`docs/site/docs/get-started/install.md` to install and run.

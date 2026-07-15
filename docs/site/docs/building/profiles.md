@@ -1,5 +1,10 @@
 # Profiles
 
+Profiles are edited in the UI at `/ui`, and can also be read, created, updated,
+and deleted programmatically over the
+[Runtime-control API](../driving/api.md) — the way automated tests set up a
+caller's scenarios before exercising the code under test.
+
 ## Profile-ID extraction (selectors)
 
 Profiled endpoints use `profileIdSelector` to tell the engine how to resolve the
