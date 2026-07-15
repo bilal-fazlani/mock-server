@@ -29,6 +29,20 @@ export function isScenarioDeclared(endpoint: EndpointDef, scenario: string): boo
   return scenario === REAL_SCENARIO || scenario in endpoint.scenarios
 }
 
+/**
+ * Single source of truth for "is this step selectable on this endpoint" —
+ * a declared fixture (incl. the implicit `real` passthrough), or `dynamic`
+ * when the endpoint has a `_dynamic.ts` resolver. Used by every write/validation
+ * path so the UI and API stay consistent with what the router serves and what
+ * `staleScenarios` considers a valid stored pin.
+ */
+export function isScenarioSelectable(endpoint: EndpointDef, scenario: string): boolean {
+  return (
+    isScenarioDeclared(endpoint, scenario) ||
+    (scenario === DYNAMIC_SCENARIO && !!endpoint.hasResolver)
+  )
+}
+
 export function danglingScenarioLabel(slug: string): string {
   return slug === DYNAMIC_SCENARIO ? 'Dynamic — unavailable (no _dynamic.ts)' : `${slug} — unavailable`
 }

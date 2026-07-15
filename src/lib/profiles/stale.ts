@@ -1,13 +1,6 @@
 import type { Catalog, EndpointDef } from '../catalog/types'
-import { DYNAMIC_SCENARIO, isScenarioDeclared } from '../scenarios'
+import { isScenarioSelectable } from '../scenarios'
 import type { MockProfile } from './store'
-
-function isStepValid(endpoint: EndpointDef, step: string): boolean {
-  return (
-    isScenarioDeclared(endpoint, step) ||
-    (step === DYNAMIC_SCENARIO && !!endpoint.hasResolver)
-  )
-}
 
 export function staleScenarios(profile: MockProfile, catalog: Catalog): Record<string, string> {
   const endpoints = new Map<string, EndpointDef>(
@@ -17,7 +10,7 @@ export function staleScenarios(profile: MockProfile, catalog: Catalog): Record<s
   for (const [endpointName, selection] of Object.entries(profile.endpointScenarios)) {
     const steps = Array.isArray(selection) ? selection : [selection]
     const endpoint = endpoints.get(endpointName)
-    const invalid = endpoint ? steps.filter((s) => !isStepValid(endpoint, s)) : steps
+    const invalid = endpoint ? steps.filter((s) => !isScenarioSelectable(endpoint, s)) : steps
     if (invalid.length > 0) stale[endpointName] = invalid.join(', ')
   }
   return stale

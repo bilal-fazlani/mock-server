@@ -1,5 +1,5 @@
 import type { Catalog, EndpointDef } from '../catalog/types'
-import { isScenarioDeclared } from '../scenarios'
+import { isScenarioSelectable } from '../scenarios'
 import type { ScenarioSelection } from './store'
 
 export class InvalidScenarioSelectionError extends Error {}
@@ -61,7 +61,7 @@ function normalizeSelection(
 }
 
 function assertDeclared(endpoint: EndpointDef, scenario: string): void {
-  if (!isScenarioDeclared(endpoint, scenario)) {
+  if (!isScenarioSelectable(endpoint, scenario)) {
     throw new InvalidScenarioSelectionError(
       `endpoint "${endpoint.name}": scenario "${scenario}" is not declared`,
     )

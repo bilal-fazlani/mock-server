@@ -25,6 +25,15 @@ const catalog: Catalog = {
           profileIdSelector: '$.customerId',
           scenarios: { default: 'Success' },
         },
+        {
+          name: 'resolver_ep',
+          displayName: 'Resolver Endpoint',
+          method: 'GET',
+          path: '/resolver',
+          profileIdSelector: '$.customerId',
+          scenarios: { default: 'Success' },
+          hasResolver: true,
+        },
       ],
     },
   ],
@@ -132,6 +141,28 @@ describe('parseEndpointScenarios', () => {
     expect(() =>
       parseEndpointScenarios(form({ 'scenario:hello_world': 'ghost' }), catalog, 'default'),
     ).toThrow(/ghost/)
+  })
+
+  it('accepts "dynamic" on an endpoint that has a resolver', () => {
+    expect(
+      parseEndpointScenarios(form({ 'scenario:resolver_ep': 'dynamic' }), catalog, 'default'),
+    ).toEqual({ resolver_ep: 'dynamic' })
+  })
+
+  it('accepts "dynamic" as a sequence step on a resolver endpoint', () => {
+    expect(
+      parseEndpointScenarios(
+        form({ 'scenarioSequence:resolver_ep': JSON.stringify(['dynamic', 'default']) }),
+        catalog,
+        'default',
+      ),
+    ).toEqual({ resolver_ep: ['dynamic', 'default'] })
+  })
+
+  it('rejects "dynamic" on an endpoint without a resolver', () => {
+    expect(() =>
+      parseEndpointScenarios(form({ 'scenario:hello_world': 'dynamic' }), catalog, 'default'),
+    ).toThrow(/dynamic/)
   })
 
   it('handles multiple endpoints independently', () => {

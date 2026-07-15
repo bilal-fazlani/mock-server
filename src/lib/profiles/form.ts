@@ -1,5 +1,5 @@
 import type { Catalog, EndpointDef } from '../catalog/types'
-import { isScenarioDeclared } from '../scenarios'
+import { isScenarioSelectable } from '../scenarios'
 import type { ScenarioSelection } from './store'
 
 /**
@@ -58,7 +58,7 @@ function parseSequence(endpoint: EndpointDef, raw: string): string[] {
 }
 
 function assertDeclared(endpoint: EndpointDef, scenario: string): void {
-  if (!isScenarioDeclared(endpoint, scenario)) {
+  if (!isScenarioSelectable(endpoint, scenario)) {
     throw new Error(`endpoint "${endpoint.name}": scenario "${scenario}" is not declared`)
   }
 }

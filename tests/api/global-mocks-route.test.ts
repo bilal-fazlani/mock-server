@@ -30,6 +30,15 @@ vi.mock('../../src/lib/runtime', () => ({
               scenarios: { default: 'Token', expired: 'Expired' },
             },
             {
+              name: 'account_balance',
+              displayName: 'Account Balance',
+              method: 'POST',
+              path: '/accounts/balance',
+              mockType: 'global',
+              scenarios: { default: 'Settled', pending: 'Pending' },
+              hasResolver: true,
+            },
+            {
               name: 'profiled_endpoint',
               displayName: 'Profiled Endpoint',
               method: 'POST',
@@ -109,6 +118,28 @@ describe('PUT /ui/api/global-mocks/{system}/{endpoint}', () => {
   it('400s for an undeclared scenario', async () => {
     const res = await detailRoute.PUT(putReq({ scenario: 'nope' }), params('hello-system', 'oauth_token'))
     expect(res.status).toBe(400)
+  })
+
+  it('sets "dynamic" on a resolver-backed global endpoint', async () => {
+    const res = await detailRoute.PUT(
+      putReq({ scenario: 'dynamic' }),
+      params('hello-system', 'account_balance'),
+    )
+    expect(res.status).toBe(200)
+    expect(upsertGlobalMockScenarioMock).toHaveBeenCalledWith(expect.anything(), {
+      system: 'hello-system',
+      endpoint: 'account_balance',
+      scenario: 'dynamic',
+    })
+  })
+
+  it('400s for "dynamic" on a global endpoint without a resolver', async () => {
+    const res = await detailRoute.PUT(
+      putReq({ scenario: 'dynamic' }),
+      params('hello-system', 'oauth_token'),
+    )
+    expect(res.status).toBe(400)
+    expect(upsertGlobalMockScenarioMock).not.toHaveBeenCalled()
   })
 
   it('400s for a missing scenario field', async () => {

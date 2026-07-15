@@ -46,6 +46,15 @@ vi.mock('../../src/lib/runtime', () => ({
               scenarios: { default: 'Token', expired: 'Expired' },
             },
             {
+              name: 'account_balance',
+              displayName: 'Account Balance',
+              method: 'POST',
+              path: '/accounts/balance',
+              mockType: 'global',
+              scenarios: { default: 'Settled', pending: 'Pending' },
+              hasResolver: true,
+            },
+            {
               name: 'profiled_endpoint',
               displayName: 'Profiled Endpoint',
               method: 'POST',
@@ -134,6 +143,26 @@ describe('saveGlobalMocks', () => {
   it('rejects undeclared fixture scenarios', async () => {
     await expect(
       saveGlobalMocks(formData({ 'scenario:hello-system:oauth_token': 'ghost' })),
+    ).rejects.toThrow(/not declared/)
+    expect(upsertGlobalMockScenarioMock).not.toHaveBeenCalled()
+    expect(clearGlobalMockScenarioMock).not.toHaveBeenCalled()
+  })
+
+  it('stores "dynamic" on a resolver-backed global endpoint', async () => {
+    await expect(
+      saveGlobalMocks(formData({ 'scenario:hello-system:account_balance': 'dynamic' })),
+    ).rejects.toThrow('REDIRECT:')
+
+    expect(upsertGlobalMockScenarioMock).toHaveBeenCalledWith(expect.anything(), {
+      system: 'hello-system',
+      endpoint: 'account_balance',
+      scenario: 'dynamic',
+    })
+  })
+
+  it('rejects "dynamic" on a global endpoint without a resolver', async () => {
+    await expect(
+      saveGlobalMocks(formData({ 'scenario:hello-system:oauth_token': 'dynamic' })),
     ).rejects.toThrow(/not declared/)
     expect(upsertGlobalMockScenarioMock).not.toHaveBeenCalled()
     expect(clearGlobalMockScenarioMock).not.toHaveBeenCalled()

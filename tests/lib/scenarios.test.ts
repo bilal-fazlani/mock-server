@@ -3,6 +3,7 @@ import type { EndpointDef } from '../../src/lib/catalog/types'
 import {
   danglingScenarioLabel,
   DYNAMIC_SCENARIO,
+  isScenarioSelectable,
   scenarioOptionsWithDangling,
   scenariosWithPassthrough,
 } from '../../src/lib/scenarios'
@@ -21,6 +22,24 @@ describe('scenariosWithPassthrough', () => {
   it('includes dynamic (before real) when hasResolver is true', () => {
     const keys = Object.keys(scenariosWithPassthrough(ep({ hasResolver: true }), false))
     expect(keys).toEqual(['default', 'frozen', DYNAMIC_SCENARIO, 'real'])
+  })
+})
+
+describe('isScenarioSelectable', () => {
+  it('accepts a declared fixture scenario', () => {
+    expect(isScenarioSelectable(ep(), 'frozen')).toBe(true)
+  })
+  it('accepts the "real" passthrough', () => {
+    expect(isScenarioSelectable(ep(), 'real')).toBe(true)
+  })
+  it('rejects an undeclared scenario', () => {
+    expect(isScenarioSelectable(ep(), 'ghost')).toBe(false)
+  })
+  it('accepts "dynamic" when the endpoint has a resolver', () => {
+    expect(isScenarioSelectable(ep({ hasResolver: true }), DYNAMIC_SCENARIO)).toBe(true)
+  })
+  it('rejects "dynamic" when the endpoint has no resolver', () => {
+    expect(isScenarioSelectable(ep(), DYNAMIC_SCENARIO)).toBe(false)
   })
 })
 
