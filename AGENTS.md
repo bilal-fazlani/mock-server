@@ -7,17 +7,21 @@ There is a human-facing guide built with [Zensical](https://zensical.org) under
 It documents how to create a mock endpoint and every framework feature involved: the
 catalog schema and endpoint fields, profile-ID selectors, path templates, scenarios and the
 `real` passthrough, the fixture file shape, placeholders, strict vs. non-strict mode,
-validation rules, and the request lifecycle. The guide pages are:
+validation rules, and the request lifecycle. It also covers installing and running the
+server and the programmatic runtime-control API (`/ui/api/*`). The guide pages are:
 
 - `docs/site/docs/index.md` — mental model and the catalog tree overview
+- `docs/site/docs/get-started/install.md` — installing and running (npx, Docker, from source)
 - `docs/site/docs/get-started/first-mock.md` — the step-by-step walkthrough
 - `docs/site/docs/building/endpoints.md` — endpoint/system fields and path templates
 - `docs/site/docs/building/profiles.md` — profile-ID selectors and profile key mappings
 - `docs/site/docs/building/scenarios.md` — scenarios, `real` passthrough, and sequences
 - `docs/site/docs/building/fixtures.md` — fixture shape and placeholders
 - `docs/site/docs/building/schemas.md` — `_schema.json` request/response validation
-- `docs/site/docs/reference/configuration.md` — env vars and catalog validation rules
+- `docs/site/docs/driving/api.md` — the `/ui/api/*` runtime-control API reference
+- `docs/site/docs/driving/dev-and-ci.md` — using the server in local dev and CI
 - `docs/site/docs/driving/request-logs.md` — request logging
+- `docs/site/docs/reference/configuration.md` — env vars and catalog validation rules
 - `docs/site/docs/reference/request-lifecycle.md` — the full request routing flow
 
 **Whenever you change app functionality that this guide describes, you MUST:**
@@ -43,6 +47,13 @@ validation rules, and the request lifecycle. The guide pages are:
      → `reference/configuration.md`
    - schema validation — `_schema.json` handling → `building/schemas.md`
    - request logging — → `driving/request-logs.md`
+   - the programmatic runtime-control API (scenario/profile/global-mock control,
+     catalog discovery, progress reset, health) — `src/app/ui/api/**/route.ts`,
+     `src/lib/profiles/api-scenarios.ts`, `src/lib/scenarios.ts`
+     → `driving/api.md`, `driving/dev-and-ci.md`
+   - the CLI, Docker image, or npm packaging (how the server is installed and run) —
+     `bin/mock-server.js`, `Dockerfile`, `package.json` (`bin`/`scripts`)
+     → `get-started/install.md`
    - the request lifecycle, or the URL layout (mock at root `/…` vs. UI under `/ui/…`)
      → `reference/request-lifecycle.md`, `index.md`
 
