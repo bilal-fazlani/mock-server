@@ -14,11 +14,12 @@ the same stream as admin events.
 When the resolved scenario slug is resolver-backed, the trace's `scenario`
 field is overwritten with the *resolved* slug — the resolver's return value,
 not the pinned slug that ran it — and a separate `trace.resolver = { slug,
-returned }` field records the pick, e.g. `{ slug: "by-amount", returned:
-"hold" }`. `trace.scenarioSource` is **not** overwritten by the resolver; it
-keeps reporting the original selection mechanism (`pin`, `sequence`,
-`implicit`, `global`, or `unmocked_policy`), so a log entry reads as "source
-`implicit`, scenario `default → hold`" — strictly more informative than
+returned }` field records the pick, e.g. `{ slug: "default", returned:
+"hold" }` for a `default.ts` resolver that routed to `hold`.
+`trace.scenarioSource` is **not** overwritten by the resolver; it keeps
+reporting the original selection mechanism (`pin`, `sequence`, `implicit`,
+`global`, or `unmocked_policy`), so a log entry reads as "source `implicit`,
+scenario `default → hold`" — strictly more informative than
 overwriting the selection mechanism would be, and a resolver that returns
 `"real"` still shows the upstream URL/status/latency for that call. Without
 `trace.resolver`, a resolver-then-real request would be indistinguishable from

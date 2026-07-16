@@ -204,19 +204,23 @@ request logs, so resolver behavior never depends on log retention:
 | Situation | Trace error code | When |
 | --- | --- | --- |
 | The `.ts` file fails to transpile or doesn't default-export a function | `resolver_compile_error` | Dev mode, at request time (production catches this at startup instead — see below). |
+| A slug is resolver-backed (declared in the endpoint's resolver scenarios) but no compiled resolver is found for it | `resolver_missing` | Request time. Nothing is appended to history. |
 | The resolver throws | `resolver_threw` | Request time. |
 | The resolver exceeds its timeout (~100&nbsp;ms) | `resolver_timeout` | Request time — guards against a runaway synchronous loop. |
 | The resolver returns something other than a fixture-backed declared scenario or `"real"` (including a resolver-backed slug, an undeclared slug, or a non-string) | `resolver_bad_return` | Request time. Nothing is appended to history. |
 
-There is no `resolver_missing` equivalent to the old `dynamic_resolver_missing`
-special case for a "pin points at `dynamic`, but no `_dynamic.ts` exists"
-scenario — `dynamic` is not a reserved name anymore. If a profile or global
-selection is pinned to a slug whose `.ts` file is later deleted from the
-catalog, that's the same ordinary drift as a fixture-scenario pin whose file
-disappears: the picker renders it as a disabled `<slug> — unavailable` entry
-and the profile editor blocks saving until a valid scenario is chosen (see
-[Request lifecycle](../reference/request-lifecycle.md) for the drift trace
-code).
+`resolver_missing` and the old `dynamic_resolver_missing` are not the same
+thing. The old code fired when a profile pinned the reserved `dynamic` slug and
+the endpoint's `_dynamic.ts` had since been removed. That case no longer exists:
+`dynamic` isn't a reserved name, so a pin at a slug whose `.ts` file was later
+deleted means the slug is **no longer resolver-backed at all** — it's ordinary
+undeclared-scenario drift, exactly like a fixture-scenario pin whose file
+disappears. The picker renders it as a disabled `<slug> — unavailable` entry,
+the profile editor blocks saving until a valid scenario is chosen, and a live
+request that still resolves to it fails with `scenario_undeclared` (see
+[Request lifecycle](../reference/request-lifecycle.md)). `resolver_missing`
+covers a different situation: the slug **is** declared resolver-backed on the
+endpoint, but no compiled resolver could be produced for it at request time.
 
 ## Compilation, sandboxing, and timeouts
 
