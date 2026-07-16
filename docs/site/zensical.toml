@@ -1,6 +1,10 @@
 [project]
 site_name = "Mock Server"
 site_description = "How to create and configure mock endpoints in the mock server."
+# Required for instant navigation, the sitemap, and canonical URLs.
+site_url = "https://mock-server.bilal-fazlani.com"
+repo_url = "https://github.com/bilal-fazlani/mock-server"
+repo_name = "bilal-fazlani/mock-server"
 
 nav = [
   { "Overview" = "index.md" },
@@ -30,10 +34,13 @@ nav = [
 
 [project.theme]
 features = [
-  "navigation.sections",   # top-level sections as sidebar groups
-  "navigation.footer",     # prev/next links in the footer
-  "navigation.top",        # back-to-top button
-  "content.code.select",   # line-selection button on code blocks
+  "navigation.sections",          # top-level sections as sidebar groups
+  "navigation.footer",            # prev/next links in the footer
+  "navigation.top",               # back-to-top button
+  "content.code.select",          # line-selection button on code blocks
+  "navigation.instant",           # SPA-style instant page loading (needs site_url)
+  "navigation.instant.prefetch",  # prefetch links on hover
+  "navigation.instant.progress",  # loading progress bar for slower loads
 ]
 
 # Light + dark, with a toggle in the header (defaults to the reader's OS setting).
