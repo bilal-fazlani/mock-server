@@ -108,6 +108,11 @@ export async function ensureIndexes(db: Db): Promise<void> {
   await db.collection('requestLogs').createIndex({ logId: 1 }, { unique: true })
   await db.collection('requestLogs').createIndex({ profileId: 1, ts: -1 })
   await db.collection('requestLogs').createIndex({ endpoint: 1, ts: -1 })
+  // Serves the unfiltered first-page/live list, which sorts by { ts: -1, logId: -1 }.
+  // Without it that query COLLSCANs the whole collection into a blocking in-memory
+  // sort (slow first load); with it the sort is index-ordered and stops at `limit`.
+  // It also backs the keyset (ts, logId) `$or` bounds used by before/since paging.
+  await db.collection('requestLogs').createIndex({ ts: -1, logId: -1 })
 }
 
 export async function getProfile(db: Db, profileId: string): Promise<MockProfile | null> {

@@ -204,4 +204,30 @@ describe('log store', () => {
     expect(full?.response?.body).toEqual({ ok: 1 })
     expect(await getLogEntry(db, 'lg_missing')).toBeNull()
   })
+
+  // Regression: the unfiltered first-page/live list sorts by { ts: -1, logId: -1 }.
+  // Without a matching compound index Mongo COLLSCANs the whole collection into a
+  // blocking in-memory SORT — cheap on a tiny test set but ~13s against a real 24h
+  // collection. Assert the plan is index-ordered (IXSCAN, no SORT stage) so the
+  // supporting index is never dropped.
+  it('serves the unfiltered first page from an index without a blocking sort', async () => {
+    for (let i = 0; i < 50; i++) await insertLogEntry(db, entry())
+
+    const plan = await db
+      .collection('requestLogs')
+      .find({}, { projection: { _id: 0, request: 0 } })
+      .sort({ ts: -1, logId: -1 })
+      .limit(100)
+      .explain('executionStats')
+
+    const stages: string[] = []
+    for (let s = plan.queryPlanner.winningPlan; s; s = s.inputStage) {
+      if (s.stage) stages.push(s.stage)
+    }
+    expect(stages).toContain('IXSCAN')
+    expect(stages).not.toContain('SORT')
+    expect(stages).not.toContain('COLLSCAN')
+    // An index-ordered plan fetches only up to `limit` docs, not the whole set.
+    expect(plan.executionStats.totalDocsExamined).toBeLessThanOrEqual(100)
+  })
 })
