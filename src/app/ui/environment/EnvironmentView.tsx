@@ -1,4 +1,5 @@
 import type { EnvironmentRow, EnvironmentStatus } from '../../../lib/environment'
+import { BUILD_INFO } from '../../../lib/build-info'
 
 export function EnvironmentView({ rows }: { rows: EnvironmentRow[] }) {
   const groups = groupRows(rows)
@@ -9,6 +10,26 @@ export function EnvironmentView({ rows }: { rows: EnvironmentRow[] }) {
         <h1>Environment</h1>
         <span className="font-mono text-[0.82rem] text-muted-foreground">{rows.length} variables</span>
       </div>
+
+      <section className="grid gap-2.5">
+        <h2 className="m-0">Build</h2>
+        <div className="overflow-x-auto rounded-lg border border-border bg-card shadow-sm">
+          <dl className="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-1 px-4 py-3.5 text-[0.9rem]">
+            <dt className="text-[0.76rem] font-semibold tracking-[0.04em] text-muted-foreground uppercase self-center">
+              Version
+            </dt>
+            <dd className="m-0">
+              <code className="text-foreground">{BUILD_INFO.version}</code>
+            </dd>
+            <dt className="text-[0.76rem] font-semibold tracking-[0.04em] text-muted-foreground uppercase self-center">
+              Commit
+            </dt>
+            <dd className="m-0">
+              <code className="text-secondary-foreground [overflow-wrap:anywhere]">{BUILD_INFO.gitSha}</code>
+            </dd>
+          </dl>
+        </div>
+      </section>
 
       {groups.map((group) => (
         <section key={group.category} className="grid gap-2.5">

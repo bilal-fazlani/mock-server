@@ -1,13 +1,23 @@
 import Link from "next/link";
 import { ThemeToggle } from "@/app/components/ThemeToggle";
+import { BUILD_INFO, gitShaShort } from "@/lib/build-info";
 
 export default function UiLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <>
       <header className="z-10 flex items-center gap-6 border-b border-border bg-card px-6 py-3">
-        <Link href="/ui" className="text-base font-bold tracking-tight text-foreground hover:no-underline">
-          Mock Server
-        </Link>
+        <div className="flex items-baseline gap-1.5">
+          <Link href="/ui" className="text-base font-bold tracking-tight text-foreground hover:no-underline">
+            Mock Server
+          </Link>
+          <span
+            className="font-mono text-[0.72rem] text-muted-foreground"
+            title={`git ${BUILD_INFO.gitSha}`}
+          >
+            v{BUILD_INFO.version}
+            {gitShaShort !== "unknown" ? ` · ${gitShaShort}` : ""}
+          </span>
+        </div>
         <nav className="flex gap-4 text-sm">
           <Link href="/ui" className="text-muted-foreground hover:text-foreground hover:no-underline">Profiles</Link>
           <Link href="/ui/global-mocks" className="text-muted-foreground hover:text-foreground hover:no-underline">Global mocks</Link>

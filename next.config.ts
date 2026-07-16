@@ -1,6 +1,19 @@
+import { readFileSync } from "node:fs";
 import type { NextConfig } from "next";
 
+// Build info baked in at build time. Version comes from package.json; the git
+// SHA is passed in via GIT_SHA (Docker build-arg) or GITHUB_SHA (CI), and falls
+// back to "unknown" for local builds where neither is set.
+const { version } = JSON.parse(readFileSync("./package.json", "utf8")) as {
+  version: string;
+};
+const gitSha = process.env.GIT_SHA ?? process.env.GITHUB_SHA ?? "unknown";
+
 const nextConfig: NextConfig = {
+  env: {
+    NEXT_PUBLIC_APP_VERSION: version,
+    NEXT_PUBLIC_GIT_SHA: gitSha,
+  },
   // Emit .next/standalone with a minimal server.js for a lean Docker image.
   output: "standalone",
   // mongodb-memory-server: loaded via dynamic import() at runtime for the

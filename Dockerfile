@@ -22,6 +22,10 @@ RUN npm ci
 FROM node:22-bookworm-slim AS build
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
+# Git SHA to bake into the build (.git is dockerignored, so it must be passed
+# in). Defaults to "unknown" for local `docker build` without --build-arg.
+ARG GIT_SHA=unknown
+ENV GIT_SHA=${GIT_SHA}
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build

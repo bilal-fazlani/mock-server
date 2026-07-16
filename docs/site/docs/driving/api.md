@@ -33,7 +33,7 @@ namespace; every control route lives under `/ui/api/*`. Error responses are
 | `POST /ui/api/profiles/{profileId}/reset` | `{ endpoint? }` | `204` | — |
 | `GET /ui/api/logs` | — (query params below) | `200 { "entries": … }` | — |
 | `GET /ui/api/logs/{logId}` | — | `200` log entry | — |
-| `GET /ui/api/health` | — | `200 { status, mongo }` | `503` Mongo down |
+| `GET /ui/api/health` | — | `200 { status, mongo, version, sha }` | `503` Mongo down (same body shape) |
 
 ## `GET /ui/api/catalog`
 

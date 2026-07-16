@@ -1,4 +1,5 @@
 import { getDb } from '../../../../lib/profiles/store'
+import { BUILD_INFO } from '../../../../lib/build-info'
 
 // Never cache — the health check must reflect live Mongo connectivity.
 export const dynamic = 'force-dynamic'
@@ -9,12 +10,13 @@ export const dynamic = 'force-dynamic'
 const CHECK_TIMEOUT_MS = 3000
 
 export async function GET(): Promise<Response> {
+  const build = { version: BUILD_INFO.version, sha: BUILD_INFO.gitSha }
   try {
     await withTimeout(pingMongo(), CHECK_TIMEOUT_MS)
-    return Response.json({ status: 'ok', mongo: 'up' })
+    return Response.json({ status: 'ok', mongo: 'up', ...build })
   } catch (err) {
     return Response.json(
-      { status: 'error', mongo: 'down', error: err instanceof Error ? err.message : String(err) },
+      { status: 'error', mongo: 'down', error: err instanceof Error ? err.message : String(err), ...build },
       { status: 503 },
     )
   }

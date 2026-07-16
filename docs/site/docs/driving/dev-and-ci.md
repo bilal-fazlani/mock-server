@@ -45,6 +45,13 @@ jobs:
           HELLO_SYSTEM_URL: http://localhost:3000
 ```
 
+The health response also carries the running build's `version` and `sha`, so a CI
+step can log or assert exactly which image it is testing against:
+
+```bash
+curl -sf http://localhost:3000/ui/api/health | jq '{version, sha}'
+```
+
 ### A worked control loop
 
 Force a scenario, exercise your code, assert the call happened, clean up:
