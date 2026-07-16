@@ -125,6 +125,7 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
+@layer base {
 * {
   box-sizing: border-box;
   padding: 0;
@@ -214,6 +215,7 @@ button:focus-visible,
 a:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
 }
 
 .btnPrimary {
