@@ -203,17 +203,22 @@ Grounded in the current code; only the named touchpoints change.
 - Changing `UNMOCKED_USERS=DEFAULT_MOCK` semantics — it continues to mean the
   literal `default` outcome. *(Open question below.)*
 
-## Open questions
+## Decisions on former open questions
 
-1. **`UNMOCKED_USERS=DEFAULT_MOCK` + `_default.ts`.** When a profile ID resolves
-   but the profile doesn't exist and policy is `DEFAULT_MOCK`, the router sets
-   `scenario = DEFAULT_SCENARIO` literally. Should that then run `_default.ts`
-   (consistent: "default means the resolver") or stay a literal default outcome?
-   Recommendation: **run the resolver** — it is the endpoint's default — but this
-   needs an explicit decision since it changes what `DEFAULT_MOCK` serves for
-   resolver-backed endpoints.
-2. **`scenarioSource` value** — reuse `'dynamic'` vs. add `'default'` (see
-   router note). Recommendation: reuse `'dynamic'`.
+1. **`UNMOCKED_USERS=DEFAULT_MOCK` + `_default.ts` — DECIDED: run the resolver.**
+   When a profile ID resolves but the profile doesn't exist and policy is
+   `DEFAULT_MOCK`, the router sets `scenario = DEFAULT_SCENARIO`; on a
+   resolver-backed endpoint that runs `_default.ts` (with the unmocked ID as
+   `profileId`). Note there is no real alternative: a `_default.ts` endpoint has
+   no `default.json`, so "serve a literal static default" has nothing to serve.
+   **Consequence:** unmocked callers append dynamic-history rows keyed to
+   profile IDs that have no profile document, so no cleanup path ever fires and
+   key cardinality is unbounded (driven by caller input). Tracked separately —
+   TTL or cleanup job — in
+   [#6](https://github.com/bilal-fazlani/mock-server/issues/6); not solved in
+   this design.
+2. **`scenarioSource` value** — still open: reuse `'dynamic'` vs. add
+   `'default'` (see router note). Recommendation: reuse `'dynamic'`.
 
 ## Documentation impact (per AGENTS.md — ask before editing)
 
