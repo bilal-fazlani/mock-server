@@ -53,8 +53,21 @@ function fixtureJsonWithStatus(status: number): string {
   )
 }
 
+// Stand-in for the real shiki output (tested against the real highlighter in
+// scenario-view.test.ts) — just needs to be identifiable in the rendered markup.
+function fixtureHtml(marker: string): string {
+  return `<pre class="shiki shiki-themes github-light github-dark"><code>${marker}</code></pre>`
+}
+
 const scenarios: ScenarioView[] = [
-  { key: 'accept_policy', label: 'Accept Policy', isDefault: true, kind: 'fixture', json: fixtureJson },
+  {
+    key: 'accept_policy',
+    label: 'Accept Policy',
+    isDefault: true,
+    kind: 'fixture',
+    json: fixtureJson,
+    html: fixtureHtml('accept-policy-body'),
+  },
   { key: 'real', label: 'Passthrough', isDefault: false, kind: 'passthrough', baseUrlEnv: 'HELLO_SYSTEM_URL', url: 'http://upstream.test' },
 ]
 
@@ -251,10 +264,11 @@ describe('EndpointView', () => {
   it('renders fixture status and headers outside the body json', () => {
     const html = view()
     const text = visibleText(html)
+    const bodyHtml = fixtureHtml('accept-policy-body')
 
     expect(text).toContain('HTTP 200 OK')
     expect(html).toContain('border-[rgba(var(--success-rgb),0.45)] bg-[var(--success-tint)] text-[var(--success)]')
-    expect(html.indexOf('HTTP 200 OK')).toBeLessThan(html.indexOf('<pre class="overflow-x-auto'))
+    expect(html.indexOf('HTTP 200 OK')).toBeLessThan(html.indexOf(bodyHtml))
     expect(text).toContain('content-type application/json')
     expect(text).not.toContain('Headers')
     expect(text).not.toContain('content-type:')
@@ -262,22 +276,17 @@ describe('EndpointView', () => {
     expect(html).toContain('<dt class="min-w-0 inline-flex min-h-[28px] items-center border-r border-border bg-background')
     expect(html).toContain('<dd class="min-w-0 inline-flex min-h-[28px] items-center bg-[var(--accent-tint)]')
     expect(text).not.toContain('Status 200')
-    expect(html).toMatch(/<pre class="overflow-x-auto rounded-sm border border-border bg-background p-3 font-mono text-\[0\.8rem\]">\{\n/)
-    expect(html).toContain('&quot;transaction-results&quot;')
-    expect(html).toContain('&quot;recommendation-code&quot;: &quot;ACCEPT_POLICY&quot;')
-    expect(html).toContain('\n}</pre>')
-    expect(html).not.toContain('&quot;description&quot;')
-    expect(html).not.toContain('&quot;status&quot;')
-    expect(html).not.toContain('&quot;headers&quot;')
-    expect(html).not.toContain('&quot;body&quot;')
+    // the server-highlighted html is injected verbatim into the wrapper div
+    expect(html).toContain('overflow-x-auto rounded-sm border border-border text-[0.8rem] [&amp;_pre]:p-3')
+    expect(html).toContain(bodyHtml)
   })
 
   it('uses status color tones by response family', () => {
     const statusScenarios: ScenarioView[] = [
-      { key: 'success', label: 'Success', isDefault: false, kind: 'fixture', json: fixtureJsonWithStatus(200) },
-      { key: 'redirect', label: 'Redirect', isDefault: false, kind: 'fixture', json: fixtureJsonWithStatus(302) },
-      { key: 'client_error', label: 'Client error', isDefault: false, kind: 'fixture', json: fixtureJsonWithStatus(404) },
-      { key: 'server_error', label: 'Server error', isDefault: false, kind: 'fixture', json: fixtureJsonWithStatus(500) },
+      { key: 'success', label: 'Success', isDefault: false, kind: 'fixture', json: fixtureJsonWithStatus(200), html: fixtureHtml('success-body') },
+      { key: 'redirect', label: 'Redirect', isDefault: false, kind: 'fixture', json: fixtureJsonWithStatus(302), html: fixtureHtml('redirect-body') },
+      { key: 'client_error', label: 'Client error', isDefault: false, kind: 'fixture', json: fixtureJsonWithStatus(404), html: fixtureHtml('client-error-body') },
+      { key: 'server_error', label: 'Server error', isDefault: false, kind: 'fixture', json: fixtureJsonWithStatus(500), html: fixtureHtml('server-error-body') },
     ]
     const html = view({ scenarios: statusScenarios })
 

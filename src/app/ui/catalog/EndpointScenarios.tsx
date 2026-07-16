@@ -120,9 +120,15 @@ function ScenarioContent({ scenario }: { scenario: ScenarioView }) {
 
   if (scenario.kind === 'resolver') {
     return (
-      <p className="font-mono text-[0.85rem] text-secondary-foreground">
-        Resolved at request time by <code>{scenario.key}.ts</code> — returns a scenario slug per request.
-      </p>
+      <div className="grid gap-2">
+        <p className="font-mono text-[0.85rem] text-secondary-foreground">
+          Resolved at request time by <code>{scenario.key}.ts</code>
+        </p>
+        <div
+          className="overflow-x-auto rounded-sm border border-border text-[0.8rem] [&_pre]:p-3"
+          dangerouslySetInnerHTML={{ __html: scenario.html }}
+        />
+      </div>
     )
   }
 
@@ -130,21 +136,12 @@ function ScenarioContent({ scenario }: { scenario: ScenarioView }) {
     return <p className="text-[var(--warning-text)]">{scenario.message}</p>
   }
 
-  return <FixtureContent json={scenario.json} />
+  return <FixtureContent json={scenario.json} html={scenario.html} />
 }
 
-function FixtureContent({ json }: { json: string }) {
+function FixtureContent({ json, html }: { json: string; html: string }) {
   const fixture = parseFixtureJson(json)
-  if (!fixture) {
-    return (
-      <pre className="overflow-x-auto rounded-sm border border-border bg-background p-3 font-mono text-[0.8rem]">
-        {json}
-      </pre>
-    )
-  }
-
-  const headers = isRecord(fixture.headers) ? Object.entries(fixture.headers).map(([name, value]) => [name, formatHeaderValue(value)] as const) : []
-  const bodyJson = fixture.body === undefined ? null : formatBodyJson(fixture.body)
+  const headers = fixture && isRecord(fixture.headers) ? Object.entries(fixture.headers).map(([name, value]) => [name, formatHeaderValue(value)] as const) : []
 
   return (
     <div className="grid gap-3">
@@ -169,11 +166,10 @@ function FixtureContent({ json }: { json: string }) {
           </div>
         </div>
       )}
-      {bodyJson && (
-        <pre className="overflow-x-auto rounded-sm border border-border bg-background p-3 font-mono text-[0.8rem]">
-          {bodyJson}
-        </pre>
-      )}
+      <div
+        className="overflow-x-auto rounded-sm border border-border text-[0.8rem] [&_pre]:p-3"
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
     </div>
   )
 }
@@ -240,11 +236,6 @@ function statusToneClassName(tone: StatusTone): string {
   if (tone === 'redirect') return 'border-[var(--warning-border)] bg-[var(--warning-bg)] text-[var(--warning-text)]'
   if (tone === 'error') return 'border-[#d92d20] bg-[rgba(217,45,32,0.12)] text-[#d92d20]'
   return 'border-border bg-background text-secondary-foreground'
-}
-
-function formatBodyJson(body: unknown): string | null {
-  const serialized = JSON.stringify(body, null, 2)
-  return serialized || null
 }
 
 function scenarioPanelId(key: string, index: number): string {

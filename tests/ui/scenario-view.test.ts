@@ -1,7 +1,9 @@
+import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
-import { describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { EndpointDef, SystemDef } from '../../src/lib/catalog/types'
-import { buildScenarioViews } from '../../src/app/ui/catalog/scenario-view'
+import { buildScenarioViews, type ScenarioView } from '../../src/app/ui/catalog/scenario-view'
 
 const fixturesDir = path.join(__dirname, '../testdata/fixtures')
 
@@ -23,21 +25,21 @@ const endpoint: EndpointDef = {
 }
 
 describe('buildScenarioViews', () => {
-  it('loads the raw fixture json for the default scenario', () => {
-    const views = buildScenarioViews(system, endpoint, fixturesDir, {}, false)
+  it('loads the raw fixture json for the default scenario', async () => {
+    const views = await buildScenarioViews(system, endpoint, fixturesDir, {}, false)
     const fixture = views.find((v) => v.key === 'default')
     expect(fixture).toMatchObject({ key: 'default', isDefault: true, kind: 'fixture' })
     if (fixture?.kind === 'fixture') expect(fixture.json).toContain('"status"')
   })
 
-  it('reports an error view when a fixture is missing', () => {
+  it('reports an error view when a fixture is missing', async () => {
     const missing: EndpointDef = { ...endpoint, scenarios: { nope: 'Missing' } }
-    const views = buildScenarioViews(system, missing, fixturesDir, {}, false)
+    const views = await buildScenarioViews(system, missing, fixturesDir, {}, false)
     expect(views[0].kind).toBe('error')
   })
 
-  it('appends a synthetic passthrough entry last when passthrough is not the default', () => {
-    const views = buildScenarioViews(system, endpoint, fixturesDir, { TEST_SYSTEM_URL: 'http://upstream.test' }, false)
+  it('appends a synthetic passthrough entry last when passthrough is not the default', async () => {
+    const views = await buildScenarioViews(system, endpoint, fixturesDir, { TEST_SYSTEM_URL: 'http://upstream.test' }, false)
     expect(views).toHaveLength(2)
     const real = views[1]
     expect(real).toMatchObject({
@@ -49,15 +51,15 @@ describe('buildScenarioViews', () => {
     })
   })
 
-  it('prepends the synthetic passthrough entry first when passthrough is the default', () => {
-    const views = buildScenarioViews(system, endpoint, fixturesDir, {}, true)
+  it('prepends the synthetic passthrough entry first when passthrough is the default', async () => {
+    const views = await buildScenarioViews(system, endpoint, fixturesDir, {}, true)
     expect(views).toHaveLength(2)
     expect(views[0]).toMatchObject({ key: 'real', kind: 'passthrough', url: null })
     expect(views[1]).toMatchObject({ key: 'default' })
   })
 
-  it('marks a resolver-backed scenario slug with the resolver kind', () => {
-    const views = buildScenarioViews(
+  it('marks a resolver-backed scenario slug with the resolver kind', async () => {
+    const views = await buildScenarioViews(
       system,
       {
         ...endpoint,
@@ -70,5 +72,46 @@ describe('buildScenarioViews', () => {
     )
     const resolver = views.find((v) => v.key === 'by_amount')
     expect(resolver?.kind).toBe('resolver')
+  })
+})
+
+describe('buildScenarioViews - resolver source and syntax highlighting', () => {
+  let dir: string
+  let views: ScenarioView[]
+
+  beforeAll(async () => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mock-scenario-view-'))
+    fs.mkdirSync(path.join(dir, 'test-system', 'hello_world'), { recursive: true })
+    fs.writeFileSync(
+      path.join(dir, 'test-system', 'hello_world', 'by-amount.ts'),
+      "export default function resolve() {\n  return 'default'\n}\n",
+    )
+    fs.writeFileSync(
+      path.join(dir, 'test-system', 'hello_world', 'default.json'),
+      JSON.stringify({ status: 200, body: { ok: true } }),
+    )
+
+    const resolverEndpoint: EndpointDef = {
+      ...endpoint,
+      scenarios: { default: 'Success', 'by-amount': 'Routes by amount' },
+      resolverScenarios: ['by-amount'],
+    }
+    views = await buildScenarioViews(system, resolverEndpoint, dir, {}, false)
+  })
+
+  afterAll(() => {
+    fs.rmSync(dir, { recursive: true, force: true })
+  })
+
+  it('includes resolver source and highlighted html for resolver-backed scenarios', () => {
+    const resolver = views.find((v) => v.key === 'by-amount')
+    expect(resolver).toMatchObject({ kind: 'resolver' })
+    expect((resolver as { code: string }).code).toContain('export default')
+    expect((resolver as { html: string }).html).toContain('<pre')
+  })
+
+  it('includes highlighted html for fixture scenarios', () => {
+    const fixture = views.find((v) => v.kind === 'fixture')
+    expect((fixture as { html: string }).html).toContain('<pre')
   })
 })

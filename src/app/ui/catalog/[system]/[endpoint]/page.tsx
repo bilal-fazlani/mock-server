@@ -15,7 +15,7 @@ export default async function EndpointDetailPage({
   const { catalog, catalogDir, passthroughAsDefault } = getRuntime()
   const match = findEndpointBySlug(catalog, systemParam, endpointParam)
   if (!match) notFound()
-  const scenarios = buildScenarioViews(
+  const scenarios = await buildScenarioViews(
     match.system,
     match.endpoint,
     catalogDir,
