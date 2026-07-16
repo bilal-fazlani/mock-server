@@ -34,13 +34,15 @@ describe('ProfilePageHeader', () => {
       <ProfilePageHeader title="default" profileId="c1" meta="Created today" formId="profile-form" />,
     )
 
-    // header sticks to the top of its scroll container, spanning the same
-    // max width as the form below it
-    expect(html).toContain('class="sticky top-0 z-30')
+    // header sticks to the top of its scroll container as a full-bleed band,
+    // while its content spans the same max width as the form below it
+    expect(html).toContain('sticky top-0 z-30')
+    expect(html).toContain('mx-[calc(50%-50vw)]')
     expect(html).toContain('max-w-[1200px]')
     // actions (save/delete) are pushed to the end of the header
     expect(html).toContain('ml-auto flex items-center gap-2.5')
-    // a gradient fade separates the sticky header from scrolled content beneath it
-    expect(html).toMatch(/after:bg-gradient-to-b after:from-\[rgba\(0,0,0,0\.36\)\] after:to-transparent/)
+    // elevation only appears once the bar is actually stuck
+    expect(html).toContain('data-stuck="false"')
+    expect(html).toContain('data-[stuck=true]:shadow-')
   })
 })

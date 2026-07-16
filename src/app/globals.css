@@ -18,9 +18,9 @@
   --text-secondary: #4b5563;
   --text-muted: #8a92a0;
 
-  --accent: #4f63e6;
-  --accent-rgb: 79, 99, 230;
-  --accent-strong: #3a4ed3;
+  --accent: #3b4759;
+  --accent-rgb: 59, 71, 89;
+  --accent-strong: #171a20;
   --accent-tint: rgba(var(--accent-rgb), 0.08);
 
   --success: #1f9d55;
@@ -41,13 +41,14 @@
   --card-foreground: var(--text-primary);
   --popover: var(--surface);
   --popover-foreground: var(--text-primary);
-  --primary: #4f63e6;
+  --primary: #171a20;
   --primary-foreground: #ffffff;
+  --primary-hover: #2e3440;
   --secondary: var(--surface);
   --secondary-foreground: var(--text-secondary);
   --muted: var(--background);
   --muted-foreground: var(--text-muted);
-  --accent-subtle: #eef0fb;
+  --accent-subtle: #eef0f3;
   --accent-subtle-foreground: var(--text-primary);
   --destructive: #d92d20;
   --destructive-foreground: #ffffff;
@@ -68,10 +69,10 @@
   --text-secondary: #a6adba;
   --text-muted: #6d7583;
 
-  --accent: #7686f0;
-  --accent-rgb: 118, 134, 240;
-  --accent-strong: #93a0f4;
-  --accent-tint: rgba(var(--accent-rgb), 0.14);
+  --accent: #aeb6c4;
+  --accent-rgb: 174, 182, 196;
+  --accent-strong: #e8ebf0;
+  --accent-tint: rgba(var(--accent-rgb), 0.1);
 
   --success: #34b56b;
   --success-rgb: 52, 181, 107;
@@ -84,8 +85,10 @@
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4);
 
   /* shadcn tokens (dark) — only the literals that differ from their legacy alias */
-  --primary: #4051c7;
-  --accent-subtle: #232a3a;
+  --primary: #eceef1;
+  --primary-foreground: #0e1013;
+  --primary-hover: #ffffff;
+  --accent-subtle: #22262d;
   --destructive: #e5675c;
   --schema-fg: #5eead4;
 }

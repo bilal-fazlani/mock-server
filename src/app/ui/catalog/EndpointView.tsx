@@ -12,6 +12,7 @@ import {
 import type { Catalog, EndpointDef, SystemDef } from '../../../lib/catalog/types'
 import { Button } from '../../components/ui/button'
 import { MethodBadge } from '../../components/MethodBadge'
+import { StickyPageHeader } from '../../components/StickyPageHeader'
 import { SchemaBadge } from '../../components/SchemaBadge'
 import { CopyCurlButton } from './CopyCurlButton'
 import { EndpointScenarios } from './EndpointScenarios'
@@ -51,7 +52,7 @@ export function EndpointView({
   const profileViaKey = profileSelector?.source === 'profileKey'
   return (
     <main className="flex flex-col gap-5">
-      <div className="sticky top-0 z-20 -mt-2 mb-0.5 flex flex-wrap items-center gap-3.5 border-b border-border bg-background py-2.5 shadow-[0_16px_30px_-12px_rgba(0,0,0,0.95),0_1px_0_rgba(255,255,255,0.07)] after:pointer-events-none after:absolute after:inset-x-0 after:-bottom-3.5 after:h-3.5 after:bg-gradient-to-b after:from-[rgba(0,0,0,0.36)] after:to-transparent after:content-['']">
+      <StickyPageHeader className="mb-0.5">
         <Button asChild variant="secondary">
           <Link href="/ui/catalog">← Catalog</Link>
         </Button>
@@ -69,7 +70,7 @@ export function EndpointView({
             <CopyCurlButton example={buildEndpointRequestExample(endpoint)} />
           </span>
         </div>
-      </div>
+      </StickyPageHeader>
 
       <section className="py-0.5" aria-label="Endpoint configuration">
         <div className="flex flex-col gap-3">
