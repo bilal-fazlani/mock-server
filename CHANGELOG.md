@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.1](https://github.com/bilal-fazlani/mock-server/compare/mock-server-v0.2.0...mock-server-v0.2.1) (2026-07-16)
+
+
+### Bug Fixes
+
+* regenerate package-lock.json on linux to fix npm ci EBADPLATFORM ([e56e4c1](https://github.com/bilal-fazlani/mock-server/commit/e56e4c1fb97a28e826e2b8cf4984112e17d6797e))
+* regenerate package-lock.json so npm ci resolves all esbuild platform deps ([da3557f](https://github.com/bilal-fazlani/mock-server/commit/da3557f64b8915b489ce9f9336639b61342eea55))
+
 ## [0.2.0](https://github.com/bilal-fazlani/mock-server/compare/mock-server-v0.1.0...mock-server-v0.2.0) (2026-07-16)
 
 
