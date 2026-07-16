@@ -44,7 +44,7 @@ export function ProfilePageHeader({
                 size="icon"
                 aria-label="Delete profile"
                 title="Delete profile"
-                className="border-[rgba(217,45,32,0.45)] bg-card text-[#d92d20] hover:border-[#d92d20] hover:bg-[#d92d20] hover:text-white"
+                className="border-[rgba(217,45,32,0.45)] bg-card text-[#d92d20] hover:border-[#d92d20] hover:bg-[#d92d20] hover:text-white dark:border-[rgba(217,45,32,0.45)] dark:bg-card dark:hover:border-[#d92d20] dark:hover:bg-[#d92d20]"
               >
                 <Trash2 className="size-4" aria-hidden="true" />
               </Button>

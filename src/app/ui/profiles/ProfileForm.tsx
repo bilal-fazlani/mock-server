@@ -55,7 +55,7 @@ export function ProfileForm({
                 readOnly={!!profile}
                 className={
                   profile
-                    ? 'cursor-default border-[color-mix(in_srgb,var(--border)_75%,var(--background))] bg-background text-muted-foreground focus-visible:border-[color-mix(in_srgb,var(--border)_75%,var(--background))] focus-visible:ring-0'
+                    ? 'cursor-default border-[color-mix(in_srgb,var(--border)_75%,var(--background))] bg-background text-muted-foreground focus-visible:border-[color-mix(in_srgb,var(--border)_75%,var(--background))] focus-visible:ring-0 dark:bg-background'
                     : undefined
                 }
               />

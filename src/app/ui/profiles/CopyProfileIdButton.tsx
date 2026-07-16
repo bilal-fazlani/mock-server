@@ -46,6 +46,7 @@ export function CopyProfileIdButton({ value }: { value: string }) {
       aria-label={copied ? 'Copied profile ID' : 'Copy profile ID'}
       title={copied ? 'Copied' : 'Copy profile ID'}
       onClick={copyProfileId}
+      className="text-secondary-foreground hover:text-foreground"
     >
       <Copy aria-hidden="true" />
     </Button>
