@@ -412,3 +412,59 @@ describe('global mock scenario store', () => {
     expect(selections.map((s) => s.endpoint)).toEqual(['new_endpoint', 'old_endpoint'])
   })
 })
+
+describe('dynamicHistory index reconciliation on upgrade', () => {
+  // Simulates a pre-feature deployment: the collection already carries the old
+  // 3-field unique index without `scenario`. ensureIndexes must drop it so the
+  // per-scenario windows this feature adds are no longer rejected by the stale
+  // (stricter) constraint. Uses its own db so the shared fixture — which never
+  // had the old index — is untouched.
+  let upgradeDb: Db
+
+  beforeEach(() => {
+    upgradeDb = client.db(`upgrade-${Date.now()}-${Math.random().toString(36).slice(2)}`)
+  })
+
+  it('drops the stale 3-field unique index and lets a second scenario be appended', async () => {
+    const staleName = await upgradeDb
+      .collection('dynamicHistory')
+      .createIndex({ ownerType: 1, ownerKey: 1, endpointName: 1 }, { unique: true })
+    // Without reconciliation, this old index rejects two scenarios on one endpoint.
+    await upgradeDb.collection('dynamicHistory').insertOne({
+      ownerType: 'profile',
+      ownerKey: 'p1',
+      endpointName: 'ep',
+      scenario: 'by-amount',
+      history: ['hold'],
+    })
+    await expect(
+      upgradeDb.collection('dynamicHistory').insertOne({
+        ownerType: 'profile',
+        ownerKey: 'p1',
+        endpointName: 'ep',
+        scenario: 'default',
+        history: ['success'],
+      }),
+    ).rejects.toMatchObject({ code: 11000 })
+    await upgradeDb.collection('dynamicHistory').deleteMany({})
+
+    await ensureIndexes(upgradeDb)
+
+    const names = (await upgradeDb.collection('dynamicHistory').indexes()).map((i) => i.name)
+    expect(names).not.toContain(staleName)
+    expect(names).toContain('dynamicHistory_owner_endpoint_scenario_unique')
+
+    // Two scenarios on the same endpoint now coexist instead of colliding.
+    await appendDynamicHistory(upgradeDb, 'profile', 'p1', 'ep', 'by-amount', 'hold', 10)
+    await appendDynamicHistory(upgradeDb, 'profile', 'p1', 'ep', 'default', 'success', 10)
+    expect(await getDynamicHistory(upgradeDb, 'profile', 'p1', 'ep', 'by-amount')).toEqual(['hold'])
+    expect(await getDynamicHistory(upgradeDb, 'profile', 'p1', 'ep', 'default')).toEqual(['success'])
+  })
+
+  it('is idempotent: a second ensureIndexes call keeps the named 4-field index', async () => {
+    await ensureIndexes(upgradeDb)
+    await ensureIndexes(upgradeDb)
+    const names = (await upgradeDb.collection('dynamicHistory').indexes()).map((i) => i.name)
+    expect(names.filter((n) => n === 'dynamicHistory_owner_endpoint_scenario_unique')).toHaveLength(1)
+  })
+})

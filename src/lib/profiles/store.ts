@@ -104,9 +104,7 @@ export async function ensureIndexes(
   await db
     .collection('scenarioProgress')
     .createIndex({ profileId: 1, endpointName: 1 }, { unique: true })
-  await db
-    .collection('dynamicHistory')
-    .createIndex({ ownerType: 1, ownerKey: 1, endpointName: 1, scenario: 1 }, { unique: true })
+  await ensureDynamicHistoryIndex(db)
   // Request logs expire via a TTL index whose window is configurable with
   // REQUEST_LOG_TTL_DURATION (default 1d); see src/lib/logs/store.ts.
   await ensureRequestLogTtlIndex(db, requestLogTtlSeconds)
@@ -155,6 +153,36 @@ async function ensureRequestLogTtlIndex(db: Db, ttlSeconds: number): Promise<voi
   // Non-TTL ts_1 index: convert by dropping and recreating with the TTL.
   await collection.dropIndex(existing.name as string)
   await collection.createIndex({ ts: 1 }, { expireAfterSeconds: ttlSeconds })
+}
+
+// Reconcile the dynamicHistory unique index. Per-scenario history windows key on
+// { ownerType, ownerKey, endpointName, scenario }, but pre-feature deployments
+// (the collection predates this feature under the old _dynamic.ts machinery)
+// carry a unique index on the 3-field key without `scenario`. That old index is
+// the STRICTER constraint: left in place it keeps rejecting a second scenario's
+// window for the same endpoint with E11000, breaking the feature. A plain
+// createIndex with the new key pattern would add a parallel index, not replace
+// it — so introspect and drop the stale one first, then create the 4-field index
+// with an explicit name so a future key-shape change fails loudly with
+// IndexOptionsConflict instead of silently accumulating another parallel index.
+async function ensureDynamicHistoryIndex(db: Db): Promise<void> {
+  const collection = db.collection('dynamicHistory')
+  // indexes() throws NamespaceNotFound (26) before the collection exists — on a
+  // fresh DB there's no stale index to reconcile, so treat that as "none".
+  const indexes = await collection.indexes().catch((err: unknown) => {
+    if (err instanceof MongoServerError && err.code === 26) return []
+    throw err
+  })
+  const stale = indexes.find(
+    (index) =>
+      JSON.stringify(index.key) ===
+      JSON.stringify({ ownerType: 1, ownerKey: 1, endpointName: 1 }),
+  )
+  if (stale) await collection.dropIndex(stale.name as string)
+  await collection.createIndex(
+    { ownerType: 1, ownerKey: 1, endpointName: 1, scenario: 1 },
+    { unique: true, name: 'dynamicHistory_owner_endpoint_scenario_unique' },
+  )
 }
 
 export async function getProfile(db: Db, profileId: string): Promise<MockProfile | null> {
