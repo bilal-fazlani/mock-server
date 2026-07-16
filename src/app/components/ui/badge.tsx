@@ -19,9 +19,9 @@ const badgeVariants = cva(
         ghost: "[a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
         link: "text-primary underline-offset-4 [a&]:hover:underline",
         method:
-          "font-mono text-[0.72rem] font-bold tracking-[0.04em] text-muted-foreground bg-transparent border border-foreground/20 rounded-md px-2 py-[3px]",
+          "font-mono text-[0.72rem] font-bold tracking-[0.04em] text-secondary-foreground bg-transparent border border-foreground/20 rounded-md px-2 py-[3px]",
         schema:
-          "font-mono text-[0.72rem] font-bold tracking-[0.02em] rounded-md px-2 py-[3px] whitespace-nowrap border gap-1.5 text-[var(--schema-fg)] bg-[color-mix(in_srgb,var(--schema-fg)_12%,transparent)] border-[color-mix(in_srgb,var(--schema-fg)_28%,transparent)]",
+          "font-mono text-[0.72rem] font-bold tracking-[0.02em] rounded-md px-2 py-[3px] whitespace-nowrap border gap-1.5 text-[var(--schema-fg)] bg-[color-mix(in_srgb,var(--schema-fg)_12%,transparent)] border-[color-mix(in_srgb,var(--schema-fg)_28%,transparent)] [&>svg]:size-[13px]",
       },
     },
     defaultVariants: {
