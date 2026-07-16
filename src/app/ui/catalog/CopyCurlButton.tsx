@@ -3,14 +3,13 @@
 import { useState } from 'react'
 import { Check, Copy } from 'lucide-react'
 import type { EndpointRequestExample } from '../../../lib/catalog/request-example'
-import styles from './endpoint.module.css'
 
 export function CopyCurlButton({ example }: { example: EndpointRequestExample }) {
   const [copied, setCopied] = useState(false)
   return (
     <button
       type="button"
-      className={styles.copyCurl}
+      className="inline-flex items-center gap-1.5 bg-card px-[11px] py-[5px] text-[0.8rem] text-secondary-foreground hover:border-muted-foreground hover:text-foreground"
       onClick={() => {
         void navigator.clipboard.writeText(buildCurl(example)).then(() => {
           setCopied(true)
@@ -19,9 +18,9 @@ export function CopyCurlButton({ example }: { example: EndpointRequestExample })
       }}
     >
       {copied ? (
-        <Check className={styles.copyCurlIcon} aria-hidden="true" />
+        <Check className="size-[13px]" aria-hidden="true" />
       ) : (
-        <Copy className={styles.copyCurlIcon} aria-hidden="true" />
+        <Copy className="size-[13px]" aria-hidden="true" />
       )}
       {copied ? 'Copied' : 'Copy as cURL'}
     </button>
