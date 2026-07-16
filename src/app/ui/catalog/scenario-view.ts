@@ -39,8 +39,12 @@ export async function buildScenarioViews(
       }
       try {
         const fixture = loadFixture(catalogDir, system.slug, endpoint.name, key)
+        // `json` is the full fixture (status/headers/body) — kept for the header
+        // status-chip parsing. `html` highlights the body only, matching the
+        // body block the pre-highlighting UI rendered.
         const json = JSON.stringify(fixture, null, 2)
-        return { key, label, isDefault, kind: 'fixture' as const, json, html: await highlight(json, 'json') }
+        const bodyJson = JSON.stringify(fixture.body, null, 2)
+        return { key, label, isDefault, kind: 'fixture' as const, json, html: await highlight(bodyJson, 'json') }
       } catch (err) {
         return { key, label, isDefault, kind: 'error' as const, message: (err as Error).message }
       }

@@ -88,7 +88,11 @@ describe('buildScenarioViews - resolver source and syntax highlighting', () => {
     )
     fs.writeFileSync(
       path.join(dir, 'test-system', 'hello_world', 'default.json'),
-      JSON.stringify({ status: 200, body: { ok: true } }),
+      JSON.stringify({
+        description: 'Success',
+        status: 200,
+        body: { greeting: 'hello' },
+      }),
     )
 
     const resolverEndpoint: EndpointDef = {
@@ -110,8 +114,16 @@ describe('buildScenarioViews - resolver source and syntax highlighting', () => {
     expect((resolver as { html: string }).html).toContain('<pre')
   })
 
-  it('includes highlighted html for fixture scenarios', () => {
+  it('highlights only the fixture body, not the full fixture object', () => {
     const fixture = views.find((v) => v.kind === 'fixture')
-    expect((fixture as { html: string }).html).toContain('<pre')
+    const html = (fixture as { html: string }).html
+    // Highlighted markup for the body only...
+    expect(html).toContain('<pre')
+    expect(html).toContain('greeting')
+    // ...so the top-level fixture keys are absent from the highlighted body.
+    expect(html).not.toContain('status')
+    expect(html).not.toContain('description')
+    // The full fixture is still available as `json` for the status chip.
+    expect((fixture as { json: string }).json).toContain('status')
   })
 })
