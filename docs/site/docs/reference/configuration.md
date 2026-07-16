@@ -15,6 +15,7 @@ shows how they steer routing.
 | `PASSTHROUGH_TIMEOUT_MS` | Number of milliseconds<br>(default `30000`) | Timeout for `real` upstream requests. A timeout returns `504`. |
 | `MOCK_CONSOLE_LOG_LEVEL` | `info` (default)<br>`warn`<br>`error` | Controls one-line console request logs. `info` logs every matched or unmatched mock request. `warn` logs warnings and errors. `error` logs only framework/routing/setup failures. See [Request logs](../driving/request-logs.md). |
 | `DYNAMIC_HISTORY_LIMIT` | Positive integer<br>(default `10`) | Number of previously-returned scenario slugs kept and passed as `history` to each endpoint's `_dynamic.ts` resolver. See [Dynamic scenarios](../building/dynamic.md). |
+| `REQUEST_LOG_TTL_DURATION` | Duration string<br>(default `1d`) | How long request logs are retained before MongoDB expires them. A positive integer with a unit — `s`, `m`, `h`, or `d` (e.g. `30m`, `24h`, `7d`). Changing it migrates the existing TTL index in place on the next start; there is no way to disable expiry. See [Request logs](../driving/request-logs.md). |
 
 !!! note "Embedded MongoDB is ephemeral"
 

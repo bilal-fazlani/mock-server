@@ -7,6 +7,7 @@ import {
   parseConsoleLogLevel,
   parseDynamicHistoryLimit,
   parsePassthroughAsDefault,
+  parseRequestLogTtlSeconds,
   parseUnmockedUsers,
   resolveCatalogDir,
   type ConsoleLogLevel,
@@ -86,6 +87,10 @@ export function getRuntime(): Runtime {
   const unmockedUsers = parseUnmockedUsers(process.env.UNMOCKED_USERS)
   const consoleLogLevel = parseConsoleLogLevel(process.env.MOCK_CONSOLE_LOG_LEVEL)
   const dynamicHistoryLimit = parseDynamicHistoryLimit(process.env.DYNAMIC_HISTORY_LIMIT)
+  // Validate REQUEST_LOG_TTL_DURATION at the same startup gate as the other
+  // config; the value itself is re-parsed by ensureIndexes (which runs on first
+  // DB connect, independent of the runtime), so we discard it here.
+  parseRequestLogTtlSeconds(process.env.REQUEST_LOG_TTL_DURATION)
 
   const catalogDir = resolveCatalogDir(process.env.CATALOG_PATH)
   const catalog = loadCatalog(catalogDir)

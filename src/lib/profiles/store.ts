@@ -1,4 +1,5 @@
 import { Db, MongoClient, MongoServerError } from 'mongodb'
+import { parseRequestLogTtlSeconds } from '../config'
 import { resolveMongoUri } from '../mongo/embedded'
 
 /**
@@ -91,7 +92,10 @@ function dbName(): string {
   return process.env.MONGODB_DB ?? 'mockDB'
 }
 
-export async function ensureIndexes(db: Db): Promise<void> {
+export async function ensureIndexes(
+  db: Db,
+  requestLogTtlSeconds = parseRequestLogTtlSeconds(process.env.REQUEST_LOG_TTL_DURATION),
+): Promise<void> {
   // Deliberately no TTL index: profiles are curated and never expire.
   await db.collection('mockProfiles').createIndex({ profileId: 1 }, { unique: true })
   await db.collection('profileKeyMappings').createIndex({ namespace: 1, key: 1 }, { unique: true })
@@ -103,8 +107,9 @@ export async function ensureIndexes(db: Db): Promise<void> {
   await db
     .collection('dynamicHistory')
     .createIndex({ ownerType: 1, ownerKey: 1, endpointName: 1 }, { unique: true })
-  // Request logs expire after 24 hours; see src/lib/logs/store.ts.
-  await db.collection('requestLogs').createIndex({ ts: 1 }, { expireAfterSeconds: 86400 })
+  // Request logs expire via a TTL index whose window is configurable with
+  // REQUEST_LOG_TTL_DURATION (default 1d); see src/lib/logs/store.ts.
+  await ensureRequestLogTtlIndex(db, requestLogTtlSeconds)
   await db.collection('requestLogs').createIndex({ logId: 1 }, { unique: true })
   await db.collection('requestLogs').createIndex({ profileId: 1, ts: -1 })
   await db.collection('requestLogs').createIndex({ endpoint: 1, ts: -1 })
@@ -113,6 +118,43 @@ export async function ensureIndexes(db: Db): Promise<void> {
   // sort (slow first load); with it the sort is index-ordered and stops at `limit`.
   // It also backs the keyset (ts, logId) `$or` bounds used by before/since paging.
   await db.collection('requestLogs').createIndex({ ts: -1, logId: -1 })
+}
+
+// Reconcile the requestLogs { ts: 1 } TTL index to `ttlSeconds`. MongoDB rejects
+// a createIndex that only changes expireAfterSeconds on an existing index, so we
+// introspect first and migrate in place with collMod when the retention window
+// changed — no drop, no data loss. A stray non-TTL ts_1 index (never created by
+// this app, but possible on a hand-modified DB) can't be converted with collMod,
+// so it's dropped and recreated.
+async function ensureRequestLogTtlIndex(db: Db, ttlSeconds: number): Promise<void> {
+  const collection = db.collection('requestLogs')
+  // indexes() throws NamespaceNotFound (26) before the collection exists — on a
+  // fresh DB there's no index to reconcile, so treat that as "none".
+  const indexes = await collection.indexes().catch((err: unknown) => {
+    if (err instanceof MongoServerError && err.code === 26) return []
+    throw err
+  })
+  const existing = indexes.find(
+    (index) => JSON.stringify(index.key) === JSON.stringify({ ts: 1 }),
+  )
+
+  if (!existing) {
+    await collection.createIndex({ ts: 1 }, { expireAfterSeconds: ttlSeconds })
+    return
+  }
+  if (existing.expireAfterSeconds === ttlSeconds) return
+
+  if (typeof existing.expireAfterSeconds === 'number') {
+    await db.command({
+      collMod: 'requestLogs',
+      index: { keyPattern: { ts: 1 }, expireAfterSeconds: ttlSeconds },
+    })
+    return
+  }
+
+  // Non-TTL ts_1 index: convert by dropping and recreating with the TTL.
+  await collection.dropIndex(existing.name as string)
+  await collection.createIndex({ ts: 1 }, { expireAfterSeconds: ttlSeconds })
 }
 
 export async function getProfile(db: Db, profileId: string): Promise<MockProfile | null> {

@@ -53,6 +53,8 @@ button instead of jumping the list — click it to return to the live view.
 Every logged request response carries an `x-mock-log-id` header naming its entry —
 print it on a test failure and paste it into the log-ID filter to jump straight to
 that request's trace. Ignored `/_next/` responses do not carry that header.
-Entries expire after **24 hours**, are deleted with their profile, and can be
-cleared from the UI; request and response bodies over 16&nbsp;KB are stored
-truncated.
+Entries expire after a retention window that defaults to **24 hours** and is
+configurable with `REQUEST_LOG_TTL_DURATION` (a duration string like `30m`,
+`24h`, or `7d`; see [Configuration](../reference/configuration.md#app-configuration)).
+They are also deleted with their profile and can be cleared from the UI; request
+and response bodies over 16&nbsp;KB are stored truncated.

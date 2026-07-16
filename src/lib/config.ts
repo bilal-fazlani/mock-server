@@ -53,6 +53,28 @@ export function parseDynamicHistoryLimit(raw: string | undefined): number {
   return n
 }
 
+const TTL_UNIT_SECONDS: Record<string, number> = { s: 1, m: 60, h: 3600, d: 86400 }
+
+// Parse REQUEST_LOG_TTL_DURATION into seconds for the requestLogs TTL index.
+// Format: <positive-integer><unit> where unit is s|m|h|d (e.g. "30m", "24h",
+// "7d"). Unset/empty defaults to one day (86400s), matching the pre-config
+// behavior. Anything else — missing unit, unsupported unit, zero, non-integer,
+// or compound like "1d12h" — is a startup-fatal ConfigError.
+export function parseRequestLogTtlSeconds(raw: string | undefined): number {
+  if (raw === undefined || raw === '') return 86400
+  const match = /^(\d+)(s|m|h|d)$/.exec(raw)
+  if (!match) {
+    throw new ConfigError(
+      `REQUEST_LOG_TTL_DURATION must be a positive duration like "24h", "30m", or "7d" (units s|m|h|d), got "${raw}"`,
+    )
+  }
+  const count = Number(match[1])
+  if (count < 1) {
+    throw new ConfigError(`REQUEST_LOG_TTL_DURATION must be greater than zero, got "${raw}"`)
+  }
+  return count * TTL_UNIT_SECONDS[match[2]]
+}
+
 // Resolve the catalog directory from CATALOG_PATH. A relative value is
 // resolved against the current working directory; an absolute value is used
 // as-is. Defaults to ./catalog. The npx launcher always passes an absolute
