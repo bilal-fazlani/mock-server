@@ -9,7 +9,8 @@
   --font-sans: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, 'SF Mono', monospace;
 
-  /* Legacy tokens — consumed by not-yet-converted CSS Modules; removed in Task 15 */
+  /* Design tokens — consumed by pages via Tailwind arbitrary values (e.g.
+     bg-[var(--accent-tint)]) and by the base element styles below. */
   --background: #f5f6f8;
   --surface: #ffffff;
   --border: #e3e6eb;
