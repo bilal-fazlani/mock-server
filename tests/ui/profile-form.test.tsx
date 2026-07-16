@@ -1,12 +1,8 @@
-import { readFileSync } from 'node:fs'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import type { Catalog } from '../../src/lib/catalog/types'
 import { ProfileForm } from '../../src/app/ui/profiles/ProfileForm'
-
-const profileFormCss = () =>
-  readFileSync(new URL('../../src/app/ui/profiles/ProfileForm.module.css', import.meta.url), 'utf8')
-const globalCss = () => readFileSync(new URL('../../src/app/globals.css', import.meta.url), 'utf8')
+import UiLayout from '../../src/app/ui/layout'
 
 const catalog: Catalog = {
   systems: [
@@ -41,24 +37,45 @@ function profileIdInput(html: string): string {
 
 describe('ProfileForm', () => {
   it('styles profile cards to use more page width and two identity columns', () => {
-    const css = profileFormCss()
-    expect(css).toMatch(/\.form\s*{[^}]*max-width:\s*1200px;/s)
-    expect(css).toMatch(/\.form\s*{[^}]*min-width:\s*0;/s)
-    expect(css).toMatch(
-      /\.identityCard\s*{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\);/s,
+    const profile = {
+      profileId: 'c1',
+      endpointScenarios: {},
+      createdAt: new Date(),
+      modifiedAt: new Date(),
+    }
+    const html = renderToStaticMarkup(
+      <ProfileForm catalog={catalog} profile={profile} passthroughAsDefault={false} />,
     )
-    expect(css).toMatch(
-      /\.identityCard \.field\s*{[^}]*grid-template-rows:\s*auto minmax\(1rem,\s*auto\) auto;/s,
+    // form: max-width 1200px, min-width 0 (so it can shrink inside the page shell)
+    expect(html).toContain('<form id="profile-form" class="grid w-full min-w-0 max-w-[1200px] gap-5"')
+    // identity card: two columns, collapsing to one below 700px
+    expect(html).toContain(
+      'class="grid grid-cols-2 items-start gap-3.5 rounded-lg border border-border bg-card px-5 py-[18px] shadow-sm max-[700px]:grid-cols-1"',
     )
-    expect(css).toMatch(/\.identityCard \.field > input\s*{[^}]*grid-row:\s*3;/s)
+    // each identity field reserves a label row, a hint row, and a control row
+    expect(html).toContain('class="grid min-w-0 grid-rows-[auto_minmax(1rem,auto)_auto] gap-1 max-[700px]:grid-rows-none"')
+    // the control for each field sits in row 3 of that grid
+    expect(html).toContain('<span class="row-start-3 grid grid-cols-[minmax(0,1fr)_auto] gap-2">')
+    expect(html).toContain('row-start-3 max-[700px]:row-start-auto" name="displayName"')
   })
 
   it('styles read-only profile IDs as disabled-looking copyable controls', () => {
-    const css = profileFormCss()
-    expect(css).toMatch(/\.profileIdControl\s*{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\) auto;/s)
-    expect(css).toMatch(/\.readOnlyInput\s*{[^}]*cursor:\s*default;/s)
-    expect(css).toMatch(/\.copyButton\s*{[^}]*display:\s*inline-flex;/s)
-    expect(css).toMatch(/\.copyButton\s*{[^}]*height:\s*39px;/s)
+    const profile = {
+      profileId: 'c1',
+      endpointScenarios: {},
+      createdAt: new Date(),
+      modifiedAt: new Date(),
+    }
+    const html = renderToStaticMarkup(
+      <ProfileForm catalog={catalog} profile={profile} passthroughAsDefault={false} />,
+    )
+    // the input + copy button sit side by side: input takes remaining space, button is auto-sized
+    expect(html).toContain('class="row-start-3 grid grid-cols-[minmax(0,1fr)_auto] gap-2"')
+    // the read-only profile ID input looks receded/disabled
+    expect(html).toContain('cursor-default border-[color-mix(in_srgb,var(--border)_75%,var(--background))] bg-background text-muted-foreground')
+    expect(html).toContain('dark:bg-background" id="profileId" readOnly=""')
+    // the copy control is an icon-sized button next to it
+    expect(html).toContain('size-9 text-secondary-foreground hover:text-foreground" type="button" aria-label="Copy profile ID"')
   })
 
   it('allows the save action to live outside the form through a stable form id', () => {
@@ -70,14 +87,17 @@ describe('ProfileForm', () => {
   })
 
   it('allows the page shell to grow on wide viewports', () => {
-    expect(globalCss()).toMatch(/\.appMain\s*{[^}]*max-width:\s*1280px;/s)
+    const html = renderToStaticMarkup(<UiLayout>{null}</UiLayout>)
+    expect(html).toContain('<div class="mx-auto w-full max-w-[1280px] px-6 pt-7 pb-16">')
   })
 
   it('allows endpoint cards and paths to shrink on narrow screens', () => {
-    const css = profileFormCss()
-    expect(css).toMatch(/\.card\s*{[^}]*min-width:\s*0;/s)
-    expect(css).toMatch(/\.system\s*{[^}]*min-width:\s*0;/s)
-    expect(css).toMatch(/\.path\s*{[^}]*overflow-wrap:\s*anywhere;/s)
+    const html = renderToStaticMarkup(
+      <ProfileForm catalog={catalog} passthroughAsDefault={false} />,
+    )
+    expect(html).toContain('<section class="grid min-w-0 gap-3">')
+    expect(html).toContain('class="grid min-w-0 gap-3.5 rounded-lg border border-border bg-card px-5 py-[18px] shadow-sm"')
+    expect(html).toContain('<code class="min-w-0 text-secondary-foreground [overflow-wrap:anywhere]">/hello/world</code>')
   })
 
   it('allows a new profile to be submitted without a profile ID', () => {

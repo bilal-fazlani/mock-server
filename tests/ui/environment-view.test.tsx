@@ -77,9 +77,9 @@ describe('EnvironmentView', () => {
   it('renders allowed values inside the description column for enum variables', () => {
     const html = renderToStaticMarkup(<EnvironmentView rows={rows} />)
 
-    expect(html).toContain('<th>Description</th>')
-    expect(html).not.toContain('<th>Allowed values</th>')
-    expect(html).not.toContain('<th>Purpose</th>')
+    expect(html).toContain('>Description</th>')
+    expect(html).not.toContain('>Allowed values</th>')
+    expect(html).not.toContain('>Purpose</th>')
     expect(html).toContain('Allowed values:')
     expect(html).toContain('warn')
     expect(html).not.toContain('Not enum')
