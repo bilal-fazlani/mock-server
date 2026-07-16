@@ -1,5 +1,39 @@
 # Project rules
 
+## Use Conventional Commits
+
+This repo releases with [release-please](https://github.com/googleapis/release-please):
+it derives the next version number and the changelog **entirely from commit messages**, so
+every commit message — and every PR title, since PRs may be squash-merged — MUST follow the
+[Conventional Commits](https://www.conventionalcommits.org) format:
+
+```
+type(optional-scope): imperative, lowercase summary
+```
+
+Types and their release effect:
+
+| Type | Release effect | Use for |
+| --- | --- | --- |
+| `feat` | **minor** bump, shown under Features | a new capability |
+| `fix` | **patch** bump, shown under Bug Fixes | a bug fix |
+| `perf` | patch bump | a performance improvement |
+| `docs`, `refactor`, `test`, `build`, `ci`, `chore` | **no** release | everything else |
+| `revert` | patch bump | reverting a prior commit |
+
+**Breaking changes** get a `!` after the type (`feat!: …`) or a `BREAKING CHANGE:` footer —
+this drives a major bump (pre-1.0.0, it bumps the minor; see `release-please-config.json`).
+
+Rules:
+- Keep the summary in the **imperative mood** ("add", not "added"), lowercase, no trailing period.
+- One logical change per commit; pick the type that reflects the user-facing effect.
+- Don't invent types — use only the ones above. A non-conforming message breaks release-please's
+  version/changelog computation.
+- To force a specific next version (e.g. the first stable `1.0.0`), add a `Release-As: 1.0.0`
+  footer to a commit rather than editing `package.json` by hand.
+
+See [RELEASE.md](RELEASE.md) for the full release flow.
+
 ## Keep the mock-endpoint guide in sync
 
 There is a human-facing guide built with [Zensical](https://zensical.org) under
