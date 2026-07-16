@@ -59,9 +59,16 @@ describe('GlobalMocksForm reset dynamic history button', () => {
     expect(render([])).not.toContain('Reset resolver history')
   })
 
-  it('marks resolver-backed scenarios with a code badge', () => {
-    expect(render([selection('dynamic')])).toContain(
-      'aria-label="Resolved by code at request time"',
-    )
+  it('marks resolver-backed scenarios with a code badge, scoped to that slug', () => {
+    const html = render([selection('dynamic')])
+    // Exactly one badge — only the resolver-backed slug ("dynamic") carries it,
+    // not every option (guards against a flipped/`length > 0` condition).
+    const badges = html.match(/aria-label="Resolved by code at request time"/g)
+    expect(badges).toHaveLength(1)
+    // The badge sits on the resolver-backed option ("dynamic")…
+    expect(html).toMatch(/>dynamic<\/span><svg[^>]*aria-label="Resolved by code at request time"/)
+    // …and NOT on the fixture-backed options ("Token", "Expired").
+    expect(html).not.toMatch(/>Token<\/span><svg[^>]*aria-label="Resolved by code at request time"/)
+    expect(html).not.toMatch(/>Expired<\/span><svg[^>]*aria-label="Resolved by code at request time"/)
   })
 })

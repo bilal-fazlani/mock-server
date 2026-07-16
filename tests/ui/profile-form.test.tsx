@@ -238,7 +238,15 @@ describe('ProfileForm', () => {
     const html = renderToStaticMarkup(
       <ProfileForm catalog={resolverCatalog} profile={profile} passthroughAsDefault={false} />,
     )
-    expect(html).toContain('aria-label="Resolved by code at request time"')
+    // Exactly one badge — scoped to the single resolver-backed slug, not stamped
+    // on every option (guards against `resolverSlugs.length > 0` / a flipped test).
+    const badges = html.match(/aria-label="Resolved by code at request time"/g)
+    expect(badges).toHaveLength(1)
+    // The badge sits on the resolver-backed option ("By amount")…
+    expect(html).toMatch(/By amount<\/span><svg[^>]*aria-label="Resolved by code at request time"/)
+    // …and NOT on the fixture-backed options ("Hello success", "Hold").
+    expect(html).not.toMatch(/Hello success<\/span><svg[^>]*aria-label="Resolved by code at request time"/)
+    expect(html).not.toMatch(/Hold<\/span><svg[^>]*aria-label="Resolved by code at request time"/)
     expect(html).toContain('Reset resolver history')
   })
 })
