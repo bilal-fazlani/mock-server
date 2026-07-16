@@ -5,6 +5,7 @@
       "release-type": "node",
       "package-name": "@bilal-fazlani/mock-server",
       "include-v-in-tag": true,
+      "include-component-in-tag": false,
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": false,
       "changelog-sections": [
