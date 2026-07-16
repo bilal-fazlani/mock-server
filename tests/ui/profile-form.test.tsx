@@ -213,4 +213,32 @@ describe('ProfileForm', () => {
     )
     expect(html).not.toContain('Delete profile')
   })
+
+  it('marks resolver-backed scenarios with a code badge and offers Reset resolver history', () => {
+    const resolverCatalog: Catalog = {
+      systems: [
+        {
+          ...catalog.systems[0],
+          endpoints: [
+            {
+              ...catalog.systems[0].endpoints[0],
+              scenarios: { default: 'Hello success', hold: 'Hold', 'by-amount': 'By amount' },
+              resolverScenarios: ['by-amount'],
+            },
+          ],
+        },
+      ],
+    }
+    const profile = {
+      profileId: 'c1',
+      endpointScenarios: { hello_world: 'by-amount' },
+      createdAt: new Date(),
+      modifiedAt: new Date(),
+    }
+    const html = renderToStaticMarkup(
+      <ProfileForm catalog={resolverCatalog} profile={profile} passthroughAsDefault={false} />,
+    )
+    expect(html).toContain('aria-label="Resolved by code at request time"')
+    expect(html).toContain('Reset resolver history')
+  })
 })

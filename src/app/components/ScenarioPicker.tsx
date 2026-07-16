@@ -1,3 +1,5 @@
+import { CodeXml } from 'lucide-react'
+
 type ScenarioTone = 'default' | 'nonDefault' | 'real'
 
 function scenarioTone(key: string): ScenarioTone {
@@ -30,12 +32,14 @@ export function ScenarioPicker({
   scenarios,
   selected,
   unavailable,
+  resolverSlugs,
 }: {
   endpointName: string
   fieldName?: string
   scenarios: Record<string, string>
   selected: string
   unavailable?: string[]
+  resolverSlugs?: string[]
 }) {
   const isUnavailable = (key: string) => unavailable?.includes(key) ?? false
   return (
@@ -62,6 +66,13 @@ export function ScenarioPicker({
             >
               {label}
             </span>
+            {resolverSlugs?.includes(key) && (
+              <CodeXml
+                className="size-3.5 flex-none text-muted-foreground"
+                aria-label="Resolved by code at request time"
+                role="img"
+              />
+            )}
           </label>
         )
       })}

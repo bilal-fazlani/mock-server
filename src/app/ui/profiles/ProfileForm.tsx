@@ -110,6 +110,7 @@ export function ProfileForm({
                     resetDynamicAction={
                       profile ? resetDynamicHistoryAction.bind(null, endpoint.name) : undefined
                     }
+                    resolverSlugs={endpoint.resolverScenarios}
                   />
                   <div className="-mt-1 flex justify-end">
                     <Link

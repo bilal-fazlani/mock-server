@@ -47,15 +47,21 @@ function render(selections: GlobalMockScenario[]): string {
 }
 
 describe('GlobalMocksForm reset dynamic history button', () => {
-  it('shows the reset button when the saved selection is dynamic', () => {
-    expect(render([selection('dynamic')])).toContain('Reset dynamic history')
+  it('shows the reset button when the saved selection is resolver-backed', () => {
+    expect(render([selection('dynamic')])).toContain('Reset resolver history')
   })
 
-  it('hides the reset button when the saved selection is not dynamic', () => {
-    expect(render([selection('expired')])).not.toContain('Reset dynamic history')
+  it('hides the reset button when the saved selection is not resolver-backed', () => {
+    expect(render([selection('expired')])).not.toContain('Reset resolver history')
   })
 
   it('hides the reset button when there is no saved selection', () => {
-    expect(render([])).not.toContain('Reset dynamic history')
+    expect(render([])).not.toContain('Reset resolver history')
+  })
+
+  it('marks resolver-backed scenarios with a code badge', () => {
+    expect(render([selection('dynamic')])).toContain(
+      'aria-label="Resolved by code at request time"',
+    )
   })
 })

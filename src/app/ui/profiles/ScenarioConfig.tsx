@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Check, ChevronsUpDown, GripVertical, Plus, Repeat, RotateCcw, X } from 'lucide-react'
+import { Check, ChevronsUpDown, CodeXml, GripVertical, Plus, Repeat, RotateCcw, X } from 'lucide-react'
 import type { ScenarioSelection } from '../../../lib/profiles/store'
 import { scenarioOptionsWithDangling } from '../../../lib/scenarios'
 import { ScenarioPicker } from '../../components/ScenarioPicker'
@@ -19,6 +19,7 @@ export function ScenarioConfig({
   servedCount,
   resetAction,
   resetDynamicAction,
+  resolverSlugs = [],
 }: {
   endpointName: string
   scenarios: Record<string, string>
@@ -30,6 +31,8 @@ export function ScenarioConfig({
   resetAction?: (formData: FormData) => Promise<void>
   /** Server action for the reset-dynamic-history button; omitted for new profiles. */
   resetDynamicAction?: (formData: FormData) => Promise<void>
+  /** Scenario slugs backed by a resolver (x.ts) rather than a fixture. */
+  resolverSlugs?: string[]
 }) {
   const { options, unavailable } = scenarioOptionsWithDangling(scenarios, selection)
   const savedSteps = Array.isArray(selection) ? selection : null
@@ -67,6 +70,10 @@ export function ScenarioConfig({
   const dirty = savedSteps === null || JSON.stringify(steps) !== JSON.stringify(savedSteps)
   const served = !dirty && servedCount ? servedCount : 0
   const nextIndex = Math.min(served, steps.length - 1)
+
+  const involvesResolver = (mode === 'single' ? [singleValue] : steps).some((s) =>
+    resolverSlugs.includes(s),
+  )
 
   return (
     <div className="grid min-w-0 gap-2.5">
@@ -112,15 +119,8 @@ export function ScenarioConfig({
             scenarios={options}
             selected={singleValue}
             unavailable={unavailable}
+            resolverSlugs={resolverSlugs}
           />
-          {singleValue === 'dynamic' && resetDynamicAction && (
-            <div className="flex w-full flex-wrap items-center gap-2.5">
-              <button formAction={resetDynamicAction} className={resetButtonClass}>
-                <RotateCcw className="size-[13px]" aria-hidden="true" />
-                Reset dynamic history
-              </button>
-            </div>
-          )}
         </div>
       ) : (
         <div
@@ -208,6 +208,7 @@ export function ScenarioConfig({
                   scenarios={options}
                   onChange={(value) => setStep(index, value)}
                   ariaLabel={`Scenario for step ${index + 1}`}
+                  resolverSlugs={resolverSlugs}
                 />
                 <span className="inline-flex gap-1">
                   <button
@@ -264,6 +265,14 @@ export function ScenarioConfig({
           <input type="hidden" name={`scenarioSequence:${endpointName}`} value={JSON.stringify(steps)} />
         </div>
       )}
+      {involvesResolver && resetDynamicAction && (
+        <div className="flex w-full flex-wrap items-center gap-2.5">
+          <button formAction={resetDynamicAction} className={resetButtonClass}>
+            <RotateCcw className="size-[13px]" aria-hidden="true" />
+            Reset resolver history
+          </button>
+        </div>
+      )}
     </div>
   )
 }
@@ -301,11 +310,13 @@ function ScenarioSelect({
   scenarios,
   onChange,
   ariaLabel,
+  resolverSlugs = [],
 }: {
   value: string
   scenarios: Record<string, string>
   onChange: (value: string) => void
   ariaLabel: string
+  resolverSlugs?: string[]
 }) {
   const [open, setOpen] = useState(false)
   const wrapRef = useRef<HTMLDivElement>(null)
@@ -363,6 +374,13 @@ function ScenarioSelect({
         <span className="min-w-0 text-[0.9rem] font-medium leading-[1.3] text-foreground [overflow-wrap:anywhere]">
           {label}
         </span>
+        {resolverSlugs.includes(value) && (
+          <CodeXml
+            className="size-3.5 flex-none text-muted-foreground"
+            aria-label="Resolved by code at request time"
+            role="img"
+          />
+        )}
         <ChevronsUpDown className="ml-auto size-3.5 flex-none text-muted-foreground" aria-hidden="true" />
       </button>
       {open && (
@@ -413,6 +431,13 @@ function ScenarioSelect({
                 <span className="min-w-0 text-[0.9rem] font-medium leading-[1.3] text-foreground [overflow-wrap:anywhere]">
                   {optionLabel}
                 </span>
+                {resolverSlugs.includes(key) && (
+                  <CodeXml
+                    className="size-3.5 flex-none text-muted-foreground"
+                    aria-label="Resolved by code at request time"
+                    role="img"
+                  />
+                )}
                 {selected && (
                   <Check className="ml-auto size-3.5 flex-none stroke-[2.6] text-secondary-foreground" aria-hidden="true" />
                 )}

@@ -100,6 +100,7 @@ export function GlobalMocksForm({
                       scenarios={options}
                       selected={selected}
                       unavailable={unavailable}
+                      resolverSlugs={endpoint.resolverScenarios}
                     />
                     {stored !== undefined && endpoint.resolverScenarios.includes(stored) && (
                       <div className="mt-2.5 flex">
@@ -112,7 +113,7 @@ export function GlobalMocksForm({
                           className="inline-flex items-center gap-1.5 bg-background px-2.5 py-1 text-[0.76rem] text-secondary-foreground hover:border-muted-foreground hover:text-foreground"
                         >
                           <RotateCcw className="size-[13px]" aria-hidden="true" />
-                          Reset dynamic history
+                          Reset resolver history
                         </button>
                       </div>
                     )}
