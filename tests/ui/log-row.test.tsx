@@ -55,6 +55,33 @@ describe('LogRow', () => {
     expect(html).not.toContain('12 ms')
   })
 
+  it('shows picked → returned when a resolver ran', () => {
+    const full = entry({
+      trace: {
+        scenario: 'hold',
+        scenarioSource: 'implicit',
+        resolver: { slug: 'default', returned: 'hold' },
+      },
+    })
+    const html = renderToStaticMarkup(<LogRow entry={full} />)
+    expect(html).toContain('default → hold')
+  })
+
+  it('shows a resolver row in the expanded detail trace table', () => {
+    const full = entry({
+      trace: {
+        scenario: 'hold',
+        scenarioSource: 'implicit',
+        resolver: { slug: 'default', returned: 'hold' },
+      },
+    })
+    const html = renderToStaticMarkup(
+      <LogRow entry={full} defaultExpanded initialDetail={full} />,
+    )
+    expect(html).toMatch(/<dt[^>]*>resolver<\/dt>/)
+    expect(html).toContain('default → hold')
+  })
+
   it('falls back to the scenario slug when no label is available', () => {
     const html = renderToStaticMarkup(<LogRow entry={entry()} />)
     expect(html).toContain('failure')

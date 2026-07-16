@@ -123,7 +123,11 @@ export function LogRow({
               {entry.query}
             </code>
             {entry.trace.scenario && (
-              <span className={scenarioChipClass(entry.trace.scenario)}>{scenarioLabel(entry.trace.scenario)}</span>
+              <span className={scenarioChipClass(entry.trace.scenario)}>
+                {entry.trace.resolver
+                  ? `${entry.trace.resolver.slug} → ${scenarioLabel(entry.trace.scenario)}`
+                  : scenarioLabel(entry.trace.scenario)}
+              </span>
             )}
             {entry.error && <span className={errorCodeClass}>{entry.error.code}</span>}
             {entry.response && <span className={statusClass(entry.response.status)}>{entry.response.status}</span>}
@@ -182,6 +186,7 @@ function LogDetail({
     trace.upstream ||
     trace.profileResolution ||
     sourceView ||
+    trace.resolver ||
     metaTiming ||
     trace.captures?.length ||
     trace.validation
@@ -233,6 +238,16 @@ function LogDetail({
               <dt className="hidden" aria-hidden="true" />
               <dd className="m-0 col-span-full flex min-w-0 flex-wrap items-center justify-end gap-1.5">
                 <SourceInfo view={sourceView} sequence={trace.sequence} align="end" />
+              </dd>
+            </>
+          )}
+          {trace.resolver && (
+            <>
+              <dt className={traceMetaDtClass}>resolver</dt>
+              <dd className="m-0 flex min-w-0 flex-wrap items-center gap-1.5">
+                <span className="text-secondary-foreground [overflow-wrap:anywhere]">
+                  {trace.resolver.slug} → {trace.resolver.returned}
+                </span>
               </dd>
             </>
           )}
