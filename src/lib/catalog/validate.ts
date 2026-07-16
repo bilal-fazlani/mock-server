@@ -112,11 +112,24 @@ export function validateCatalog(catalog: Catalog, catalogDir: string): Validatio
       }
 
       if (!(DEFAULT_SCENARIO in endpoint.scenarios)) {
-        errors.push(`${label}: missing required "${DEFAULT_SCENARIO}" scenario (no default.json)`)
+        errors.push(
+          `${label}: missing required "${DEFAULT_SCENARIO}" scenario ` +
+            `(no default.json or default.ts)`,
+        )
       }
       if (REAL_SCENARIO in endpoint.scenarios) {
         errors.push(
-          `${label}: scenario "${REAL_SCENARIO}" must not exist (real.json) — passthrough is implicit`,
+          `${label}: scenario "${REAL_SCENARIO}" must not exist (real.json or real.ts) — ` +
+            `passthrough is implicit`,
+        )
+      }
+      const fixtureBacked = Object.keys(endpoint.scenarios).filter(
+        (s) => !endpoint.resolverScenarios.includes(s),
+      )
+      if (Object.keys(endpoint.scenarios).length > 0 && fixtureBacked.length === 0) {
+        errors.push(
+          `${label}: every scenario is resolver-backed (.ts) — declare at least one ` +
+            `fixture-backed scenario for resolvers to return`,
         )
       }
 

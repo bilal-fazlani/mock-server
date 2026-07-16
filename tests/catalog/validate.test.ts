@@ -286,6 +286,54 @@ describe('validateCatalog', () => {
     expect(errors).toEqual([])
   })
 
+  it('accepts default.ts as the required default scenario', () => {
+    const dir = tmpCatalogDir({
+      'test-system/hello_world/success.json': GOOD_FIXTURE,
+    })
+    const { errors } = validateCatalog(
+      catalog([
+        endpoint({
+          scenarios: { default: 'Default (resolver)', success: 'Success' },
+          resolverScenarios: ['default'],
+        }),
+      ]),
+      dir,
+    )
+    expect(errors).toEqual([])
+  })
+
+  it('rejects real.ts the same as real.json', () => {
+    const dir = tmpCatalogDir({
+      'test-system/hello_world/default.json': GOOD_FIXTURE,
+    })
+    const { errors } = validateCatalog(
+      catalog([
+        endpoint({
+          scenarios: { default: 'Success', real: 'Passthrough (resolver)' },
+          resolverScenarios: ['real'],
+        }),
+      ]),
+      dir,
+    )
+    expect(errors).toContainEqual(expect.stringContaining('scenario "real" must not exist'))
+  })
+
+  it('rejects an endpoint whose scenarios are all resolver-backed', () => {
+    const dir = tmpCatalogDir()
+    const { errors } = validateCatalog(
+      catalog([
+        endpoint({
+          scenarios: { default: 'Default (resolver)' },
+          resolverScenarios: ['default'],
+        }),
+      ]),
+      dir,
+    )
+    expect(errors).toContainEqual(
+      expect.stringContaining('declare at least one fixture-backed scenario'),
+    )
+  })
+
   it('flags invalid fixture shape, malformed placeholders, and undeclared path placeholders', () => {
     const dir = tmpCatalogDir({
       'test-system/hello_world/default.json': { body: {} }, // no status
