@@ -137,7 +137,7 @@ function FixtureContent({ json }: { json: string }) {
   const fixture = parseFixtureJson(json)
   if (!fixture) {
     return (
-      <pre className="overflow-x-auto rounded-md border border-border bg-background p-3 font-mono text-[0.8rem]">
+      <pre className="overflow-x-auto rounded-sm border border-border bg-background p-3 font-mono text-[0.8rem]">
         {json}
       </pre>
     )
@@ -170,7 +170,7 @@ function FixtureContent({ json }: { json: string }) {
         </div>
       )}
       {bodyJson && (
-        <pre className="overflow-x-auto rounded-md border border-border bg-background p-3 font-mono text-[0.8rem]">
+        <pre className="overflow-x-auto rounded-sm border border-border bg-background p-3 font-mono text-[0.8rem]">
           {bodyJson}
         </pre>
       )}

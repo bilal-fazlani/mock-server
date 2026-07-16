@@ -272,7 +272,7 @@ export function LogsView({
         <Button
           type="button"
           size="sm"
-          className="self-center rounded-full text-xs font-semibold"
+          className="self-center my-2 rounded-full border border-border bg-[var(--accent)] text-white text-xs font-semibold hover:bg-[var(--accent)]"
           onClick={jumpToLatest}
         >
           <ArrowUp className="size-[13px]" aria-hidden="true" />
