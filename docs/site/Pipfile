@@ -1,0 +1,15 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+# Pinned to the version the docs are authored/verified against. Zensical is
+# alpha (0.0.x) and may ship breaking changes, so keep this pinned and bump
+# deliberately.
+zensical = "==0.0.50"
+
+[dev-packages]
+
+[requires]
+python_version = "3.14"
