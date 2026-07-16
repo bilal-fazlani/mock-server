@@ -1,0 +1,35 @@
+name: CI
+
+# Fast checks on every PR and on pushes to main. `npm ci` is the key gate: it
+# fails on any package-lock.json drift, catching the class of issue that broke
+# the v0.2.0 publish (a stale lockfile) BEFORE it reaches a release.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install (strict — fails on lockfile drift)
+        run: npm ci
+
+      - name: Test
+        run: npm test
