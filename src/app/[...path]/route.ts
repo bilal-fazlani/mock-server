@@ -31,7 +31,7 @@ async function handle(
     getDynamicHistory: async (ownerType, ownerKey, endpointName) =>
       getDynamicHistory(await getDb(), ownerType, ownerKey, endpointName),
     appendDynamicHistory: async (ownerType, ownerKey, endpointName, slug) =>
-      appendDynamicHistory(await getDb(), ownerType, ownerKey, endpointName, slug, rt.dynamicHistoryLimit),
+      appendDynamicHistory(await getDb(), ownerType, ownerKey, endpointName, slug, rt.resolverHistoryLimit),
     passthrough,
     writeLog: async (entry) => insertLogEntry(await getDb(), entry),
   })

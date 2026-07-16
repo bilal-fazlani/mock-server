@@ -77,9 +77,9 @@ export const APP_ENVIRONMENT: EnvironmentDefinition[] = [
     display: true,
   },
   {
-    name: 'DYNAMIC_HISTORY_LIMIT',
+    name: 'RESOLVER_HISTORY_LIMIT',
     category: 'Routing',
-    description: 'Number of past returned slugs passed to _dynamic.ts resolvers as history.',
+    description: 'Number of past returned slugs passed to scenario resolvers (<slug>.ts) as history.',
     defaultValue: '10',
     display: true,
   },

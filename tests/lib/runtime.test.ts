@@ -71,7 +71,7 @@ describe('getRuntime', () => {
     const resolver = rt.getCompiledResolver('sys', 'ep')
     expect(resolver).not.toBeNull()
     expect(resolver!.invoke({ request: { method: 'POST', path: '/ep', pathParams: {}, query: {}, headers: {}, body: null }, history: [], profileId: null }, 100)).toBe('default')
-    expect(rt.dynamicHistoryLimit).toBe(10)
+    expect(rt.resolverHistoryLimit).toBe(10)
     expect(rt.getCompiledResolver('sys', 'missing')).toBeNull()
   })
 

@@ -44,11 +44,11 @@ export function parseConsoleLogLevel(raw: string | undefined): ConsoleLogLevel {
   return lower as ConsoleLogLevel
 }
 
-export function parseDynamicHistoryLimit(raw: string | undefined): number {
+export function parseResolverHistoryLimit(raw: string | undefined): number {
   if (raw === undefined) return 10
   const n = Number(raw)
   if (!Number.isInteger(n) || n < 1) {
-    throw new ConfigError(`DYNAMIC_HISTORY_LIMIT must be a positive integer, got "${raw}"`)
+    throw new ConfigError(`RESOLVER_HISTORY_LIMIT must be a positive integer, got "${raw}"`)
   }
   return n
 }
