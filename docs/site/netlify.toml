@@ -1,0 +1,15 @@
+# Netlify build config for the Zensical docs site.
+# Docs project lives in docs/site/; Netlify installs Python deps and runs the
+# build from there (the "base" directory).
+[build]
+  base = "docs/site"
+  # A Pipfile in the base directory makes Netlify run `pipenv install`
+  # automatically; the installed console scripts (zensical) land on PATH, so the
+  # build command needs no `pipenv run` prefix.
+  command = "zensical build"
+  # Relative to `base`: Zensical writes its static output to docs/site/site.
+  publish = "site"
+
+[build.environment]
+  # Pin the interpreter so builds are reproducible (Pipfile requires the same).
+  PYTHON_VERSION = "3.14"
