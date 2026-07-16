@@ -13,6 +13,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Docs site: authored Markdown/TOML plus generated build output
+    // (docs/site/site) and a Python venv (docs/site/.venv) with vendored
+    // minified JS — none of it is lintable app source.
+    "docs/site/**",
   ]),
   {
     // bin/ scripts are plain CommonJS (no "type": "module" in package.json,
