@@ -28,10 +28,10 @@ async function handle(
     captureProfileKeyMapping: async (input) => captureProfileKeyMapping(await getDb(), input),
     advanceScenarioProgress: async (profileId, endpointName, steps) =>
       advanceScenarioProgress(await getDb(), profileId, endpointName, steps),
-    getDynamicHistory: async (ownerType, ownerKey, endpointName) =>
-      getDynamicHistory(await getDb(), ownerType, ownerKey, endpointName),
-    appendDynamicHistory: async (ownerType, ownerKey, endpointName, slug) =>
-      appendDynamicHistory(await getDb(), ownerType, ownerKey, endpointName, slug, rt.resolverHistoryLimit),
+    getDynamicHistory: async (ownerType, ownerKey, endpointName, scenario) =>
+      getDynamicHistory(await getDb(), ownerType, ownerKey, endpointName, scenario),
+    appendDynamicHistory: async (ownerType, ownerKey, endpointName, scenario, slug) =>
+      appendDynamicHistory(await getDb(), ownerType, ownerKey, endpointName, scenario, slug, rt.resolverHistoryLimit),
     passthrough,
     writeLog: async (entry) => insertLogEntry(await getDb(), entry),
   })

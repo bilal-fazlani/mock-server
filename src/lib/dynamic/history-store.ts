@@ -6,6 +6,8 @@ interface DynamicHistoryDoc {
   ownerType: DynamicOwnerType
   ownerKey: string
   endpointName: string
+  /** The resolver-backed scenario slug this window belongs to. */
+  scenario: string
   history: string[]
   createdAt: Date
   modifiedAt: Date
@@ -18,10 +20,11 @@ export async function getDynamicHistory(
   ownerType: DynamicOwnerType,
   ownerKey: string,
   endpointName: string,
+  scenario: string,
 ): Promise<string[]> {
   const doc = await db
     .collection<DynamicHistoryDoc>(COLLECTION)
-    .findOne({ ownerType, ownerKey, endpointName }, { projection: { _id: 0, history: 1 } })
+    .findOne({ ownerType, ownerKey, endpointName, scenario }, { projection: { _id: 0, history: 1 } })
   return doc?.history ?? []
 }
 
@@ -30,21 +33,25 @@ export async function appendDynamicHistory(
   ownerType: DynamicOwnerType,
   ownerKey: string,
   endpointName: string,
+  scenario: string,
   slug: string,
   limit: number,
 ): Promise<void> {
   const now = new Date()
   await db.collection<DynamicHistoryDoc>(COLLECTION).updateOne(
-    { ownerType, ownerKey, endpointName },
+    { ownerType, ownerKey, endpointName, scenario },
     {
       $push: { history: { $each: [slug], $slice: -Math.max(1, limit) } },
       $set: { modifiedAt: now },
-      $setOnInsert: { ownerType, ownerKey, endpointName, createdAt: now },
+      $setOnInsert: { ownerType, ownerKey, endpointName, scenario, createdAt: now },
     },
     { upsert: true },
   )
 }
 
+// Reset clears every scenario's window for the owner (+endpoint): the UI
+// exposes one reset button per endpoint, and pre-rename rows (no `scenario`
+// field) simply never match get/append again — clean break, no migration.
 export async function resetDynamicHistory(
   db: Db,
   ownerType: DynamicOwnerType,

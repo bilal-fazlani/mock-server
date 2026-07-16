@@ -42,25 +42,30 @@ const FAILURE_FIXTURE = { status: 503, body: { status: 'DOWN' } }
 // receives the accumulated history from a real (non-faked) history store.
 const DYNAMIC_SOURCE = `export default (i) => i.history.length < 1 ? 'failure' : 'default'`
 
-// Keyed by `${ownerType}|${ownerKey}|${endpointName}`, mirroring the real
-// history-store's compound key, but backed by a plain in-memory array instead
-// of Mongo -- this is the "real" collaborator under test here, not a fake
-// that always returns a canned value.
+// Keyed by `${ownerType}|${ownerKey}|${endpointName}|${scenario}`, mirroring
+// the real history-store's compound key, but backed by a plain in-memory
+// array instead of Mongo -- this is the "real" collaborator under test here,
+// not a fake that always returns a canned value.
 function makeHistoryStore() {
   const store = new Map<string, string[]>()
-  const key = (ownerType: string, ownerKey: string, endpointName: string) =>
-    `${ownerType}|${ownerKey}|${endpointName}`
+  const key = (ownerType: string, ownerKey: string, endpointName: string, scenario: string) =>
+    `${ownerType}|${ownerKey}|${endpointName}|${scenario}`
   return {
     store,
-    getDynamicHistory: async (ownerType: string, ownerKey: string, endpointName: string) =>
-      store.get(key(ownerType, ownerKey, endpointName)) ?? [],
+    getDynamicHistory: async (
+      ownerType: string,
+      ownerKey: string,
+      endpointName: string,
+      scenario: string,
+    ) => store.get(key(ownerType, ownerKey, endpointName, scenario)) ?? [],
     appendDynamicHistory: async (
       ownerType: string,
       ownerKey: string,
       endpointName: string,
+      scenario: string,
       slug: string,
     ) => {
-      const k = key(ownerType, ownerKey, endpointName)
+      const k = key(ownerType, ownerKey, endpointName, scenario)
       const existing = store.get(k) ?? []
       store.set(k, [...existing, slug])
     },
@@ -137,6 +142,6 @@ describe('dynamic resolver end-to-end (real compileResolver + real history store
     expect(await res2.json()).toEqual({ status: 'ACTIVE' })
 
     // The real in-memory store actually accumulated both appended slugs, in order.
-    expect(history.store.get('profile|customer-123|ep')).toEqual(['failure', 'default'])
+    expect(history.store.get('profile|customer-123|ep|dynamic')).toEqual(['failure', 'default'])
   })
 })

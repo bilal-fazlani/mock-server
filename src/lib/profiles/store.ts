@@ -106,7 +106,7 @@ export async function ensureIndexes(
     .createIndex({ profileId: 1, endpointName: 1 }, { unique: true })
   await db
     .collection('dynamicHistory')
-    .createIndex({ ownerType: 1, ownerKey: 1, endpointName: 1 }, { unique: true })
+    .createIndex({ ownerType: 1, ownerKey: 1, endpointName: 1, scenario: 1 }, { unique: true })
   // Request logs expire via a TTL index whose window is configurable with
   // REQUEST_LOG_TTL_DURATION (default 1d); see src/lib/logs/store.ts.
   await ensureRequestLogTtlIndex(db, requestLogTtlSeconds)

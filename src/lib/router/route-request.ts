@@ -78,11 +78,13 @@ export interface RouterDeps {
     ownerType: DynamicOwnerType,
     ownerKey: string,
     endpointName: string,
+    scenario: string,
   ) => Promise<string[]>
   appendDynamicHistory: (
     ownerType: DynamicOwnerType,
     ownerKey: string,
     endpointName: string,
+    scenario: string,
     slug: string,
   ) => Promise<void>
   dynamicResolverTimeoutMs?: number
@@ -337,7 +339,7 @@ async function resolveDynamic(
 
   const ownerType: DynamicOwnerType = profileId ? 'profile' : 'global'
   const ownerKey = profileId ?? system.slug
-  const history = await deps.getDynamicHistory(ownerType, ownerKey, endpoint.name)
+  const history = await deps.getDynamicHistory(ownerType, ownerKey, endpoint.name, DYNAMIC_SCENARIO)
   const input: ResolverInput = {
     request: {
       method: endpoint.method,
@@ -386,7 +388,7 @@ async function resolveDynamic(
     }
   }
 
-  await deps.appendDynamicHistory(ownerType, ownerKey, endpoint.name, returned)
+  await deps.appendDynamicHistory(ownerType, ownerKey, endpoint.name, DYNAMIC_SCENARIO, returned)
   return { ok: true, scenario: returned }
 }
 

@@ -379,20 +379,20 @@ describe('global mock scenario store', () => {
       endpoint: 'oauth_token',
       scenario: 'dynamic',
     })
-    await appendDynamicHistory(db, 'global', 'hello-system', 'oauth_token', 'expired', 10)
+    await appendDynamicHistory(db, 'global', 'hello-system', 'oauth_token', 'dynamic', 'expired', 10)
 
     await clearGlobalMockScenario(db, 'hello-system', 'oauth_token')
 
-    expect(await getDynamicHistory(db, 'global', 'hello-system', 'oauth_token')).toEqual([])
+    expect(await getDynamicHistory(db, 'global', 'hello-system', 'oauth_token', 'dynamic')).toEqual([])
   })
 
   it('clearing one global selection leaves another endpoint\'s dynamic history intact', async () => {
-    await appendDynamicHistory(db, 'global', 'hello-system', 'oauth_token', 'expired', 10)
-    await appendDynamicHistory(db, 'global', 'hello-system', 'other_endpoint', 'ok', 10)
+    await appendDynamicHistory(db, 'global', 'hello-system', 'oauth_token', 'dynamic', 'expired', 10)
+    await appendDynamicHistory(db, 'global', 'hello-system', 'other_endpoint', 'dynamic', 'ok', 10)
 
     await clearGlobalMockScenario(db, 'hello-system', 'oauth_token')
 
-    expect(await getDynamicHistory(db, 'global', 'hello-system', 'other_endpoint')).toEqual(['ok'])
+    expect(await getDynamicHistory(db, 'global', 'hello-system', 'other_endpoint', 'dynamic')).toEqual(['ok'])
   })
 
   it('lists global scenario selections sorted by modifiedAt descending', async () => {

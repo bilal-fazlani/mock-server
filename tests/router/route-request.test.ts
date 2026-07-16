@@ -986,7 +986,7 @@ describe('dynamic resolver', () => {
       getProfile: async () => profile({ endpointScenarios: { dynamic_ep: 'dynamic' } }),
       getCompiledResolver: () => ({ invoke: (i) => (i.history.length === 0 ? 'failure' : 'default') }),
       getDynamicHistory: async () => [],
-      appendDynamicHistory: async (_t, _k, _e, slug) => {
+      appendDynamicHistory: async (_t, _k, _e, _s, slug) => {
         appended.push(slug)
       },
     })
@@ -1028,7 +1028,7 @@ describe('dynamic resolver', () => {
     const d = deps({
       getProfile: async () => profile({ endpointScenarios: { dynamic_ep: 'dynamic' } }),
       getCompiledResolver: () => ({ invoke: () => 'nonexistent' }),
-      appendDynamicHistory: async (_t, _k, _e, slug) => {
+      appendDynamicHistory: async (_t, _k, _e, _s, slug) => {
         appended.push(slug)
       },
     })
