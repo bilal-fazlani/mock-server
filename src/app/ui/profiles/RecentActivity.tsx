@@ -2,9 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import { Button } from '../../components/ui/button'
 import { LogRow } from '../logs/LogRow'
 import type { LogEntryView } from '../logs/types'
-import styles from '../logs/logs.module.css'
 
 const POLL_INTERVAL_MS = 2000
 const LIMIT = 10
@@ -49,20 +49,23 @@ export function RecentActivity({
   }, [profileId])
 
   return (
-    <section className={styles.recentCard} aria-label="Recent activity">
-      <div className={styles.recentHeader}>
-        <h2 className={styles.recentTitle}>Recent activity</h2>
-        <Link href={`/ui/logs?profile=${encodeURIComponent(profileId)}`} className="btnSecondary">
-          View all logs
-        </Link>
+    <section
+      className="grid gap-2.5 rounded-lg border border-border bg-card px-5 py-[18px] shadow-sm"
+      aria-label="Recent activity"
+    >
+      <div className="flex items-center justify-between gap-2.5">
+        <h2 className="m-0 text-[0.95rem]">Recent activity</h2>
+        <Button asChild variant="secondary" size="sm">
+          <Link href={`/ui/logs?profile=${encodeURIComponent(profileId)}`}>View all logs</Link>
+        </Button>
       </div>
       {entries.length === 0 ? (
-        <p className={styles.recentEmpty}>
+        <p className="text-[0.85rem] text-muted-foreground">
           No requests logged for this profile yet — activity from the last 24 hours shows up here
           live.
         </p>
       ) : (
-        <div className={styles.list}>
+        <div className="flex max-h-[calc(100vh-180px)] flex-col gap-1.5 overflow-y-auto [&>*]:shrink-0">
           {entries.map((entry) => (
             <LogRow
               key={entry.logId}

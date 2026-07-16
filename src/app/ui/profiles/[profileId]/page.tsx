@@ -8,7 +8,6 @@ import { toLogEntryView } from '../../logs/types'
 import { ProfileForm } from '../ProfileForm'
 import { ProfilePageHeader } from '../ProfilePageHeader'
 import { RecentActivity } from '../RecentActivity'
-import styles from '../profilePage.module.css'
 
 export const dynamic = 'force-dynamic'
 
@@ -39,7 +38,7 @@ export default async function ProfileDetailPage({
     ),
   )
   return (
-    <main className={styles.page}>
+    <main className="grid gap-4">
       <ProfilePageHeader
         title={profile.displayName ?? profile.profileId}
         profileId={profile.profileId}

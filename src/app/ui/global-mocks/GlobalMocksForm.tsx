@@ -8,10 +8,10 @@ import {
   scenariosWithPassthrough,
 } from '../../../lib/scenarios'
 import { Alert } from '../../components/Alert'
+import { Button } from '../../components/ui/button'
 import { MethodBadge } from '../../components/MethodBadge'
 import { ScenarioPicker } from '../../components/ScenarioPicker'
 import { resetGlobalDynamicHistoryAction, saveGlobalMocks } from './actions'
-import styles from '../profiles/ProfileForm.module.css'
 
 function key(system: string, endpoint: string): string {
   return `${system}/${endpoint}`
@@ -43,7 +43,7 @@ export function GlobalMocksForm({
   const implicit = implicitScenario(passthroughAsDefault)
 
   return (
-    <form action={saveGlobalMocks} className={styles.form}>
+    <form action={saveGlobalMocks} className="grid w-full min-w-0 max-w-[1200px] gap-5">
       {orphans.length > 0 && (
         <Alert>
           {orphans.length} saved global selection{orphans.length === 1 ? '' : 's'} no longer match a
@@ -52,7 +52,7 @@ export function GlobalMocksForm({
       )}
 
       {endpoints.length === 0 ? (
-        <section className={styles.card}>
+        <section className="grid min-w-0 gap-3.5 rounded-lg border border-border bg-card px-5 py-[18px] shadow-sm">
           <p>No global endpoints defined in the catalog.</p>
         </section>
       ) : (
@@ -62,8 +62,8 @@ export function GlobalMocksForm({
           )
           if (systemEndpoints.length === 0) return null
           return (
-            <section key={system.slug} className={styles.system}>
-              <h2 className={styles.systemName}>{system.name}</h2>
+            <section key={system.slug} className="grid min-w-0 gap-3">
+              <h2 className="mt-1 text-secondary-foreground">{system.name}</h2>
               {systemEndpoints.map((endpoint) => {
                 const stored = selectionMap.get(key(system.slug, endpoint.name))?.scenario
                 const offered = scenariosWithPassthrough(endpoint, passthroughAsDefault)
@@ -72,11 +72,16 @@ export function GlobalMocksForm({
                 const selected = stored ?? implicit
                 const missingPassthroughBaseUrl = selected === 'real' && !env[system.baseUrlEnv]
                 return (
-                  <div key={endpoint.name} className={styles.card}>
-                    <div className={styles.endpointHeader}>
+                  <div
+                    key={endpoint.name}
+                    className="grid min-w-0 gap-3.5 rounded-lg border border-border bg-card px-5 py-[18px] shadow-sm"
+                  >
+                    <div className="flex min-w-0 flex-wrap items-center gap-2.5">
                       <MethodBadge method={endpoint.method} />
-                      <code className={styles.path}>{endpoint.path}</code>
-                      <span className={styles.endpointName}>{endpoint.displayName}</span>
+                      <code className="min-w-0 text-secondary-foreground [overflow-wrap:anywhere]">
+                        {endpoint.path}
+                      </code>
+                      <span className="min-w-0 font-[550]">{endpoint.displayName}</span>
                     </div>
                     {stale && (
                       <Alert>
@@ -98,16 +103,16 @@ export function GlobalMocksForm({
                       unavailable={unavailable}
                     />
                     {stored === DYNAMIC_SCENARIO && (
-                      <div className={styles.resetFooter}>
+                      <div className="mt-2.5 flex">
                         <button
                           formAction={resetGlobalDynamicHistoryAction.bind(
                             null,
                             system.slug,
                             endpoint.name,
                           )}
-                          className={styles.resetButton}
+                          className="inline-flex items-center gap-1.5 bg-background px-2.5 py-1 text-[0.76rem] text-secondary-foreground hover:border-muted-foreground hover:text-foreground"
                         >
-                          <RotateCcw className={styles.resetIcon} aria-hidden="true" />
+                          <RotateCcw className="size-[13px]" aria-hidden="true" />
                           Reset dynamic history
                         </button>
                       </div>
@@ -121,9 +126,7 @@ export function GlobalMocksForm({
       )}
 
       <div>
-        <button type="submit" className="btnPrimary">
-          Save global mocks
-        </button>
+        <Button type="submit">Save global mocks</Button>
       </div>
     </form>
   )

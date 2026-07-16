@@ -5,9 +5,11 @@ import { Check, ChevronsUpDown, GripVertical, Plus, Repeat, RotateCcw, X } from 
 import type { ScenarioSelection } from '../../../lib/profiles/store'
 import { scenarioOptionsWithDangling } from '../../../lib/scenarios'
 import { ScenarioPicker } from '../../components/ScenarioPicker'
-import styles from './ScenarioConfig.module.css'
 
 type Mode = 'single' | 'sequence'
+
+const resetButtonClass =
+  'inline-flex items-center gap-1.5 bg-background px-2.5 py-1 text-[0.76rem] text-secondary-foreground hover:border-muted-foreground hover:text-foreground'
 
 export function ScenarioConfig({
   endpointName,
@@ -67,18 +69,31 @@ export function ScenarioConfig({
   const nextIndex = Math.min(served, steps.length - 1)
 
   return (
-    <div className={styles.config}>
-      <div className={styles.modeToggle} role="group" aria-label="Scenario mode">
+    <div className="grid min-w-0 gap-2.5">
+      <div
+        className="inline-flex justify-self-start overflow-hidden rounded-md border border-border"
+        role="group"
+        aria-label="Scenario mode"
+      >
         <button
           type="button"
-          className={mode === 'single' ? styles.modeActive : styles.modeButton}
+          className={
+            mode === 'single'
+              ? 'rounded-none border-0 bg-[var(--accent-tint)] px-3 py-1 text-[0.78rem] font-semibold text-[var(--accent-strong)]'
+              : 'rounded-none border-0 bg-transparent px-3 py-1 text-[0.78rem] text-muted-foreground'
+          }
           onClick={() => setMode('single')}
         >
           Single
         </button>
         <button
           type="button"
-          className={mode === 'sequence' ? styles.modeActive : styles.modeButton}
+          className={
+            (mode === 'sequence'
+              ? 'rounded-none border-0 bg-[var(--accent-tint)] px-3 py-1 text-[0.78rem] font-semibold text-[var(--accent-strong)]'
+              : 'rounded-none border-0 bg-transparent px-3 py-1 text-[0.78rem] text-muted-foreground') +
+            ' border-l border-border'
+          }
           onClick={switchToSequence}
         >
           Sequence
@@ -99,9 +114,9 @@ export function ScenarioConfig({
             unavailable={unavailable}
           />
           {singleValue === 'dynamic' && resetDynamicAction && (
-            <div className={styles.sequenceFooter}>
-              <button formAction={resetDynamicAction} className={styles.resetButton}>
-                <RotateCcw className={styles.stepButtonIcon} aria-hidden="true" />
+            <div className="flex w-full flex-wrap items-center gap-2.5">
+              <button formAction={resetDynamicAction} className={resetButtonClass}>
+                <RotateCcw className="size-[13px]" aria-hidden="true" />
                 Reset dynamic history
               </button>
             </div>
@@ -109,7 +124,7 @@ export function ScenarioConfig({
         </div>
       ) : (
         <div
-          className={styles.sequence}
+          className="grid justify-items-start gap-2"
           // Accept the drop anywhere in the sequence area (including the gaps
           // between rows) so the browser never plays its "snap back to
           // origin" animation when the pointer is released.
@@ -134,7 +149,7 @@ export function ScenarioConfig({
                 ref={(el) => {
                   rowRefs.current[index] = el
                 }}
-                className={`${styles.stepRow} ${dragIndex === index ? styles.stepRowDragging : ''}`}
+                className={`grid w-full grid-cols-[18px_24px_minmax(0,280px)_auto_auto] items-center justify-start gap-2.5 rounded-md transition-opacity duration-150 max-[700px]:grid-cols-[18px_24px_minmax(0,1fr)_auto] max-[700px]:grid-rows-[auto_auto] ${dragIndex === index ? 'opacity-[0.45]' : ''}`}
                 onDragOver={(e) => {
                   if (dragIndex === null || dragIndex === index) return
                   e.preventDefault()
@@ -151,7 +166,7 @@ export function ScenarioConfig({
                   ref={(el) => {
                     gripRefs.current[index] = el
                   }}
-                  className={styles.dragHandle}
+                  className="inline-flex h-[26px] w-[18px] cursor-grab touch-none items-center justify-center rounded-md text-muted-foreground hover:text-foreground active:cursor-grabbing focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--accent)]"
                   role="button"
                   tabIndex={0}
                   draggable
@@ -174,13 +189,19 @@ export function ScenarioConfig({
                     }
                   }}
                 >
-                  <GripVertical className={styles.dragHandleIcon} aria-hidden="true" />
+                  <GripVertical className="size-[15px]" aria-hidden="true" />
                 </span>
                 <span
-                  className={`${styles.stepMarker} ${isServed ? styles.stepMarkerServed : ''} ${isNext ? styles.stepMarkerNext : ''}`}
+                  className={`inline-flex size-6 items-center justify-center rounded-full border border-border bg-background text-[0.75rem] font-[650] text-secondary-foreground ${
+                    isServed
+                      ? 'border-[rgba(var(--success-rgb),0.45)] bg-[var(--success-tint)] text-[var(--success)]'
+                      : isNext
+                        ? 'border-[rgba(var(--accent-rgb),0.58)] bg-[var(--accent-tint)] text-[var(--accent-strong)]'
+                        : ''
+                  }`}
                   title={isServed ? 'Already served' : isNext ? 'Served on the next call' : undefined}
                 >
-                  {isServed ? <Check className={styles.stepMarkerIcon} aria-hidden="true" /> : index + 1}
+                  {isServed ? <Check className="size-[13px] stroke-[2.6]" aria-hidden="true" /> : index + 1}
                 </span>
                 <ScenarioSelect
                   value={step}
@@ -188,49 +209,56 @@ export function ScenarioConfig({
                   onChange={(value) => setStep(index, value)}
                   ariaLabel={`Scenario for step ${index + 1}`}
                 />
-                <span className={styles.stepActions}>
+                <span className="inline-flex gap-1">
                   <button
                     type="button"
-                    className={styles.stepButton}
+                    className="inline-flex size-[26px] items-center justify-center bg-background p-0 text-secondary-foreground hover:border-muted-foreground hover:text-foreground disabled:pointer-events-none disabled:opacity-35"
                     onClick={() => removeStep(index)}
                     disabled={steps.length === 1}
                     aria-label={`Remove step ${index + 1}`}
                   >
-                    <X className={styles.stepButtonIcon} aria-hidden="true" />
+                    <X className="size-[13px]" aria-hidden="true" />
                   </button>
                 </span>
-                <span className={styles.stepNote}>
+                <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-[0.78rem] text-muted-foreground max-[700px]:col-start-3 max-[700px]:col-end-[-1] max-[700px]:row-start-2">
                   {isLast && (
-                    <Repeat
-                      className={styles.stepNoteIcon}
-                      aria-label="Repeats for every further call"
-                    >
+                    <Repeat className="size-[13px]" aria-label="Repeats for every further call">
                       <title>Repeats for every further call</title>
                     </Repeat>
                   )}
-                  {isNext && <span className={styles.nextTag}>next</span>}
+                  {isNext && (
+                    <span className="rounded-full border border-[rgba(var(--accent-rgb),0.58)] bg-[var(--accent-tint)] px-[7px] py-px text-[0.7rem] font-[650] text-[var(--accent-strong)]">
+                      next
+                    </span>
+                  )}
                 </span>
               </div>
             )
           })}
-          <div className={styles.sequenceFooter}>
-            <button type="button" className={styles.addStep} onClick={addStep}>
-              <Plus className={styles.stepButtonIcon} aria-hidden="true" />
+          <div className="flex w-full flex-wrap items-center gap-2.5">
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 bg-background px-3 py-[5px] text-[0.82rem] text-secondary-foreground hover:border-muted-foreground hover:text-foreground"
+              onClick={addStep}
+            >
+              <Plus className="size-[13px]" aria-hidden="true" />
               Add step
             </button>
             {served > 0 && (
-              <span className={styles.progressMeta}>
+              <span className="ml-auto inline-flex items-center gap-2.5 text-[0.78rem] text-muted-foreground">
                 {served} {served === 1 ? 'call' : 'calls'} served
                 {resetAction && (
-                  <button formAction={resetAction} className={styles.resetButton}>
-                    <RotateCcw className={styles.stepButtonIcon} aria-hidden="true" />
+                  <button formAction={resetAction} className={resetButtonClass}>
+                    <RotateCcw className="size-[13px]" aria-hidden="true" />
                     Reset progress
                   </button>
                 )}
               </span>
             )}
             {dirty && savedSteps !== null && (servedCount ?? 0) > 0 && (
-              <span className={styles.progressMeta}>progress restarts after save</span>
+              <span className="ml-auto inline-flex items-center gap-2.5 text-[0.78rem] text-muted-foreground">
+                progress restarts after save
+              </span>
             )}
           </div>
           <input type="hidden" name={`scenarioSequence:${endpointName}`} value={JSON.stringify(steps)} />
@@ -240,10 +268,30 @@ export function ScenarioConfig({
   )
 }
 
-function scenarioKindClass(key: string): string {
-  if (key === 'real') return styles.kindReal
-  if (key === 'default') return styles.kindDefault
-  return styles.kindNonDefault
+type Kind = 'default' | 'nonDefault' | 'real'
+
+function scenarioKind(key: string): Kind {
+  if (key === 'real') return 'real'
+  if (key === 'default') return 'default'
+  return 'nonDefault'
+}
+
+const triggerKindClass: Record<Kind, string> = {
+  default: 'border-[var(--success)] bg-[var(--success-tint)]',
+  nonDefault: 'border-[var(--warning-border)] bg-[var(--warning-bg)]',
+  real: 'border-[#d92d20] bg-[rgba(217,45,32,0.12)]',
+}
+
+const dotKindClass: Record<Kind, string> = {
+  default: 'border-[var(--success)]',
+  nonDefault: 'border-[var(--warning-text)]',
+  real: 'border-[#d92d20]',
+}
+
+const optionSelectedKindClass: Record<Kind, string> = {
+  default: 'border-[rgba(var(--success-rgb),0.45)] bg-[var(--success-tint)]',
+  nonDefault: 'border-[var(--warning-border)] bg-[var(--warning-bg)]',
+  real: 'border-[#d92d20] bg-[rgba(217,45,32,0.12)]',
 }
 
 // Native <select> can't render two-line, color-coded options, so steps use a
@@ -292,11 +340,11 @@ function ScenarioSelect({
 
   const label = scenarios[value] ?? value
   return (
-    <div ref={wrapRef} className={styles.scenarioSelect}>
+    <div ref={wrapRef} className="relative min-w-0 w-full">
       <button
         ref={triggerRef}
         type="button"
-        className={`${styles.selectTrigger} ${scenarioKindClass(value)}`}
+        className={`flex w-full min-w-0 items-center gap-[9px] rounded-lg border px-2.5 py-1.5 text-left transition-colors duration-150 ${triggerKindClass[scenarioKind(value)]}`}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label={ariaLabel}
@@ -308,15 +356,20 @@ function ScenarioSelect({
           }
         }}
       >
-        <span className={`${styles.selectDot} ${scenarioKindClass(value)}`} aria-hidden="true" />
-        <span className={styles.selectLabel}>{label}</span>
-        <ChevronsUpDown className={styles.selectChevron} aria-hidden="true" />
+        <span
+          aria-hidden="true"
+          className={`size-3.5 flex-none rounded-full border-4 bg-card ${dotKindClass[scenarioKind(value)]}`}
+        />
+        <span className="min-w-0 text-[0.9rem] font-medium leading-[1.3] text-foreground [overflow-wrap:anywhere]">
+          {label}
+        </span>
+        <ChevronsUpDown className="ml-auto size-3.5 flex-none text-muted-foreground" aria-hidden="true" />
       </button>
       {open && (
         <div
           role="listbox"
           aria-label={ariaLabel}
-          className={styles.selectMenu}
+          className="absolute top-[calc(100%+6px)] left-0 z-30 flex max-h-80 w-max min-w-full max-w-[340px] flex-col gap-0.5 overflow-y-auto rounded-lg border border-border bg-card p-1.5 shadow-[var(--shadow-card),0_12px_28px_-10px_rgba(0,0,0,0.7)]"
           onKeyDown={(e) => {
             if (e.key === 'Escape') {
               e.preventDefault()
@@ -341,18 +394,28 @@ function ScenarioSelect({
                 type="button"
                 role="option"
                 aria-selected={selected}
-                className={`${styles.selectOption} ${selected ? `${styles.selectOptionSelected} ${scenarioKindClass(key)}` : ''}`}
+                className={`flex w-full items-center gap-[9px] rounded-md border border-transparent px-[9px] py-1.5 text-left ${
+                  selected
+                    ? optionSelectedKindClass[scenarioKind(key)]
+                    : 'hover:border-border hover:bg-background'
+                }`}
                 onClick={() => {
                   onChange(key)
                   close(true)
                 }}
               >
                 <span
-                  className={`${styles.selectDot} ${selected ? scenarioKindClass(key) : styles.selectDotIdle}`}
                   aria-hidden="true"
+                  className={`size-3.5 flex-none rounded-full bg-card ${
+                    selected ? `border-4 ${dotKindClass[scenarioKind(key)]}` : 'border-2 border-border'
+                  }`}
                 />
-                <span className={styles.selectLabel}>{optionLabel}</span>
-                {selected && <Check className={styles.selectCheck} aria-hidden="true" />}
+                <span className="min-w-0 text-[0.9rem] font-medium leading-[1.3] text-foreground [overflow-wrap:anywhere]">
+                  {optionLabel}
+                </span>
+                {selected && (
+                  <Check className="ml-auto size-3.5 flex-none stroke-[2.6] text-secondary-foreground" aria-hidden="true" />
+                )}
               </button>
             )
           })}
@@ -361,4 +424,3 @@ function ScenarioSelect({
     </div>
   )
 }
-

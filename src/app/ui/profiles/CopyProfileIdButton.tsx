@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import styles from './ProfileForm.module.css'
+import { Copy } from 'lucide-react'
+import { Button } from '../../components/ui/button'
 
 function fallbackCopyText(value: string) {
   const textarea = document.createElement('textarea')
@@ -38,26 +39,15 @@ export function CopyProfileIdButton({ value }: { value: string }) {
   }
 
   return (
-    <button
+    <Button
       type="button"
-      className={styles.copyButton}
+      variant="outline"
+      size="icon"
       aria-label={copied ? 'Copied profile ID' : 'Copy profile ID'}
       title={copied ? 'Copied' : 'Copy profile ID'}
       onClick={copyProfileId}
     >
-      <svg
-        className={styles.copyIcon}
-        aria-hidden="true"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
-        <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
-      </svg>
-    </button>
+      <Copy aria-hidden="true" />
+    </Button>
   )
 }
