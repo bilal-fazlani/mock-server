@@ -14,10 +14,22 @@ import {
   PENDING_CAP,
 } from './list-state'
 import type { LogSummaryView } from './types'
-import styles from './logs.module.css'
+import { Button } from '../../components/ui/button'
 
 const POLL_INTERVAL_MS = 2000
 const MAX_SUGGESTIONS = 8
+
+const filterInputClass = 'px-[9px] py-1.5 text-[0.85rem]'
+const filterToggleClass =
+  'inline-flex items-center gap-1.5 text-[0.85rem] text-secondary-foreground cursor-pointer select-none'
+const comboMenuClass =
+  'absolute left-0 top-[calc(100%+6px)] z-30 flex max-h-[340px] w-max min-w-full max-w-[380px] flex-col gap-0.5 overflow-y-auto rounded-lg border border-border bg-card p-1.5 shadow-[var(--shadow-card),0_12px_28px_-10px_rgba(0,0,0,0.7)]'
+const comboOptionClass =
+  'grid w-full grid-cols-[minmax(0,1fr)_auto] gap-x-2 gap-y-px rounded-sm border border-transparent bg-transparent px-[9px] py-1.5 text-left hover:border-border hover:bg-background'
+const comboOptionLabelClass = 'min-w-0 text-[0.85rem] font-medium text-foreground [overflow-wrap:anywhere]'
+const comboOptionSubClass =
+  'col-start-1 min-w-0 font-mono text-[0.72rem] text-muted-foreground [overflow-wrap:anywhere]'
+const comboCheckClass = 'col-start-2 row-span-2 row-start-1 size-[13px] self-center stroke-[2.6] text-secondary-foreground'
 
 export interface ProfileOption {
   profileId: string
@@ -200,9 +212,9 @@ export function LogsView({
   }, [])
 
   return (
-    <div className={styles.page}>
-      <div className={styles.header}>
-        <div className={styles.filters}>
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           <ProfileFilter
             profiles={options.profiles}
             value={profile}
@@ -211,14 +223,14 @@ export function LogsView({
           />
           <EndpointFilter endpoints={options.endpoints} value={endpoint} onChange={setEndpoint} />
           <input
-            className={styles.filterInput}
+            className={filterInputClass}
             type="search"
             placeholder="Filter by log id"
             value={logIdQuery}
             onChange={(e) => setLogIdQuery(e.target.value.trim())}
             aria-label="Filter by log id"
           />
-          <label className={styles.filterToggle}>
+          <label className={filterToggleClass}>
             <input
               type="checkbox"
               checked={errorsOnly}
@@ -227,12 +239,14 @@ export function LogsView({
             Errors only
           </label>
         </div>
-        <div className={styles.headerActions}>
-          <label className={styles.filterToggle}>
+        <div className="flex items-center gap-2">
+          <label className={filterToggleClass}>
             <input type="checkbox" checked={paused} onChange={(e) => setPaused(e.target.checked)} />
             Pause
           </label>
-          <span className={`${styles.liveDot} ${paused ? styles.livePaused : ''}`}>
+          <span
+            className={`inline-flex items-center gap-1.5 text-[0.78rem] text-muted-foreground before:size-2 before:rounded-full before:content-[''] ${paused ? 'before:bg-muted-foreground' : 'before:bg-[var(--success)]'}`}
+          >
             {paused ? 'paused' : 'live'}
           </span>
           <form
@@ -246,25 +260,37 @@ export function LogsView({
             }}
           >
             {profile && <input type="hidden" name="profileId" value={profile} />}
-            <button type="submit" className="btnSecondary">
-              <Trash2 style={{ width: 13, height: 13, marginRight: 6, verticalAlign: '-2px' }} aria-hidden="true" />
+            <Button type="submit" variant="secondary">
+              <Trash2 className="size-[13px]" aria-hidden="true" />
               Clear {profile ? 'profile logs' : 'all logs'}
-            </button>
+            </Button>
           </form>
         </div>
       </div>
 
       {pending.length > 0 && (
-        <button type="button" className={styles.newPill} onClick={jumpToLatest}>
-          <ArrowUp style={{ width: 13, height: 13, marginRight: 6, verticalAlign: '-2px' }} aria-hidden="true" />
+        <Button
+          type="button"
+          size="sm"
+          className="self-center rounded-full text-xs font-semibold"
+          onClick={jumpToLatest}
+        >
+          <ArrowUp className="size-[13px]" aria-hidden="true" />
           {pending.length >= PENDING_CAP ? `${PENDING_CAP}+` : pending.length} new
-        </button>
+        </Button>
       )}
 
       {entries.length === 0 ? (
-        <p className={styles.empty}>No log entries yet — send a request to the mock server.</p>
+        <p className="rounded-lg border border-border bg-card px-6 py-6 text-center text-muted-foreground">
+          No log entries yet — send a request to the mock server.
+        </p>
       ) : (
-        <div className={styles.list} data-logs-scroll ref={scrollRef} onScroll={onScroll}>
+        <div
+          className="flex max-h-[calc(100vh-180px)] flex-col gap-1.5 overflow-y-auto [&>*]:shrink-0"
+          data-logs-scroll
+          ref={scrollRef}
+          onScroll={onScroll}
+        >
           {entries.map((entry) => (
             <LogRow
               key={entry.logId}
@@ -275,11 +301,13 @@ export function LogsView({
             />
           ))}
           {capped ? (
-            <p className={styles.floorMarker}>Showing latest 500 — narrow your filters to see older entries.</p>
+            <p className="px-3.5 py-3 text-center text-xs text-muted-foreground">
+              Showing latest 500 — narrow your filters to see older entries.
+            </p>
           ) : atFloor ? (
-            <p className={styles.floorMarker}>Beginning of logs.</p>
+            <p className="px-3.5 py-3 text-center text-xs text-muted-foreground">Beginning of logs.</p>
           ) : (
-            <div data-logs-sentinel ref={sentinelRef} className={styles.sentinel} aria-hidden="true" />
+            <div data-logs-sentinel ref={sentinelRef} className="h-px" aria-hidden="true" />
           )}
         </div>
       )}
@@ -342,10 +370,12 @@ function ProfileFilter({
     setOpen(false)
   }
 
+  const listboxId = 'log-profile-filter-listbox'
+
   return (
-    <div ref={wrapRef} className={styles.combo}>
+    <div ref={wrapRef} className="relative min-w-0">
       <input
-        className={`${styles.filterInput} ${styles.comboInput} ${value ? styles.comboActive : ''}`}
+        className={`min-w-[230px] px-[9px] py-1.5 text-[0.85rem] ${value ? 'border-[rgba(var(--accent-rgb),0.58)]' : ''}`}
         type="text"
         placeholder="Filter by profile"
         value={text}
@@ -366,21 +396,22 @@ function ProfileFilter({
         aria-expanded={open}
         role="combobox"
         aria-autocomplete="list"
+        aria-controls={listboxId}
       />
       {open && suggestions.length > 0 && (
-        <div className={styles.comboMenu} role="listbox" aria-label="Profiles">
+        <div id={listboxId} className={comboMenuClass} role="listbox" aria-label="Profiles">
           {suggestions.map((p) => (
             <button
               key={p.profileId}
               type="button"
               role="option"
               aria-selected={p.profileId === value}
-              className={styles.comboOption}
+              className={comboOptionClass}
               onClick={() => pick(p)}
             >
-              <span className={styles.comboOptionLabel}>{p.displayName ?? p.profileId}</span>
-              {p.displayName && <span className={styles.comboOptionSub}>{p.profileId}</span>}
-              {p.profileId === value && <Check className={styles.comboCheck} aria-hidden="true" />}
+              <span className={comboOptionLabelClass}>{p.displayName ?? p.profileId}</span>
+              {p.displayName && <span className={comboOptionSubClass}>{p.profileId}</span>}
+              {p.profileId === value && <Check className={comboCheckClass} aria-hidden="true" />}
             </button>
           ))}
         </div>
@@ -417,32 +448,35 @@ function EndpointFilter({
     setOpen(false)
   }
 
+  const listboxId = 'log-endpoint-filter-listbox'
+
   return (
-    <div ref={wrapRef} className={styles.combo}>
+    <div ref={wrapRef} className="relative min-w-0">
       <button
         type="button"
-        className={`${styles.endpointTrigger} ${value ? styles.comboActive : ''}`}
+        className={`inline-flex min-w-[200px] items-center gap-2 px-[9px] py-1.5 text-left text-[0.85rem] hover:border-muted-foreground ${value ? 'border-[rgba(var(--accent-rgb),0.58)]' : ''}`}
         aria-haspopup="listbox"
         aria-expanded={open}
+        aria-controls={listboxId}
         aria-label="Filter by endpoint"
         onClick={() => setOpen(!open)}
       >
-        <span className={styles.endpointTriggerLabel}>
+        <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
           {selected ? selected.displayName : 'All endpoints'}
         </span>
-        <ChevronsUpDown className={styles.comboChevron} aria-hidden="true" />
+        <ChevronsUpDown className="ml-auto size-[13px] flex-none text-muted-foreground" aria-hidden="true" />
       </button>
       {open && (
-        <div className={styles.comboMenu} role="listbox" aria-label="Endpoints">
+        <div id={listboxId} className={comboMenuClass} role="listbox" aria-label="Endpoints">
           <button
             type="button"
             role="option"
             aria-selected={value === ''}
-            className={styles.comboOption}
+            className={comboOptionClass}
             onClick={() => pick('')}
           >
-            <span className={styles.comboOptionLabel}>All endpoints</span>
-            {value === '' && <Check className={styles.comboCheck} aria-hidden="true" />}
+            <span className={comboOptionLabelClass}>All endpoints</span>
+            {value === '' && <Check className={comboCheckClass} aria-hidden="true" />}
           </button>
           {endpoints.map((e) => (
             <button
@@ -450,14 +484,14 @@ function EndpointFilter({
               type="button"
               role="option"
               aria-selected={e.name === value}
-              className={styles.comboOption}
+              className={comboOptionClass}
               onClick={() => pick(e.name)}
             >
-              <span className={styles.comboOptionLabel}>{e.displayName}</span>
-              <span className={styles.comboOptionSub}>
+              <span className={comboOptionLabelClass}>{e.displayName}</span>
+              <span className={comboOptionSubClass}>
                 {e.method.toUpperCase()} {e.path}
               </span>
-              {e.name === value && <Check className={styles.comboCheck} aria-hidden="true" />}
+              {e.name === value && <Check className={comboCheckClass} aria-hidden="true" />}
             </button>
           ))}
         </div>

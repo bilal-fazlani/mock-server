@@ -39,8 +39,8 @@ export default async function LogsPage({
     ),
   )
   return (
-    <main>
-      <h1 style={{ marginBottom: 16 }}>Request logs</h1>
+    <main className="grid gap-4">
+      <h1>Request logs</h1>
       <LogsView
         initialEntries={entries.map(toLogSummaryView)}
         options={{
