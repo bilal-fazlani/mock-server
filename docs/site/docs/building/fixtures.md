@@ -2,6 +2,11 @@
 
 ## Fixtures
 
+Not every scenario is a fixture — a scenario can instead be backed by a
+`<slug>.ts` resolver that computes its outcome at request time; see
+[Code-backed scenario resolvers](dynamic.md). This page covers the
+fixture-backed (`<slug>.json`) case.
+
 A fixture is a JSON file with this shape:
 
 ```json

@@ -15,16 +15,21 @@ What the engine does for every incoming request, in order:
 | 3b | For a global endpoint, skip profile ID resolution and read the saved shared selection from `globalMockScenarios`. | — |
 | 4 | For a profiled endpoint, load that profile from MongoDB. | Not found → `UNMOCKED_USERS` policy: `ERROR` → `404`; `DEFAULT_MOCK` → serve `default`; `REAL` → proxy |
 | 5 | Resolve the scenario: saved profile/global pick, else the implicit scenario from `PASSTHROUGH_AS_DEFAULT`. If the pick is a [sequence](../building/scenarios.md#scenario-sequences), atomically advance its progress counter and take the step it lands on (sticking on the last step once exhausted). | Pinned key no longer declared → `500` |
-| 6 | If the resolved scenario is `dynamic`, look up the endpoint's compiled `_dynamic.ts`, read its history window, and invoke it with the request + history + profile ID. Rewrite the scenario to its return value and append that value to history. | No compiled resolver → `500 dynamic_resolver_missing`; throws → `500 dynamic_threw`; exceeds its timeout → `500 dynamic_timeout`; returns anything other than a declared scenario or `"real"` → `500 dynamic_bad_return` (nothing appended to history) |
+| 6 | If the resolved scenario slug is **resolver-backed**, look up its compiled `<slug>.ts`, read that slug's history window, and invoke it with the request + history + profile ID. Rewrite the scenario to its return value and append that value to the slug's history. | Compile error (dev) → `500 resolver_compile_error`; no compiled resolver found → `500 resolver_missing`; throws → `500 resolver_threw`; exceeds its timeout → `500 resolver_timeout`; returns anything other than a fixture-backed declared scenario or `"real"` → `500 resolver_bad_return` (nothing appended to history) |
 | 7 | For direct-profile endpoints with `captureProfileKeys`, store each mapping before fixture serving or real proxying. | Capture key missing → `400`; same key for a different profile → `409 profile_key_mapping_conflict` |
 | 8a | If scenario is `real`: proxy to the `baseUrlEnv` upstream and return its response. | Missing base URL → `500` (startup prevents this only when `PASSTHROUGH_AS_DEFAULT=true`) |
 | 8b | Otherwise: take the cached fixture, resolve placeholders, return its status/headers/body. | Placeholder didn't resolve → `500` |
 
-Step 6 only runs when scenario resolution (step 5) lands on `dynamic` — for
-every other resolved scenario, routing falls straight from step 5 to step 7.
-Once step 6 rewrites the scenario, the rest of the walk (steps 7, 8a/8b)
-proceeds exactly as if that rewritten slug (including `real`) had been the
-original pick — see [Dynamic scenarios](../building/dynamic.md).
+Step 6 only runs when the resolved scenario slug (step 5) is backed by a
+`<slug>.ts` resolver — for every fixture-backed scenario, routing falls
+straight from step 5 to step 7. Once step 6 rewrites the scenario, the rest of
+the walk (steps 7, 8a/8b) proceeds exactly as if that rewritten slug
+(including `real`) had been the original pick. `trace.scenarioSource` still
+records how the *pre-rewrite* slug was selected (`pin` / `sequence` /
+`implicit` / `global` / `unmocked_policy`) — it is never overwritten by the
+resolver rewrite; the rewrite itself is recorded separately as
+`trace.resolver = { slug, returned }`. See [Code-backed scenario
+resolvers](../building/dynamic.md).
 
 Three things wrap every logged request, whichever row it exits at: the server may
 print a one-line console summary depending on `MOCK_CONSOLE_LOG_LEVEL`; the
@@ -39,7 +44,7 @@ entirely.
 
 App-wide behavior is governed by a handful of environment variables —
 `PASSTHROUGH_AS_DEFAULT`, `UNMOCKED_USERS`, `PASSTHROUGH_TIMEOUT_MS`,
-`MOCK_CONSOLE_LOG_LEVEL`, and `DYNAMIC_HISTORY_LIMIT`. Each one's values and
+`MOCK_CONSOLE_LOG_LEVEL`, and `RESOLVER_HISTORY_LIMIT`. Each one's values and
 defaults are documented as settings in
 [Configuration](configuration.md#app-configuration); this page
 describes how they steer the flow.
@@ -83,13 +88,19 @@ endpoints without `profileIdSelector`.
 
 ## Reserved scenario names
 
-- **`default`** — every endpoint must have `default.json`.
-- **`real`** — must never have a fixture file. It means passthrough to the
-  system's configured upstream base URL.
-- **`dynamic`** — must never have a fixture file either. Offered only on
-  endpoints with a `_dynamic.ts` resolver; selecting it runs that resolver at
-  request time and rewrites the scenario to whatever slug (or `real`) it
-  returns, per step 6 above. See [Dynamic scenarios](../building/dynamic.md).
+- **`default`** — every endpoint must have it, as either `default.json` or
+  `default.ts`.
+- **`real`** — must never have a fixture or resolver file (`real.json` and
+  `real.ts` are both errors). It means passthrough to the system's configured
+  upstream base URL.
+
+Any other scenario slug may be backed by either a fixture (`<slug>.json`) or a
+resolver (`<slug>.ts`, never both). A resolver-backed slug isn't a different
+*kind* of scenario name — it's an ordinary declared scenario whose response is
+computed at request time instead of read from a file; selecting it runs the
+resolver and rewrites the scenario to whatever fixture-backed slug (or `real`)
+it returns, per step 6 above. See [Code-backed scenario
+resolvers](../building/dynamic.md).
 
 Profile and global selections are stored as deltas against the configured implicit
 scenario:
@@ -110,12 +121,15 @@ Startup fails hard if any of:
 
 - existing catalog/fixture checks fail: path templates, selectors, fixture shape,
   placeholders, ambiguous endpoints, schemas;
-- an endpoint lacks `default.json` or declares `real.json` or `dynamic.json`;
+- a scenario slug has both `<slug>.json` and `<slug>.ts`;
+- an endpoint lacks a `default` scenario (neither `default.json` nor
+  `default.ts`), declares `real.json` or `real.ts`, or has no fixture-backed
+  scenario at all;
 - a global endpoint declares profile-only fields;
 - a profiled endpoint lacks `profileIdSelector`;
 - `PASSTHROUGH_AS_DEFAULT=true` and any system's `baseUrlEnv` is unset;
-- any endpoint's `_dynamic.ts` fails to compile or doesn't default-export a
-  function.
+- any scenario resolver (`<slug>.ts`) fails to compile or doesn't
+  default-export a function.
 
 The full list of checks is in
 [Validation rules](configuration.md#validation-rules).
@@ -153,21 +167,22 @@ flowchart TD
     Pick -- Single scenario --> ProfilePin["scenario = saved pin"]
     Pick -- Sequence --> Advance["Atomically advance progress<br/>scenario = current step<br/>(stick on final step)"]
 
-    ProfileImplicit --> IsDynamic{"scenario == dynamic?"}
-    ProfilePin --> IsDynamic
-    Advance --> IsDynamic
-    GlobalSel --> IsDynamic
-    UseDefault --> IsDynamic
-    UseReal --> IsDynamic
+    ProfileImplicit --> IsResolverBacked{"scenario slug is<br/>resolver-backed (.ts)?"}
+    ProfilePin --> IsResolverBacked
+    Advance --> IsResolverBacked
+    GlobalSel --> IsResolverBacked
+    UseDefault --> IsResolverBacked
+    UseReal --> IsResolverBacked
 
-    IsDynamic -- No --> IsReal{"scenario == real?"}
-    IsDynamic -- Yes --> HasResolver{"_dynamic.ts compiled<br/>for this endpoint?"}
-    HasResolver -- No --> RNoResolver["500 - dynamic_resolver_missing"]
-    HasResolver -- Yes --> RunResolver["Invoke resolver with<br/>request + history + profileId"]
-    RunResolver -- Throws --> RThrew["500 - dynamic_threw"]
-    RunResolver -- Timeout --> RDynTimeout["500 - dynamic_timeout"]
-    RunResolver -- "Invalid return<br/>(undeclared slug, non-string,<br/>or literal 'dynamic')" --> RBadReturn["500 - dynamic_bad_return"]
-    RunResolver -- "Valid return<br/>(declared scenario or 'real')" --> AppendHistory["Append returned slug to history<br/>scenario = returned slug"]
+    IsResolverBacked -- No --> IsReal{"scenario == real?"}
+    IsResolverBacked -- Yes --> ResolverCompiled{"Resolver compiled<br/>for this slug?"}
+    ResolverCompiled -- "No (dev compile error)" --> RResolverCompile["500 - resolver_compile_error"]
+    ResolverCompiled -- "No (not found)" --> RNoResolver["500 - resolver_missing"]
+    ResolverCompiled -- Yes --> RunResolver["Invoke resolver with<br/>request + per-slug history + profileId"]
+    RunResolver -- Throws --> RThrew["500 - resolver_threw"]
+    RunResolver -- Timeout --> RResolverTimeout["500 - resolver_timeout"]
+    RunResolver -- "Invalid return<br/>(resolver-backed slug, undeclared slug,<br/>or non-string)" --> RBadReturn["500 - resolver_bad_return"]
+    RunResolver -- "Valid return<br/>(fixture-backed scenario or 'real')" --> AppendHistory["Append returned slug to that slug's history<br/>scenario = returned slug"]
     AppendHistory --> IsReal
 
     IsReal -- Yes --> CaptureReal{"Profiled key capture<br/>configured?"}
@@ -209,12 +224,15 @@ flowchart TD
   implicit scenario from `PASSTHROUGH_AS_DEFAULT`.
 - **Profile scenario sequences** advance before the router branches between a
   fixture and `real`, so any sequence step can select passthrough.
-- **The `dynamic` resolver** runs after scenario resolution (including sequence
-  advancement) but before the `real`/fixture branch, and only when the
-  resolved slug is literally `dynamic`. It rewrites the scenario in place, so
-  everything downstream — passthrough, fixture load, templating, schema
-  checks, tracing — treats the resolver's return value exactly like a directly
-  picked scenario. See [Dynamic scenarios](../building/dynamic.md).
+- **A resolver-backed scenario** runs after scenario resolution (including
+  sequence advancement) but before the `real`/fixture branch, whenever the
+  resolved slug is backed by a `<slug>.ts` file. It rewrites the scenario in
+  place, so everything downstream — passthrough, fixture load, templating,
+  schema checks, tracing — treats the resolver's return value exactly like a
+  directly picked scenario. `trace.scenarioSource` keeps reporting how the
+  pre-rewrite slug was selected; the rewrite itself lands in
+  `trace.resolver = { slug, returned }`. See [Code-backed scenario
+  resolvers](../building/dynamic.md).
 - **Unmocked users** are still controlled by `UNMOCKED_USERS`; that policy is
   separate from the defaulting policy for existing profiles/global selections.
 - **Profile key capture** runs before the base-URL check on `real`, and after

@@ -4,23 +4,26 @@ Every request the mock server receives — *including* ones that match no endpoi
 or fail profile resolution — is written to a request log with its full **decision
 trace**: how the profile was resolved (directly or via a profile key lookup),
 which scenario was chosen and why (profile pin, sequence step, implicit default,
-global pick, `UNMOCKED_USERS` policy, or the `dynamic` resolver), captured
-profile keys, placeholder resolutions, schema-validation results, and — for
-`real` passthrough — the upstream URL, status, and latency. The one exception is
-Next.js internal asset noise: request paths beginning with `/_next/` are ignored
-by the request log. Profile saves, sequence progress resets, and dynamic history
-resets appear in the same stream as admin events.
+global pick, or `UNMOCKED_USERS` policy), captured profile keys, placeholder
+resolutions, schema-validation results, and — for `real` passthrough — the
+upstream URL, status, and latency. The one exception is Next.js internal asset
+noise: request paths beginning with `/_next/` are ignored by the request log.
+Profile saves, sequence progress resets, and resolver history resets appear in
+the same stream as admin events.
 
-When the resolved scenario is `dynamic`, the trace carries `trace.scenarioSource:
-"dynamic"` plus the resolver's actual return value, e.g.
-`trace.dynamic = { returned: "pending" }` (or `"real"`). The trace's `scenario`
-field is overwritten with the *resolved* slug (the resolver's return value, not
-the literal `dynamic` that was pinned) — so a log entry reads as "pinned
-`dynamic` → resolver returned `pending` → outcome `fixture`", and a resolver
-that returns `"real"` still shows the upstream URL/status/latency for that call.
-Without `trace.dynamic`, a dynamic-then-real request would be indistinguishable
-from a bare `real` pin. See [Dynamic scenarios](../building/dynamic.md) for the resolver
-contract.
+When the resolved scenario slug is resolver-backed, the trace's `scenario`
+field is overwritten with the *resolved* slug — the resolver's return value,
+not the pinned slug that ran it — and a separate `trace.resolver = { slug,
+returned }` field records the pick, e.g. `{ slug: "by-amount", returned:
+"hold" }`. `trace.scenarioSource` is **not** overwritten by the resolver; it
+keeps reporting the original selection mechanism (`pin`, `sequence`,
+`implicit`, `global`, or `unmocked_policy`), so a log entry reads as "source
+`implicit`, scenario `default → hold`" — strictly more informative than
+overwriting the selection mechanism would be, and a resolver that returns
+`"real"` still shows the upstream URL/status/latency for that call. Without
+`trace.resolver`, a resolver-then-real request would be indistinguishable from
+a bare `real` pin. See [Code-backed scenario resolvers](../building/dynamic.md)
+for the resolver contract.
 
 Persisted request headers preserve their names and values except `Authorization`,
 whose value is always stored as `[REDACTED]` (case-insensitive header match).
@@ -39,10 +42,10 @@ such as `UNMOCKED_USERS` fallback, schema drift on `real`, failed Mongo
 request-log writes, and `no_match`. `error` is for framework/routing/setup
 failures such as invalid JSON, unresolved selectors, missing mappings, stale
 scenario pins, template errors, missing passthrough base URLs, passthrough
-failures, and dynamic-resolver failures (`dynamic_resolver_missing`,
-`dynamic_threw`, `dynamic_timeout`, `dynamic_bad_return`, and — in
-development — `dynamic_compile_error`; see
-[Dynamic scenarios](../building/dynamic.md#errors-and-drift)). `/_next/` paths are filtered
+failures, and resolver failures (`resolver_missing`, `resolver_threw`,
+`resolver_timeout`, `resolver_bad_return`, and — in development —
+`resolver_compile_error`; see [Code-backed scenario
+resolvers](../building/dynamic.md#errors)). `/_next/` paths are filtered
 out of console request logs too.
 
 Browse and filter the log at `/ui/logs` (live-updating; filter by profile,

@@ -16,7 +16,7 @@ nav = [
     { "Endpoints" = "building/endpoints.md" },
     { "Profiles" = "building/profiles.md" },
     { "Scenarios" = "building/scenarios.md" },
-    { "Dynamic scenarios" = "building/dynamic.md" },
+    { "Code-backed resolvers" = "building/dynamic.md" },
     { "Fixtures" = "building/fixtures.md" },
     { "Schemas" = "building/schemas.md" },
   ] },

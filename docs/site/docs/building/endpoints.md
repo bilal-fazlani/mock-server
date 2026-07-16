@@ -22,17 +22,15 @@ Each endpoint directory needs one `_endpoint.json`:
 | `captureProfileKeys` | no | Array of external keys to store against the resolved profile ID before serving the response. Each entry has `namespace` and `keySelector`. Only direct-profile endpoints may capture keys; global endpoints cannot — see [Profile key mappings](profiles.md#profile-key-mappings). |
 
 There is no `scenarios` field to fill in. Scenarios are discovered from the
-`<scenario>.json` files sitting next to `_endpoint.json`: each filename (matching
-`[a-z0-9][a-z0-9_-]*`) becomes a scenario key. The endpoint **must** have a
-`default.json` and **must not** have a `real.json` — passthrough is implicit. Each
-scenario fixture may carry an optional `description` string used as its UI label —
-see [Fixtures](fixtures.md).
-
-An endpoint directory may also hold an optional `_dynamic.ts` — a code-driven
-scenario picker, sitting alongside the same `_endpoint.json`. Its presence adds
-a reserved `dynamic` scenario to the endpoint (also never a `<scenario>.json`
-file) that defers the pick to that code at request time. See
-[Dynamic scenarios](dynamic.md) for the full contract.
+files sitting next to `_endpoint.json`: each `<scenario>.json` fixture or
+`<scenario>.ts` resolver (filename matching `[a-z0-9][a-z0-9_-]*`, one file per
+slug — never both) becomes a scenario key. The endpoint **must** have a
+`default` scenario, as either `default.json` or `default.ts`, and **must not**
+have a `real.json` or `real.ts` — passthrough is implicit. At least one
+scenario per endpoint must be fixture-backed. Each fixture may carry an
+optional `description` string used as its UI label, and each resolver may
+export an equivalent `description` constant — see [Fixtures](fixtures.md) and
+[Code-backed scenario resolvers](dynamic.md).
 
 To create a profile-less endpoint, set `"mockType": "global"` and omit
 `profileIdSelector` and `captureProfileKeys`. It still appears in the catalog, but

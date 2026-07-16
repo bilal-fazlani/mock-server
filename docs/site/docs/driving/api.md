@@ -54,8 +54,8 @@ bodies.**
           "method": "POST",
           "path": "/accounts/balance",
           "mockType": "global",
-          "hasResolver": true,
-          "scenarios": { "default": "Balance available", "failure": "…", "pending": "…" }
+          "resolverScenarios": ["dynamic"],
+          "scenarios": { "default": "Balance available", "failure": "…", "pending": "…", "dynamic": "dynamic" }
         }
       ]
     }
@@ -63,10 +63,11 @@ bodies.**
 }
 ```
 
-`scenarios` lists the **declared** fixtures only. The `real` passthrough is always
-implicit; the `dynamic` scenario is available when `hasResolver` is `true` (the
-endpoint has a `_dynamic.ts` resolver — see
-[Dynamic scenarios](../building/dynamic.md)). `mockType` is `"profiled"` or
+`scenarios` lists every **declared** scenario (fixture- and resolver-backed) as
+`{ slug: label }`. `resolverScenarios` is the subset of those slugs backed by a
+`<slug>.ts` resolver instead of a `<slug>.json` fixture — see [Code-backed
+scenario resolvers](../building/dynamic.md). The `real` passthrough is always
+implicit and never appears in either list. `mockType` is `"profiled"` or
 `"global"`.
 
 ## `GET /ui/api/global-mocks` · `PUT` · `DELETE`
@@ -81,8 +82,8 @@ endpoint has a `_dynamic.ts` resolver — see
 ```
 
 The endpoint must be `mockType: "global"` (otherwise `400`), and the scenario must
-be selectable on it — a declared fixture, `real`, or `dynamic` when it has a
-resolver (otherwise `400`). An unknown `system`/`endpoint` is `404`. On success it
+be selectable on it — any declared scenario (fixture- or resolver-backed) or
+`real` (otherwise `400`). An unknown `system`/`endpoint` is `404`. On success it
 returns `{ system, endpoint, scenario }`.
 
 `DELETE /ui/api/global-mocks/{system}/{endpoint}` reverts to the implicit default
@@ -112,12 +113,12 @@ uses) returns `400`. `displayName` is optional. The response is the stored profi
 as `GET` would return it.
 
 `DELETE` removes the profile and cascades to its mappings, sequence progress,
-dynamic history, and logs (`204`).
+resolver history, and logs (`204`).
 
 ## `POST /ui/api/profiles/{profileId}/reset`
 
 Resets [scenario sequence](../building/scenarios.md#scenario-sequences) progress
-(and dynamic history) so the next call starts from the first step. Body is
+(and resolver history) so the next call starts from the first step. Body is
 optional:
 
 ```json
