@@ -139,91 +139,119 @@ git commit -m "build: add Tailwind v4 + shadcn scaffolding"
 
 ---
 
-## Task 2: Map the existing palette onto shadcn CSS variables
+## Task 2: Add shadcn CSS variables alongside the existing palette
 
 **Files:**
 - Modify: `src/app/globals.css`
 
 **Interfaces:**
-- Produces: shadcn theme variables (`--background`, `--foreground`, `--card`, `--primary`, `--border`, `--ring`, `--muted`, `--destructive`, `--radius`, …) in `:root` (light) and `.dark` (dark), plus the retained custom `--success` / `--warning-*` families; a `@theme inline` block exposing them to Tailwind utilities.
+- Produces: shadcn theme variables (`--foreground`, `--card`, `--primary`, `--ring`, `--muted`, `--destructive`, `--radius`, …) plus a `@theme inline` block exposing them to Tailwind utilities. **Retains all legacy tokens** (`--surface`, `--text-*`, `--accent*`, `--radius-s/m`, `--shadow-card`, `--success*`, `--warning*`) so not-yet-converted CSS Modules keep rendering correctly. Task 15 removes the legacy tokens once no `.module.css` references them.
 
-- [ ] **Step 1: Replace the `:root` and `@media (prefers-color-scheme: dark)` blocks**
+**Critical design note — token collision:** The legacy `--accent` is the **indigo accent** (used by 8 module-CSS sites for links/borders/outlines). shadcn's `accent` role is a **subtle hover background**. These must not collide. So: keep legacy `--accent` = indigo, and give shadcn its own `--accent-subtle` / `--accent-subtle-foreground`, mapping `--color-accent: var(--accent-subtle)` in `@theme`. Do **not** redefine `--accent` to a subtle bg — that would recolor every unconverted page.
 
-In `src/app/globals.css`, replace the existing `:root { … }` and the `@media (prefers-color-scheme: dark)` block with the following. Keep the font variables and the retained custom tokens. Values are taken from the current palette; tune tints during Step 4 verification to match the current look exactly.
+Also: dark mode moves from `@media (prefers-color-scheme: dark)` to a class-based `.dark {}` block (next-themes applies `.dark` in Task 3). There is a one-task window (until Task 3) where dark mode does not apply; that is expected.
+
+- [ ] **Step 1: Rewrite the token blocks (keep legacy, add shadcn)**
+
+In `src/app/globals.css`, replace the existing `:root { … }` block **and** the entire `@media (prefers-color-scheme: dark) { … }` block (lines from `:root {` through the closing `}` of the media query) with the following. Leave the Tailwind `@import`/`@custom-variant` lines above it and everything below it (`*`, `html`, `body`, `h1`, `h2`, `a`, `code`, `input`, `button`, `.btnPrimary`, `.appHeader`, etc.) **unchanged** — the legacy tokens still exist, so those base styles keep working untouched.
 
 ```css
 :root {
+  color-scheme: light;
+
   --font-sans: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, 'SF Mono', monospace;
 
-  --radius: 0.625rem; /* 10px, was --radius-m */
-
+  /* Legacy tokens — consumed by not-yet-converted CSS Modules; removed in Task 15 */
   --background: #f5f6f8;
-  --foreground: #171a20;
-  --card: #ffffff;
-  --card-foreground: #171a20;
-  --popover: #ffffff;
-  --popover-foreground: #171a20;
-  --primary: #4f63e6;
-  --primary-foreground: #ffffff;
-  --secondary: #ffffff;
-  --secondary-foreground: #4b5563;
-  --muted: #f5f6f8;
-  --muted-foreground: #8a92a0;
-  --accent: #eef0fb;
-  --accent-foreground: #171a20;
-  --destructive: #d92d20;
-  --destructive-foreground: #ffffff;
+  --surface: #ffffff;
   --border: #e3e6eb;
-  --input: #e3e6eb;
-  --ring: #4f63e6;
+  --text-primary: #171a20;
+  --text-secondary: #4b5563;
+  --text-muted: #8a92a0;
 
-  /* retained custom tokens used by Badge / Alert / ScenarioPicker */
-  --primary-strong: #3a4ed3;
+  --accent: #4f63e6;
+  --accent-rgb: 79, 99, 230;
+  --accent-strong: #3a4ed3;
+  --accent-tint: rgba(var(--accent-rgb), 0.08);
+  --button-primary-bg: var(--accent);
+  --button-primary-hover: var(--accent-strong);
+  --button-primary-text: #fff;
+
   --success: #1f9d55;
   --success-rgb: 31, 157, 85;
   --success-tint: rgba(var(--success-rgb), 0.08);
+
   --warning-bg: #fef6e7;
   --warning-border: #f2ce88;
   --warning-text: #8a5a09;
+
+  --radius-s: 6px;
+  --radius-m: 10px;
+  --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.05), 0 1px 3px rgba(16, 24, 40, 0.06);
+
+  /* shadcn tokens (light) — aliased to legacy where the meaning is identical */
+  --foreground: var(--text-primary);
+  --card: var(--surface);
+  --card-foreground: var(--text-primary);
+  --popover: var(--surface);
+  --popover-foreground: var(--text-primary);
+  --primary: #4f63e6;
+  --primary-foreground: #ffffff;
+  --secondary: var(--surface);
+  --secondary-foreground: var(--text-secondary);
+  --muted: var(--background);
+  --muted-foreground: var(--text-muted);
+  --accent-subtle: #eef0fb;
+  --accent-subtle-foreground: var(--text-primary);
+  --destructive: #d92d20;
+  --destructive-foreground: #ffffff;
+  --input: var(--border);
+  --ring: var(--accent);
+  --radius: var(--radius-m);
   --schema-fg: #0f766e;
 }
 
 .dark {
-  --background: #0e1013;
-  --foreground: #eceef1;
-  --card: #16191e;
-  --card-foreground: #eceef1;
-  --popover: #16191e;
-  --popover-foreground: #eceef1;
-  --primary: #4051c7;
-  --primary-foreground: #ffffff;
-  --secondary: #16191e;
-  --secondary-foreground: #a6adba;
-  --muted: #16191e;
-  --muted-foreground: #6d7583;
-  --accent: #232a3a;
-  --accent-foreground: #eceef1;
-  --destructive: #e5675c;
-  --destructive-foreground: #ffffff;
-  --border: #2a2f38;
-  --input: #2a2f38;
-  --ring: #7686f0;
+  color-scheme: dark;
 
-  --primary-strong: #93a0f4;
+  /* Legacy tokens (dark) */
+  --background: #0e1013;
+  --surface: #16191e;
+  --border: #2a2f38;
+  --text-primary: #eceef1;
+  --text-secondary: #a6adba;
+  --text-muted: #6d7583;
+
+  --accent: #7686f0;
+  --accent-rgb: 118, 134, 240;
+  --accent-strong: #93a0f4;
+  --accent-tint: rgba(var(--accent-rgb), 0.14);
+  --button-primary-bg: #4051c7;
+  --button-primary-hover: #3948b8;
+  --button-primary-text: #fff;
+
   --success: #34b56b;
   --success-rgb: 52, 181, 107;
   --success-tint: rgba(var(--success-rgb), 0.14);
+
   --warning-bg: #2c2210;
   --warning-border: #6b5320;
   --warning-text: #ecc06a;
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4);
+
+  /* shadcn tokens (dark) — only the literals that differ from their legacy alias */
+  --primary: #4051c7;
+  --accent-subtle: #232a3a;
+  --destructive: #e5675c;
   --schema-fg: #5eead4;
 }
 ```
 
 - [ ] **Step 2: Add the `@theme inline` mapping**
 
-Add after the `.dark` block so Tailwind generates `bg-background`, `text-foreground`, `border-border`, `bg-primary`, `text-muted-foreground`, `bg-card`, `rounded-lg`, etc.:
+Add immediately after the `.dark` block so Tailwind generates `bg-background`, `text-foreground`, `border-border`, `bg-primary`, `text-muted-foreground`, `bg-card`, `bg-accent`, `rounded-lg`, etc. Note `--color-accent` maps to `--accent-subtle` (NOT legacy `--accent`):
 
 ```css
 @theme inline {
@@ -239,8 +267,8 @@ Add after the `.dark` block so Tailwind generates `bg-background`, `text-foregro
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent-subtle);
+  --color-accent-foreground: var(--accent-subtle-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
@@ -257,21 +285,17 @@ Add after the `.dark` block so Tailwind generates `bg-background`, `text-foregro
 }
 ```
 
-- [ ] **Step 3: Point body/base styles at the new tokens**
-
-In the existing `body` rule, change `color: var(--text-primary)` → `color: var(--foreground)` and `background: var(--background)` (unchanged name). Update the base `a { color: var(--accent) }` rule to `color: var(--primary)` and its hover to `var(--primary-strong)`. Leave the `*`, `html`, `body`, `h1`, `h2`, `code` base rules in place (Task 15 trims what's redundant). The `.btnPrimary/.btnSecondary/.appHeader/.appNav/.appMain` classes stay until their consumers convert.
-
-- [ ] **Step 4: Verify build + appearance**
+- [ ] **Step 3: Verify build**
 
 Run: `npm run build`
 Expected: PASS.
-Then run the app (`npm run dev`), open `/ui`, and confirm the background/text/border colors still look like the current design in light mode. Toggle your OS to dark (or manually add `class="dark"` to `<html>` via devtools) and confirm dark values look right. Adjust any `--accent`/tint values that look off.
+Then run the app (`npm run dev`) and open `/ui`. Because all legacy tokens are retained, every page must look **exactly as before in light mode** — no color/border/spacing drift. (Dark mode won't apply until Task 3 adds the `.dark` class; that's expected.) If any page's colors changed, a legacy token was dropped — restore it.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
 git add src/app/globals.css
-git commit -m "style: map existing palette onto shadcn CSS variables"
+git commit -m "style: add shadcn CSS variables alongside existing palette"
 ```
 
 ---
@@ -404,7 +428,7 @@ export function ThemeToggle() {
 
 - [ ] **Step 2b: Tune the Button variants to the palette**
 
-In `src/app/components/ui/button.tsx`, confirm the `default` variant uses `bg-primary text-primary-foreground` and `secondary` uses `bg-secondary` with a `border`. Adjust hover to `--primary-strong` if needed so it matches the old `.btnPrimary:hover`.
+In `src/app/components/ui/button.tsx`, confirm the `default` variant uses `bg-primary text-primary-foreground` and `secondary` uses `bg-secondary` with a `border`. For the primary hover to match the old `.btnPrimary:hover`, use `hover:bg-[var(--accent-strong)]` (the legacy strong-indigo token, retained through Task 2).
 
 - [ ] **Step 3: Convert `src/app/ui/layout.tsx`**
 
@@ -793,9 +817,16 @@ Expected: **no output**. If any remain, convert their consumer (same per-page pr
 Run: `grep -rn "module.css" src`
 Expected: no results.
 
-- [ ] **Step 3: Trim redundant globals**
+- [ ] **Step 3: Remove legacy tokens and redundant globals**
 
-In `src/app/globals.css`, remove the now-unused `.btnPrimary`, `.btnSecondary`, `.appHeader`, `.appName`, `.appNav`, `.appMain`, and the base `input`/`button` style blocks (Tailwind + primitives now own these). Keep `@import "tailwindcss"`, `tw-animate-css`, `@custom-variant`, the token blocks, `@theme inline`, and minimal base (`*` box-sizing reset if still needed, `body` font/colors, `a`, `code`, `h1`/`h2`). Verify nothing visually regresses.
+First confirm nothing still references the legacy tokens:
+
+```bash
+grep -rnE "var\(--(surface|text-primary|text-secondary|text-muted|accent|accent-rgb|accent-strong|accent-tint|button-primary-bg|button-primary-hover|button-primary-text|radius-s|radius-m|shadow-card)\)" src --include=*.tsx --include=*.css
+```
+Expected: no results (the `@theme inline` mapping and shadcn tokens in `:root`/`.dark` are the only remaining consumers of internal vars). If any `.tsx`/`.css` still references a legacy token, convert it first.
+
+Then, in `src/app/globals.css`, delete the legacy token lines from `:root` and `.dark` (the blocks labeled "Legacy tokens" in Task 2): `--surface`, `--text-*`, `--accent`, `--accent-rgb`, `--accent-strong`, `--accent-tint`, `--button-primary-*`, `--radius-s`, `--radius-m`, `--shadow-card`. Keep `--background`, `--border`, `--font-*`, all shadcn tokens, and `--success*`/`--warning*`/`--schema-fg` (still used by Alert/Badge/ScenarioPicker via `var(--warning-*)` etc. — keep whichever remain referenced). Because `--ring: var(--accent)` and `--radius: var(--radius-m)` aliased legacy names, inline their literal values first: `--ring: #4f63e6;` (dark `#7686f0`), `--radius: 10px;`. Also remove the now-unused `.btnPrimary`, `.btnSecondary`, `.appHeader`, `.appName`, `.appNav`, `.appMain`, and the base `input`/`button` style blocks (Tailwind + primitives now own these). Keep `@import`s, `@custom-variant`, the token blocks, `@theme inline`, and minimal base (`*` reset, `body` font/colors, `a`, `code`, `h1`/`h2`). Run `npm run build` and verify nothing visually regresses in either theme.
 
 - [ ] **Step 4: Check the notFound page**
 

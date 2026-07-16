@@ -1,4 +1,4 @@
-import styles from './SchemaBadge.module.css'
+import { Badge } from '@/app/components/ui/badge'
 
 /**
  * Badge shown for endpoints that declare a `_schema.json`, i.e. whose request
@@ -6,12 +6,12 @@ import styles from './SchemaBadge.module.css'
  */
 export function SchemaBadge() {
   return (
-    <span
-      className={styles.badge}
+    <Badge
+      variant="schema"
       title="Request and response bodies are validated against a schema"
     >
       <svg
-        className={styles.icon}
+        className="h-[13px] w-[13px] shrink-0"
         viewBox="0 0 16 16"
         aria-hidden="true"
         fill="none"
@@ -24,6 +24,6 @@ export function SchemaBadge() {
         <path d="m5.8 7.8 1.6 1.6 3-3.2" />
       </svg>
       Schema verified
-    </span>
+    </Badge>
   )
 }

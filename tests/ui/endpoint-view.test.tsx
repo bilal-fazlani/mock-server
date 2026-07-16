@@ -1,4 +1,3 @@
-import { readFileSync } from 'node:fs'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import type { Catalog, EndpointDef, SystemDef } from '../../src/lib/catalog/types'
@@ -88,10 +87,6 @@ function visibleText(html: string): string {
   return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
 }
 
-function endpointCss(): string {
-  return readFileSync(new URL('../../src/app/ui/catalog/endpoint.module.css', import.meta.url), 'utf8')
-}
-
 describe('EndpointView', () => {
   it('renders configuration fields with visible row labels', () => {
     const html = view()
@@ -99,13 +94,13 @@ describe('EndpointView', () => {
     expect(html).toContain('/hello/world')
     expect(visibleText(html)).not.toContain('Configuration')
     expect(html).not.toContain('<dt>System</dt>')
-    expect(html).toContain('configurationPanel')
-    expect(html).toContain('configRow')
-    expect(html).toContain('systemIcon')
+    expect(html).toContain('aria-label="Endpoint configuration"')
+    expect(html).toContain('grid-cols-[22px_82px_minmax(0,1fr)]')
+    expect(html).toContain('lucide-server')
     expect(html).toContain('title="System"')
-    expect(html).toContain('profileIcon')
+    expect(html).toContain('lucide-user-round')
     expect(html).toContain('title="Profile ID selector"')
-    expect(html).toContain('configValueWithIcon')
+    expect(html).toContain('cursor-help')
     expect(visibleText(html)).toContain('system')
     expect(visibleText(html)).toContain('profile')
   })
@@ -118,16 +113,15 @@ describe('EndpointView', () => {
     }
     const html = view({ endpoint: collectingEndpoint })
 
-    expect(html).toContain('mappingValue')
-    expect(html).toContain('mappingInline')
-    expect(html).toContain('mappingIcon')
     expect(html).toContain('lucide-save')
+    expect(html).toContain('text-[#93c5fd]')
     expect(html).toContain('aria-label="Captures profile keys"')
+    expect(html).toContain('title="Stores each key')
     expect(html).not.toContain('Maps Profile ID to')
-    expect(html).toContain('selectorCapture')
-    expect(html).toContain('selectorArrow')
-    expect(html).toContain('selectorProfileKey')
-    expect(html).toContain('selectorNamespace')
+    // profileKey / namespace segments of the capture flow
+    expect(html).toContain('bg-[var(--accent-tint)] text-[var(--accent-strong)]')
+    expect(html).toContain('bg-[var(--warning-bg)] text-[var(--warning-text)] cursor-help underline decoration-dotted')
+    expect(html).toContain('aria-hidden="true">→</span>')
     expect(visibleText(html)).toContain('captures')
     expect(visibleText(html)).toContain('$.orderId → profileKey order-id')
     expect(visibleText(html)).not.toContain('$.orderId as order-id')
@@ -143,12 +137,12 @@ describe('EndpointView', () => {
       ],
     }
     const html = view({ endpoint: collectingEndpoint })
-    const css = endpointCss()
-    const listBlock = css.match(/\.mappingList\s*{(?<body>[^}]*)}/)?.groups?.body ?? ''
 
-    expect(html).toContain('configRowTop')
-    expect(html.match(/selectorCapture/g)!.length).toBeGreaterThanOrEqual(2)
-    expect(listBlock).toContain('flex-direction: column')
+    // Multi-capture rows switch to the "top-aligned" row variant...
+    expect(html).toContain('grid-cols-[22px_82px_minmax(0,1fr)] gap-2.5 items-start')
+    // ...and stack each capture's selector-to-namespace flow as its own line.
+    expect(html).toContain('flex flex-col items-start gap-1.5')
+    expect(html.match(/text-secondary-foreground text-\[0\.85rem\] leading-\[1\.45\]/g)!.length).toBeGreaterThanOrEqual(2)
   })
 
   it('renders key-resolved profile selectors as a flow ending in a profile', () => {
@@ -159,10 +153,12 @@ describe('EndpointView', () => {
     const html = view({ endpoint: mappedEndpoint })
     const text = visibleText(html)
 
-    expect(html).toContain('selectorProfileKey')
-    expect(html).toContain('selectorNamespace')
-    expect(html).toContain('profileResultChip')
-    expect(html).toContain('lookupHint')
+    expect(html).toContain('bg-[var(--accent-tint)] text-[var(--accent-strong)]')
+    expect(html).toContain('bg-[var(--warning-bg)] text-[var(--warning-text)] cursor-help underline decoration-dotted')
+    expect(html).toContain(
+      'rounded-full border border-[rgba(96,165,250,0.4)] bg-[rgba(96,165,250,0.14)] px-2.5 py-1 font-mono text-[0.85rem] font-bold leading-[1.15] text-[#93c5fd]',
+    )
+    expect(html).toContain('text-muted-foreground text-[0.78rem]')
     expect(html).toContain('title="Profile resolved via a previously captured key"')
     expect(text).toContain('profile via')
     expect(text).toContain('$.eventID → profileKey event-id')
@@ -188,7 +184,8 @@ describe('EndpointView', () => {
     const html = view({ endpoint: resolver, catalog })
     const text = visibleText(html)
 
-    expect(html).toContain('namespacePopover')
+    expect(html).toContain('role="tooltip"')
+    expect(html).toContain('group-hover:block group-focus-within:block')
     expect(text).toContain('Correlation key event-id')
     expect(text).toContain('Captured by')
     expect(text).toContain('Capture Endpoint')
@@ -211,15 +208,17 @@ describe('EndpointView', () => {
     const queryHtml = view({ endpoint: queryEndpoint })
     const bodyHtml = view()
 
-    expect(pathHtml).toContain('selectorPath')
-    expect(pathHtml).toContain('selectorValue')
+    expect(pathHtml).toContain('bg-[rgba(96,165,250,0.14)] text-[#93c5fd]">path</code>')
+    expect(pathHtml).toContain('bg-card text-foreground font-bold">accountId</code>')
     expect(visibleText(pathHtml)).toContain('path accountId')
-    expect(queryHtml).toContain('selectorQuery')
-    expect(queryHtml).toContain('selectorValue')
+    expect(queryHtml).toContain('bg-[rgba(96,165,250,0.14)] text-[#93c5fd]">query</code>')
+    expect(queryHtml).toContain('bg-card text-foreground font-bold">customerId</code>')
     expect(visibleText(queryHtml)).toContain('query customerId')
-    expect(bodyHtml).toContain('selectorBody')
-    expect(bodyHtml).not.toContain('selectorPath')
-    expect(bodyHtml).not.toContain('selectorQuery')
+    expect(bodyHtml).toContain(
+      'rounded-full border border-border bg-card px-2.5 py-1 text-foreground font-bold leading-[1.15]">$.customerId</code>',
+    )
+    expect(bodyHtml).not.toContain('>path</code>')
+    expect(bodyHtml).not.toContain('>query</code>')
     expect(visibleText(bodyHtml)).toContain('$.customerId')
   })
 
@@ -227,8 +226,10 @@ describe('EndpointView', () => {
     const opaqueHtml = view({ endpoint: { ...endpoint, profileIdSelector: 'bearer' } })
     const claimHtml = view({ endpoint: { ...endpoint, profileIdSelector: 'bearer:sub' } })
 
-    expect(opaqueHtml).toContain('selectorBearer')
+    expect(opaqueHtml).toContain('bg-[rgba(96,165,250,0.14)] text-[#93c5fd]">bearer</code>')
     expect(visibleText(opaqueHtml)).toContain('bearer')
+    expect(claimHtml).toContain('bg-[rgba(96,165,250,0.14)] text-[#93c5fd]">bearer</code>')
+    expect(claimHtml).toContain('bg-card text-foreground font-bold">sub</code>')
     expect(visibleText(claimHtml)).toContain('bearer sub')
   })
 
@@ -251,15 +252,16 @@ describe('EndpointView', () => {
     const text = visibleText(html)
 
     expect(text).toContain('HTTP 200 OK')
-    expect(html).toContain('scenarioHeaderStatus')
-    expect(html.indexOf('HTTP 200 OK')).toBeLessThan(html.indexOf('scenarioBody'))
+    expect(html).toContain('border-[rgba(var(--success-rgb),0.45)] bg-[var(--success-tint)] text-[var(--success)]')
+    expect(html.indexOf('HTTP 200 OK')).toBeLessThan(html.indexOf('<pre class="overflow-x-auto'))
     expect(text).toContain('content-type application/json')
     expect(text).not.toContain('Headers')
     expect(text).not.toContain('content-type:')
-    expect(html).toContain('headerKey')
-    expect(html).toContain('headerValue')
+    // header name/value render as separate dt/dd pills, not inline text
+    expect(html).toContain('<dt class="min-w-0 inline-flex min-h-[28px] items-center border-r border-border bg-background')
+    expect(html).toContain('<dd class="min-w-0 inline-flex min-h-[28px] items-center bg-[var(--accent-tint)]')
     expect(text).not.toContain('Status 200')
-    expect(html).toMatch(/<pre class="[^"]*fixture[^"]*">\{\n/)
+    expect(html).toMatch(/<pre class="overflow-x-auto rounded-sm border border-border bg-background p-3 font-mono text-\[0\.8rem\]">\{\n/)
     expect(html).toContain('&quot;transaction-results&quot;')
     expect(html).toContain('&quot;recommendation-code&quot;: &quot;ACCEPT_POLICY&quot;')
     expect(html).toContain('\n}</pre>')
@@ -280,13 +282,12 @@ describe('EndpointView', () => {
 
     // Status tone convention: 2xx green, 3xx yellow, 4xx/5xx red.
     expect(html).toContain('HTTP 200 OK')
-    expect(html).toContain('fixtureStatusSuccess')
+    expect(html).toContain('border-[rgba(var(--success-rgb),0.45)] bg-[var(--success-tint)] text-[var(--success)]')
     expect(html).toContain('HTTP 302 Found')
-    expect(html).toContain('fixtureStatusRedirect')
+    expect(html).toContain('border-[var(--warning-border)] bg-[var(--warning-bg)] text-[var(--warning-text)]')
     expect(html).toContain('HTTP 404 Not Found')
     expect(html).toContain('HTTP 500 Internal Server Error')
-    expect(html).not.toContain('fixtureStatusWarn')
-    expect(html.match(/fixtureStatusError/g)!.length).toBeGreaterThanOrEqual(2)
+    expect(html.match(/border-\[#d92d20\] bg-\[rgba\(217,45,32,0\.12\)\] text-\[#d92d20\]/g)!.length).toBeGreaterThanOrEqual(2)
   })
 
   it('renders scenario cards with friendly names only', () => {
@@ -295,11 +296,12 @@ describe('EndpointView', () => {
     expect(visibleText(html)).toContain('Accept Policy')
     expect(visibleText(html)).toContain('Default')
     expect(visibleText(html)).not.toContain('accept_policy')
-    expect(html).not.toContain('scenarioKey')
-    expect(html).toContain('scenarioHeading')
-    expect(html).toContain('defaultMarker')
-    expect(html).toContain('defaultMarkerIcon')
-    expect(html.indexOf('scenarioHeading')).toBeLessThan(html.indexOf('defaultMarker'))
+    expect(html).toContain('text-[0.95rem] font-semibold text-foreground')
+    expect(html).toContain('text-[0.78rem] font-[750] text-[var(--success)]')
+    expect(html).toContain('lucide-check')
+    expect(html.indexOf('text-[0.95rem] font-semibold text-foreground')).toBeLessThan(
+      html.indexOf('text-[0.78rem] font-[750] text-[var(--success)]'),
+    )
   })
 
   it('does not render the implicit real passthrough scenario', () => {
@@ -315,49 +317,49 @@ describe('EndpointView', () => {
 
     expect(html).toContain('Expand all')
     expect(html).toContain('Collapse all')
-    expect(html).toContain('scenarioCard')
+    expect(html).toContain('<article class="overflow-hidden rounded-lg border border-border bg-card')
     expect(html).toContain('aria-expanded="true"')
     expect(html).toContain('aria-controls=')
   })
 
   it('keeps the configuration panel unboxed', () => {
-    const css = endpointCss()
-    const panelBlock = css.match(/\.configurationPanel\s*{(?<body>[^}]*)}/)?.groups?.body ?? ''
+    const html = view()
+    const sectionMatch = html.match(/<section class="([^"]*)" aria-label="Endpoint configuration">/)
+    const sectionClass = sectionMatch?.[1] ?? ''
 
-    expect(panelBlock).not.toContain('border-top')
-    expect(panelBlock).not.toContain('border-bottom')
+    expect(sectionClass).not.toContain('border-t')
+    expect(sectionClass).not.toContain('border-b')
+    expect(sectionClass).not.toContain('border')
   })
 
   it('centers the system name and base URL in the same row', () => {
-    const css = endpointCss()
-    const systemNameBlock = css.match(/\.systemName\s*{(?<body>[^}]*)}/)?.groups?.body ?? ''
-    const baseUrlBlock = css.match(/\.baseUrl\s*{(?<body>[^}]*)}/)?.groups?.body ?? ''
+    const html = view()
+    const systemNameMatch = html.match(/<span class="([^"]*)">Hello System<\/span>/)
+    const baseUrlMatch = html.match(/<code class="([^"]*)">http:\/\/upstream\.test<\/code>/)
 
-    expect(systemNameBlock).toContain('display: inline-flex')
-    expect(systemNameBlock).toContain('align-items: center')
-    expect(systemNameBlock).toContain('min-height: 28px')
-    expect(baseUrlBlock).toContain('display: inline-flex')
-    expect(baseUrlBlock).toContain('align-items: center')
-    expect(baseUrlBlock).toContain('min-height: 28px')
+    expect(systemNameMatch?.[1]).toContain('inline-flex')
+    expect(systemNameMatch?.[1]).toContain('items-center')
+    expect(systemNameMatch?.[1]).toContain('min-h-[28px]')
+    expect(baseUrlMatch?.[1]).toContain('inline-flex')
+    expect(baseUrlMatch?.[1]).toContain('items-center')
+    expect(baseUrlMatch?.[1]).toContain('min-h-[28px]')
   })
 
   it('uses the app accent color to tint the entire scenario card on title hover', () => {
-    const css = endpointCss()
-    const cardHoverBlock = css.match(/\.scenarioCard:has\(\.scenarioToggle:hover\)\s*{(?<body>[^}]*)}/)?.groups?.body ?? ''
-    const toggleHoverBlock = css.match(/\.scenarioToggle:hover\s*{(?<body>[^}]*)}/)?.groups?.body ?? ''
+    const html = view()
 
-    expect(cardHoverBlock).toContain('background')
-    expect(cardHoverBlock).toContain('border-color')
-    expect(cardHoverBlock).toContain('var(--accent-tint)')
-    expect(cardHoverBlock).toContain('var(--accent-rgb)')
-    expect(toggleHoverBlock).toContain('background: transparent')
+    expect(html).toContain('has-[:hover]:border-[rgba(var(--accent-rgb),0.58)]')
+    expect(html).toContain('has-[:hover]:bg-[var(--accent-tint)]')
+    expect(html).toContain('has-[:focus-visible]:border-[rgba(var(--accent-rgb),0.58)]')
+    expect(html).toContain('has-[:focus-visible]:bg-[var(--accent-tint)]')
+    // the toggle itself stays transparent so the card-level tint shows through
+    expect(html).toMatch(/<button type="button" class="flex w-full items-center justify-between[^"]*bg-transparent[^"]*"/)
   })
 
   it('uses the success color for the default marker', () => {
-    const css = endpointCss()
-    const defaultMarkerBlock = css.match(/\.defaultMarker\s*{(?<body>[^}]*)}/)?.groups?.body ?? ''
+    const html = view()
 
-    expect(defaultMarkerBlock).toContain('color: var(--success)')
+    expect(html).toContain('text-[0.78rem] font-[750] text-[var(--success)]')
   })
 
   it('renders global endpoints without a profile selector', () => {

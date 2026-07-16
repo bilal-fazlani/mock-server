@@ -1,7 +1,16 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
 :root {
+  color-scheme: light;
+
   --font-sans: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, 'SF Mono', monospace;
 
+  /* Design tokens — consumed by pages via Tailwind arbitrary values (e.g.
+     bg-[var(--accent-tint)]) and by the base element styles below. */
   --background: #f5f6f8;
   --surface: #ffffff;
   --border: #e3e6eb;
@@ -13,9 +22,6 @@
   --accent-rgb: 79, 99, 230;
   --accent-strong: #3a4ed3;
   --accent-tint: rgba(var(--accent-rgb), 0.08);
-  --button-primary-bg: var(--accent);
-  --button-primary-hover: var(--accent-strong);
-  --button-primary-text: #fff;
 
   --success: #1f9d55;
   --success-rgb: 31, 157, 85;
@@ -28,41 +34,93 @@
   --radius-s: 6px;
   --radius-m: 10px;
   --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.05), 0 1px 3px rgba(16, 24, 40, 0.06);
+
+  /* shadcn tokens (light) — aliased to legacy where the meaning is identical */
+  --foreground: var(--text-primary);
+  --card: var(--surface);
+  --card-foreground: var(--text-primary);
+  --popover: var(--surface);
+  --popover-foreground: var(--text-primary);
+  --primary: #4f63e6;
+  --primary-foreground: #ffffff;
+  --secondary: var(--surface);
+  --secondary-foreground: var(--text-secondary);
+  --muted: var(--background);
+  --muted-foreground: var(--text-muted);
+  --accent-subtle: #eef0fb;
+  --accent-subtle-foreground: var(--text-primary);
+  --destructive: #d92d20;
+  --destructive-foreground: #ffffff;
+  --input: var(--border);
+  --ring: var(--accent);
+  --radius: var(--radius-m);
+  --schema-fg: #0f766e;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0e1013;
-    --surface: #16191e;
-    --border: #2a2f38;
-    --text-primary: #eceef1;
-    --text-secondary: #a6adba;
-    --text-muted: #6d7583;
+.dark {
+  color-scheme: dark;
 
-    --accent: #7686f0;
-    --accent-rgb: 118, 134, 240;
-    --accent-strong: #93a0f4;
-    --accent-tint: rgba(var(--accent-rgb), 0.14);
-    --button-primary-bg: #4051c7;
-    --button-primary-hover: #3948b8;
-    --button-primary-text: #fff;
+  /* Legacy tokens (dark) */
+  --background: #0e1013;
+  --surface: #16191e;
+  --border: #2a2f38;
+  --text-primary: #eceef1;
+  --text-secondary: #a6adba;
+  --text-muted: #6d7583;
 
-    --success: #34b56b;
-    --success-rgb: 52, 181, 107;
-    --success-tint: rgba(var(--success-rgb), 0.14);
+  --accent: #7686f0;
+  --accent-rgb: 118, 134, 240;
+  --accent-strong: #93a0f4;
+  --accent-tint: rgba(var(--accent-rgb), 0.14);
 
-    --warning-bg: #2c2210;
-    --warning-border: #6b5320;
-    --warning-text: #ecc06a;
+  --success: #34b56b;
+  --success-rgb: 52, 181, 107;
+  --success-tint: rgba(var(--success-rgb), 0.14);
 
-    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4);
-  }
+  --warning-bg: #2c2210;
+  --warning-border: #6b5320;
+  --warning-text: #ecc06a;
 
-  html {
-    color-scheme: dark;
-  }
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4);
+
+  /* shadcn tokens (dark) — only the literals that differ from their legacy alias */
+  --primary: #4051c7;
+  --accent-subtle: #232a3a;
+  --destructive: #e5675c;
+  --schema-fg: #5eead4;
 }
 
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent-subtle);
+  --color-accent-foreground: var(--accent-subtle-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
 * {
   box-sizing: border-box;
   padding: 0;
@@ -153,79 +211,4 @@ a:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
-
-.btnPrimary {
-  display: inline-block;
-  background: var(--button-primary-bg);
-  border: 1px solid var(--button-primary-bg);
-  color: var(--button-primary-text);
-  font-weight: 550;
-  padding: 9px 18px;
-  border-radius: var(--radius-s);
-}
-
-.btnPrimary:hover {
-  background: var(--button-primary-hover);
-  border-color: var(--button-primary-hover);
-  color: var(--button-primary-text);
-  text-decoration: none;
-}
-
-.btnSecondary {
-  display: inline-block;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  color: var(--text-secondary);
-  padding: 7px 14px;
-  border-radius: var(--radius-s);
-}
-
-.btnSecondary:hover {
-  border-color: var(--text-muted);
-  color: var(--text-primary);
-  text-decoration: none;
-}
-
-.appHeader {
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  padding: 12px 24px;
-}
-
-.appName {
-  font-weight: 700;
-  font-size: 1rem;
-  letter-spacing: -0.01em;
-  color: var(--text-primary);
-}
-
-.appName:hover {
-  color: var(--text-primary);
-  text-decoration: none;
-}
-
-.appNav {
-  display: flex;
-  gap: 16px;
-}
-
-.appNav a {
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-}
-
-.appNav a:hover {
-  color: var(--text-primary);
-  text-decoration: none;
-}
-
-.appMain {
-  width: 100%;
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 28px 24px 64px;
 }

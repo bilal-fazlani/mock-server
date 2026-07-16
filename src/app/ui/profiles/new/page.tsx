@@ -1,13 +1,12 @@
 import { getRuntime } from '../../../../lib/runtime'
 import { ProfileForm } from '../ProfileForm'
 import { ProfilePageHeader } from '../ProfilePageHeader'
-import styles from '../profilePage.module.css'
 
 const profileFormId = 'profile-form'
 
 export default function NewProfilePage() {
   return (
-    <main className={styles.page}>
+    <main className="grid gap-4">
       <ProfilePageHeader title="New mock profile" formId={profileFormId} />
       <ProfileForm
         catalog={getRuntime().catalog}

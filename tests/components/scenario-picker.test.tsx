@@ -1,11 +1,8 @@
-import { readFileSync } from 'node:fs'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { ScenarioPicker } from '../../src/app/components/ScenarioPicker'
 
 const scenarios = { real: 'Passthrough', success: 'Hello success', failure: 'Hello failure' }
-const scenarioPickerCss = () =>
-  readFileSync(new URL('../../src/app/components/ScenarioPicker.module.css', import.meta.url), 'utf8')
 
 function labelClassForValue(html: string, value: string): string {
   const valueIndex = html.indexOf(`value="${value}"`)
@@ -13,6 +10,32 @@ function labelClassForValue(html: string, value: string): string {
   const labelStart = html.lastIndexOf('<label class="', valueIndex)
   if (labelStart === -1) throw new Error(`label for ${value} not found`)
   const classStart = labelStart + '<label class="'.length
+  const classEnd = html.indexOf('"', classStart)
+  return html.slice(classStart, classEnd)
+}
+
+// The "dot" indicator span (aria-hidden) is the first span rendered after the
+// radio input inside each label.
+function dotClassForValue(html: string, value: string): string {
+  const valueIndex = html.indexOf(`value="${value}"`)
+  if (valueIndex === -1) throw new Error(`value ${value} not found`)
+  const marker = '<span aria-hidden="true" class="'
+  const spanStart = html.indexOf(marker, valueIndex)
+  if (spanStart === -1) throw new Error(`dot span for ${value} not found`)
+  const classStart = spanStart + marker.length
+  const classEnd = html.indexOf('"', classStart)
+  return html.slice(classStart, classEnd)
+}
+
+// The label-text span is the next `<span class="...">` after the dot span.
+function textSpanClassForValue(html: string, value: string): string {
+  const dotClass = dotClassForValue(html, value)
+  const dotMarkerIndex = html.indexOf(`<span aria-hidden="true" class="${dotClass}">`, html.indexOf(`value="${value}"`))
+  const dotEnd = html.indexOf('</span>', dotMarkerIndex)
+  const marker = '<span class="'
+  const spanStart = html.indexOf(marker, dotEnd)
+  if (spanStart === -1) throw new Error(`text span for ${value} not found`)
+  const classStart = spanStart + marker.length
   const classEnd = html.indexOf('"', classStart)
   return html.slice(classStart, classEnd)
 }
@@ -51,10 +74,15 @@ describe('ScenarioPicker', () => {
   })
 
   it('allows long scenario option text to wrap instead of forcing page overflow', () => {
-    const css = scenarioPickerCss()
-    expect(css).toMatch(/\.card\s*{[^}]*max-width:\s*100%;/s)
-    expect(css).toMatch(/\.label\s*{[^}]*min-width:\s*0;/s)
-    expect(css).toMatch(/\.label\s*{[^}]*overflow-wrap:\s*anywhere;/s)
+    const html = renderToStaticMarkup(
+      <ScenarioPicker endpointName="hello_world" scenarios={scenarios} selected="success" />,
+    )
+    // The card itself never exceeds its container...
+    expect(labelClassForValue(html, 'success')).toContain('max-w-full')
+    // ...and the label text is allowed to shrink and wrap anywhere instead of
+    // forcing the card wider than the page.
+    expect(textSpanClassForValue(html, 'success')).toContain('min-w-0')
+    expect(textSpanClassForValue(html, 'success')).toContain('[overflow-wrap:anywhere]')
   })
 
   it('marks only non-default and non-real scenarios for alternate selected styling', () => {
@@ -66,20 +94,35 @@ describe('ScenarioPicker', () => {
       />,
     )
 
-    expect(labelClassForValue(html, 'failure')).toContain('nonDefault')
-    expect(labelClassForValue(html, 'default')).not.toContain('nonDefault')
-    expect(labelClassForValue(html, 'real')).not.toContain('nonDefault')
+    // "Alternate" (warning/amber) styling is the nonDefault tone's `has-[:checked]`
+    // classes; only the non-default, non-real scenario should carry them.
+    expect(labelClassForValue(html, 'failure')).toContain('has-[:checked]:border-[var(--warning-border)]')
+    expect(labelClassForValue(html, 'failure')).toContain('has-[:checked]:bg-[var(--warning-bg)]')
+    expect(labelClassForValue(html, 'default')).not.toContain('warning-border')
+    expect(labelClassForValue(html, 'real')).not.toContain('warning-border')
   })
 
   it('uses green for default, red for real, and yellow for other selected scenarios', () => {
-    const css = scenarioPickerCss()
-    expect(css).toMatch(/\.card:has\(\.input:checked\)\s*{[^}]*border-color:\s*var\(--success\);/s)
-    expect(css).toMatch(/\.card:has\(\.input:checked\)\s*{[^}]*background:\s*var\(--success-tint\);/s)
-    expect(css).toMatch(/\.real:has\(\.input:checked\)\s*{[^}]*border-color:\s*#d92d20;/s)
-    expect(css).toMatch(/\.real:has\(\.input:checked\)\s*{[^}]*background:\s*rgba\(217,\s*45,\s*32,\s*0\.12\);/s)
-    expect(css).toMatch(/\.nonDefault:has\(\.input:checked\)\s*{[^}]*border-color:\s*var\(--warning-border\);/s)
-    expect(css).toMatch(/\.nonDefault:has\(\.input:checked\)\s*{[^}]*background:\s*var\(--warning-bg\);/s)
-    expect(css).toMatch(/\.nonDefault:has\(\.input:checked\) \.dot\s*{[^}]*border-color:\s*var\(--warning-text\);/s)
+    const html = renderToStaticMarkup(
+      <ScenarioPicker
+        endpointName="hello_world"
+        scenarios={{ default: 'Default success', failure: 'Failure', real: 'Passthrough' }}
+        selected="failure"
+      />,
+    )
+
+    // Card border/background per tone, applied when the radio is checked.
+    expect(labelClassForValue(html, 'default')).toContain('has-[:checked]:border-[var(--success)]')
+    expect(labelClassForValue(html, 'default')).toContain('has-[:checked]:bg-[var(--success-tint)]')
+    expect(labelClassForValue(html, 'real')).toContain('has-[:checked]:border-[#d92d20]')
+    expect(labelClassForValue(html, 'real')).toContain('has-[:checked]:bg-[rgba(217,45,32,0.12)]')
+    expect(labelClassForValue(html, 'failure')).toContain('has-[:checked]:border-[var(--warning-border)]')
+    expect(labelClassForValue(html, 'failure')).toContain('has-[:checked]:bg-[var(--warning-bg)]')
+
+    // The dot indicator follows the same per-tone coloring.
+    expect(dotClassForValue(html, 'default')).toContain('peer-checked:border-[var(--success)]')
+    expect(dotClassForValue(html, 'real')).toContain('peer-checked:border-[#d92d20]')
+    expect(dotClassForValue(html, 'failure')).toContain('peer-checked:border-[var(--warning-text)]')
   })
 
   it('renders an unavailable scenario as a disabled radio that still shows as selected', () => {
@@ -91,7 +134,11 @@ describe('ScenarioPicker', () => {
         unavailable={['dynamic']}
       />,
     )
-    expect(labelClassForValue(html, 'dynamic')).toContain('unavailable')
+    // Visually marked as unavailable: dimmed card, not-allowed cursor, and
+    // struck-through label text.
+    expect(labelClassForValue(html, 'dynamic')).toContain('opacity-55')
+    expect(labelClassForValue(html, 'dynamic')).toContain('cursor-not-allowed')
+    expect(textSpanClassForValue(html, 'dynamic')).toContain('line-through')
     expect(html).toMatch(/<input type="radio" disabled=""[^>]*checked="" value="dynamic"/)
   })
 
@@ -104,7 +151,9 @@ describe('ScenarioPicker', () => {
         unavailable={['failure']}
       />,
     )
-    expect(labelClassForValue(html, 'success')).not.toContain('unavailable')
+    expect(labelClassForValue(html, 'success')).not.toContain('opacity-55')
+    expect(labelClassForValue(html, 'success')).not.toContain('cursor-not-allowed')
+    expect(textSpanClassForValue(html, 'success')).not.toContain('line-through')
     expect(html).not.toContain('disabled="" value="success"')
   })
 })

@@ -3,7 +3,6 @@
 import { useMemo, useState } from 'react'
 import { Check } from 'lucide-react'
 import type { ScenarioView } from './scenario-view'
-import styles from './endpoint.module.css'
 
 export function EndpointScenarios({ scenarios }: { scenarios: ScenarioView[] }) {
   const scenarioKeys = useMemo(() => scenarios.map((scenario) => scenario.key), [scenarios])
@@ -30,15 +29,23 @@ export function EndpointScenarios({ scenarios }: { scenarios: ScenarioView[] }) 
   }
 
   return (
-    <section className={styles.scenariosSection}>
-      <div className={styles.scenarioSectionHeader}>
-        <h2 className={styles.sectionTitle}>Scenarios</h2>
+    <section className="flex flex-col gap-3">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-[0.95rem]">Scenarios</h2>
         {scenarios.length > 0 && (
-          <div className={styles.scenarioActions}>
-            <button type="button" className={styles.scenarioActionButton} onClick={expandAll}>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              className="bg-card px-2.5 py-1.5 text-[0.82rem] font-[550] text-secondary-foreground hover:border-muted-foreground hover:text-foreground"
+              onClick={expandAll}
+            >
               Expand all
             </button>
-            <button type="button" className={styles.scenarioActionButton} onClick={collapseAll}>
+            <button
+              type="button"
+              className="bg-card px-2.5 py-1.5 text-[0.82rem] font-[550] text-secondary-foreground hover:border-muted-foreground hover:text-foreground"
+              onClick={collapseAll}
+            >
               Collapse all
             </button>
           </div>
@@ -46,41 +53,51 @@ export function EndpointScenarios({ scenarios }: { scenarios: ScenarioView[] }) 
       </div>
 
       {scenarios.length === 0 ? (
-        <p className={styles.emptyScenarios}>No scenarios declared.</p>
+        <p className="rounded-lg border border-border bg-card px-[18px] py-4 text-secondary-foreground">
+          No scenarios declared.
+        </p>
       ) : (
-        <div className={styles.scenarioList}>
+        <div className="grid gap-3">
           {scenarios.map((scenario, index) => {
             const isOpen = !collapsedKeys.has(scenario.key)
             const panelId = scenarioPanelId(scenario.key, index)
             const status = scenario.kind === 'fixture' ? fixtureStatusFromJson(scenario.json) : null
             return (
-              <article key={scenario.key} className={styles.scenarioCard}>
+              <article
+                key={scenario.key}
+                className="overflow-hidden rounded-lg border border-border bg-card shadow-sm transition-colors duration-150 has-[:hover]:border-[rgba(var(--accent-rgb),0.58)] has-[:hover]:bg-[var(--accent-tint)] has-[:focus-visible]:border-[rgba(var(--accent-rgb),0.58)] has-[:focus-visible]:bg-[var(--accent-tint)]"
+              >
                 <button
                   type="button"
-                  className={styles.scenarioToggle}
+                  className="flex w-full items-center justify-between gap-2.5 rounded-none border-0 bg-transparent px-3.5 py-3 text-left text-foreground focus-visible:-outline-offset-2"
                   aria-expanded={isOpen}
                   aria-controls={panelId}
                   onClick={() => toggleScenario(scenario.key)}
                 >
-                  <span className={styles.scenarioHeading}>
-                    <span className={`${styles.scenarioChevron} ${isOpen ? styles.scenarioChevronOpen : ''}`} aria-hidden="true" />
-                    <span className={styles.scenarioTitle}>
-                      <span className={styles.scenarioLabel}>{scenario.label}</span>
+                  <span className="inline-flex min-w-0 items-center gap-2.5">
+                    <span
+                      aria-hidden="true"
+                      className={`size-[9px] flex-none border-b-2 border-r-2 border-muted-foreground transition-transform duration-150 ${isOpen ? 'rotate-45' : '-rotate-45'}`}
+                    />
+                    <span className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1.5">
+                      <span className="text-[0.95rem] font-semibold text-foreground">{scenario.label}</span>
                       {status && (
-                        <span className={`${styles.fixtureStatus} ${styles.scenarioHeaderStatus} ${statusToneClassName(status.tone)}`}>
+                        <span
+                          className={`inline-flex min-h-6 items-center rounded-full border px-2 py-[3px] font-mono text-[0.72rem] font-bold leading-[1.2] ${statusToneClassName(status.tone)}`}
+                        >
                           {status.label}
                         </span>
                       )}
                     </span>
                   </span>
                   {scenario.isDefault && (
-                    <span className={styles.defaultMarker}>
-                      <Check className={styles.defaultMarkerIcon} aria-hidden="true" />
+                    <span className="ml-auto inline-flex flex-none items-center justify-end gap-1.5 text-[0.78rem] font-[750] text-[var(--success)]">
+                      <Check className="size-[15px] stroke-[2.6]" aria-hidden="true" />
                       Default
                     </span>
                   )}
                 </button>
-                <div id={panelId} className={styles.scenarioBody} hidden={!isOpen}>
+                <div id={panelId} className="pl-[33px] pr-3.5 pb-3.5 pt-0" hidden={!isOpen}>
                   <ScenarioContent scenario={scenario} />
                 </div>
               </article>
@@ -95,7 +112,7 @@ export function EndpointScenarios({ scenarios }: { scenarios: ScenarioView[] }) 
 function ScenarioContent({ scenario }: { scenario: ScenarioView }) {
   if (scenario.kind === 'passthrough') {
     return (
-      <p className={styles.passthrough}>
+      <p className="font-mono text-[0.85rem] text-secondary-foreground">
         Passthrough - {scenario.url ?? `(env ${scenario.baseUrlEnv} not set)`}
       </p>
     )
@@ -103,14 +120,14 @@ function ScenarioContent({ scenario }: { scenario: ScenarioView }) {
 
   if (scenario.kind === 'dynamic') {
     return (
-      <p className={styles.passthrough}>
+      <p className="font-mono text-[0.85rem] text-secondary-foreground">
         Resolved at request time by <code>_dynamic.ts</code> — returns a scenario slug per request.
       </p>
     )
   }
 
   if (scenario.kind === 'error') {
-    return <p className={styles.error}>{scenario.message}</p>
+    return <p className="text-[var(--warning-text)]">{scenario.message}</p>
   }
 
   return <FixtureContent json={scenario.json} />
@@ -119,25 +136,32 @@ function ScenarioContent({ scenario }: { scenario: ScenarioView }) {
 function FixtureContent({ json }: { json: string }) {
   const fixture = parseFixtureJson(json)
   if (!fixture) {
-    return <pre className={styles.fixture}>{json}</pre>
+    return (
+      <pre className="overflow-x-auto rounded-sm border border-border bg-background p-3 font-mono text-[0.8rem]">
+        {json}
+      </pre>
+    )
   }
 
   const headers = isRecord(fixture.headers) ? Object.entries(fixture.headers).map(([name, value]) => [name, formatHeaderValue(value)] as const) : []
   const bodyJson = fixture.body === undefined ? null : formatBodyJson(fixture.body)
 
   return (
-    <div className={styles.fixtureDetails}>
+    <div className="grid gap-3">
       {headers.length > 0 && (
-        <div className={styles.fixtureMeta}>
-          <div className={styles.fixtureHeaders}>
-            <dl className={styles.headerGrid}>
+        <div className="flex flex-wrap items-center gap-x-3.5 gap-y-2.5">
+          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+            <dl className="flex flex-wrap gap-1.5">
               {headers.map(([name, value]) => (
-                <div key={name} className={styles.headerRow}>
-                  <dt className={styles.headerKey}>
-                    <code>{name}</code>
+                <div
+                  key={name}
+                  className="inline-flex min-w-0 items-center overflow-hidden rounded-full border border-border bg-card"
+                >
+                  <dt className="min-w-0 inline-flex min-h-[28px] items-center border-r border-border bg-background px-2.5 py-1">
+                    <code className="text-foreground font-bold">{name}</code>
                   </dt>
-                  <dd className={styles.headerValue}>
-                    <code>{value}</code>
+                  <dd className="min-w-0 inline-flex min-h-[28px] items-center bg-[var(--accent-tint)] px-2.5 py-1">
+                    <code className="text-secondary-foreground [overflow-wrap:anywhere]">{value}</code>
                   </dd>
                 </div>
               ))}
@@ -145,7 +169,11 @@ function FixtureContent({ json }: { json: string }) {
           </div>
         </div>
       )}
-      {bodyJson && <pre className={styles.fixture}>{bodyJson}</pre>}
+      {bodyJson && (
+        <pre className="overflow-x-auto rounded-sm border border-border bg-background p-3 font-mono text-[0.8rem]">
+          {bodyJson}
+        </pre>
+      )}
     </div>
   )
 }
@@ -208,10 +236,10 @@ function statusTone(statusCode: number): StatusTone {
 }
 
 function statusToneClassName(tone: StatusTone): string {
-  if (tone === 'success') return styles.fixtureStatusSuccess
-  if (tone === 'redirect') return styles.fixtureStatusRedirect
-  if (tone === 'error') return styles.fixtureStatusError
-  return styles.fixtureStatusNeutral
+  if (tone === 'success') return 'border-[rgba(var(--success-rgb),0.45)] bg-[var(--success-tint)] text-[var(--success)]'
+  if (tone === 'redirect') return 'border-[var(--warning-border)] bg-[var(--warning-bg)] text-[var(--warning-text)]'
+  if (tone === 'error') return 'border-[#d92d20] bg-[rgba(217,45,32,0.12)] text-[#d92d20]'
+  return 'border-border bg-background text-secondary-foreground'
 }
 
 function formatBodyJson(body: unknown): string | null {

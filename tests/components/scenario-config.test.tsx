@@ -4,6 +4,21 @@ import { ScenarioConfig } from '../../src/app/ui/profiles/ScenarioConfig'
 
 const scenarios = { default: 'Success', failure: 'Failure', timeout: 'Timeout', real: 'Passthrough' }
 
+// Each sequence-step trigger is a <button ...class="...">, followed by a dot
+// span and then the label span whose text is the human-readable name. Find
+// the trigger's own class string by locating the label text and walking back
+// to the nearest enclosing trigger button.
+function triggerClassForLabel(html: string, label: string): string {
+  const labelIndex = html.indexOf(`>${label}<`)
+  if (labelIndex === -1) throw new Error(`label ${label} not found`)
+  const marker = '<button type="button" class="'
+  const btnStart = html.lastIndexOf(marker, labelIndex)
+  if (btnStart === -1) throw new Error(`trigger button for ${label} not found`)
+  const classStart = btnStart + marker.length
+  const classEnd = html.indexOf('"', classStart)
+  return html.slice(classStart, classEnd)
+}
+
 describe('ScenarioConfig', () => {
   it('renders the single-scenario radio picker for a string selection', () => {
     const html = renderToStaticMarkup(
@@ -56,12 +71,12 @@ describe('ScenarioConfig', () => {
       />,
     )
     expect(html).toContain('Timeout')
-    expect(html).toContain('selectLabel')
-    expect(html).not.toContain('selectKey')
+    // One-line label: only the human-readable name is shown, never the raw key.
     expect(html).not.toMatch(/>timeout</)
-    expect(html).toContain('kindNonDefault')
-    expect(html).toContain('kindReal')
-    expect(html).toContain('kindDefault')
+    // Scenario-kind color coding on each step's trigger button.
+    expect(triggerClassForLabel(html, 'Timeout')).toContain('var(--warning-border)') // nonDefault
+    expect(triggerClassForLabel(html, 'Passthrough')).toContain('#d92d20') // real
+    expect(triggerClassForLabel(html, 'Success')).toContain('var(--success)') // default
   })
 
   it('falls back to the scenario key as the label when no name exists', () => {
@@ -86,7 +101,10 @@ describe('ScenarioConfig', () => {
       />,
     )
     expect(html.match(/draggable="true"/g)).toHaveLength(3)
-    expect(html).toContain('dragHandle')
+    // A single draggable grip icon per step, labeled for reordering by drag
+    // (or arrow keys), rather than a pair of up/down move buttons.
+    expect(html.match(/aria-label="Reorder step \d+ — drag, or press the arrow keys"/g)).toHaveLength(3)
+    expect(html).toContain('lucide-grip-vertical')
     expect(html).not.toContain('Move step')
   })
 
