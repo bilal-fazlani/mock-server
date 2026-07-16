@@ -59,6 +59,37 @@ describe('GlobalMocksForm reset dynamic history button', () => {
     expect(render([])).not.toContain('Reset resolver history')
   })
 
+  it('shows the reset button for an unpinned resolver-backed default (implicit selection)', () => {
+    // A GLOBAL endpoint whose `default` is resolver-backed (default.ts, Model A)
+    // and left unpinned: saving the implicit `default` stores no row, yet the
+    // resolver runs and accumulates history under slug `default`. The reset
+    // button must gate on the EFFECTIVE selection (stored ?? implicit), not on
+    // whether a row was persisted — matching the profile surface.
+    const defaultResolverCatalog: Catalog = {
+      systems: [
+        {
+          ...catalog.systems[0],
+          endpoints: [
+            {
+              ...catalog.systems[0].endpoints[0],
+              scenarios: { default: 'Token', expired: 'Expired' },
+              resolverScenarios: ['default'],
+            },
+          ],
+        },
+      ],
+    }
+    const html = renderToStaticMarkup(
+      <GlobalMocksForm
+        catalog={defaultResolverCatalog}
+        selections={[]}
+        passthroughAsDefault={false}
+        env={{ HELLO_SYSTEM_URL: 'http://localhost' }}
+      />,
+    )
+    expect(html).toContain('Reset resolver history')
+  })
+
   it('marks resolver-backed scenarios with a code badge, scoped to that slug', () => {
     const html = render([selection('dynamic')])
     // Exactly one badge — only the resolver-backed slug ("dynamic") carries it,

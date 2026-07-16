@@ -102,7 +102,7 @@ export function GlobalMocksForm({
                       unavailable={unavailable}
                       resolverSlugs={endpoint.resolverScenarios}
                     />
-                    {stored !== undefined && endpoint.resolverScenarios.includes(stored) && (
+                    {endpoint.resolverScenarios.includes(selected) && (
                       <div className="mt-2.5 flex">
                         <button
                           formAction={resetGlobalDynamicHistoryAction.bind(

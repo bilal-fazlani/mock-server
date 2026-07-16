@@ -129,7 +129,7 @@ describe('ScenarioPicker', () => {
     const html = renderToStaticMarkup(
       <ScenarioPicker
         endpointName="hello_world"
-        scenarios={{ ...scenarios, dynamic: 'Dynamic — unavailable (no _dynamic.ts)' }}
+        scenarios={{ ...scenarios, dynamic: 'dynamic — unavailable' }}
         selected="dynamic"
         unavailable={['dynamic']}
       />,
