@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   compileResolver,
+  resolverFilePath,
   ResolverCompileError,
   ResolverRuntimeError,
   ResolverTimeoutError,
@@ -66,5 +67,34 @@ describe('compileResolver', () => {
       'x/y',
     )
     expect(r.invoke(input(), 100)).toBe('undefined,undefined,undefined')
+  })
+})
+
+describe('resolverFilePath', () => {
+  it('points at <catalogDir>/<system>/<endpoint>/<slug>.ts', () => {
+    expect(resolverFilePath('/cat', 'sys', 'ep', 'by-amount')).toBe('/cat/sys/ep/by-amount.ts')
+  })
+})
+
+describe('compileResolver description export', () => {
+  it('exposes export const description', () => {
+    const compiled = compileResolver(
+      `export const description = 'Routes by amount'\nexport default () => 'success'`,
+      'sys/ep/by-amount.ts',
+    )
+    expect(compiled.description).toBe('Routes by amount')
+  })
+
+  it('leaves description undefined when absent or not a string', () => {
+    expect(compileResolver(`export default () => 'x'`, 'l').description).toBeUndefined()
+    expect(
+      compileResolver(`export const description = 42\nexport default () => 'x'`, 'l').description,
+    ).toBeUndefined()
+  })
+
+  it('names the resolver generically in compile errors', () => {
+    expect(() => compileResolver('const nope =', 'sys/ep/broken.ts')).toThrowError(
+      /sys\/ep\/broken\.ts: failed to transpile resolver/,
+    )
   })
 })

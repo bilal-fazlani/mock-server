@@ -19,6 +19,8 @@ export interface ResolverInput {
 }
 
 export interface CompiledResolver {
+  /** Optional `export const description = '…'` from the resolver source — its UI label. */
+  description?: string
   invoke(input: ResolverInput, timeoutMs: number): unknown
 }
 
@@ -30,12 +32,21 @@ export function dynamicFilePath(catalogDir: string, systemSlug: string, endpoint
   return path.join(catalogDir, systemSlug, endpointName, DYNAMIC_FILE)
 }
 
+export function resolverFilePath(
+  catalogDir: string,
+  systemSlug: string,
+  endpointName: string,
+  slug: string,
+): string {
+  return path.join(catalogDir, systemSlug, endpointName, `${slug}.ts`)
+}
+
 export function compileResolver(source: string, label: string): CompiledResolver {
   let code: string
   try {
     code = transformSync(source, { loader: 'ts', format: 'cjs', target: 'node18' }).code
   } catch (err) {
-    throw new ResolverCompileError(`${label}: failed to transpile _dynamic.ts: ${message(err)}`)
+    throw new ResolverCompileError(`${label}: failed to transpile resolver: ${message(err)}`)
   }
 
   // Empty context: no require / process / fetch / console leak from the host.
@@ -45,27 +56,30 @@ export function compileResolver(source: string, label: string): CompiledResolver
   try {
     new vm.Script(code, { filename: label }).runInContext(context, { timeout: 1000 })
   } catch (err) {
-    throw new ResolverCompileError(`${label}: failed to evaluate _dynamic.ts: ${message(err)}`)
+    throw new ResolverCompileError(`${label}: failed to evaluate resolver: ${message(err)}`)
   }
 
   const mod = (sandbox.module as { exports: Record<string, unknown> }).exports
   const fn = typeof mod === 'function' ? mod : (mod?.default as unknown)
   if (typeof fn !== 'function') {
-    throw new ResolverCompileError(`${label}: _dynamic.ts must default-export a function`)
+    throw new ResolverCompileError(`${label}: resolver must default-export a function`)
   }
+  const rawDescription = (mod as Record<string, unknown> | undefined)?.description
+  const description = typeof rawDescription === 'string' ? rawDescription : undefined
   sandbox.__resolver = fn
   const invokeScript = new vm.Script('__resolver(__input)', { filename: `${label}#invoke` })
 
   return {
+    ...(description !== undefined ? { description } : {}),
     invoke(input: ResolverInput, timeoutMs: number): unknown {
       sandbox.__input = input
       try {
         return invokeScript.runInContext(context, { timeout: timeoutMs })
       } catch (err) {
         if (isTimeout(err)) {
-          throw new ResolverTimeoutError(`${label}: _dynamic.ts exceeded ${timeoutMs}ms`)
+          throw new ResolverTimeoutError(`${label}: resolver exceeded ${timeoutMs}ms`)
         }
-        throw new ResolverRuntimeError(`${label}: _dynamic.ts threw: ${message(err)}`)
+        throw new ResolverRuntimeError(`${label}: resolver threw: ${message(err)}`)
       }
     },
   }
