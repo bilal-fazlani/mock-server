@@ -1,12 +1,11 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { DYNAMIC_FILE } from '../mock-engine/resolver'
 import type { Catalog, EndpointDef, SystemDef } from './types'
 
 const SYSTEM_META = '_system.json'
 const ENDPOINT_META = '_endpoint.json'
 const SCHEMA_META = '_schema.json'
-const SCENARIO_FILE = /^([a-z0-9][a-z0-9_-]*)\.json$/
+const SCENARIO_FILE = /^([a-z0-9][a-z0-9_-]*)\.(json|ts)$/
 
 export class CatalogLoadError extends Error {}
 
@@ -46,25 +45,38 @@ export function loadCatalog(catalogDir: string): Catalog {
       const schemaFile = path.join(endpointDir, SCHEMA_META)
       const schemaMeta = fs.existsSync(schemaFile) ? readMetaFile(schemaFile, problems) : null
 
-      let hasResolver = false
       const scenarios: Record<string, string> = {}
+      const fixtureSlugs = new Set<string>()
+      const resolverSlugs = new Set<string>()
       for (const fixEntry of sortedEntries(endpointDir)) {
-        if (fixEntry.name === DYNAMIC_FILE) {
-          hasResolver = true
-          continue
-        }
         if (fixEntry.name === ENDPOINT_META || fixEntry.name === SCHEMA_META) continue
         const match = fixEntry.isFile() ? SCENARIO_FILE.exec(fixEntry.name) : null
         if (!match) {
           problems.push(
-            `${slug}/${endpointName}: unexpected entry (scenarios are <name>.json files, ` +
-              `name matching [a-z0-9][a-z0-9_-]*): ${fixEntry.name}`,
+            `${slug}/${endpointName}: unexpected entry (scenarios are <name>.json fixtures or ` +
+              `<name>.ts resolvers, name matching [a-z0-9][a-z0-9_-]*): ${fixEntry.name}`,
           )
           continue
         }
-        const scenario = match[1]
-        scenarios[scenario] =
-          scenarioDescription(path.join(endpointDir, fixEntry.name)) ?? scenario
+        const [, scenario, ext] = match
+        if (ext === 'ts') {
+          resolverSlugs.add(scenario)
+          // Label = slug for now; getRuntime patches in the compiled resolver's
+          // `description` export after compilation.
+          scenarios[scenario] ??= scenario
+        } else {
+          fixtureSlugs.add(scenario)
+          scenarios[scenario] =
+            scenarioDescription(path.join(endpointDir, fixEntry.name)) ?? scenario
+        }
+      }
+      for (const scenario of resolverSlugs) {
+        if (fixtureSlugs.has(scenario)) {
+          problems.push(
+            `${slug}/${endpointName}: scenario "${scenario}" is backed by both ` +
+              `${scenario}.json and ${scenario}.ts — pick one`,
+          )
+        }
       }
 
       const label = `${slug}/${endpointName}`
@@ -77,7 +89,7 @@ export function loadCatalog(catalogDir: string): Catalog {
         ...optionalProfileIdSelector(epMeta),
         ...optionalCaptureProfileKeys(epMeta, label, problems),
         scenarios: orderDefaultFirst(scenarios),
-        ...(hasResolver ? { hasResolver: true } : {}),
+        resolverScenarios: [...resolverSlugs].sort(),
         ...(schemaMeta ? { schema: schemaMeta } : {}),
       })
     }

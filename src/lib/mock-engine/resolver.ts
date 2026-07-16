@@ -2,7 +2,6 @@ import path from 'node:path'
 import vm from 'node:vm'
 import { transformSync } from 'esbuild'
 
-export const DYNAMIC_FILE = '_dynamic.ts'
 export const DEFAULT_DYNAMIC_TIMEOUT_MS = 100
 
 export interface ResolverInput {
@@ -27,10 +26,6 @@ export interface CompiledResolver {
 export class ResolverCompileError extends Error {}
 export class ResolverRuntimeError extends Error {}
 export class ResolverTimeoutError extends Error {}
-
-export function dynamicFilePath(catalogDir: string, systemSlug: string, endpointName: string): string {
-  return path.join(catalogDir, systemSlug, endpointName, DYNAMIC_FILE)
-}
 
 export function resolverFilePath(
   catalogDir: string,

@@ -2,7 +2,6 @@ import { RotateCcw } from 'lucide-react'
 import type { Catalog, EndpointDef, SystemDef } from '../../../lib/catalog/types'
 import type { GlobalMockScenario } from '../../../lib/profiles/store'
 import {
-  DYNAMIC_SCENARIO,
   implicitScenario,
   scenarioOptionsWithDangling,
   scenariosWithPassthrough,
@@ -102,7 +101,7 @@ export function GlobalMocksForm({
                       selected={selected}
                       unavailable={unavailable}
                     />
-                    {stored === DYNAMIC_SCENARIO && (
+                    {stored !== undefined && endpoint.resolverScenarios.includes(stored) && (
                       <div className="mt-2.5 flex">
                         <button
                           formAction={resetGlobalDynamicHistoryAction.bind(

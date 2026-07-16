@@ -18,6 +18,7 @@ const catalog: Catalog = {
           path: '/hello/world',
           profileIdSelector: '$.customerId',
           scenarios: { default: 'Hello success', failure: 'Hello failure' },
+          resolverScenarios: [],
         },
       ],
     },

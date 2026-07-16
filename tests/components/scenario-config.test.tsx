@@ -153,12 +153,12 @@ describe('ScenarioConfig', () => {
       <ScenarioConfig
         endpointName="hello_world"
         scenarios={scenarios}
-        selection="dynamic"
+        selection="ghost"
         fallback="default"
       />,
     )
-    expect(html).toContain('Dynamic — unavailable (no _dynamic.ts)')
-    expect(html).toMatch(/<input type="radio" disabled=""[^>]*checked="" value="dynamic"/)
+    expect(html).toContain('ghost — unavailable')
+    expect(html).toMatch(/<input type="radio" disabled=""[^>]*checked="" value="ghost"/)
   })
 
   it('shows a dangling sequence step with its unavailable label', () => {

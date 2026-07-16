@@ -10,6 +10,7 @@ function endpoint(overrides: Partial<EndpointDef> = {}): EndpointDef {
     path: '/hello/world',
     profileIdSelector: '$.customerId',
     scenarios: { default: 'Success' },
+    resolverScenarios: [],
     ...overrides,
   }
 }

@@ -19,6 +19,7 @@ const endpoint: EndpointDef = {
   path: '/hello/world',
   profileIdSelector: '$.customerId',
   scenarios: { default: 'Success' },
+  resolverScenarios: [],
 }
 
 describe('buildScenarioViews', () => {
@@ -55,15 +56,19 @@ describe('buildScenarioViews', () => {
     expect(views[1]).toMatchObject({ key: 'default' })
   })
 
-  it('includes a dynamic view when the endpoint has a resolver', () => {
+  it('marks a resolver-backed scenario slug with the resolver kind', () => {
     const views = buildScenarioViews(
       system,
-      { ...endpoint, hasResolver: true },
+      {
+        ...endpoint,
+        scenarios: { default: 'Success', by_amount: 'Routes by amount' },
+        resolverScenarios: ['by_amount'],
+      },
       fixturesDir,
       {},
       false,
     )
-    const dyn = views.find((v) => v.key === 'dynamic')
-    expect(dyn?.kind).toBe('dynamic')
+    const resolver = views.find((v) => v.key === 'by_amount')
+    expect(resolver?.kind).toBe('resolver')
   })
 })

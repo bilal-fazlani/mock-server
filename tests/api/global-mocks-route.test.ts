@@ -28,6 +28,7 @@ vi.mock('../../src/lib/runtime', () => ({
               path: '/oauth/token',
               mockType: 'global',
               scenarios: { default: 'Token', expired: 'Expired' },
+              resolverScenarios: [],
             },
             {
               name: 'account_balance',
@@ -35,8 +36,8 @@ vi.mock('../../src/lib/runtime', () => ({
               method: 'POST',
               path: '/accounts/balance',
               mockType: 'global',
-              scenarios: { default: 'Settled', pending: 'Pending' },
-              hasResolver: true,
+              scenarios: { default: 'Settled', pending: 'Pending', dynamic: 'dynamic' },
+              resolverScenarios: ['dynamic'],
             },
             {
               name: 'profiled_endpoint',
@@ -45,6 +46,7 @@ vi.mock('../../src/lib/runtime', () => ({
               path: '/profiled',
               profileIdSelector: '$.customerId',
               scenarios: { default: 'Success' },
+              resolverScenarios: [],
             },
           ],
         },

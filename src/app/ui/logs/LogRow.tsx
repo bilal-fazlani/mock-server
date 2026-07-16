@@ -562,10 +562,6 @@ const scenarioSourceViews: Record<ScenarioSource, { label: string; tooltip: stri
     label: 'Unmocked user policy',
     tooltip: 'The profile was not found, so UNMOCKED_USERS chose this scenario.',
   },
-  dynamic: {
-    label: 'Dynamic',
-    tooltip: 'A _dynamic.ts resolver chose this scenario at request time.',
-  },
 }
 
 function scenarioSourceView(source: ScenarioSource): { label: string; tooltip: string } {

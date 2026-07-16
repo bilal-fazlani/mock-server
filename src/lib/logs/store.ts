@@ -2,7 +2,7 @@ import type { Db } from 'mongodb'
 
 export type LogOutcome = 'fixture' | 'passthrough' | 'error'
 
-export type ScenarioSource = 'pin' | 'sequence' | 'implicit' | 'global' | 'unmocked_policy' | 'dynamic'
+export type ScenarioSource = 'pin' | 'sequence' | 'implicit' | 'global' | 'unmocked_policy'
 
 export interface LogPayload {
   headers: Record<string, string>
@@ -25,7 +25,8 @@ export interface LogTraceData {
   scenario?: string
   scenarioSource?: ScenarioSource
   sequence?: { step: number; of: number; served: number }
-  dynamic?: { returned: string }
+  /** Present when a resolver-backed scenario ran: the picked slug and what it returned. */
+  resolver?: { slug: string; returned: string }
   captures?: Array<{ namespace: string; key: string }>
   placeholders?: Record<string, string>
   validation?: { request?: 'ok' | 'failed'; response?: 'ok' | 'failed' | 'drift_warning' }

@@ -31,6 +31,7 @@ function endpoint(overrides: Partial<EndpointDef> = {}): EndpointDef {
     path: '/hello/world',
     profileIdSelector: '$.customerId',
     scenarios: { default: 'Success' },
+    resolverScenarios: [],
     ...overrides,
   }
 }
@@ -48,6 +49,7 @@ const globalEndpoint = (overrides: Partial<EndpointDef> = {}) =>
     path: '/oauth/token',
     mockType: 'global',
     scenarios: { default: 'Token' },
+    resolverScenarios: [],
     ...overrides,
   }) as EndpointDef
 
@@ -267,15 +269,21 @@ describe('validateCatalog', () => {
     expect(errors.join('\n')).toMatch(/"real" must not exist/)
   })
 
-  it('rejects a scenario named "dynamic"', () => {
+  it('skips fixture checks for resolver-backed scenario slugs', () => {
     const dir = tmpCatalogDir({
       'test-system/hello_world/default.json': GOOD_FIXTURE,
     })
     const { errors } = validateCatalog(
-      catalog([endpoint({ scenarios: { default: 'Success', dynamic: 'Nope' } })]),
+      catalog([
+        endpoint({
+          scenarios: { default: 'Success', 'by-amount': 'Routes by amount' },
+          resolverScenarios: ['by-amount'],
+        }),
+      ]),
       dir,
     )
-    expect(errors.some((e) => e.includes('"dynamic" must not exist'))).toBe(true)
+    // "by-amount" is resolver-backed, so no missing-fixture error is raised.
+    expect(errors).toEqual([])
   })
 
   it('flags invalid fixture shape, malformed placeholders, and undeclared path placeholders', () => {

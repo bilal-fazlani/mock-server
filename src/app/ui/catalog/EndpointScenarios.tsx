@@ -118,10 +118,10 @@ function ScenarioContent({ scenario }: { scenario: ScenarioView }) {
     )
   }
 
-  if (scenario.kind === 'dynamic') {
+  if (scenario.kind === 'resolver') {
     return (
       <p className="font-mono text-[0.85rem] text-secondary-foreground">
-        Resolved at request time by <code>_dynamic.ts</code> — returns a scenario slug per request.
+        Resolved at request time by <code>{scenario.key}.ts</code> — returns a scenario slug per request.
       </p>
     )
   }

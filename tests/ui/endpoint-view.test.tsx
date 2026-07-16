@@ -18,6 +18,7 @@ const endpoint: EndpointDef = {
   path: '/hello/world',
   profileIdSelector: '$.customerId',
   scenarios: { default: 'Hello success' },
+  resolverScenarios: [],
 }
 
 const fixtureJson = JSON.stringify(
@@ -370,6 +371,7 @@ describe('EndpointView', () => {
       path: '/oauth/token',
       mockType: 'global',
       scenarios: { default: 'Token' },
+      resolverScenarios: [],
     }
     const html = view({ endpoint: globalEndpoint })
     expect(html).toContain('Global')

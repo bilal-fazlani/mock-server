@@ -20,7 +20,7 @@ function toCatalogView(catalog: Catalog) {
         method: endpoint.method,
         path: endpoint.path,
         mockType: endpoint.mockType ?? 'profiled',
-        hasResolver: endpoint.hasResolver ?? false,
+        resolverScenarios: endpoint.resolverScenarios,
         scenarios: endpoint.scenarios,
       })),
     })),

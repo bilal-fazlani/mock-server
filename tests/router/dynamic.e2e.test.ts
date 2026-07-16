@@ -4,7 +4,7 @@ import path from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { loadCatalog } from '../../src/lib/catalog/load'
 import { loadFixture } from '../../src/lib/mock-engine/fixtures'
-import { compileResolver, dynamicFilePath, type CompiledResolver } from '../../src/lib/mock-engine/resolver'
+import { compileResolver, resolverFilePath, type CompiledResolver } from '../../src/lib/mock-engine/resolver'
 import type { MockProfile } from '../../src/lib/profiles/store'
 import { createMockHandler } from '../../src/lib/router/handler'
 import type { RouterDeps } from '../../src/lib/router/route-request'
@@ -87,13 +87,13 @@ describe('dynamic resolver end-to-end (real compileResolver + real history store
       'sys/ep/_endpoint.json': ENDPOINT_META,
       'sys/ep/default.json': DEFAULT_FIXTURE,
       'sys/ep/failure.json': FAILURE_FIXTURE,
-      'sys/ep/_dynamic.ts': DYNAMIC_SOURCE,
+      'sys/ep/dynamic.ts': DYNAMIC_SOURCE,
     })
     const catalog = loadCatalog(dir)
 
     // Compile once via the real compileResolver, exactly as the runtime does.
-    const source = fs.readFileSync(dynamicFilePath(dir, 'sys', 'ep'), 'utf8')
-    const resolver: CompiledResolver = compileResolver(source, 'sys/ep/_dynamic.ts')
+    const source = fs.readFileSync(resolverFilePath(dir, 'sys', 'ep', 'dynamic'), 'utf8')
+    const resolver: CompiledResolver = compileResolver(source, 'sys/ep/dynamic.ts')
 
     const history = makeHistoryStore()
 

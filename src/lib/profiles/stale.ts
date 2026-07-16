@@ -1,5 +1,5 @@
 import type { Catalog, EndpointDef } from '../catalog/types'
-import { isScenarioSelectable } from '../scenarios'
+import { isScenarioDeclared } from '../scenarios'
 import type { MockProfile } from './store'
 
 export function staleScenarios(profile: MockProfile, catalog: Catalog): Record<string, string> {
@@ -10,7 +10,7 @@ export function staleScenarios(profile: MockProfile, catalog: Catalog): Record<s
   for (const [endpointName, selection] of Object.entries(profile.endpointScenarios)) {
     const steps = Array.isArray(selection) ? selection : [selection]
     const endpoint = endpoints.get(endpointName)
-    const invalid = endpoint ? steps.filter((s) => !isScenarioSelectable(endpoint, s)) : steps
+    const invalid = endpoint ? steps.filter((s) => !isScenarioDeclared(endpoint, s)) : steps
     if (invalid.length > 0) stale[endpointName] = invalid.join(', ')
   }
   return stale

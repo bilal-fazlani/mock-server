@@ -20,6 +20,7 @@ const catalog: Catalog = {
           path: '/hello/world',
           profileIdSelector: '$.customerId',
           scenarios: { default: 'Success' },
+          resolverScenarios: [],
         },
         {
           name: 'resolver_ep',
@@ -27,8 +28,8 @@ const catalog: Catalog = {
           method: 'GET',
           path: '/resolver',
           profileIdSelector: '$.customerId',
-          scenarios: { default: 'Success' },
-          hasResolver: true,
+          scenarios: { default: 'Success', by_amount: 'Routes by amount' },
+          resolverScenarios: ['by_amount'],
         },
       ],
     },
@@ -86,22 +87,22 @@ describe('staleScenarios', () => {
     ).toEqual({ removed_ep: 'default' })
   })
 
-  it('does not flag a "dynamic" pin on an endpoint that has a resolver', () => {
+  it('does not flag a resolver-backed slug pin on an endpoint that declares it', () => {
     expect(
-      staleScenarios({ ...base, endpointScenarios: { resolver_ep: 'dynamic' } }, catalog),
+      staleScenarios({ ...base, endpointScenarios: { resolver_ep: 'by_amount' } }, catalog),
     ).toEqual({})
   })
 
-  it('flags a "dynamic" pin on an endpoint that has no resolver', () => {
+  it('flags a resolver-backed slug pin on an endpoint that does not declare it', () => {
     expect(
-      staleScenarios({ ...base, endpointScenarios: { hello_world: 'dynamic' } }, catalog),
-    ).toEqual({ hello_world: 'dynamic' })
+      staleScenarios({ ...base, endpointScenarios: { hello_world: 'by_amount' } }, catalog),
+    ).toEqual({ hello_world: 'by_amount' })
   })
 
-  it('does not flag a "dynamic" step within a sequence on a resolver endpoint', () => {
+  it('does not flag a resolver-backed step within a sequence on a resolver endpoint', () => {
     expect(
       staleScenarios(
-        { ...base, endpointScenarios: { resolver_ep: ['default', 'dynamic'] } },
+        { ...base, endpointScenarios: { resolver_ep: ['default', 'by_amount'] } },
         catalog,
       ),
     ).toEqual({})

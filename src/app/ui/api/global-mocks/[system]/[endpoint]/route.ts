@@ -5,7 +5,7 @@ import {
   upsertGlobalMockScenario,
 } from '../../../../../../lib/profiles/store'
 import { getRuntime } from '../../../../../../lib/runtime'
-import { isScenarioSelectable } from '../../../../../../lib/scenarios'
+import { isScenarioDeclared } from '../../../../../../lib/scenarios'
 
 export const dynamic = 'force-dynamic'
 
@@ -34,7 +34,7 @@ export async function PUT(request: Request, { params }: Ctx): Promise<Response> 
   if (typeof scenario !== 'string' || scenario === '') {
     return Response.json({ error: 'scenario is required' }, { status: 400 })
   }
-  if (!isScenarioSelectable(found.endpoint, scenario)) {
+  if (!isScenarioDeclared(found.endpoint, scenario)) {
     return Response.json({ error: `scenario "${scenario}" is not declared` }, { status: 400 })
   }
 

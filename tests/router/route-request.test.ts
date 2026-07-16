@@ -35,6 +35,7 @@ const CATALOG: Catalog = {
           path: '/hello/world',
           profileIdSelector: '$.customerId',
           scenarios: { default: 'Success', failure: 'Failure' },
+          resolverScenarios: [],
         },
         {
           name: 'capture_assessment',
@@ -44,6 +45,7 @@ const CATALOG: Catalog = {
           profileIdSelector: '$.customerId',
           captureProfileKeys: [{ namespace: 'event-id', keySelector: '$.eventID' }],
           scenarios: { default: 'Success' },
+          resolverScenarios: [],
         },
         {
           name: 'mapped_callback',
@@ -52,6 +54,7 @@ const CATALOG: Catalog = {
           path: '/callbacks/transaction',
           profileIdSelector: 'profileKey:event-id:$.eventID',
           scenarios: { default: 'Success' },
+          resolverScenarios: [],
         },
         {
           name: 'customer_status',
@@ -60,6 +63,7 @@ const CATALOG: Catalog = {
           path: '/customers/{customerId}/status',
           profileIdSelector: 'path:customerId',
           scenarios: { default: 'Success' },
+          resolverScenarios: [],
         },
         {
           name: 'lookup',
@@ -68,6 +72,7 @@ const CATALOG: Catalog = {
           path: '/lookup',
           profileIdSelector: 'query:cid',
           scenarios: { default: 'Success' },
+          resolverScenarios: [],
         },
         {
           name: 'bearer_opaque',
@@ -76,6 +81,7 @@ const CATALOG: Catalog = {
           path: '/bearer/opaque',
           profileIdSelector: 'bearer',
           scenarios: { default: 'Success' },
+          resolverScenarios: [],
         },
         {
           name: 'bearer_claim',
@@ -84,6 +90,7 @@ const CATALOG: Catalog = {
           path: '/bearer/claim',
           profileIdSelector: 'bearer:sub',
           scenarios: { default: 'Success' },
+          resolverScenarios: [],
         },
         {
           name: 'oauth_token',
@@ -92,6 +99,7 @@ const CATALOG: Catalog = {
           path: '/oauth/token',
           mockType: 'global',
           scenarios: { default: 'Success', expired: 'Expired token' },
+          resolverScenarios: [],
         },
         {
           name: 'template_fail',
@@ -100,6 +108,7 @@ const CATALOG: Catalog = {
           path: '/tpl',
           profileIdSelector: '$.customerId',
           scenarios: { default: 'Success' },
+          resolverScenarios: [],
         },
         {
           name: 'dynamic_ep',
@@ -107,8 +116,17 @@ const CATALOG: Catalog = {
           method: 'POST',
           path: '/dynamic-ep',
           profileIdSelector: '$.customerId',
-          scenarios: { default: 'Success', failure: 'Failure' },
-          hasResolver: true,
+          scenarios: { default: 'Success', failure: 'Failure', dynamic: 'dynamic' },
+          resolverScenarios: ['dynamic'],
+        },
+        {
+          name: 'resolver_default',
+          displayName: 'Resolver Default',
+          method: 'POST',
+          path: '/resolver-default',
+          profileIdSelector: '$.customerId',
+          scenarios: { default: 'default', flaky: 'flaky', hold: 'Hold', success: 'Success' },
+          resolverScenarios: ['default', 'flaky'],
         },
         {
           name: 'schema_checked',
@@ -117,6 +135,7 @@ const CATALOG: Catalog = {
           path: '/schema-checked',
           profileIdSelector: '$.customerId',
           scenarios: { default: 'Success', bad_response: 'Bad response' },
+          resolverScenarios: [],
           schema: {
             requestBody: {
               required: true,
@@ -979,7 +998,46 @@ describe('schema drift probe (proxy path, warn-only)', () => {
   })
 })
 
-describe('dynamic resolver', () => {
+describe('resolver-backed scenarios', () => {
+  it('runs a resolver-backed default for a profile with no pick, recording trace.resolver', async () => {
+    const d = deps({
+      getProfile: withProfile(profile({ profileId: 'c1', endpointScenarios: {} })),
+      getCompiledResolver: () => ({ invoke: () => 'hold' }),
+    })
+    const trace: RouteTrace = {}
+    const res = await routeRequest(post('/resolver-default', { customerId: 'c1' }), { ...d, trace })
+    expect(res.status).toBe(200) // hold.json fixture
+    expect(trace.scenarioSource).toBe('implicit') // NOT overwritten
+    expect(trace.resolver).toEqual({ slug: 'default', returned: 'hold' })
+    expect(trace.scenario).toBe('hold')
+  })
+
+  it('rejects a resolver returning a resolver-backed slug with resolver_bad_return', async () => {
+    const d = deps({
+      getProfile: withProfile(profile({ profileId: 'c1', endpointScenarios: {} })),
+      getCompiledResolver: () => ({ invoke: () => 'flaky' }),
+    })
+    const trace: RouteTrace = {}
+    const res = await routeRequest(post('/resolver-default', { customerId: 'c1' }), { ...d, trace })
+    expect(res.status).toBe(500)
+    expect(trace.error?.code).toBe('resolver_bad_return')
+  })
+
+  it('runs default.ts for an unmocked caller under DEFAULT_MOCK', async () => {
+    const d = deps({
+      unmockedUsers: 'DEFAULT_MOCK',
+      getProfile: async () => null,
+      getCompiledResolver: () => ({ invoke: () => 'hold' }),
+    })
+    const trace: RouteTrace = {}
+    const res = await routeRequest(post('/resolver-default', { customerId: 'ghost' }), { ...d, trace })
+    expect(res.status).toBe(200)
+    expect(trace.scenarioSource).toBe('unmocked_policy')
+    expect(trace.resolver?.slug).toBe('default')
+  })
+})
+
+describe('resolver-backed scenario (dynamic slug)', () => {
   it('runs the resolver, serves the returned fixture, and records history', async () => {
     const appended: string[] = []
     const d = deps({
@@ -993,8 +1051,8 @@ describe('dynamic resolver', () => {
     const trace: RouteTrace = {}
     const res = await routeRequest(post('/dynamic-ep', { customerId: 'c1' }), { ...d, trace })
     expect(res.status).toBe(422) // failure.json status
-    expect(trace.scenarioSource).toBe('dynamic')
-    expect(trace.dynamic).toEqual({ returned: 'failure' })
+    expect(trace.scenarioSource).toBe('pin') // underlying selection mechanism, not overwritten
+    expect(trace.resolver).toEqual({ slug: 'dynamic', returned: 'failure' })
     expect(trace.scenario).toBe('failure')
     expect(appended).toEqual(['failure'])
   })
@@ -1009,10 +1067,10 @@ describe('dynamic resolver', () => {
     expect(res.status).toBe(299)
     expect(d.passthroughCalls).toHaveLength(1)
     expect(trace.outcome).toBe('passthrough')
-    expect(trace.dynamic).toEqual({ returned: 'real' })
+    expect(trace.resolver).toEqual({ slug: 'dynamic', returned: 'real' })
   })
 
-  it('500s when the pin is dynamic but there is no resolver (drift)', async () => {
+  it('500s when the resolved slug is resolver-backed but there is no resolver (drift)', async () => {
     const d = deps({
       getProfile: async () => profile({ endpointScenarios: { dynamic_ep: 'dynamic' } }),
       getCompiledResolver: () => null,
@@ -1020,7 +1078,7 @@ describe('dynamic resolver', () => {
     const trace: RouteTrace = {}
     const res = await routeRequest(post('/dynamic-ep', { customerId: 'c1' }), { ...d, trace })
     expect(res.status).toBe(500)
-    expect(trace.error?.code).toBe('dynamic_resolver_missing')
+    expect(trace.error?.code).toBe('resolver_missing')
   })
 
   it('500s on a bad return value and records nothing', async () => {
@@ -1035,7 +1093,7 @@ describe('dynamic resolver', () => {
     const trace: RouteTrace = {}
     const res = await routeRequest(post('/dynamic-ep', { customerId: 'c1' }), { ...d, trace })
     expect(res.status).toBe(500)
-    expect(trace.error?.code).toBe('dynamic_bad_return')
+    expect(trace.error?.code).toBe('resolver_bad_return')
     expect(appended).toEqual([])
   })
 
@@ -1051,20 +1109,20 @@ describe('dynamic resolver', () => {
     const trace: RouteTrace = {}
     const res = await routeRequest(post('/dynamic-ep', { customerId: 'c1' }), { ...d, trace })
     expect(res.status).toBe(500)
-    expect(trace.error?.code).toBe('dynamic_threw')
+    expect(trace.error?.code).toBe('resolver_threw')
   })
 
-  it('500s with dynamic_compile_error when getCompiledResolver throws (dev-mode compile failure)', async () => {
+  it('500s with resolver_compile_error when getCompiledResolver throws (dev-mode compile failure)', async () => {
     const d = deps({
       getProfile: async () => profile({ endpointScenarios: { dynamic_ep: 'dynamic' } }),
       getCompiledResolver: () => {
-        throw new Error('_dynamic.ts:3 unexpected token')
+        throw new Error('dynamic.ts:3 unexpected token')
       },
     })
     const trace: RouteTrace = {}
     const res = await routeRequest(post('/dynamic-ep', { customerId: 'c1' }), { ...d, trace })
     expect(res.status).toBe(500)
-    expect(trace.error?.code).toBe('dynamic_compile_error')
+    expect(trace.error?.code).toBe('resolver_compile_error')
   })
 
   it('does not let a resolver mutate its input affect the served response', async () => {

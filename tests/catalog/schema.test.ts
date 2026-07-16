@@ -219,6 +219,7 @@ describe('buildSchemaRegistry', () => {
               path: '/hello/world',
               profileIdSelector: '$.customerId',
               scenarios: { default: 'Success' },
+              resolverScenarios: [],
               ...(schema !== undefined ? { schema } : {}),
             },
           ],

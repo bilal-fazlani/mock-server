@@ -12,10 +12,13 @@ export interface EndpointDef {
   profileIdSelector?: string
   captureProfileKeys?: ProfileKeyCaptureDef[]
   scenarios: Record<string, string>
+  /**
+   * Slugs in `scenarios` backed by a `<slug>.ts` resolver instead of a
+   * `<slug>.json` fixture. Always present; empty when the endpoint has none.
+   */
+  resolverScenarios: string[]
   /** Raw parsed _schema.json (OpenAPI 3.1 operation object), if present. */
   schema?: Record<string, unknown>
-  /** True when a _dynamic.ts resolver file exists in the endpoint directory. */
-  hasResolver?: boolean
 }
 
 export interface SystemDef {

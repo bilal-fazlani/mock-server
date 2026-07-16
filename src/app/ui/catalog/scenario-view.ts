@@ -1,7 +1,6 @@
 import type { EndpointDef, SystemDef } from '../../../lib/catalog/types'
 import { REAL_LABEL } from '../../../lib/config'
 import { loadFixture } from '../../../lib/mock-engine/fixtures'
-import { DYNAMIC_LABEL } from '../../../lib/scenarios'
 
 export type ScenarioView = {
   key: string
@@ -11,7 +10,7 @@ export type ScenarioView = {
   | { kind: 'passthrough'; baseUrlEnv: string; url: string | null }
   | { kind: 'fixture'; json: string }
   | { kind: 'error'; message: string }
-  | { kind: 'dynamic' }
+  | { kind: 'resolver' }
 )
 
 export function buildScenarioViews(
@@ -23,6 +22,9 @@ export function buildScenarioViews(
 ): ScenarioView[] {
   const declared: ScenarioView[] = Object.entries(endpoint.scenarios).map(([key, label]) => {
     const isDefault = key === 'default'
+    if (endpoint.resolverScenarios.includes(key)) {
+      return { key, label, isDefault, kind: 'resolver' }
+    }
     try {
       const fixture = loadFixture(catalogDir, system.slug, endpoint.name, key)
       return { key, label, isDefault, kind: 'fixture', json: JSON.stringify(fixture, null, 2) }
@@ -41,11 +43,6 @@ export function buildScenarioViews(
     baseUrlEnv: system.baseUrlEnv,
     url: env[system.baseUrlEnv] ?? null,
   }
-  const dynamic: ScenarioView[] = endpoint.hasResolver
-    ? [{ key: 'dynamic', label: DYNAMIC_LABEL, isDefault: false, kind: 'dynamic' }]
-    : []
 
-  return passthroughAsDefault
-    ? [passthrough, ...declared, ...dynamic]
-    : [...declared, ...dynamic, passthrough]
+  return passthroughAsDefault ? [passthrough, ...declared] : [...declared, passthrough]
 }

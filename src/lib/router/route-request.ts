@@ -14,7 +14,6 @@ import type { LogOutcome, LogTraceData } from '../logs/store'
 import { FixtureError, type Fixture } from '../mock-engine/fixtures'
 import {
   DEFAULT_DYNAMIC_TIMEOUT_MS,
-  ResolverRuntimeError,
   ResolverTimeoutError,
   type CompiledResolver,
   type ResolverInput,
@@ -27,7 +26,7 @@ import {
   type ProfileKeyMappingCaptureInput,
   type ScenarioSelection,
 } from '../profiles/store'
-import { DEFAULT_SCENARIO, DYNAMIC_SCENARIO, implicitScenario, isScenarioDeclared, REAL_SCENARIO } from '../scenarios'
+import { DEFAULT_SCENARIO, implicitScenario, REAL_SCENARIO } from '../scenarios'
 import type { PassthroughRequest, ProxiedResponse } from './passthrough'
 
 export interface IncomingRequest {
@@ -73,7 +72,11 @@ export interface RouterDeps {
     endpointName: string,
     steps: string[],
   ) => Promise<number>
-  getCompiledResolver: (systemSlug: string, endpointName: string) => CompiledResolver | null
+  getCompiledResolver: (
+    systemSlug: string,
+    endpointName: string,
+    slug: string,
+  ) => CompiledResolver | null
   getDynamicHistory: (
     ownerType: DynamicOwnerType,
     ownerKey: string,
@@ -174,13 +177,12 @@ export async function routeRequest(
     trace.scenario = scenario
   }
 
-  if (scenario === DYNAMIC_SCENARIO) {
-    const resolved = await resolveDynamic(system, endpoint, profileId, ctx, deps, trace)
+  if (endpoint.resolverScenarios.includes(scenario)) {
+    const resolved = await runResolver(system, endpoint, scenario, profileId, ctx, deps, trace)
     if (!resolved.ok) return resolved.result
+    trace.resolver = { slug: scenario, returned: resolved.scenario }
     scenario = resolved.scenario
     trace.scenario = scenario
-    trace.scenarioSource = 'dynamic'
-    trace.dynamic = { returned: scenario }
   }
 
   if (scenario === REAL_SCENARIO) {
@@ -299,9 +301,10 @@ async function resolveScenarioSelection(
   return selection[step - 1]
 }
 
-async function resolveDynamic(
+async function runResolver(
   system: SystemDef,
   endpoint: EndpointDef,
+  slug: string,
   profileId: string | null,
   ctx: RequestContext,
   deps: RouterDeps,
@@ -309,15 +312,16 @@ async function resolveDynamic(
 ): Promise<{ ok: true; scenario: string } | { ok: false; result: RouteResult }> {
   let compiled: CompiledResolver | null
   try {
-    compiled = deps.getCompiledResolver(system.slug, endpoint.name)
+    compiled = deps.getCompiledResolver(system.slug, endpoint.name, slug)
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    traceError(trace, 'dynamic_compile_error', message)
+    traceError(trace, 'resolver_compile_error', message)
     return {
       ok: false,
       result: jsonResult(500, {
-        error: 'dynamic resolver failed to compile',
+        error: 'scenario resolver failed to compile',
         endpoint: endpoint.name,
+        scenario: slug,
         message,
       }),
     }
@@ -325,21 +329,22 @@ async function resolveDynamic(
   if (!compiled) {
     traceError(
       trace,
-      'dynamic_resolver_missing',
-      `dynamic scenario selected but endpoint "${endpoint.name}" has no _dynamic.ts`,
+      'resolver_missing',
+      `scenario "${slug}" is resolver-backed but no compiled resolver was found for endpoint "${endpoint.name}"`,
     )
     return {
       ok: false,
       result: jsonResult(500, {
-        error: 'dynamic scenario selected but no _dynamic.ts resolver is present',
+        error: 'scenario resolver is missing',
         endpoint: endpoint.name,
+        scenario: slug,
       }),
     }
   }
 
   const ownerType: DynamicOwnerType = profileId ? 'profile' : 'global'
   const ownerKey = profileId ?? system.slug
-  const history = await deps.getDynamicHistory(ownerType, ownerKey, endpoint.name, DYNAMIC_SCENARIO)
+  const history = await deps.getDynamicHistory(ownerType, ownerKey, endpoint.name, slug)
   const input: ResolverInput = {
     request: {
       method: endpoint.method,
@@ -352,7 +357,7 @@ async function resolveDynamic(
     history,
     profileId,
   }
-  // Isolate the resolver's input from the live request context: resolveDynamic
+  // Isolate the resolver's input from the live request context: runResolver
   // runs before request-schema validation, captureProfileKeys, and template
   // resolution, all of which still read ctx. A resolver that mutates its input
   // by reference must not be able to corrupt the response served afterward.
@@ -363,32 +368,39 @@ async function resolveDynamic(
     returned = compiled.invoke(isolatedInput, deps.dynamicResolverTimeoutMs ?? DEFAULT_DYNAMIC_TIMEOUT_MS)
   } catch (err) {
     if (err instanceof ResolverTimeoutError) {
-      traceError(trace, 'dynamic_timeout', err.message)
-    } else if (err instanceof ResolverRuntimeError) {
-      traceError(trace, 'dynamic_threw', err.message)
+      traceError(trace, 'resolver_timeout', err.message)
     } else {
-      traceError(trace, 'dynamic_threw', err instanceof Error ? err.message : String(err))
+      traceError(trace, 'resolver_threw', err instanceof Error ? err.message : String(err))
     }
-    return { ok: false, result: jsonResult(500, { error: 'dynamic resolver failed', endpoint: endpoint.name }) }
+    return { ok: false, result: jsonResult(500, { error: 'scenario resolver failed', endpoint: endpoint.name, scenario: slug }) }
   }
 
-  if (typeof returned !== 'string' || returned === DYNAMIC_SCENARIO || !isScenarioDeclared(endpoint, returned)) {
+  // Return invariant: a fixture-backed declared slug, or "real". A
+  // resolver-backed slug (including this one) would chain resolvers — rejected.
+  if (
+    typeof returned !== 'string' ||
+    !(
+      returned === REAL_SCENARIO ||
+      (returned in endpoint.scenarios && !endpoint.resolverScenarios.includes(returned))
+    )
+  ) {
     traceError(
       trace,
-      'dynamic_bad_return',
-      `_dynamic.ts returned an invalid scenario: ${JSON.stringify(returned)}`,
+      'resolver_bad_return',
+      `resolver "${slug}" returned an invalid scenario: ${JSON.stringify(returned)}`,
     )
     return {
       ok: false,
       result: jsonResult(500, {
-        error: 'dynamic resolver returned an undeclared scenario',
+        error: 'scenario resolver returned an invalid scenario',
         endpoint: endpoint.name,
+        scenario: slug,
         returned,
       }),
     }
   }
 
-  await deps.appendDynamicHistory(ownerType, ownerKey, endpoint.name, DYNAMIC_SCENARIO, returned)
+  await deps.appendDynamicHistory(ownerType, ownerKey, endpoint.name, slug, returned)
   return { ok: true, scenario: returned }
 }
 

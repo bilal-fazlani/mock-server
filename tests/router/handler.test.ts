@@ -20,6 +20,7 @@ const CATALOG: Catalog = {
           path: '/hello',
           profileIdSelector: '$.customerId',
           scenarios: { default: 'Success' },
+          resolverScenarios: [],
         },
       ],
     },

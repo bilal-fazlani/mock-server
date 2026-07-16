@@ -18,6 +18,7 @@ vi.mock('../../src/lib/runtime', () => ({
               path: '/oauth/token',
               mockType: 'global',
               scenarios: { default: 'Token', expired: 'Expired' },
+              resolverScenarios: [],
             },
             {
               name: 'profiled_endpoint',
@@ -25,8 +26,8 @@ vi.mock('../../src/lib/runtime', () => ({
               method: 'POST',
               path: '/profiled',
               profileIdSelector: '$.customerId',
-              hasResolver: true,
-              scenarios: { default: 'Success' },
+              scenarios: { default: 'Success', by_amount: 'Routes by amount' },
+              resolverScenarios: ['by_amount'],
             },
           ],
         },
@@ -42,7 +43,7 @@ beforeEach(() => {
 })
 
 describe('GET /ui/api/catalog', () => {
-  it('projects systems and endpoints with mockType and hasResolver defaults', async () => {
+  it('projects systems and endpoints with mockType and resolverScenarios', async () => {
     const res = await GET()
     expect(res.status).toBe(200)
     const body = await res.json()
@@ -55,12 +56,12 @@ describe('GET /ui/api/catalog', () => {
       method: 'POST',
       path: '/oauth/token',
       mockType: 'global',
-      hasResolver: false,
+      resolverScenarios: [],
       scenarios: { default: 'Token', expired: 'Expired' },
     })
-    // mockType defaults to 'profiled', hasResolver preserved
+    // mockType defaults to 'profiled', resolverScenarios preserved
     expect(system.endpoints[1].mockType).toBe('profiled')
-    expect(system.endpoints[1].hasResolver).toBe(true)
+    expect(system.endpoints[1].resolverScenarios).toEqual(['by_amount'])
   })
 
   it('does not leak fixture bodies', async () => {

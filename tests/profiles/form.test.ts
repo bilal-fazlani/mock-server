@@ -16,6 +16,7 @@ const catalog: Catalog = {
           path: '/hello/world',
           profileIdSelector: '$.customerId',
           scenarios: { default: 'Success', failure: 'Failure', timeout: 'Timeout' },
+          resolverScenarios: [],
         },
         {
           name: 'goodbye_world',
@@ -24,6 +25,7 @@ const catalog: Catalog = {
           path: '/goodbye/world',
           profileIdSelector: '$.customerId',
           scenarios: { default: 'Success' },
+          resolverScenarios: [],
         },
         {
           name: 'resolver_ep',
@@ -31,8 +33,8 @@ const catalog: Catalog = {
           method: 'GET',
           path: '/resolver',
           profileIdSelector: '$.customerId',
-          scenarios: { default: 'Success' },
-          hasResolver: true,
+          scenarios: { default: 'Success', by_amount: 'Routes by amount' },
+          resolverScenarios: ['by_amount'],
         },
       ],
     },
@@ -143,26 +145,26 @@ describe('parseEndpointScenarios', () => {
     ).toThrow(/ghost/)
   })
 
-  it('accepts "dynamic" on an endpoint that has a resolver', () => {
+  it('accepts a resolver-backed slug on an endpoint that declares it', () => {
     expect(
-      parseEndpointScenarios(form({ 'scenario:resolver_ep': 'dynamic' }), catalog, 'default'),
-    ).toEqual({ resolver_ep: 'dynamic' })
+      parseEndpointScenarios(form({ 'scenario:resolver_ep': 'by_amount' }), catalog, 'default'),
+    ).toEqual({ resolver_ep: 'by_amount' })
   })
 
-  it('accepts "dynamic" as a sequence step on a resolver endpoint', () => {
+  it('accepts a resolver-backed slug as a sequence step', () => {
     expect(
       parseEndpointScenarios(
-        form({ 'scenarioSequence:resolver_ep': JSON.stringify(['dynamic', 'default']) }),
+        form({ 'scenarioSequence:resolver_ep': JSON.stringify(['by_amount', 'default']) }),
         catalog,
         'default',
       ),
-    ).toEqual({ resolver_ep: ['dynamic', 'default'] })
+    ).toEqual({ resolver_ep: ['by_amount', 'default'] })
   })
 
-  it('rejects "dynamic" on an endpoint without a resolver', () => {
+  it('rejects a resolver-backed slug on an endpoint that does not declare it', () => {
     expect(() =>
-      parseEndpointScenarios(form({ 'scenario:hello_world': 'dynamic' }), catalog, 'default'),
-    ).toThrow(/dynamic/)
+      parseEndpointScenarios(form({ 'scenario:hello_world': 'by_amount' }), catalog, 'default'),
+    ).toThrow(/by_amount/)
   })
 
   it('handles multiple endpoints independently', () => {

@@ -1,6 +1,6 @@
 import fs from 'node:fs'
 import { loadCatalog } from './catalog/load'
-import { schemaKey, type SchemaRegistry } from './catalog/schema'
+import { type SchemaRegistry } from './catalog/schema'
 import type { Catalog } from './catalog/types'
 import { validateAppConfig, validateCatalog } from './catalog/validate'
 import {
@@ -16,7 +16,7 @@ import {
 import { fixtureFilePath, FixtureError, loadFixture, type Fixture } from './mock-engine/fixtures'
 import {
   compileResolver,
-  dynamicFilePath,
+  resolverFilePath,
   type CompiledResolver,
 } from './mock-engine/resolver'
 
@@ -30,14 +30,23 @@ export interface Runtime {
   schemas: SchemaRegistry
   resolverHistoryLimit: number
   loadFixture: (systemSlug: string, endpointName: string, scenario: string) => Fixture
-  getCompiledResolver: (systemSlug: string, endpointName: string) => CompiledResolver | null
+  getCompiledResolver: (
+    systemSlug: string,
+    endpointName: string,
+    slug: string,
+  ) => CompiledResolver | null
 }
 
 let runtime: Runtime | null = null
 
-// Compiles every endpoint's _dynamic.ts at startup, aggregating failures so
-// they fold into the same fail-fast error list as catalog/config problems —
-// a broken resolver means the server won't boot.
+function resolverKey(systemSlug: string, endpointName: string, slug: string): string {
+  return `${systemSlug}/${endpointName}/${slug}`
+}
+
+// Compiles every endpoint's <slug>.ts resolvers at startup, aggregating
+// failures into the same fail-fast error list as catalog/config problems.
+// Also patches each resolver-backed scenario's UI label from the compiled
+// module's optional `description` export (label = slug otherwise).
 export function compileResolvers(
   catalog: Catalog,
   catalogDir: string,
@@ -46,16 +55,19 @@ export function compileResolvers(
   const errors: string[] = []
   for (const system of catalog.systems) {
     for (const endpoint of system.endpoints) {
-      if (!endpoint.hasResolver) continue
-      const label = `${system.slug}/${endpoint.name}`
-      try {
-        const source = fs.readFileSync(
-          dynamicFilePath(catalogDir, system.slug, endpoint.name),
-          'utf8',
-        )
-        resolvers.set(schemaKey(system.slug, endpoint.name), compileResolver(source, label))
-      } catch (err) {
-        errors.push(err instanceof Error ? err.message : String(err))
+      for (const slug of endpoint.resolverScenarios) {
+        const label = `${system.slug}/${endpoint.name}/${slug}.ts`
+        try {
+          const source = fs.readFileSync(
+            resolverFilePath(catalogDir, system.slug, endpoint.name, slug),
+            'utf8',
+          )
+          const compiled = compileResolver(source, label)
+          resolvers.set(resolverKey(system.slug, endpoint.name, slug), compiled)
+          if (compiled.description) endpoint.scenarios[slug] = compiled.description
+        } catch (err) {
+          errors.push(err instanceof Error ? err.message : String(err))
+        }
       }
     }
   }
@@ -63,20 +75,21 @@ export function compileResolvers(
 }
 
 // Dev-mode counterpart to compileResolvers: re-reads and re-compiles a single
-// endpoint's _dynamic.ts per call so edits apply live. A compile error here
+// endpoint's <slug>.ts per call so edits apply live. A compile error here
 // surfaces as a request-time 500 rather than a startup failure.
 function devCompileResolver(
   catalog: Catalog,
   catalogDir: string,
   systemSlug: string,
   endpointName: string,
+  slug: string,
 ): CompiledResolver | null {
   const endpoint = catalog.systems
     .find((s) => s.slug === systemSlug)
     ?.endpoints.find((e) => e.name === endpointName)
-  if (!endpoint?.hasResolver) return null
-  const source = fs.readFileSync(dynamicFilePath(catalogDir, systemSlug, endpointName), 'utf8')
-  return compileResolver(source, `${systemSlug}/${endpointName}`)
+  if (!endpoint?.resolverScenarios.includes(slug)) return null
+  const source = fs.readFileSync(resolverFilePath(catalogDir, systemSlug, endpointName, slug), 'utf8')
+  return compileResolver(source, `${systemSlug}/${endpointName}/${slug}.ts`)
 }
 
 // Startup validation gate: the first request (or page render) that touches
@@ -125,8 +138,10 @@ export function getRuntime(): Runtime {
           return cached
         },
     getCompiledResolver: isDev
-      ? (systemSlug, endpointName) => devCompileResolver(catalog, catalogDir, systemSlug, endpointName)
-      : (systemSlug, endpointName) => resolvers.get(schemaKey(systemSlug, endpointName)) ?? null,
+      ? (systemSlug, endpointName, slug) =>
+          devCompileResolver(catalog, catalogDir, systemSlug, endpointName, slug)
+      : (systemSlug, endpointName, slug) =>
+          resolvers.get(resolverKey(systemSlug, endpointName, slug)) ?? null,
   }
   return runtime
 }

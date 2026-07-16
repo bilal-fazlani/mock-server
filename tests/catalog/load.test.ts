@@ -136,17 +136,42 @@ describe('loadCatalog', () => {
     expect(catalog.systems[0].endpoints[0].scenarios).toEqual({})
   })
 
-  it('marks an endpoint with _dynamic.ts as hasResolver and ignores the file as a scenario', () => {
+  it('discovers <slug>.ts scenario files as resolver-backed scenarios', () => {
     const dir = tmpCatalogDir({
       'sys/_system.json': SYSTEM_META,
       'sys/ep/_endpoint.json': ENDPOINT_META,
       'sys/ep/default.json': FIXTURE,
-      'sys/ep/_dynamic.ts': `export default () => 'default'`,
+      'sys/ep/hold.json': FIXTURE,
+      'sys/ep/by-amount.ts': `export default () => 'default'`,
     })
     const catalog = loadCatalog(dir)
     const ep = catalog.systems[0].endpoints[0]
-    expect(ep.hasResolver).toBe(true)
-    expect(Object.keys(ep.scenarios)).toEqual(['default'])
+    expect(Object.keys(ep.scenarios)).toContain('by-amount')
+    expect(ep.scenarios['by-amount']).toBe('by-amount') // label = slug until runtime patches
+    expect(ep.resolverScenarios).toEqual(['by-amount'])
+  })
+
+  it('rejects a slug backed by both x.json and x.ts', () => {
+    const dir = tmpCatalogDir({
+      'sys/_system.json': SYSTEM_META,
+      'sys/ep/_endpoint.json': ENDPOINT_META,
+      'sys/ep/default.json': FIXTURE,
+      'sys/ep/hold.json': FIXTURE,
+      'sys/ep/hold.ts': `export default () => 'default'`,
+    })
+    expect(() => loadCatalog(dir)).toThrowError(/backed by both[\s\S]*hold\.json and hold\.ts/)
+  })
+
+  it('allows default.ts in place of default.json', () => {
+    const dir = tmpCatalogDir({
+      'sys/_system.json': SYSTEM_META,
+      'sys/ep/_endpoint.json': ENDPOINT_META,
+      'sys/ep/default.ts': `export default () => 'success'`,
+      'sys/ep/success.json': FIXTURE,
+    })
+    const ep = loadCatalog(dir).systems[0].endpoints[0]
+    expect(ep.resolverScenarios).toEqual(['default'])
+    expect(Object.keys(ep.scenarios)).toEqual(['default', 'success'])
   })
 
   it('loads captureProfileKeys from endpoint metadata', () => {
