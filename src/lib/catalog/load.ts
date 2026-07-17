@@ -46,6 +46,7 @@ export function loadCatalog(catalogDir: string): Catalog {
       const schemaMeta = fs.existsSync(schemaFile) ? readMetaFile(schemaFile, problems) : null
 
       const scenarios: Record<string, string> = {}
+      const scenarioSummaries: Record<string, string> = {}
       const fixtureSlugs = new Set<string>()
       const resolverSlugs = new Set<string>()
       for (const fixEntry of sortedEntries(endpointDir)) {
@@ -66,8 +67,9 @@ export function loadCatalog(catalogDir: string): Catalog {
           scenarios[scenario] ??= scenario
         } else {
           fixtureSlugs.add(scenario)
-          scenarios[scenario] =
-            scenarioDescription(path.join(endpointDir, fixEntry.name)) ?? scenario
+          const meta = scenarioMeta(path.join(endpointDir, fixEntry.name))
+          scenarios[scenario] = meta.description ?? scenario
+          if (meta.summary) scenarioSummaries[scenario] = meta.summary
         }
       }
       for (const scenario of resolverSlugs) {
@@ -90,6 +92,7 @@ export function loadCatalog(catalogDir: string): Catalog {
         ...optionalCaptureProfileKeys(epMeta, label, problems),
         scenarios: orderDefaultFirst(scenarios),
         resolverScenarios: [...resolverSlugs].sort(),
+        ...(Object.keys(scenarioSummaries).length > 0 ? { scenarioSummaries } : {}),
         ...(schemaMeta ? { schema: schemaMeta } : {}),
       })
     }
@@ -196,22 +199,22 @@ function optionalCaptureProfileKeys(
   return { captureProfileKeys }
 }
 
-// Lenient by design: an unreadable fixture falls back to the filename here
-// and gets reported properly by validateCatalog.
-function scenarioDescription(file: string): string | null {
+// Lenient by design: an unreadable fixture falls back to the filename for the
+// label here and gets reported properly by validateCatalog.
+function scenarioMeta(file: string): { description: string | null; summary: string | null } {
   try {
     const parsed: unknown = JSON.parse(fs.readFileSync(file, 'utf8'))
-    if (
-      parsed &&
-      typeof parsed === 'object' &&
-      typeof (parsed as { description?: unknown }).description === 'string'
-    ) {
-      return (parsed as { description: string }).description
+    if (parsed && typeof parsed === 'object') {
+      const obj = parsed as { description?: unknown; summary?: unknown }
+      return {
+        description: typeof obj.description === 'string' ? obj.description : null,
+        summary: typeof obj.summary === 'string' && obj.summary.length > 0 ? obj.summary : null,
+      }
     }
   } catch {
     // reported by validateCatalog
   }
-  return null
+  return { description: null, summary: null }
 }
 
 function orderDefaultFirst(scenarios: Record<string, string>): Record<string, string> {

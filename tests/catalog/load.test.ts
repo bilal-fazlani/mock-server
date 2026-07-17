@@ -53,6 +53,17 @@ describe('loadCatalog', () => {
     })
   })
 
+  it('derives scenario summaries from JSON fixtures when present', () => {
+    const dir = tmpCatalogDir({
+      'sys/_system.json': SYSTEM_META,
+      'sys/ep/_endpoint.json': ENDPOINT_META,
+      'sys/ep/default.json': { status: 200, body: {} }, // no summary
+      'sys/ep/failure.json': { description: 'It failed', summary: 'Upstream 500', status: 500, body: {} },
+    })
+    const ep = loadCatalog(dir).systems[0].endpoints[0]
+    expect(ep.scenarioSummaries).toEqual({ failure: 'Upstream 500' })
+  })
+
   it('orders scenarios default-first, then alphabetically', () => {
     const dir = tmpCatalogDir({
       'sys/_system.json': SYSTEM_META,
