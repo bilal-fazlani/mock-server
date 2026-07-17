@@ -13,7 +13,7 @@ A system directory may also carry one optional `_spec.yaml` (or `_spec.yml` /
 `_spec.json`) — a single OpenAPI document that supplies request/response schemas
 for all of its endpoints, matched by method + path. It replaces per-endpoint
 `_schema.json` files (the two can't be mixed in one system). See
-[Schemas](schemas.md).
+[Schemas](schemas.md#system-level-_spec-file).
 
 Each endpoint directory needs one `_endpoint.json`:
 
