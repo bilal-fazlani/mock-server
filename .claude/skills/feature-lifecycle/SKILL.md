@@ -30,7 +30,8 @@ Do **not** run this yourself — it is an auth change the user performs.
 ## Board facts
 
 - Project number `3`, owner `bilal-fazlani`.
-- Lanes, in order: `Backlog` → `Ready` → `In Progress` → `In Review` → `Done`.
+- Lanes, in order (exact GitHub casing): `Backlog` → `Ready` → `In progress` →
+  `In review` → `Done`. `reference.md` matches option names case-insensitively.
 - **Automations already handle:** issue created → added to board + set `Backlog`;
   issue closed ⇄ status `Done` (bidirectional). So: never manually add-to-project or
   set Backlog, and to finish just **close the issue** (Done follows automatically).

@@ -4,8 +4,11 @@ The board is project `3`, owner `bilal-fazlani`. Commands below are written for 
 (this repo's shell — `set VAR (...)`, `$VAR`). If a `gh project ...` command fails with a
 missing-scope error, the user must run `gh auth refresh -s project,read:project` first.
 
-Throughout, replace `N` with the issue number and the lane name (e.g. `"In Progress"`)
-with the target lane.
+Throughout, replace `N` with the issue number and the lane name with the target lane.
+
+**Exact lane option names (case matters in GitHub, so the recipes below match
+case-insensitively):** `Backlog`, `Ready`, `In progress`, `In review`, `Done` — note the
+lowercase `p`/`r` in "In progress" / "In review".
 
 ## Move a card to a lane
 
@@ -17,7 +20,7 @@ set proj_id  (gh project view 3 --owner bilal-fazlani --format json --jq '.id')
 set field_id (gh project field-list 3 --owner bilal-fazlani --format json \
                 --jq '.fields[] | select(.name=="Status") | .id')
 set opt_id   (gh project field-list 3 --owner bilal-fazlani --format json \
-                --jq '.fields[] | select(.name=="Status") | .options[] | select(.name=="In Progress") | .id')
+                --jq '.fields[] | select(.name=="Status") | .options[] | select(.name|ascii_downcase=="in progress") | .id')
 set item_id  (gh project item-list 3 --owner bilal-fazlani --format json --limit 200 \
                 --jq '.items[] | select(.content.number==N) | .id')
 
