@@ -4,16 +4,19 @@ import {
   RequestContext,
   SelectorParseError,
 } from '../catalog/selector'
+import { NowFormatError, parseNow, renderNow } from './now'
 
 export class PlaceholderError extends Error {}
 
 const PLACEHOLDER_RE = /\{\{(.+?)\}\}/g
 
 function resolvePlaceholder(expr: string, ctx: RequestContext, now: Date): string {
-  if (expr === 'now:iso') return now.toISOString()
-  if (expr === 'now:YYYYMMDD') return now.toISOString().slice(0, 10).replace(/-/g, '')
-  if (expr.startsWith('now:')) {
-    throw new PlaceholderError(`unknown now formatter in "{{${expr}}}" (use now:iso or now:YYYYMMDD)`)
+  try {
+    const spec = parseNow(expr)
+    if (spec) return renderNow(spec, now)
+  } catch (err) {
+    if (err instanceof NowFormatError) throw new PlaceholderError(err.message)
+    throw err
   }
   let selector: ReturnType<typeof parseSelector>
   try {

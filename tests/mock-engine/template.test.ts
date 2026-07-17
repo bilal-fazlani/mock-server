@@ -42,6 +42,19 @@ describe('resolveTemplate', () => {
     expect(resolveTemplate('{{now:iso}}', ctx(), now)).toBe('2026-07-02T10:20:30.000Z')
   })
 
+  it('resolves now offsets deterministically from the injected date', () => {
+    expect(resolveTemplate('{{now+3d:iso}}', ctx(), now)).toBe('2026-07-05T10:20:30.000Z')
+    expect(resolveTemplate('{{now-15m:iso}}', ctx(), now)).toBe('2026-07-02T10:05:30.000Z')
+    expect(resolveTemplate('{{now+1h:iso}}', ctx(), now)).toBe('2026-07-02T11:20:30.000Z')
+    expect(resolveTemplate('{{now+1d:YYYYMMDD}}', ctx(), now)).toBe('20260703')
+    expect(resolveTemplate('{{now+0d:iso}}', ctx(), now)).toBe('2026-07-02T10:20:30.000Z')
+  })
+
+  it('throws PlaceholderError on malformed now offsets', () => {
+    expect(() => resolveTemplate('{{now+3x:iso}}', ctx(), now)).toThrow(PlaceholderError)
+    expect(() => resolveTemplate('{{now+:iso}}', ctx(), now)).toThrow(PlaceholderError)
+  })
+
   it('stringifies numeric extracted values inside strings', () => {
     const c = ctx({ body: { n: 7 } })
     expect(resolveTemplate('n is {{$.n}}', c, now)).toBe('n is 7')
