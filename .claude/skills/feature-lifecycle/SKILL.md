@@ -41,6 +41,31 @@ Do **not** run this yourself — it is an auth change the user performs.
 Create one todo per phase and work them in order. Each transition has an observable
 trigger — do not skip ahead.
 
+### 0. Survey the board — trigger: before opening a new ticket, or before designing an issue we're picking up
+
+Before designing anything, get the lay of the open issues so this work moves *with*
+the backlog, not against it. This phase runs at **both** entry points — a brand-new
+idea and picking up an existing issue.
+
+1. **List them:** `gh issue list --state open` — scan titles, labels, and existing
+   relationships. (`gh issue view N` shows an issue's `parent` / `sub-issues` /
+   `blocked-by` / `blocking`.)
+2. **Read the related ones:** open the body of any issue sharing this work's `area:`
+   label, plus any the titles flag as obviously related. No need to read every issue —
+   same-area plus obviously-related is enough.
+3. **Check two things** against what you're about to design:
+   - **Conflict** — does another open issue want the same surface to behave in an
+     opposite or incompatible way?
+   - **Direction** — does another issue describe a future step this design should leave
+     room for? Design so the two **compose (same direction)**, never so this change
+     blocks or contradicts the other.
+4. **On a contradiction, stop and confirm with the user** before designing around it —
+   name the specific issue and the tension. Mere alignment (no contradiction) needs no
+   confirmation; just fold it into the design.
+5. **Wire up any relationships** the survey reveals (parent/sub-issue, blocked-by,
+   blocking) — see "Issue relationships" below. For a new idea, if the survey shows it
+   is already tracked, extend that issue instead of opening a duplicate.
+
 ### 1. Open the ticket — trigger: we've confirmed we're doing the work
 
 1. **Confirm first:** ask *"Shall I open a ticket for this?"* Proceed only on yes.
@@ -50,6 +75,8 @@ trigger — do not skip ahead.
    **exactly one type label and one area label** per the "GitHub issue labels" section of
    `AGENTS.md` (type: `bug`/`enhancement`/`tech-debt`/`documentation`; area: `area: …`):
    `gh issue create --label enhancement --label "area: ui" --title "..." --body "..."`
+   If the phase-0 survey surfaced a parent or a dependency, set it **at creation**:
+   add `--parent P`, `--blocked-by B`, and/or `--blocking X` (see "Issue relationships").
 4. **Record the issue number `#N`** — you'll reference it for the rest of the session.
 
 The board auto-adds it and sets `Backlog`. Do nothing else here.
@@ -129,6 +156,35 @@ those would drive the card to Done and close the issue, **bypassing In Review an
 user's approval**. A plain `Refs #N` mention is only a cross-reference and creates no
 formal link, so the review gate stays with the user. Work that has no PR (direct on
 main, or a local worktree) links to the issue via comments instead.
+
+## Issue relationships
+
+GitHub tracks four native relationships. Use them so the backlog's structure is
+explicit rather than buried in issue prose — set them when creating an issue and
+whenever the phase-0 survey or the design surfaces a new dependency. (`gh` ≥ 2.65
+supports these flags directly; this repo's `gh` is 2.96.)
+
+| Relationship | Meaning | At create (`gh issue create …`) | Later (`gh issue edit …`) |
+| --- | --- | --- | --- |
+| **parent / sub-issue** | this issue is part of a larger tracked issue | `--parent P` | `N --parent P` · `P --add-sub-issue N` |
+| **blocked by** | this issue can't proceed until another lands | `--blocked-by B` | `N --add-blocked-by B` |
+| **blocking** | this issue must land before another can proceed | `--blocking X` | `N --add-blocking X` |
+
+`--blocked-by` / `--blocking` / `--add-sub-issue` take comma-separated numbers or
+URLs; `--remove-parent` / `--remove-blocked-by` / `--remove-blocking` /
+`--remove-sub-issue` undo them. `blocked by` and `blocking` are two views of one edge
+(setting `N --add-blocked-by B` is the same edge as `B --add-blocking N`) — set it from
+whichever side you're editing; don't set both.
+
+When to use which:
+- **parent / sub-issue** when the work decomposes a larger effort (e.g. several
+  placeholder issues under one "placeholder engine" umbrella).
+- **blocked by / blocking** for real ordering dependencies found in the survey — if A
+  must ship before B, set `B --add-blocked-by A`.
+
+Relationships are structural metadata: unlike a PR's formal link (see the `Refs #N`
+rule), they are **not** among the board automations listed in "Board facts", so setting
+them does not move the card or bypass review.
 
 ## Comment voice (every `gh issue comment` — phases 5, 6, 7, 8b)
 

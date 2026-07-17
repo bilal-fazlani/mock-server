@@ -53,8 +53,14 @@ body file before writing it back.
 ## Common issue commands
 
 ```fish
-# create (phase 1) — records #N from the output URL
-gh issue create --title "add X" --body "Short summary of the committed work."
+# survey the board first (phase 0) — scan titles, labels, relationships
+gh issue list --state open
+gh issue view N   # shows parent / sub-issues / blocked-by / blocking for one issue
+
+# create (phase 1) — records #N from the output URL. Add relationship flags if the
+# phase-0 survey surfaced a parent or dependency (all optional):
+gh issue create --title "add X" --body "Short summary of the committed work." \
+  --parent P --blocked-by B1,B2 --blocking X
 
 # replace the body with fuller detail (phase 2) or an edited checklist (phase 3/5/6)
 gh issue edit N --body-file /tmp/issue-N-body.md
@@ -67,6 +73,15 @@ printf '%s\n\n%s\n' \
   '<sub>🤖 Automated note posted by Claude Code, acting through @bilal-fazlani'"'"'s account.</sub>' \
   > /tmp/issue-N-comment.md
 gh issue comment N --body-file /tmp/issue-N-comment.md
+
+# add / change relationships later (phase 0/2/3) — comma-separated numbers or URLs.
+# blocked-by and blocking are two views of one edge; set it from one side only.
+gh issue edit N --parent P                       # make N a sub-issue of P
+gh issue edit P --add-sub-issue N1,N2            # equivalent, from the parent side
+gh issue edit N --add-blocked-by B               # N is blocked by B
+gh issue edit N --add-blocking X1,X2             # N blocks X1, X2
+gh issue edit N --remove-parent                  # undo: also --remove-blocked-by /
+                                                 # --remove-blocking / --remove-sub-issue
 
 # close on approval (phase 8a) — the board auto-sets Done; do NOT also edit Status
 gh issue close N
