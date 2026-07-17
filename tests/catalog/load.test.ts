@@ -203,6 +203,17 @@ describe('loadCatalog', () => {
     })
   })
 
+  it('throws when a system _spec.yaml is not valid YAML', () => {
+    const dir = tmpCatalogDir({
+      'sys/_system.json': SYSTEM_META,
+      'sys/_spec.yaml': 'foo: [unclosed',
+      'sys/ep/_endpoint.json': ENDPOINT_META,
+      'sys/ep/default.json': FIXTURE,
+    })
+    expect(() => loadCatalog(dir)).toThrow(CatalogLoadError)
+    expect(() => loadCatalog(dir)).toThrow(/not valid YAML\/JSON/)
+  })
+
   it('throws when captureProfileKeys metadata is structurally invalid', () => {
     const dir = tmpCatalogDir({
       'sys/_system.json': SYSTEM_META,

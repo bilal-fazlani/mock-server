@@ -27,7 +27,8 @@ export interface EndpointDef {
    * `<slug>.json` fixture. Always present; empty when the endpoint has none.
    */
   resolverScenarios: string[]
-  /** Raw parsed _schema.json (OpenAPI 3.1 operation object), if present. */
+  /** Raw operation object (OpenAPI 3.1) for this endpoint, if present — from a
+   * per-endpoint `_schema.json`, or assembled from the system `_spec` file. */
   schema?: Record<string, unknown>
 }
 
