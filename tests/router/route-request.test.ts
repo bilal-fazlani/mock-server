@@ -34,7 +34,7 @@ const CATALOG: Catalog = {
           method: 'POST',
           path: '/hello/world',
           profileIdSelector: '$.customerId',
-          scenarios: { default: 'Success', failure: 'Failure' },
+          scenarios: { default: { label: 'Success' }, failure: { label: 'Failure' } },
           resolverScenarios: [],
         },
         {
@@ -44,7 +44,7 @@ const CATALOG: Catalog = {
           path: '/capture-assessment',
           profileIdSelector: '$.customerId',
           captureProfileKeys: [{ namespace: 'event-id', keySelector: '$.eventID' }],
-          scenarios: { default: 'Success' },
+          scenarios: { default: { label: 'Success' } },
           resolverScenarios: [],
         },
         {
@@ -53,7 +53,7 @@ const CATALOG: Catalog = {
           method: 'POST',
           path: '/callbacks/transaction',
           profileIdSelector: 'profileKey:event-id:$.eventID',
-          scenarios: { default: 'Success' },
+          scenarios: { default: { label: 'Success' } },
           resolverScenarios: [],
         },
         {
@@ -62,7 +62,7 @@ const CATALOG: Catalog = {
           method: 'GET',
           path: '/customers/{customerId}/status',
           profileIdSelector: 'path:customerId',
-          scenarios: { default: 'Success' },
+          scenarios: { default: { label: 'Success' } },
           resolverScenarios: [],
         },
         {
@@ -71,7 +71,7 @@ const CATALOG: Catalog = {
           method: 'GET',
           path: '/lookup',
           profileIdSelector: 'query:cid',
-          scenarios: { default: 'Success' },
+          scenarios: { default: { label: 'Success' } },
           resolverScenarios: [],
         },
         {
@@ -80,7 +80,7 @@ const CATALOG: Catalog = {
           method: 'GET',
           path: '/bearer/opaque',
           profileIdSelector: 'bearer',
-          scenarios: { default: 'Success' },
+          scenarios: { default: { label: 'Success' } },
           resolverScenarios: [],
         },
         {
@@ -89,7 +89,7 @@ const CATALOG: Catalog = {
           method: 'GET',
           path: '/bearer/claim',
           profileIdSelector: 'bearer:sub',
-          scenarios: { default: 'Success' },
+          scenarios: { default: { label: 'Success' } },
           resolverScenarios: [],
         },
         {
@@ -98,7 +98,7 @@ const CATALOG: Catalog = {
           method: 'POST',
           path: '/oauth/token',
           mockType: 'global',
-          scenarios: { default: 'Success', expired: 'Expired token' },
+          scenarios: { default: { label: 'Success' }, expired: { label: 'Expired token' } },
           resolverScenarios: [],
         },
         {
@@ -107,7 +107,7 @@ const CATALOG: Catalog = {
           method: 'POST',
           path: '/tpl',
           profileIdSelector: '$.customerId',
-          scenarios: { default: 'Success' },
+          scenarios: { default: { label: 'Success' } },
           resolverScenarios: [],
         },
         {
@@ -116,7 +116,7 @@ const CATALOG: Catalog = {
           method: 'POST',
           path: '/dynamic-ep',
           profileIdSelector: '$.customerId',
-          scenarios: { default: 'Success', failure: 'Failure', dynamic: 'dynamic' },
+          scenarios: { default: { label: 'Success' }, failure: { label: 'Failure' }, dynamic: { label: 'dynamic' } },
           resolverScenarios: ['dynamic'],
         },
         {
@@ -125,7 +125,7 @@ const CATALOG: Catalog = {
           method: 'POST',
           path: '/resolver-default',
           profileIdSelector: '$.customerId',
-          scenarios: { default: 'default', flaky: 'flaky', hold: 'Hold', success: 'Success' },
+          scenarios: { default: { label: 'default' }, flaky: { label: 'flaky' }, hold: { label: 'Hold' }, success: { label: 'Success' } },
           resolverScenarios: ['default', 'flaky'],
         },
         {
@@ -134,7 +134,7 @@ const CATALOG: Catalog = {
           method: 'POST',
           path: '/schema-checked',
           profileIdSelector: '$.customerId',
-          scenarios: { default: 'Success', bad_response: 'Bad response' },
+          scenarios: { default: { label: 'Success' }, bad_response: { label: 'Bad response' } },
           resolverScenarios: [],
           schema: {
             requestBody: {

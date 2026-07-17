@@ -19,7 +19,7 @@ const CATALOG: Catalog = {
           method: 'POST',
           path: '/hello',
           profileIdSelector: '$.customerId',
-          scenarios: { default: 'Success' },
+          scenarios: { default: { label: 'Success' } },
           resolverScenarios: [],
         },
       ],

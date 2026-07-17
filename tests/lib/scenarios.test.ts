@@ -9,7 +9,7 @@ import {
 
 const ep = (over: Partial<EndpointDef> = {}): EndpointDef => ({
   name: 'ep', displayName: 'Ep', method: 'GET', path: '/ep',
-  scenarios: { default: 'Default', frozen: 'Frozen' },
+  scenarios: { default: { label: 'Default' }, frozen: { label: 'Frozen' } },
   resolverScenarios: [],
   ...over,
 })
@@ -28,7 +28,7 @@ describe('scenariosWithPassthrough', () => {
   it('no longer injects any synthetic entries beyond real', () => {
     const endpoint = {
       name: 'e', displayName: 'E', method: 'GET', path: '/e',
-      scenarios: { default: 'default', 'by-amount': 'Routes by amount' },
+      scenarios: { default: { label: 'default' }, 'by-amount': { label: 'Routes by amount' } },
       resolverScenarios: ['by-amount'],
     } as EndpointDef
     expect(Object.keys(scenariosWithPassthrough(endpoint, false))).toEqual([
@@ -50,7 +50,7 @@ describe('isScenarioDeclared', () => {
     expect(isScenarioDeclared(ep(), 'ghost')).toBe(false)
   })
   it('accepts a resolver-backed slug like any other declared scenario', () => {
-    const endpoint = ep({ scenarios: { default: 'Default', 'by-amount': 'Routes' }, resolverScenarios: ['by-amount'] })
+    const endpoint = ep({ scenarios: { default: { label: 'Default' }, 'by-amount': { label: 'Routes' } }, resolverScenarios: ['by-amount'] })
     expect(isScenarioDeclared(endpoint, 'by-amount')).toBe(true)
   })
 })

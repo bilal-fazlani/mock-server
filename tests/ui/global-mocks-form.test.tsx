@@ -17,7 +17,7 @@ const catalog: Catalog = {
           method: 'POST',
           path: '/oauth/token',
           mockType: 'global',
-          scenarios: { default: 'Token', expired: 'Expired', dynamic: 'dynamic' },
+          scenarios: { default: { label: 'Token' }, expired: { label: 'Expired' }, dynamic: { label: 'dynamic' } },
           resolverScenarios: ['dynamic'],
         },
       ],
@@ -72,7 +72,7 @@ describe('GlobalMocksForm reset dynamic history button', () => {
           endpoints: [
             {
               ...catalog.systems[0].endpoints[0],
-              scenarios: { default: 'Token', expired: 'Expired' },
+              scenarios: { default: { label: 'Token' }, expired: { label: 'Expired' } },
               resolverScenarios: ['default'],
             },
           ],

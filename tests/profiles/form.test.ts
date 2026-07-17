@@ -15,7 +15,7 @@ const catalog: Catalog = {
           method: 'POST',
           path: '/hello/world',
           profileIdSelector: '$.customerId',
-          scenarios: { default: 'Success', failure: 'Failure', timeout: 'Timeout' },
+          scenarios: { default: { label: 'Success' }, failure: { label: 'Failure' }, timeout: { label: 'Timeout' } },
           resolverScenarios: [],
         },
         {
@@ -24,7 +24,7 @@ const catalog: Catalog = {
           method: 'POST',
           path: '/goodbye/world',
           profileIdSelector: '$.customerId',
-          scenarios: { default: 'Success' },
+          scenarios: { default: { label: 'Success' } },
           resolverScenarios: [],
         },
         {
@@ -33,7 +33,7 @@ const catalog: Catalog = {
           method: 'GET',
           path: '/resolver',
           profileIdSelector: '$.customerId',
-          scenarios: { default: 'Success', by_amount: 'Routes by amount' },
+          scenarios: { default: { label: 'Success' }, by_amount: { label: 'Routes by amount' } },
           resolverScenarios: ['by_amount'],
         },
       ],

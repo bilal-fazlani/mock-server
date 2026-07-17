@@ -21,7 +21,11 @@ function toCatalogView(catalog: Catalog) {
         path: endpoint.path,
         mockType: endpoint.mockType ?? 'profiled',
         resolverScenarios: endpoint.resolverScenarios,
-        scenarios: endpoint.scenarios,
+        // The runtime-control API contract exposes scenarios as slug → label
+        // strings; the internal `summary` is surfaced only in the catalog UI.
+        scenarios: Object.fromEntries(
+          Object.entries(endpoint.scenarios).map(([slug, meta]) => [slug, meta.label]),
+        ),
       })),
     })),
   }

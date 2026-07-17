@@ -25,9 +25,9 @@ export async function buildScenarioViews(
   passthroughAsDefault: boolean,
 ): Promise<ScenarioView[]> {
   const declared: ScenarioView[] = await Promise.all(
-    Object.entries(endpoint.scenarios).map(async ([key, label]) => {
+    Object.entries(endpoint.scenarios).map(async ([key, meta]) => {
+      const { label, summary } = meta
       const isDefault = key === 'default'
-      const summary = endpoint.scenarioSummaries?.[key]
       if (endpoint.resolverScenarios.includes(key)) {
         try {
           const code = fs.readFileSync(

@@ -218,7 +218,7 @@ describe('buildSchemaRegistry', () => {
               method: 'POST',
               path: '/hello/world',
               profileIdSelector: '$.customerId',
-              scenarios: { default: 'Success' },
+              scenarios: { default: { label: 'Success' } },
               resolverScenarios: [],
               ...(schema !== undefined ? { schema } : {}),
             },

@@ -30,7 +30,7 @@ function endpoint(overrides: Partial<EndpointDef> = {}): EndpointDef {
     method: 'POST',
     path: '/hello/world',
     profileIdSelector: '$.customerId',
-    scenarios: { default: 'Success' },
+    scenarios: { default: { label: 'Success' } },
     resolverScenarios: [],
     ...overrides,
   }
@@ -251,7 +251,7 @@ describe('validateCatalog', () => {
   it('flags scenarios missing the required "default" key', () => {
     const dir = tmpCatalogDir({ 'test-system/hello_world/success.json': GOOD_FIXTURE })
     const { errors } = validateCatalog(
-      catalog([endpoint({ scenarios: { success: 'Success' } })]),
+      catalog([endpoint({ scenarios: { success: { label: 'Success' } } })]),
       dir,
     )
     expect(errors.join('\n')).toMatch(/missing required "default" scenario/)
@@ -263,7 +263,7 @@ describe('validateCatalog', () => {
       'test-system/hello_world/real.json': GOOD_FIXTURE,
     })
     const { errors } = validateCatalog(
-      catalog([endpoint({ scenarios: { default: 'Success', real: 'Passthrough' } })]),
+      catalog([endpoint({ scenarios: { default: { label: 'Success' }, real: { label: 'Passthrough' } } })]),
       dir,
     )
     expect(errors.join('\n')).toMatch(/"real" must not exist/)
@@ -276,7 +276,7 @@ describe('validateCatalog', () => {
     const { errors } = validateCatalog(
       catalog([
         endpoint({
-          scenarios: { default: 'Success', 'by-amount': 'Routes by amount' },
+          scenarios: { default: { label: 'Success' }, 'by-amount': { label: 'Routes by amount' } },
           resolverScenarios: ['by-amount'],
         }),
       ]),
@@ -293,7 +293,7 @@ describe('validateCatalog', () => {
     const { errors } = validateCatalog(
       catalog([
         endpoint({
-          scenarios: { default: 'Default (resolver)', success: 'Success' },
+          scenarios: { default: { label: 'Default (resolver)' }, success: { label: 'Success' } },
           resolverScenarios: ['default'],
         }),
       ]),
@@ -309,7 +309,7 @@ describe('validateCatalog', () => {
     const { errors } = validateCatalog(
       catalog([
         endpoint({
-          scenarios: { default: 'Success', real: 'Passthrough (resolver)' },
+          scenarios: { default: { label: 'Success' }, real: { label: 'Passthrough (resolver)' } },
           resolverScenarios: ['real'],
         }),
       ]),
@@ -323,7 +323,7 @@ describe('validateCatalog', () => {
     const { errors } = validateCatalog(
       catalog([
         endpoint({
-          scenarios: { default: 'Default (resolver)' },
+          scenarios: { default: { label: 'Default (resolver)' } },
           resolverScenarios: ['default'],
         }),
       ]),
@@ -417,7 +417,7 @@ describe('validateCatalog with _schema.json', () => {
       'test-system/hello_world/failure.json': { status: 500, body: { message: 'boom' } },
     })
     const { errors } = validateCatalog(
-      catalog([endpoint({ schema: OP, scenarios: { default: 'Success', failure: 'Failure' } })]),
+      catalog([endpoint({ schema: OP, scenarios: { default: { label: 'Success' }, failure: { label: 'Failure' } } })]),
       dir,
     )
     expect(errors.join('\n')).toMatch(/status 500.*no matching response schema/)

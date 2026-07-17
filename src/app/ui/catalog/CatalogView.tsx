@@ -47,7 +47,7 @@ export function CatalogView({
                   {endpoint.schema && <SchemaBadge />}
                 </div>
                 <div className="flex gap-4 text-[0.8rem] text-muted-foreground">
-                  <span>default: {endpoint.scenarios.default}</span>
+                  <span>default: {endpoint.scenarios.default?.label}</span>
                   <span>
                     {Object.keys(endpoint.scenarios).length} scenarios
                     {' + passthrough'}
