@@ -59,6 +59,22 @@ describe('validateCatalog', () => {
     expect(validateCatalog(catalog([endpoint()]), dir).errors).toEqual([])
   })
 
+  it('accepts a fixture with a valid delay', () => {
+    const dir = tmpCatalogDir({
+      'test-system/hello_world/default.json': { status: 200, delay: '400ms', body: { ok: true } },
+    })
+    expect(validateCatalog(catalog([endpoint()]), dir).errors).toEqual([])
+  })
+
+  it('rejects a fixture with a malformed delay', () => {
+    const dir = tmpCatalogDir({
+      'test-system/hello_world/default.json': { status: 200, delay: '400', body: { ok: true } },
+    })
+    expect(validateCatalog(catalog([endpoint()]), dir).errors.join('\n')).toMatch(
+      /invalid delay "400"/,
+    )
+  })
+
   it('flags a missing fixture for a declared scenario', () => {
     const dir = tmpCatalogDir()
     const { errors } = validateCatalog(catalog([endpoint()]), dir)

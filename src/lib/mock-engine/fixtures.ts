@@ -5,6 +5,9 @@ export interface Fixture {
   description?: string
   summary?: string
   status: number
+  /** Optional response delay, e.g. "400ms", "2s", "1m". Applied before the
+   * mock response is returned. Validated at catalog load. */
+  delay?: string
   headers?: Record<string, string>
   body: unknown
 }
