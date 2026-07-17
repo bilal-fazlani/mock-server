@@ -353,6 +353,25 @@ describe('validateCatalog', () => {
     )
   })
 
+  it('accepts a valid now offset placeholder and rejects a malformed one', () => {
+    const dir = tmpCatalogDir({
+      'test-system/hello_world/default.json': { status: 200, body: { x: '{{now+3d:iso}}' } },
+    })
+    expect(validateCatalog(catalog([endpoint()]), dir).errors).not.toContain(
+      expect.stringContaining('invalid placeholder'),
+    )
+    expect(validateCatalog(catalog([endpoint()]), dir).errors).toEqual([])
+
+    const dir2 = tmpCatalogDir({
+      'test-system/hello_world/default.json': { status: 200, body: { x: '{{now+3x:iso}}' } },
+    })
+    expect(
+      validateCatalog(catalog([endpoint()]), dir2).errors.some((e) =>
+        e.includes('invalid placeholder "{{now+3x:iso}}"'),
+      ),
+    ).toBe(true)
+  })
+
   it('builds a fixture cache keyed by file path', () => {
     const dir = tmpCatalogDir({ 'test-system/hello_world/default.json': GOOD_FIXTURE })
     const { errors, fixtures } = validateCatalog(catalog([endpoint()]), dir)

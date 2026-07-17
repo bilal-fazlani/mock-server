@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import { fixtureFilePath, type Fixture } from '../mock-engine/fixtures'
+import { parseNow } from '../mock-engine/now'
 import { listPlaceholders } from '../mock-engine/template'
 import {
   parsePathTemplate,
@@ -174,7 +175,12 @@ export function validateCatalog(catalog: Catalog, catalogDir: string): Validatio
           ...listPlaceholders(fixture.headers ?? {}),
         ]
         for (const expr of placeholders) {
-          if (expr === 'now:iso' || expr === 'now:YYYYMMDD') continue
+          try {
+            if (parseNow(expr)) continue
+          } catch {
+            errors.push(`${label}: fixture ${file} has invalid placeholder "{{${expr}}}"`)
+            continue
+          }
           try {
             const sel = parseSelector(expr)
             if (sel.source === 'path' && !declaredParams.has(sel.name)) {
