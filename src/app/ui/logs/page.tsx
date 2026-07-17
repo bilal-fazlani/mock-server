@@ -50,9 +50,9 @@ export default async function LogsPage({
           scenarioLabels: Object.fromEntries(
             runtime.catalog.systems.flatMap((s) =>
               s.endpoints.flatMap((e) =>
-                Object.entries(e.scenarios).map(([scenario, label]) => [
+                Object.entries(e.scenarios).map(([scenario, meta]) => [
                   `${s.slug}/${e.name}/${scenario}`,
-                  label,
+                  meta.label,
                 ]),
               ),
             ),

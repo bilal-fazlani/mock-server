@@ -9,7 +9,7 @@ function endpoint(overrides: Partial<EndpointDef> = {}): EndpointDef {
     method: 'POST',
     path: '/hello/world',
     profileIdSelector: '$.customerId',
-    scenarios: { default: 'Success' },
+    scenarios: { default: { label: 'Success' } },
     resolverScenarios: [],
     ...overrides,
   }

@@ -74,11 +74,11 @@ describe('getRuntime', () => {
     expect(rt.resolverHistoryLimit).toBe(10)
     // The compiled module's `description` export patches the scenario label.
     const ep = rt.catalog.systems[0].endpoints[0]
-    expect(ep.scenarios.default).toBe('Routes by amount')
+    expect(ep.scenarios.default.label).toBe('Routes by amount')
     expect(rt.getCompiledResolver('sys', 'ep', 'missing')).toBeNull()
   })
 
-  it('patches scenarioSummaries from a resolver summary export', async () => {
+  it('patches a scenario summary from a resolver summary export', async () => {
     const dir = tmpProjectDir({
       'catalog/sys/_system.json': SYSTEM_META,
       'catalog/sys/ep/_endpoint.json': ENDPOINT_META,
@@ -91,7 +91,7 @@ describe('getRuntime', () => {
     const { getRuntime } = await import('../../src/lib/runtime')
 
     const ep = getRuntime().catalog.systems[0].endpoints[0]
-    expect(ep.scenarioSummaries).toEqual({ default: 'Routes by amount' })
+    expect(ep.scenarios.default.summary).toBe('Routes by amount')
   })
 
   it('serves the resolver from the startup cache in production', async () => {

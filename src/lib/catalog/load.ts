@@ -1,6 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import type { Catalog, EndpointDef, SystemDef } from './types'
+import type { Catalog, EndpointDef, ScenarioMeta, SystemDef } from './types'
 
 const SYSTEM_META = '_system.json'
 const ENDPOINT_META = '_endpoint.json'
@@ -45,8 +45,7 @@ export function loadCatalog(catalogDir: string): Catalog {
       const schemaFile = path.join(endpointDir, SCHEMA_META)
       const schemaMeta = fs.existsSync(schemaFile) ? readMetaFile(schemaFile, problems) : null
 
-      const scenarios: Record<string, string> = {}
-      const scenarioSummaries: Record<string, string> = {}
+      const scenarios: Record<string, ScenarioMeta> = {}
       const fixtureSlugs = new Set<string>()
       const resolverSlugs = new Set<string>()
       for (const fixEntry of sortedEntries(endpointDir)) {
@@ -63,13 +62,15 @@ export function loadCatalog(catalogDir: string): Catalog {
         if (ext === 'ts') {
           resolverSlugs.add(scenario)
           // Label = slug for now; getRuntime patches in the compiled resolver's
-          // `description` export after compilation.
-          scenarios[scenario] ??= scenario
+          // `description` and `summary` exports after compilation.
+          scenarios[scenario] ??= { label: scenario }
         } else {
           fixtureSlugs.add(scenario)
-          const meta = scenarioMeta(path.join(endpointDir, fixEntry.name))
-          scenarios[scenario] = meta.description ?? scenario
-          if (meta.summary) scenarioSummaries[scenario] = meta.summary
+          const meta = parseScenarioFile(path.join(endpointDir, fixEntry.name))
+          scenarios[scenario] = {
+            label: meta.description ?? scenario,
+            ...(meta.summary ? { summary: meta.summary } : {}),
+          }
         }
       }
       for (const scenario of resolverSlugs) {
@@ -92,7 +93,6 @@ export function loadCatalog(catalogDir: string): Catalog {
         ...optionalCaptureProfileKeys(epMeta, label, problems),
         scenarios: orderDefaultFirst(scenarios),
         resolverScenarios: [...resolverSlugs].sort(),
-        ...(Object.keys(scenarioSummaries).length > 0 ? { scenarioSummaries } : {}),
         ...(schemaMeta ? { schema: schemaMeta } : {}),
       })
     }
@@ -201,7 +201,7 @@ function optionalCaptureProfileKeys(
 
 // Lenient by design: an unreadable fixture falls back to the filename for the
 // label here and gets reported properly by validateCatalog.
-function scenarioMeta(file: string): { description: string | null; summary: string | null } {
+function parseScenarioFile(file: string): { description: string | null; summary: string | null } {
   try {
     const parsed: unknown = JSON.parse(fs.readFileSync(file, 'utf8'))
     if (parsed && typeof parsed === 'object') {
@@ -217,8 +217,10 @@ function scenarioMeta(file: string): { description: string | null; summary: stri
   return { description: null, summary: null }
 }
 
-function orderDefaultFirst(scenarios: Record<string, string>): Record<string, string> {
+function orderDefaultFirst(
+  scenarios: Record<string, ScenarioMeta>,
+): Record<string, ScenarioMeta> {
   if (!('default' in scenarios)) return scenarios
-  const { default: defaultLabel, ...rest } = scenarios
-  return { default: defaultLabel, ...rest }
+  const { default: defaultMeta, ...rest } = scenarios
+  return { default: defaultMeta, ...rest }
 }

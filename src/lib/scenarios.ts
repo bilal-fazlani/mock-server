@@ -12,9 +12,11 @@ export function scenariosWithPassthrough(
   endpoint: EndpointDef,
   passthroughAsDefault: boolean,
 ): Record<string, string> {
-  const { default: defaultLabel, ...rest } = endpoint.scenarios
+  const labels: Record<string, string> = {}
+  for (const [slug, meta] of Object.entries(endpoint.scenarios)) labels[slug] = meta.label
+  const { default: defaultLabel, ...rest } = labels
   const declared =
-    defaultLabel === undefined ? endpoint.scenarios : { [DEFAULT_SCENARIO]: defaultLabel, ...rest }
+    defaultLabel === undefined ? labels : { [DEFAULT_SCENARIO]: defaultLabel, ...rest }
   return passthroughAsDefault
     ? { [REAL_SCENARIO]: REAL_LABEL, ...declared }
     : { ...declared, [REAL_SCENARIO]: REAL_LABEL }

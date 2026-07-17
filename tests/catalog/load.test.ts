@@ -48,8 +48,8 @@ describe('loadCatalog', () => {
     })
     const catalog = loadCatalog(dir)
     expect(catalog.systems[0].endpoints[0].scenarios).toEqual({
-      default: 'default',
-      failure: 'It failed',
+      default: { label: 'default' },
+      failure: { label: 'It failed' },
     })
   })
 
@@ -61,7 +61,10 @@ describe('loadCatalog', () => {
       'sys/ep/failure.json': { description: 'It failed', summary: 'Upstream 500', status: 500, body: {} },
     })
     const ep = loadCatalog(dir).systems[0].endpoints[0]
-    expect(ep.scenarioSummaries).toEqual({ failure: 'Upstream 500' })
+    expect(ep.scenarios).toEqual({
+      default: { label: 'default' },
+      failure: { label: 'It failed', summary: 'Upstream 500' },
+    })
   })
 
   it('orders scenarios default-first, then alphabetically', () => {
@@ -158,7 +161,7 @@ describe('loadCatalog', () => {
     const catalog = loadCatalog(dir)
     const ep = catalog.systems[0].endpoints[0]
     expect(Object.keys(ep.scenarios)).toContain('by-amount')
-    expect(ep.scenarios['by-amount']).toBe('by-amount') // label = slug until runtime patches
+    expect(ep.scenarios['by-amount']).toEqual({ label: 'by-amount' }) // label = slug until runtime patches
     expect(ep.resolverScenarios).toEqual(['by-amount'])
   })
 

@@ -17,7 +17,7 @@ const endpoint: EndpointDef = {
   method: 'POST',
   path: '/hello/world',
   profileIdSelector: '$.customerId',
-  scenarios: { default: 'Hello success' },
+  scenarios: { default: { label: 'Hello success' } },
   resolverScenarios: [],
 }
 
@@ -379,7 +379,7 @@ describe('EndpointView', () => {
       method: 'POST',
       path: '/oauth/token',
       mockType: 'global',
-      scenarios: { default: 'Token' },
+      scenarios: { default: { label: 'Token' } },
       resolverScenarios: [],
     }
     const html = view({ endpoint: globalEndpoint })

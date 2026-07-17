@@ -17,7 +17,7 @@ const catalog: Catalog = {
           method: 'POST',
           path: '/hello/world',
           profileIdSelector: '$.customerId',
-          scenarios: { default: 'Hello success', failure: 'Hello failure' },
+          scenarios: { default: { label: 'Hello success' }, failure: { label: 'Hello failure' } },
           resolverScenarios: [],
         },
       ],
@@ -168,7 +168,7 @@ describe('ProfileForm', () => {
           endpoints: [
             {
               ...catalog.systems[0].endpoints[0],
-              scenarios: { failure: 'Hello failure', default: 'Hello success' },
+              scenarios: { failure: { label: 'Hello failure' }, default: { label: 'Hello success' } },
             },
           ],
         },
@@ -222,7 +222,7 @@ describe('ProfileForm', () => {
           endpoints: [
             {
               ...catalog.systems[0].endpoints[0],
-              scenarios: { default: 'Hello success', hold: 'Hold', 'by-amount': 'By amount' },
+              scenarios: { default: { label: 'Hello success' }, hold: { label: 'Hold' }, 'by-amount': { label: 'By amount' } },
               resolverScenarios: ['by-amount'],
             },
           ],

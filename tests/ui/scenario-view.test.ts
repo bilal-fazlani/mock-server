@@ -20,7 +20,7 @@ const endpoint: EndpointDef = {
   method: 'POST',
   path: '/hello/world',
   profileIdSelector: '$.customerId',
-  scenarios: { default: 'Success' },
+  scenarios: { default: { label: 'Success' } },
   resolverScenarios: [],
 }
 
@@ -32,18 +32,17 @@ describe('buildScenarioViews', () => {
     if (fixture?.kind === 'fixture') expect(fixture.json).toContain('"status"')
   })
 
-  it('carries scenarioSummaries onto the matching view', async () => {
+  it('carries a scenario summary onto the matching view', async () => {
     const withSummary: EndpointDef = {
       ...endpoint,
-      scenarios: { default: 'Success' },
-      scenarioSummaries: { default: 'Returns a 200 body' },
+      scenarios: { default: { label: 'Success', summary: 'Returns a 200 body' } },
     }
     const views = await buildScenarioViews(system, withSummary, fixturesDir, {}, false)
     expect(views.find((v) => v.key === 'default')?.summary).toBe('Returns a 200 body')
   })
 
   it('reports an error view when a fixture is missing', async () => {
-    const missing: EndpointDef = { ...endpoint, scenarios: { nope: 'Missing' } }
+    const missing: EndpointDef = { ...endpoint, scenarios: { nope: { label: 'Missing' } } }
     const views = await buildScenarioViews(system, missing, fixturesDir, {}, false)
     expect(views[0].kind).toBe('error')
   })
@@ -73,7 +72,7 @@ describe('buildScenarioViews', () => {
       system,
       {
         ...endpoint,
-        scenarios: { default: 'Success', by_amount: 'Routes by amount' },
+        scenarios: { default: { label: 'Success' }, by_amount: { label: 'Routes by amount' } },
         resolverScenarios: ['by_amount'],
       },
       fixturesDir,
@@ -107,7 +106,7 @@ describe('buildScenarioViews - resolver source and syntax highlighting', () => {
 
     const resolverEndpoint: EndpointDef = {
       ...endpoint,
-      scenarios: { default: 'Success', 'by-amount': 'Routes by amount' },
+      scenarios: { default: { label: 'Success' }, 'by-amount': { label: 'Routes by amount' } },
       resolverScenarios: ['by-amount'],
     }
     views = await buildScenarioViews(system, resolverEndpoint, dir, {}, false)

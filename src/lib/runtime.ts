@@ -45,8 +45,9 @@ function resolverKey(systemSlug: string, endpointName: string, slug: string): st
 
 // Compiles every endpoint's <slug>.ts resolvers at startup, aggregating
 // failures into the same fail-fast error list as catalog/config problems.
-// Also patches each resolver-backed scenario's UI label from the compiled
-// module's optional `description` export (label = slug otherwise).
+// Also patches each resolver-backed scenario's UI label and summary from the
+// compiled module's optional `description`/`summary` exports (label = slug
+// otherwise).
 export function compileResolvers(
   catalog: Catalog,
   catalogDir: string,
@@ -64,10 +65,9 @@ export function compileResolvers(
           )
           const compiled = compileResolver(source, label)
           resolvers.set(resolverKey(system.slug, endpoint.name, slug), compiled)
-          if (compiled.description) endpoint.scenarios[slug] = compiled.description
-          if (compiled.summary) {
-            ;(endpoint.scenarioSummaries ??= {})[slug] = compiled.summary
-          }
+          const meta = (endpoint.scenarios[slug] ??= { label: slug })
+          if (compiled.description) meta.label = compiled.description
+          if (compiled.summary) meta.summary = compiled.summary
         } catch (err) {
           errors.push(err instanceof Error ? err.message : String(err))
         }

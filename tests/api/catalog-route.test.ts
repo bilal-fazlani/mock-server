@@ -17,7 +17,7 @@ vi.mock('../../src/lib/runtime', () => ({
               method: 'POST',
               path: '/oauth/token',
               mockType: 'global',
-              scenarios: { default: 'Token', expired: 'Expired' },
+              scenarios: { default: { label: 'Token' }, expired: { label: 'Expired' } },
               resolverScenarios: [],
             },
             {
@@ -26,7 +26,7 @@ vi.mock('../../src/lib/runtime', () => ({
               method: 'POST',
               path: '/profiled',
               profileIdSelector: '$.customerId',
-              scenarios: { default: 'Success', by_amount: 'Routes by amount' },
+              scenarios: { default: { label: 'Success' }, by_amount: { label: 'Routes by amount' } },
               resolverScenarios: ['by_amount'],
             },
           ],
