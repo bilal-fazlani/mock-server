@@ -30,6 +30,10 @@ export interface LogTraceData {
   captures?: Array<{ namespace: string; key: string }>
   placeholders?: Record<string, string>
   validation?: { request?: 'ok' | 'failed'; response?: 'ok' | 'failed' | 'drift_warning' }
+  /** Injected response delay in ms, when a fixture declared a `delay`. Folded
+   * into the entry's total durationMs; recorded here to distinguish injected
+   * latency from real work. */
+  delayMs?: number
   upstream?: { url: string; status: number; durationMs: number }
   adminAction?: 'profile_saved' | 'progress_reset'
   adminEndpoint?: string

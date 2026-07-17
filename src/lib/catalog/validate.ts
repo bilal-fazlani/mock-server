@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import { DurationError, parseDelayMs } from '../mock-engine/duration'
 import { fixtureFilePath, type Fixture } from '../mock-engine/fixtures'
 import { parseNow } from '../mock-engine/now'
 import { listPlaceholders } from '../mock-engine/template'
@@ -142,7 +143,7 @@ export function validateCatalog(catalog: Catalog, catalogDir: string): Validatio
           errors.push(`${label}: missing fixture for scenario "${scenario}" (${file})`)
           continue
         }
-        let fixture: { status?: unknown; headers?: unknown; body?: unknown }
+        let fixture: { status?: unknown; headers?: unknown; body?: unknown; delay?: unknown }
         try {
           fixture = JSON.parse(fs.readFileSync(file, 'utf8'))
         } catch {
@@ -152,6 +153,21 @@ export function validateCatalog(catalog: Catalog, catalogDir: string): Validatio
         if (typeof fixture.status !== 'number' || !('body' in fixture)) {
           errors.push(`${label}: fixture ${file} must have numeric "status" and a "body"`)
           continue
+        }
+        if ('delay' in fixture && fixture.delay !== undefined) {
+          if (typeof fixture.delay !== 'string') {
+            errors.push(`${label}: fixture ${file} "delay" must be a string like "400ms", "2s", or "1m"`)
+            continue
+          }
+          try {
+            parseDelayMs(fixture.delay)
+          } catch (err) {
+            if (err instanceof DurationError) {
+              errors.push(`${label}: fixture ${file} has ${err.message}`)
+              continue
+            }
+            throw err
+          }
         }
         fixtures.set(file, fixture as Fixture)
         const compiled = schemas.get(schemaKey(system.slug, endpoint.name))

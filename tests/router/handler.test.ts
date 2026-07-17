@@ -93,6 +93,31 @@ function spyConsole() {
 }
 
 describe('mock handler logging', () => {
+  it('appends delay= to the console line when the fixture declares a delay', async () => {
+    const consoleSpy = spyConsole()
+    const { handle } = handlerWith({
+      consoleLogLevel: 'info',
+      sleep: async () => {},
+      loadFixture: () => ({ status: 200, headers: {}, delay: '400ms', body: { ok: true } }),
+    })
+    await handle(helloRequest(), ['hello'])
+    await settle()
+    expect(consoleSpy.info).toHaveBeenCalledTimes(1)
+    expect(consoleSpy.info.mock.calls[0][0]).toMatch(
+      /^\[mock\] POST \/hello -> 200 \d+ms test-system\/hello profile=c1 scenario=default outcome=fixture delay=400ms$/,
+    )
+    consoleSpy.restore()
+  })
+
+  it('omits delay= when the fixture has no delay', async () => {
+    const consoleSpy = spyConsole()
+    const { handle } = handlerWith({ consoleLogLevel: 'info' })
+    await handle(helloRequest(), ['hello'])
+    await settle()
+    expect(consoleSpy.info.mock.calls[0][0]).not.toContain('delay=')
+    consoleSpy.restore()
+  })
+
   it('prints a compact info line for routed fixture responses regardless of fixture status', async () => {
     const consoleSpy = spyConsole()
     const { handle } = handlerWith({

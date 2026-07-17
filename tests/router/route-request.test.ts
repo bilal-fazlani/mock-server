@@ -34,7 +34,7 @@ const CATALOG: Catalog = {
           method: 'POST',
           path: '/hello/world',
           profileIdSelector: '$.customerId',
-          scenarios: { default: { label: 'Success' }, failure: { label: 'Failure' } },
+          scenarios: { default: { label: 'Success' }, failure: { label: 'Failure' }, slow: { label: 'Slow' } },
           resolverScenarios: [],
         },
         {
@@ -268,6 +268,53 @@ function mapping(
     ...overrides,
   }
 }
+
+describe('response delay', () => {
+  it('awaits the injected sleep with the fixture delay and records trace.delayMs', async () => {
+    const slept: number[] = []
+    const trace: RouteTrace = {}
+    const d = deps({
+      getProfile: withProfile(profile({ profileId: 'c1', endpointScenarios: { hello_world: 'slow' } })),
+      sleep: async (ms) => {
+        slept.push(ms)
+      },
+      trace,
+    })
+    const res = await routeRequest(post('/hello/world', { customerId: 'c1' }), d)
+    expect(res.status).toBe(200)
+    expect(slept).toEqual([400])
+    expect(trace.delayMs).toBe(400)
+  })
+
+  it('does not sleep for a fixture without a delay', async () => {
+    const slept: number[] = []
+    const trace: RouteTrace = {}
+    const d = deps({
+      getProfile: withProfile(profile({ profileId: 'c1', endpointScenarios: { hello_world: 'default' } })),
+      sleep: async (ms) => {
+        slept.push(ms)
+      },
+      trace,
+    })
+    await routeRequest(post('/hello/world', { customerId: 'c1' }), d)
+    expect(slept).toEqual([])
+    expect(trace.delayMs).toBeUndefined()
+  })
+
+  it('does not sleep when the request errors before serving a fixture', async () => {
+    const slept: number[] = []
+    const d = deps({
+      unmockedUsers: 'ERROR',
+      getProfile: async () => null,
+      sleep: async (ms) => {
+        slept.push(ms)
+      },
+    })
+    const res = await routeRequest(post('/hello/world', { customerId: 'ghost' }), d)
+    expect(res.status).toBe(404)
+    expect(slept).toEqual([])
+  })
+})
 
 describe('mock path', () => {
   it('serves the templated fixture for the selected scenario', async () => {
