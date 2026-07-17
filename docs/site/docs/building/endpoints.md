@@ -28,8 +28,9 @@ slug — never both) becomes a scenario key. The endpoint **must** have a
 `default` scenario, as either `default.json` or `default.ts`, and **must not**
 have a `real.json` or `real.ts` — passthrough is implicit. At least one
 scenario per endpoint must be fixture-backed. Each fixture may carry an
-optional `description` string used as its UI label, and each resolver may
-export an equivalent `description` constant — see [Fixtures](fixtures.md) and
+optional `description` string used as its UI label plus an optional `summary`
+shown beneath it on the catalog page, and each resolver may export equivalent
+`description` and `summary` constants — see [Fixtures](fixtures.md) and
 [Code-backed scenario resolvers](dynamic.md).
 
 To create a profile-less endpoint, set `"mockType": "global"` and omit

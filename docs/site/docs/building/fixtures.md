@@ -12,6 +12,7 @@ A fixture is a JSON file with this shape:
 ```json
 {
   "description": "Balance available", // optional, shown as the scenario's label in the UI
+  "summary": "200 with the settled balance", // optional, shown under the label in the catalog viewer
   "status": 200,                       // required, numeric HTTP status
   "headers": { "x-foo": "bar" },       // optional
   "body": { /* any JSON */ }           // required (key must be present; value may be any JSON)
@@ -21,6 +22,10 @@ A fixture is a JSON file with this shape:
 - `description` is optional free text used as the scenario's label wherever the UI
   lists scenarios (profile form, catalog viewer). If omitted, the UI falls back to
   showing the filename (the scenario key) instead.
+- `summary` is optional free text shown as a secondary line beneath the label on
+  the catalog viewer's endpoint page — room for a sentence of context the short
+  label can't carry. It appears only there (not in the profile form or logs), and
+  an empty string is treated as absent.
 - `status` is required and must be a number.
 - The `body` key must be present (its value can be an object, array, string,
   number, etc.).

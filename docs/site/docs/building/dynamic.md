@@ -111,6 +111,21 @@ This is the one rule everything else follows from:
   }
   ```
 
+- **Optional `export const summary = '…'`** is shown as a secondary line
+  beneath the label on the catalog viewer's endpoint page — the resolver
+  counterpart of the fixture `summary` field, also read at compile time. It
+  appears only there (not in the picker or logs), and an empty string is
+  treated as absent:
+
+  ```ts
+  export const description = 'Routes by transfer amount'
+  export const summary = 'Large transfers hold; small ones settle'
+
+  export default function pick(input: { /* … */ }): string {
+    // …
+  }
+  ```
+
 ## `default.ts`: making request-driven routing the baseline
 
 Because `default` is the zero-delta scenario a no-pick profile lands on
