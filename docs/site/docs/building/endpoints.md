@@ -9,6 +9,12 @@ A system directory needs one `_system.json`:
 | `name` | yes | Human-readable system name (e.g. `"Hello System"`), used in the UI and in log/error labels. The **slug** used in paths and lookups is the directory name itself (e.g. `hello-system`), not derived from this field. |
 | `baseUrlEnv` | yes | Name of the environment variable that holds this system's real upstream base URL, used for `real` passthrough. |
 
+A system directory may also carry one optional `_spec.yaml` (or `_spec.yml` /
+`_spec.json`) — a single OpenAPI document that supplies request/response schemas
+for all of its endpoints, matched by method + path. It replaces per-endpoint
+`_schema.json` files (the two can't be mixed in one system). See
+[Schemas](schemas.md).
+
 Each endpoint directory needs one `_endpoint.json`:
 
 | Field | Required | Purpose & rules |

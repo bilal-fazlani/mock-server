@@ -71,9 +71,10 @@ manifest to edit.
 catalog/
   hello-system/                 # system directory; its name IS the system slug
     _system.json                # { "name", "baseUrlEnv" }
+    _spec.yaml                  # optional — one OpenAPI doc supplying schemas for the whole system, see Schemas (.yml/.json also accepted)
     hello_world/                # endpoint directory; its name IS the endpoint name
       _endpoint.json            # { "displayName", "method", "path", optional "mockType", "profileIdSelector", "captureProfileKeys" }
-      _schema.json              # optional — request/response JSON Schema, see Schemas
+      _schema.json              # optional — per-endpoint request/response JSON Schema (mutually exclusive with a system _spec), see Schemas
       default.json              # required — every endpoint needs a default scenario, as default.json or default.ts
       failure.json              # any other <scenario>.json is a fixture-backed scenario
       by-amount.ts              # any other <scenario>.ts is a resolver-backed scenario, see Code-backed scenario resolvers
