@@ -130,6 +130,30 @@ user's approval**. A plain `Refs #N` mention is only a cross-reference and creat
 formal link, so the review gate stays with the user. Work that has no PR (direct on
 main, or a local worktree) links to the issue via comments instead.
 
+## Comment voice (every `gh issue comment` — phases 5, 6, 7, 8b)
+
+Comments post under the user's own GitHub login, so a comment must read as an
+automated note *about* the work, not as the user speaking. Each comment has two
+properties and one fixed footer:
+
+1. **Third-person and neutral.** State facts and status: "Implemented on `main`
+   (`<sha>`)", "Pending maintainer review before merge", "Docs build passed". The
+   author is the agent, the audience is whoever reads the issue.
+2. **No first- or second-person address.** The subject is the work, never "I" and
+   never "you"/"your" (write "the maintainer" / "pending consent", not "your review").
+3. **Ends with this exact footer line:**
+
+   ```
+   <sub>🤖 Automated note posted by Claude Code, acting through @bilal-fazlani's account.</sub>
+   ```
+
+The `reference.md` comment template already carries this footer — fill in the body
+above it. Same voice applies to PR bodies.
+
+> Note: `gh` authenticates as the user, so there is no separate GitHub author for
+> the agent; the footer is the attribution. A distinct author would require a bot
+> account or GitHub App token (out of scope here).
+
 ## Notes
 
 - **Which issue?** Track the current `#N` for the session; if multiple could apply, ask.

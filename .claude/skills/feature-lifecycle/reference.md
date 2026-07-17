@@ -59,8 +59,14 @@ gh issue create --title "add X" --body "Short summary of the committed work."
 # replace the body with fuller detail (phase 2) or an edited checklist (phase 3/5/6)
 gh issue edit N --body-file /tmp/issue-N-body.md
 
-# progress / deviation / summary comment (phases 5, 6, 7)
-gh issue comment N --body "..."
+# progress / deviation / summary comment (phases 5, 6, 7) — neutral, third-person
+# voice, ending with the fixed attribution footer (see SKILL.md → "Comment voice").
+# Use a body file so the footer's markdown survives shell quoting:
+printf '%s\n\n%s\n' \
+  "<body: what shipped / what changed, in third person>" \
+  '<sub>🤖 Automated note posted by Claude Code, acting through @bilal-fazlani'"'"'s account.</sub>' \
+  > /tmp/issue-N-comment.md
+gh issue comment N --body-file /tmp/issue-N-comment.md
 
 # close on approval (phase 8a) — the board auto-sets Done; do NOT also edit Status
 gh issue close N
