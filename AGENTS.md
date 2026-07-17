@@ -126,3 +126,35 @@ server and the programmatic runtime-control API (`/ui/api/*`). The guide pages a
 
 If a change clearly does not affect anything the guide covers (e.g. UI styling, unrelated
 refactors, the health endpoint), you don't need to raise it.
+
+## GitHub issue labels
+
+Issues are labelled on **two orthogonal axes** — one **type** and one **area**. Whenever
+you create a new GitHub issue (via `gh issue create`), apply exactly one from each axis. Do
+not invent priority tiers (`Tier 1`, `P0`, …) — sequencing lives in milestones/projects, not
+labels.
+
+**Type — what kind of work** (pick one):
+
+- `bug` — something is broken or behaves incorrectly
+- `enhancement` — a new capability or user-facing improvement
+- `tech-debt` — cleanup / maintainability with no user-facing feature
+- `documentation` — docs-only
+
+**Area — what part of the system** (pick one; all share the same blue):
+
+- `area: templating` — placeholder / fixture templating engine (`src/lib/mock-engine/template.ts`,
+  `src/lib/catalog/selector.ts`)
+- `area: fault-sim` — latency & fault injection
+- `area: resolver` — dynamic profile resolver & history
+- `area: ui` — dashboard UI (`src/app/ui/**`)
+- `area: build` — Docker / CI / release / packaging
+
+If a new issue genuinely fits no existing area, create a new `area: <name>` label (color
+`1D76DB`, matching the family) rather than leaving it unlabelled — and mention the new area
+to the user. Example:
+
+```
+gh issue create --label enhancement --label "area: templating" \
+  --title "…" --body "…"
+```
