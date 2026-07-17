@@ -45,8 +45,10 @@ trigger — do not skip ahead.
 1. **Confirm first:** ask *"Shall I open a ticket for this?"* Proceed only on yes.
 2. **Ask the per-feature question (fresh every time, no default):**
    *"Issue-only, or issue + a linked `docs/superpowers/specs/` design doc?"*
-3. Create the issue with an imperative, lowercase-ish title and a brief body:
-   `gh issue create --title "..." --body "..."`
+3. Create the issue with an imperative, lowercase-ish title and a brief body, applying
+   **exactly one type label and one area label** per the "GitHub issue labels" section of
+   `AGENTS.md` (type: `bug`/`enhancement`/`tech-debt`/`documentation`; area: `area: …`):
+   `gh issue create --label enhancement --label "area: ui" --title "..." --body "..."`
 4. **Record the issue number `#N`** — you'll reference it for the rest of the session.
 
 The board auto-adds it and sets `Backlog`. Do nothing else here.

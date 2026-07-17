@@ -55,7 +55,7 @@ Disabled (so they will **not** interfere):
 
 | Phase | Trigger | Skill actions | Resulting lane |
 | --- | --- | --- | --- |
-| **1. Open** | User confirms we're doing the work (not exploring) | Ask the per-feature question (below); `gh issue create` with an imperative title + brief body. Record the issue number `#N` for the session. | **Backlog** (automatic) |
+| **1. Open** | User confirms we're doing the work (not exploring) | Ask the per-feature question (below); `gh issue create` with an imperative title + brief body, applying one type + one area label per `AGENTS.md`. Record the issue number `#N` for the session. | **Backlog** (automatic) |
 | **2. Detail** | Full information gathered | Update the issue body with full detail — or, per the per-feature choice, write/link a `docs/superpowers/specs/*.md` design doc | Backlog |
 | **3. Break down** | Plan decomposed into steps | Add a `- [ ]` task checklist to the issue body; move the card | → **Ready** |
 | **4. Start** | Work begins | Move the card. Branching is not mandated (direct-main, branch, or worktree — as fits the work) | → **In Progress** |
