@@ -18,7 +18,7 @@ What the engine does for every incoming request, in order:
 | 6 | If the resolved scenario slug is **resolver-backed**, look up its compiled `<slug>.ts`, read that slug's history window, and invoke it with the request + history + profile ID. Rewrite the scenario to its return value and append that value to the slug's history. | Compile error (dev) → `500 resolver_compile_error`; no compiled resolver found → `500 resolver_missing`; throws → `500 resolver_threw`; exceeds its timeout → `500 resolver_timeout`; returns anything other than a fixture-backed declared scenario or `"real"` → `500 resolver_bad_return` (nothing appended to history) |
 | 7 | For direct-profile endpoints with `captureProfileKeys`, store each mapping before fixture serving or real proxying. | Capture key missing → `400`; same key for a different profile → `409 profile_key_mapping_conflict` |
 | 8a | If scenario is `real`: proxy to the `baseUrlEnv` upstream and return its response. | Missing base URL → `500` (startup prevents this only when `PASSTHROUGH_AS_DEFAULT=true`) |
-| 8b | Otherwise: take the cached fixture, resolve placeholders, return its status/headers/body. | Placeholder didn't resolve → `500` |
+| 8b | Otherwise: take the cached fixture, resolve placeholders, wait the fixture's [`delay`](../building/fixtures.md#response-delay) if one is set, and return its status/headers/body. | Placeholder didn't resolve → `500` |
 
 Step 6 only runs when the resolved scenario slug (step 5) is backed by a
 `<slug>.ts` resolver — for every fixture-backed scenario, routing falls
@@ -212,7 +212,8 @@ flowchart TD
     ResponseSchema -- No --> RResponseSchema["500 - generated response does not match schema"]
     ResponseSchema -- Yes or no schema --> TemplateHeaders{"Header placeholders resolve?"}
     TemplateHeaders -- No --> RFixErr
-    TemplateHeaders -- Yes --> RFix["Return fixture status, headers, and body"]
+    TemplateHeaders -- Yes --> Delay["Await fixture delay (if set)"]
+    Delay --> RFix["Return fixture status, headers, and body"]
 ```
 
 ## Reading the branches
@@ -238,6 +239,10 @@ flowchart TD
 - **Profile key capture** runs before the base-URL check on `real`, and after
   mocked request-schema validation but before the stale-scenario check on a
   fixture path. A capture failure therefore stops the request at that point.
+- **A fixture `delay`** is awaited on the mock path only — after templating and
+  response-schema checks, just before the response is returned. It never applies
+  to `real` passthrough or error responses, and folds into the request's logged
+  duration. See [Response delay](../building/fixtures.md#response-delay).
 - **Mock schemas** are enforced: request failures return 400 and generated
   response failures return 500. **Real responses** are only checked for drift when
   they contain parseable JSON; violations are recorded as warnings and the
