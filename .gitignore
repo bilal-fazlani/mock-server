@@ -42,8 +42,9 @@ next-env.d.ts
 # local tooling caches
 .vite
 
-# Agent tooling — keep out of the repo
-.claude/
+# Agent tooling — keep out of the repo, except shared project skills
+.claude/*
+!.claude/skills/
 CLAUDE.md
 .idea/
 .superpowers/
