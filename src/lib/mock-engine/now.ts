@@ -1,6 +1,13 @@
 export class NowFormatError extends Error {}
 
-export const NOW_FORMATS = ['iso', 'YYYYMMDD'] as const
+export const NOW_FORMATS = [
+  'iso',
+  'YYYYMMDD',
+  'epoch',
+  'epochMillis',
+  'date',
+  'time',
+] as const
 export type NowFormat = (typeof NOW_FORMATS)[number]
 
 export interface NowSpec {
@@ -46,5 +53,13 @@ export function renderNow(spec: NowSpec, now: Date): string {
       return d.toISOString()
     case 'YYYYMMDD':
       return d.toISOString().slice(0, 10).replace(/-/g, '')
+    case 'epoch':
+      return String(Math.floor(d.getTime() / 1000))
+    case 'epochMillis':
+      return String(d.getTime())
+    case 'date':
+      return d.toISOString().slice(0, 10)
+    case 'time':
+      return d.toISOString().slice(11, 19)
   }
 }
