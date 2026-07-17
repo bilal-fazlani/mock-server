@@ -88,8 +88,9 @@ now-known catalog and reports its own list of errors:
   but `"real"`.
 - Each fixture (`<slug>.json`) is valid JSON with a numeric `status` and a
   `body` key. Fixtures are loaded into memory as part of this pass.
-- Every placeholder inside a fixture is either `now:iso` / `now:YYYYMMDD` or a
-  valid body/path/query selector (never Bearer), and any `path:` placeholder
+- Every placeholder inside a fixture is either `now:iso` / `now:YYYYMMDD`
+  (optionally with a relative offset, e.g. `now+3d:iso`) or a valid
+  body/path/query selector (never Bearer), and any `path:` placeholder
   references a declared param.
 - No two endpoints of the same method have **overlapping** path templates (which
   would make matching ambiguous).
