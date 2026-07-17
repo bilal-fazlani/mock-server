@@ -110,6 +110,9 @@ export function getRuntime(): Runtime {
 
   const catalogDir = resolveCatalogDir(process.env.CATALOG_PATH)
   const catalog = loadCatalog(catalogDir)
+  for (const warning of catalog.warnings ?? []) {
+    console.warn(`catalog warning: ${warning}`)
+  }
   const { errors: catalogErrors, fixtures, schemas } = validateCatalog(catalog, catalogDir)
   const configErrors = validateAppConfig(catalog, process.env, passthroughAsDefault)
   const { resolvers, errors: resolverErrors } = compileResolvers(catalog, catalogDir)

@@ -16,6 +16,9 @@ try {
   }
   throw err
 }
+for (const warning of catalog.warnings ?? []) {
+  console.warn(` ! ${warning}`)
+}
 const { errors: catalogErrors } = validateCatalog(catalog, path.join(root, 'catalog'))
 
 let configErrors: string[] = []
