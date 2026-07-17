@@ -100,3 +100,72 @@ a validation error.
     An invalid JSON Schema anywhere in `_schema.json` (request or any response)
     fails catalog validation immediately, alongside fixture-body mismatches — run
     `npm run validate:catalog` after adding or editing one.
+
+## System-level `_spec` file
+
+Instead of a `_schema.json` per endpoint, a **system** may carry one OpenAPI
+document at `catalog/<system>/_spec.yaml` (or `_spec.yml` / `_spec.json`) that
+supplies schemas for all of its endpoints. Each endpoint is matched to an
+operation by **method + path**: the loader looks up
+`paths[<endpoint path>][<endpoint method>]` in the document, using the `method`
+and `path` already declared in the endpoint's `_endpoint.json`. Catalog paths
+use the same `{param}` templating as OpenAPI (e.g. `/customers/{customerId}`),
+so they line up directly.
+
+Only the same two subtrees are read from each matched operation —
+`requestBody.content['application/json'].schema` and
+`responses.<key>.content['application/json'].schema` — so a `_spec` operation
+and a standalone `_schema.json` are interchangeable in what they contribute.
+
+```yaml
+# catalog/hello-system/_spec.yaml
+paths:
+  /hello/world:
+    post:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/HelloRequest' }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HelloResponse' }
+components:
+  schemas:
+    HelloRequest:
+      type: object
+      required: [customerId]
+      properties:
+        customerId: { type: string }
+    HelloResponse:
+      type: object
+      required: [customerId, status, message]
+      properties:
+        customerId: { type: string }
+        status: { type: string, enum: [success] }
+        message: { type: string }
+```
+
+**Rules and limits**
+
+- **One schema source per system.** If a system has a `_spec` file, a
+  `_schema.json` in any of its endpoint directories is a startup error — choose
+  one or the other per system.
+- **Unmatched endpoints warn, they don't fail.** An endpoint whose method + path
+  has no matching operation gets no schema (no validation, exactly as if it had
+  no `_schema.json`) and logs a startup warning. Watch for this if a path
+  parameter is named differently in the spec than in the catalog directory —
+  `/customers/{customerId}` and `/customers/{id}` do not match.
+- **In-document references only.** `$ref`s must point at
+  `#/components/schemas/…` within the same file; the loader inlines them into
+  each endpoint's schema. External or remote `$ref`s (other files, URLs) are a
+  startup error.
+- **Not read from the spec.** `servers`, `security`, `info`, and path-level
+  `parameters` are ignored — base URLs still come from `_system.json`'s
+  `baseUrlEnv`, and the spec never creates endpoints on its own (you still author
+  each endpoint directory and its scenarios).
+
+Run `npm run validate:catalog` after adding or editing a `_spec` file — it
+reports the same errors as startup and prints any unmatched-endpoint warnings.
