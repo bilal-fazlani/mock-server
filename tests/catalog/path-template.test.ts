@@ -25,6 +25,20 @@ describe('parsePathTemplate', () => {
     expect(() => parsePathTemplate('/a/b{c}')).toThrow(PathTemplateError)
     expect(() => parsePathTemplate('/a//b')).toThrow(PathTemplateError)
   })
+
+  it('tolerates a single trailing slash, normalizing it away', () => {
+    const t = parsePathTemplate('/transfer/{customerId}/')
+    expect(t.raw).toBe('/transfer/{customerId}')
+    expect(t.segments).toEqual([
+      { type: 'literal', value: 'transfer' },
+      { type: 'param', name: 'customerId' },
+    ])
+  })
+
+  it('still rejects a doubled trailing slash and root slash', () => {
+    expect(() => parsePathTemplate('/a//')).toThrow(PathTemplateError)
+    expect(() => parsePathTemplate('/')).toThrow(PathTemplateError)
+  })
 })
 
 describe('matchPath', () => {
