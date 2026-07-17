@@ -40,4 +40,7 @@ export interface SystemDef {
 
 export interface Catalog {
   systems: SystemDef[]
+  /** Non-fatal load diagnostics (e.g. an endpoint with no matching spec
+   *  operation). Populated by loadCatalog; empty when there are none. */
+  warnings?: string[]
 }

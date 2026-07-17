@@ -1,10 +1,12 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import { type ParsedSpec, SpecError, findSpecFile, parseSpec, resolveEndpointSchema } from './spec'
 import type { Catalog, EndpointDef, ScenarioMeta, SystemDef } from './types'
 
 const SYSTEM_META = '_system.json'
 const ENDPOINT_META = '_endpoint.json'
 const SCHEMA_META = '_schema.json'
+const SPEC_FILE = /^_spec\.(ya?ml|json)$/
 const SCENARIO_FILE = /^([a-z0-9][a-z0-9_-]*)\.(json|ts)$/
 
 export class CatalogLoadError extends Error {}
@@ -19,6 +21,7 @@ export function loadCatalog(catalogDir: string): Catalog {
   }
   const problems: string[] = []
   const systems: SystemDef[] = []
+  const warnings: string[] = []
 
   for (const sysEntry of sortedEntries(catalogDir)) {
     if (!sysEntry.isDirectory()) {
@@ -30,9 +33,21 @@ export function loadCatalog(catalogDir: string): Catalog {
     const sysMeta = readMetaFile(path.join(systemDir, SYSTEM_META), problems)
     if (!sysMeta) continue
 
+    let spec: ParsedSpec | null = null
+    try {
+      const specFile = findSpecFile(systemDir)
+      if (specFile) {
+        spec = parseSpec(fs.readFileSync(specFile, 'utf8'), `${slug}/${path.basename(specFile)}`)
+      }
+    } catch (err) {
+      if (err instanceof SpecError) problems.push(`${slug}: ${err.message}`)
+      else throw err
+    }
+
     const endpoints: EndpointDef[] = []
     for (const epEntry of sortedEntries(systemDir)) {
       if (epEntry.name === SYSTEM_META) continue
+      if (epEntry.isFile() && SPEC_FILE.test(epEntry.name)) continue
       if (!epEntry.isDirectory()) {
         problems.push(`${slug}: unexpected entry (endpoints are directories): ${epEntry.name}`)
         continue
@@ -42,8 +57,35 @@ export function loadCatalog(catalogDir: string): Catalog {
       const epMeta = readMetaFile(path.join(endpointDir, ENDPOINT_META), problems)
       if (!epMeta) continue
 
+      const label = `${slug}/${endpointName}`
+      const displayName = requireString(epMeta, 'displayName', label, problems)
+      const method = requireString(epMeta, 'method', label, problems)
+      const endpointPath = requireString(epMeta, 'path', label, problems)
+
       const schemaFile = path.join(endpointDir, SCHEMA_META)
-      const schemaMeta = fs.existsSync(schemaFile) ? readMetaFile(schemaFile, problems) : null
+      const hasSchemaFile = fs.existsSync(schemaFile)
+      let schemaMeta: Record<string, unknown> | null = null
+      if (spec) {
+        if (hasSchemaFile) {
+          problems.push(`${label}: _schema.json is not allowed when the system has a _spec file`)
+        }
+        if (method && endpointPath) {
+          try {
+            const resolved = resolveEndpointSchema(spec, method, endpointPath, label)
+            if (resolved) schemaMeta = resolved
+            else {
+              warnings.push(
+                `${label}: no operation for ${method.toUpperCase()} ${endpointPath} in the system spec — no schema applied`,
+              )
+            }
+          } catch (err) {
+            if (err instanceof SpecError) problems.push(err.message)
+            else throw err
+          }
+        }
+      } else if (hasSchemaFile) {
+        schemaMeta = readMetaFile(schemaFile, problems)
+      }
 
       const scenarios: Record<string, ScenarioMeta> = {}
       const fixtureSlugs = new Set<string>()
@@ -82,12 +124,11 @@ export function loadCatalog(catalogDir: string): Catalog {
         }
       }
 
-      const label = `${slug}/${endpointName}`
       endpoints.push({
         name: endpointName,
-        displayName: requireString(epMeta, 'displayName', label, problems),
-        method: requireString(epMeta, 'method', label, problems),
-        path: requireString(epMeta, 'path', label, problems),
+        displayName,
+        method,
+        path: endpointPath,
         ...optionalMockType(epMeta, label, problems),
         ...optionalProfileIdSelector(epMeta),
         ...optionalCaptureProfileKeys(epMeta, label, problems),
@@ -108,7 +149,7 @@ export function loadCatalog(catalogDir: string): Catalog {
   if (problems.length > 0) {
     throw new CatalogLoadError(`invalid catalog structure:\n - ${problems.join('\n - ')}`)
   }
-  return { systems }
+  return { systems, warnings }
 }
 
 function optionalMockType(

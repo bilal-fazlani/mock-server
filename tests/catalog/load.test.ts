@@ -256,3 +256,105 @@ describe('loadCatalog _schema.json', () => {
     expect(() => loadCatalog(dir)).toThrow(/_schema\.json/)
   })
 })
+
+describe('loadCatalog _spec', () => {
+  const SPEC_YAML = [
+    'paths:',
+    '  /hello/world:',
+    '    post:',
+    '      responses:',
+    '        "200":',
+    '          content:',
+    '            application/json:',
+    '              schema:',
+    '                $ref: "#/components/schemas/Res"',
+    'components:',
+    '  schemas:',
+    '    Res:',
+    '      type: object',
+    '      required: [ok]',
+    '      properties:',
+    '        ok: { type: boolean }',
+  ].join('\n')
+
+  it('resolves an endpoint schema from a system _spec.yaml', () => {
+    const dir = tmpCatalogDir({
+      'sys/_system.json': SYSTEM_META,
+      'sys/_spec.yaml': SPEC_YAML,
+      'sys/ep/_endpoint.json': ENDPOINT_META, // POST /hello/world
+      'sys/ep/default.json': FIXTURE,
+    })
+    const catalog = loadCatalog(dir)
+    const schema = catalog.systems[0].endpoints[0].schema as any
+    expect(schema.responses['200'].content['application/json'].schema.$ref).toBe('#/$defs/Res')
+    expect(schema.responses['200'].content['application/json'].schema.$defs.Res.required).toEqual(['ok'])
+    expect(catalog.warnings).toEqual([])
+  })
+
+  it('supports a _spec.json variant', () => {
+    const dir = tmpCatalogDir({
+      'sys/_system.json': SYSTEM_META,
+      'sys/_spec.json': {
+        paths: { '/hello/world': { post: { responses: { '200': { content: { 'application/json': { schema: { type: 'object' } } } } } } } },
+      },
+      'sys/ep/_endpoint.json': ENDPOINT_META,
+      'sys/ep/default.json': FIXTURE,
+    })
+    expect(loadCatalog(dir).systems[0].endpoints[0].schema).toBeDefined()
+  })
+
+  it('warns and applies no schema when no operation matches', () => {
+    const dir = tmpCatalogDir({
+      'sys/_system.json': SYSTEM_META,
+      'sys/_spec.yaml': 'paths: {}\n',
+      'sys/ep/_endpoint.json': ENDPOINT_META,
+      'sys/ep/default.json': FIXTURE,
+    })
+    const catalog = loadCatalog(dir)
+    expect(catalog.systems[0].endpoints[0].schema).toBeUndefined()
+    expect(catalog.warnings).toEqual([expect.stringContaining('no operation for POST /hello/world')])
+  })
+
+  it('fails hard when a spec-backed system also has a _schema.json', () => {
+    const dir = tmpCatalogDir({
+      'sys/_system.json': SYSTEM_META,
+      'sys/_spec.yaml': 'paths: {}\n',
+      'sys/ep/_endpoint.json': ENDPOINT_META,
+      'sys/ep/_schema.json': { responses: {} },
+      'sys/ep/default.json': FIXTURE,
+    })
+    expect(() => loadCatalog(dir)).toThrow(CatalogLoadError)
+    expect(() => loadCatalog(dir)).toThrow(/_schema\.json is not allowed/)
+  })
+
+  it('fails hard on two spec files in one system', () => {
+    const dir = tmpCatalogDir({
+      'sys/_system.json': SYSTEM_META,
+      'sys/_spec.yaml': 'paths: {}\n',
+      'sys/_spec.json': { paths: {} },
+      'sys/ep/_endpoint.json': ENDPOINT_META,
+      'sys/ep/default.json': FIXTURE,
+    })
+    expect(() => loadCatalog(dir)).toThrow(/multiple spec files/)
+  })
+
+  it('fails hard on an unsupported external $ref in the spec', () => {
+    const dir = tmpCatalogDir({
+      'sys/_system.json': SYSTEM_META,
+      'sys/_spec.yaml': [
+        'paths:',
+        '  /hello/world:',
+        '    post:',
+        '      responses:',
+        '        "200":',
+        '          content:',
+        '            application/json:',
+        '              schema:',
+        '                $ref: "./other.yaml#/X"',
+      ].join('\n'),
+      'sys/ep/_endpoint.json': ENDPOINT_META,
+      'sys/ep/default.json': FIXTURE,
+    })
+    expect(() => loadCatalog(dir)).toThrow(/unsupported \$ref/)
+  })
+})
