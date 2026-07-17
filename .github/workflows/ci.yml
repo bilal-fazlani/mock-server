@@ -3,10 +3,26 @@ name: CI
 # Fast checks on every PR and on pushes to main. `npm ci` is the key gate: it
 # fails on any package-lock.json drift, catching the class of issue that broke
 # the v0.2.0 publish (a stale lockfile) BEFORE it reaches a release.
+# Non-code changes (docs and top-level markdown) don't affect the test suite,
+# so skip CI when a PR/push touches only those paths. `paths-ignore` skips the
+# run only when EVERY changed file matches, so a mixed code+docs change still
+# runs. Safe to skip because `test` is not a required status check.
 on:
   pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - 'AGENTS.md'
+      - 'README.md'
+      - 'RELEASE.md'
+      - 'CHANGELOG.md'
   push:
     branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - 'AGENTS.md'
+      - 'README.md'
+      - 'RELEASE.md'
+      - 'CHANGELOG.md'
 
 permissions:
   contents: read

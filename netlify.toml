@@ -9,6 +9,13 @@
   command = "zensical build"
   # Relative to `base`: Zensical writes its static output to docs/site/site.
   publish = "site"
+  # Skip the build unless something under docs/site/ actually changed, so
+  # code-only branches and PRs don't trigger a full docs rebuild + deploy
+  # preview. Netlify cancels the build when this command exits 0 (no diff) and
+  # proceeds on a non-zero exit (diff present). $CACHED_COMMIT_REF/$COMMIT_REF
+  # are the last-built and current commits; ':/docs/site' is a repo-root-relative
+  # pathspec, so it holds regardless of the command's working directory.
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- ':/docs/site'"
 
 [build.environment]
   # Pin the interpreter so builds are reproducible (Pipfile requires the same).
