@@ -34,6 +34,12 @@ Rules:
 
 See [RELEASE.md](RELEASE.md) for the full release flow.
 
+## Do not sign commits
+
+Commits do not need to be signed. Never add GPG/SSH commit signing, and don't enable
+`commit.gpgsign`. If a local git config forces signing and it blocks a commit, commit with
+`--no-gpg-sign` rather than trying to make signing work.
+
 ## package-lock.json: npm 11 only
 
 `npm ci` runs in three places — `.github/workflows/ci.yml`,
