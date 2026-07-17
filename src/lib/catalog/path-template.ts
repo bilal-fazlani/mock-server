@@ -15,7 +15,10 @@ export function parsePathTemplate(raw: string): PathTemplate {
   if (!raw.startsWith('/')) {
     throw new PathTemplateError(`path template must start with "/": ${raw}`)
   }
-  const segments: PathSegment[] = raw
+  // A single trailing slash is cosmetic — matchPath already ignores it when
+  // matching requests, so normalize templates to match rather than reject.
+  const normalized = raw.length > 1 && raw.endsWith('/') ? raw.slice(0, -1) : raw
+  const segments: PathSegment[] = normalized
     .slice(1)
     .split('/')
     .map((part) => {
@@ -27,7 +30,7 @@ export function parsePathTemplate(raw: string): PathTemplate {
       }
       return { type: 'literal' as const, value: part }
     })
-  return { raw, segments }
+  return { raw: normalized, segments }
 }
 
 export function matchPath(
