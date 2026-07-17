@@ -104,6 +104,7 @@ function formatRequestConsoleLine(input: {
   if (trace.scenario) details.push(`scenario=${trace.scenario}`)
   if (trace.scenarioSource === 'unmocked_policy') details.push('source=unmocked_policy')
   if (trace.outcome) details.push(`outcome=${trace.outcome}`)
+  if (trace.delayMs !== undefined) details.push(`delay=${trace.delayMs}ms`)
   if (trace.error) details.push(`error=${trace.error.code}`)
   if (trace.validation?.response === 'drift_warning') {
     details.push('validation=response:drift_warning')
