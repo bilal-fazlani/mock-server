@@ -11,6 +11,7 @@ import type { Catalog, EndpointDef, SystemDef } from '../catalog/types'
 import type { UnmockedUsers } from '../config'
 import type { DynamicOwnerType } from '../dynamic/history-store'
 import type { LogOutcome, LogTraceData } from '../logs/store'
+import { DurationError, parseDelayMs } from '../mock-engine/duration'
 import { FixtureError, type Fixture } from '../mock-engine/fixtures'
 import {
   DEFAULT_DYNAMIC_TIMEOUT_MS,
@@ -94,6 +95,8 @@ export interface RouterDeps {
   passthrough: (req: PassthroughRequest) => Promise<ProxiedResponse>
   loadFixture: (systemSlug: string, endpointName: string, scenario: string) => Fixture
   now?: () => Date
+  /** Injected sleep so tests never wait; defaults to a real setTimeout sleep. */
+  sleep?: (ms: number) => Promise<void>
   trace?: RouteTrace
 }
 
@@ -103,6 +106,10 @@ function jsonResult(status: number, body: unknown): RouteResult {
     headers: { 'content-type': 'application/json' },
     bodyBytes: Buffer.from(JSON.stringify(body)),
   }
+}
+
+function realSleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 export async function routeRequest(
@@ -254,9 +261,20 @@ export async function routeRequest(
     }
     trace.placeholders = placeholders
     trace.outcome = 'fixture'
+    if (fixture.delay !== undefined) {
+      const ms = parseDelayMs(fixture.delay)
+      if (ms > 0) {
+        trace.delayMs = ms
+        await (deps.sleep ?? realSleep)(ms)
+      }
+    }
     return { status: fixture.status, headers, bodyBytes: Buffer.from(JSON.stringify(body)) }
   } catch (err) {
-    if (err instanceof PlaceholderError || err instanceof FixtureError) {
+    if (
+      err instanceof PlaceholderError ||
+      err instanceof FixtureError ||
+      err instanceof DurationError
+    ) {
       traceError(trace, 'template_error', err.message)
       return jsonResult(500, { error: err.message, endpoint: endpoint.name, scenario })
     }
