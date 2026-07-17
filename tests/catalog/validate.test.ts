@@ -357,10 +357,8 @@ describe('validateCatalog', () => {
     const dir = tmpCatalogDir({
       'test-system/hello_world/default.json': { status: 200, body: { x: '{{now+3d:iso}}' } },
     })
-    expect(validateCatalog(catalog([endpoint()]), dir).errors).not.toContain(
-      expect.stringContaining('invalid placeholder'),
-    )
-    expect(validateCatalog(catalog([endpoint()]), dir).errors).toEqual([])
+    const { errors } = validateCatalog(catalog([endpoint()]), dir)
+    expect(errors).toEqual([])
 
     const dir2 = tmpCatalogDir({
       'test-system/hello_world/default.json': { status: 200, body: { x: '{{now+3x:iso}}' } },
