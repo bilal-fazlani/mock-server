@@ -79,13 +79,20 @@ export function EndpointScenarios({ scenarios }: { scenarios: ScenarioView[] }) 
                       aria-hidden="true"
                       className={`size-[9px] flex-none border-b-2 border-r-2 border-muted-foreground transition-transform duration-150 ${isOpen ? 'rotate-45' : '-rotate-45'}`}
                     />
-                    <span className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1.5">
-                      <span className="text-[0.95rem] font-semibold text-foreground">{scenario.label}</span>
-                      {status && (
-                        <span
-                          className={`inline-flex min-h-6 items-center rounded-full border px-2 py-[3px] font-mono text-[0.72rem] font-bold leading-[1.2] ${statusToneClassName(status.tone)}`}
-                        >
-                          {status.label}
+                    <span className="flex min-w-0 flex-col gap-1">
+                      <span className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1.5">
+                        <span className="text-[0.95rem] font-semibold text-foreground">{scenario.label}</span>
+                        {status && (
+                          <span
+                            className={`inline-flex min-h-6 items-center rounded-full border px-2 py-[3px] font-mono text-[0.72rem] font-bold leading-[1.2] ${statusToneClassName(status.tone)}`}
+                          >
+                            {status.label}
+                          </span>
+                        )}
+                      </span>
+                      {scenario.summary && (
+                        <span className="text-[0.82rem] font-normal leading-[1.35] text-muted-foreground [overflow-wrap:anywhere]">
+                          {scenario.summary}
                         </span>
                       )}
                     </span>

@@ -3,6 +3,7 @@ import path from 'node:path'
 
 export interface Fixture {
   description?: string
+  summary?: string
   status: number
   headers?: Record<string, string>
   body: unknown

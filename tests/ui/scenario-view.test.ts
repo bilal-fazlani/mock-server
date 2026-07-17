@@ -32,6 +32,16 @@ describe('buildScenarioViews', () => {
     if (fixture?.kind === 'fixture') expect(fixture.json).toContain('"status"')
   })
 
+  it('carries scenarioSummaries onto the matching view', async () => {
+    const withSummary: EndpointDef = {
+      ...endpoint,
+      scenarios: { default: 'Success' },
+      scenarioSummaries: { default: 'Returns a 200 body' },
+    }
+    const views = await buildScenarioViews(system, withSummary, fixturesDir, {}, false)
+    expect(views.find((v) => v.key === 'default')?.summary).toBe('Returns a 200 body')
+  })
+
   it('reports an error view when a fixture is missing', async () => {
     const missing: EndpointDef = { ...endpoint, scenarios: { nope: 'Missing' } }
     const views = await buildScenarioViews(system, missing, fixturesDir, {}, false)

@@ -78,6 +78,22 @@ describe('getRuntime', () => {
     expect(rt.getCompiledResolver('sys', 'ep', 'missing')).toBeNull()
   })
 
+  it('patches scenarioSummaries from a resolver summary export', async () => {
+    const dir = tmpProjectDir({
+      'catalog/sys/_system.json': SYSTEM_META,
+      'catalog/sys/ep/_endpoint.json': ENDPOINT_META,
+      'catalog/sys/ep/success.json': FIXTURE,
+      'catalog/sys/ep/default.ts': `export const summary = 'Routes by amount'\nexport default () => 'success'`,
+    })
+    process.chdir(dir)
+    process.env = { ...originalEnv }
+    vi.resetModules()
+    const { getRuntime } = await import('../../src/lib/runtime')
+
+    const ep = getRuntime().catalog.systems[0].endpoints[0]
+    expect(ep.scenarioSummaries).toEqual({ default: 'Routes by amount' })
+  })
+
   it('serves the resolver from the startup cache in production', async () => {
     const dir = tmpProjectDir({
       'catalog/sys/_system.json': SYSTEM_META,

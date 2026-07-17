@@ -91,6 +91,23 @@ describe('compileResolver description export', () => {
       compileResolver(`export const description = 42\nexport default () => 'x'`, 'l').description,
     ).toBeUndefined()
   })
+})
+
+describe('compileResolver summary export', () => {
+  it('exposes export const summary', () => {
+    const compiled = compileResolver(
+      `export const summary = 'Flags amounts over 10'\nexport default () => 'success'`,
+      'l',
+    )
+    expect(compiled.summary).toBe('Flags amounts over 10')
+  })
+
+  it('leaves summary undefined when absent or not a string', () => {
+    expect(compileResolver(`export default () => 'x'`, 'l').summary).toBeUndefined()
+    expect(
+      compileResolver(`export const summary = 42\nexport default () => 'x'`, 'l').summary,
+    ).toBeUndefined()
+  })
 
   it('names the resolver generically in compile errors', () => {
     expect(() => compileResolver('const nope =', 'sys/ep/broken.ts')).toThrowError(

@@ -8,6 +8,7 @@ import { highlight } from './highlight'
 export type ScenarioView = {
   key: string
   label: string
+  summary?: string
   isDefault: boolean
 } & (
   | { kind: 'passthrough'; baseUrlEnv: string; url: string | null }
@@ -26,15 +27,16 @@ export async function buildScenarioViews(
   const declared: ScenarioView[] = await Promise.all(
     Object.entries(endpoint.scenarios).map(async ([key, label]) => {
       const isDefault = key === 'default'
+      const summary = endpoint.scenarioSummaries?.[key]
       if (endpoint.resolverScenarios.includes(key)) {
         try {
           const code = fs.readFileSync(
             resolverFilePath(catalogDir, system.slug, endpoint.name, key),
             'utf8',
           )
-          return { key, label, isDefault, kind: 'resolver' as const, code, html: await highlight(code, 'typescript') }
+          return { key, label, ...(summary ? { summary } : {}), isDefault, kind: 'resolver' as const, code, html: await highlight(code, 'typescript') }
         } catch (err) {
-          return { key, label, isDefault, kind: 'error' as const, message: (err as Error).message }
+          return { key, label, ...(summary ? { summary } : {}), isDefault, kind: 'error' as const, message: (err as Error).message }
         }
       }
       try {
@@ -44,9 +46,9 @@ export async function buildScenarioViews(
         // body block the pre-highlighting UI rendered.
         const json = JSON.stringify(fixture, null, 2)
         const bodyJson = JSON.stringify(fixture.body, null, 2)
-        return { key, label, isDefault, kind: 'fixture' as const, json, html: await highlight(bodyJson, 'json') }
+        return { key, label, ...(summary ? { summary } : {}), isDefault, kind: 'fixture' as const, json, html: await highlight(bodyJson, 'json') }
       } catch (err) {
-        return { key, label, isDefault, kind: 'error' as const, message: (err as Error).message }
+        return { key, label, ...(summary ? { summary } : {}), isDefault, kind: 'error' as const, message: (err as Error).message }
       }
     }),
   )

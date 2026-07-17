@@ -20,6 +20,8 @@ export interface ResolverInput {
 export interface CompiledResolver {
   /** Optional `export const description = '…'` from the resolver source — its UI label. */
   description?: string
+  /** Optional `export const summary = '…'` — secondary line shown under the label. */
+  summary?: string
   invoke(input: ResolverInput, timeoutMs: number): unknown
 }
 
@@ -61,11 +63,14 @@ export function compileResolver(source: string, label: string): CompiledResolver
   }
   const rawDescription = (mod as Record<string, unknown> | undefined)?.description
   const description = typeof rawDescription === 'string' ? rawDescription : undefined
+  const rawSummary = (mod as Record<string, unknown> | undefined)?.summary
+  const summary = typeof rawSummary === 'string' ? rawSummary : undefined
   sandbox.__resolver = fn
   const invokeScript = new vm.Script('__resolver(__input)', { filename: `${label}#invoke` })
 
   return {
     ...(description !== undefined ? { description } : {}),
+    ...(summary !== undefined ? { summary } : {}),
     invoke(input: ResolverInput, timeoutMs: number): unknown {
       sandbox.__input = input
       try {

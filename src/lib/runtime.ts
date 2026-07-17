@@ -65,6 +65,9 @@ export function compileResolvers(
           const compiled = compileResolver(source, label)
           resolvers.set(resolverKey(system.slug, endpoint.name, slug), compiled)
           if (compiled.description) endpoint.scenarios[slug] = compiled.description
+          if (compiled.summary) {
+            ;(endpoint.scenarioSummaries ??= {})[slug] = compiled.summary
+          }
         } catch (err) {
           errors.push(err instanceof Error ? err.message : String(err))
         }
