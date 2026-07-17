@@ -1,5 +1,95 @@
 # Changelog
 
+## [0.3.0](https://github.com/bilal-fazlani/mock-server/compare/v0.2.1...v0.3.0) (2026-07-17)
+
+
+### ⚠ BREAKING CHANGES
+
+* _dynamic.ts is no longer recognized; the dynamic scenario slug is no longer reserved or auto-injected; trace codes dynamic_* are now resolver_*; scenarioSource 'dynamic' is replaced by a trace.resolver field.
+
+### Features
+
+* add base shadcn form primitives ([e14a03d](https://github.com/bilal-fazlani/mock-server/commit/e14a03db7047e0258b89169b325aba614317a02f))
+* add capped dynamic-history store with profile-deletion cleanup ([e43c483](https://github.com/bilal-fazlani/mock-server/commit/e43c48394a1ca6abde962c71257aa50bf9177a5b))
+* add class-based dark mode via next-themes (system default) ([ce620f9](https://github.com/bilal-fazlani/mock-server/commit/ce620f90c0b6de520031fa1729c09fcb7baf0d1d))
+* add dynamic scenario source and trace field to log types ([bbc0e9a](https://github.com/bilal-fazlani/mock-server/commit/bbc0e9abc7d4d98a1fe801be1c73d374259a3e8f))
+* add DYNAMIC_HISTORY_LIMIT env var and environment row ([f2e0486](https://github.com/bilal-fazlani/mock-server/commit/f2e048680ccde6a3898ea7e336d049f2825b7d8c))
+* add header theme toggle; convert UI header to Tailwind ([69f2383](https://github.com/bilal-fazlani/mock-server/commit/69f238385bae4ad50a2dfda5039f625797493689))
+* add mock-server CLI launcher and npm package metadata ([d622aea](https://github.com/bilal-fazlani/mock-server/commit/d622aeaa4bf809960d5f25e87bff0bfc734b7869))
+* add REQUEST_LOG_TTL_DURATION to configure request-log retention ([8db9859](https://github.com/bilal-fazlani/mock-server/commit/8db985910851de88d61a2ee3b96c2c26bd9d3dba))
+* add reset-dynamic-history action and button on the profile page ([ed6cd38](https://github.com/bilal-fazlani/mock-server/commit/ed6cd38ebe66fec400c56d2989d002172869ed33))
+* add sandboxed _dynamic.ts resolver compile/invoke module ([493e4e6](https://github.com/bilal-fazlani/mock-server/commit/493e4e62ff3432b28ccddd12ad4ac2b6dc2cd66e))
+* **api:** GET /ui/api/catalog discovery endpoint ([d404c4e](https://github.com/bilal-fazlani/mock-server/commit/d404c4ea7663a229b7cca9b220645010a0990aee))
+* **api:** global-mocks list/set/clear routes ([8943a63](https://github.com/bilal-fazlani/mock-server/commit/8943a63409490265a59933d3b4c90de48f6eb1b7))
+* **api:** JSON scenario-selection validator ([e484ef8](https://github.com/bilal-fazlani/mock-server/commit/e484ef86ba96ec189a28b5586f92ceeb737767bc))
+* **api:** profile get/put/delete routes ([fc9d5b2](https://github.com/bilal-fazlani/mock-server/commit/fc9d5b2c12550233f069157c6408d281e2ccf33f))
+* **api:** profile progress-reset route ([9008144](https://github.com/bilal-fazlani/mock-server/commit/90081440e77822e044f097cbc0b52c1c816a00a8))
+* badge resolver-backed scenarios and generalize reset-history button ([a0252f0](https://github.com/bilal-fazlani/mock-server/commit/a0252f08c9f547931b5884306ed344f3a1c5e795))
+* bake mongod into the Docker image for the embedded fallback ([f80bf72](https://github.com/bilal-fazlani/mock-server/commit/f80bf72ba37a46b99b5e92e59b30a3a5a25ab8e5))
+* carry scenario summary onto ScenarioView ([9ba8ba9](https://github.com/bilal-fazlani/mock-server/commit/9ba8ba9edbbc27db179109caadac45f2e4b82c09))
+* compile _dynamic.ts resolvers at startup and expose via runtime ([b02f581](https://github.com/bilal-fazlani/mock-server/commit/b02f58192abede112713f510c92d13d16358460c))
+* display app version and git sha in ui, health, and environment page ([ebcd4c1](https://github.com/bilal-fazlani/mock-server/commit/ebcd4c1d228bde0d432cbad528a7d2c8f97c7caa))
+* extract optional summary export from TS resolvers ([cba5dba](https://github.com/bilal-fazlani/mock-server/commit/cba5dbaafdf3d8c25343b3b95745c5aca89ef6c3))
+* fall back to embedded MongoDB when no connection string is set ([9cc5726](https://github.com/bilal-fazlani/mock-server/commit/9cc5726e20b14f723ed55a08f9e90527fd4698db))
+* generalize scenarios to fixture (x.json) or resolver (x.ts) backing ([e4128a7](https://github.com/bilal-fazlani/mock-server/commit/e4128a7dcf71ea22d9fef3f3f2b73911886061a8))
+* inject dynamic scenario and add dangling-scenario label helper ([e9737bb](https://github.com/bilal-fazlani/mock-server/commit/e9737bb0f5479e392b9fe7a131e002e016201aa5))
+* key resolver history per scenario slug ([4d359f8](https://github.com/bilal-fazlani/mock-server/commit/4d359f820c0aa0fd8cc998aa5d600594a4ff4401))
+* **logs:** add before cursor, summary projection, and single-entry fetch ([b1427e6](https://github.com/bilal-fazlani/mock-server/commit/b1427e6f98be1b96fed00b9960ee9f6d212419b2))
+* **logs:** add LogSummaryView type and mapper ([93be865](https://github.com/bilal-fazlani/mock-server/commit/93be865aeadad13393f70f35b5b788738d76531a))
+* **logs:** add pure list-state helpers for tail/browse/cap logic ([6e2481e](https://github.com/bilal-fazlani/mock-server/commit/6e2481e28b8ec161d465641d948bc7ad042dbd7b))
+* **logs:** infinite-scroll history with tail/browse live polling ([9a8cbe4](https://github.com/bilal-fazlani/mock-server/commit/9a8cbe4516cdae1e079c1fd71964e24790d302da))
+* **logs:** lazy-load request/response payloads on row expand ([b3455be](https://github.com/bilal-fazlani/mock-server/commit/b3455be29d5ff4acdd9ccaf066496461591877f1))
+* parse optional summary from JSON fixtures into scenarioSummaries ([bca1c1f](https://github.com/bilal-fazlani/mock-server/commit/bca1c1f04c5a1363e81c1debb92aab6243be623a))
+* patch scenarioSummaries from resolver summary export ([803aae9](https://github.com/bilal-fazlani/mock-server/commit/803aae98eaf3bf41ccb2c9d124bf1e2cd7814201))
+* recognize _dynamic.ts in catalog load and reserve the dynamic slug ([5c93005](https://github.com/bilal-fazlani/mock-server/commit/5c93005a1d8bacb9ca72c171235e03f61806caa8))
+* rename DYNAMIC_HISTORY_LIMIT env var to RESOLVER_HISTORY_LIMIT ([09c1597](https://github.com/bilal-fazlani/mock-server/commit/09c1597896ebe38fa55fbf6085b6ca98b5c9758a))
+* render scenario summary under the friendly name ([3501ee4](https://github.com/bilal-fazlani/mock-server/commit/3501ee45446674d0764c80666126a19a28859bbd))
+* reset UI and deletion cleanup for global-mock dynamic history ([f0e97d1](https://github.com/bilal-fazlani/mock-server/commit/f0e97d18bb75e044a654d15c75a792e6bf69e496))
+* resolve catalog dir from CATALOG_PATH env ([413830b](https://github.com/bilal-fazlani/mock-server/commit/413830b86b61c1f3647eb8d888e0ff19750de69a))
+* resolver description export and slug-addressed resolver files ([e0a4118](https://github.com/bilal-fazlani/mock-server/commit/e0a41183d1bb3d155a02f1028b8e89263793dd45))
+* run _dynamic.ts resolver and rewrite scenario slug in the router ([e8272a6](https://github.com/bilal-fazlani/mock-server/commit/e8272a6e6a67fc4f132542f6409e021bbe51a554))
+* show a dynamic scenario card on the catalog endpoint page ([ba76042](https://github.com/bilal-fazlani/mock-server/commit/ba76042045223b558a398e74d7843d1fa26a63c2))
+* show dangling scenario pins as disabled unavailable options ([2c4dcff](https://github.com/bilal-fazlani/mock-server/commit/2c4dcff82a61301283164d579be4cf5244cedf60))
+* show highlighted resolver source and fixture json on catalog page ([fe6b041](https://github.com/bilal-fazlani/mock-server/commit/fe6b041f16ab0029e157a75d45ac4ffaf856fb61))
+* show resolver picked-vs-returned scenario in request logs ([f0cbfdd](https://github.com/bilal-fazlani/mock-server/commit/f0cbfddb40649b6c770fd87b2aff3ea8fe1c5c3b))
+* validate resolver-backed scenario rules at startup ([8572aba](https://github.com/bilal-fazlani/mock-server/commit/8572aba74745c940b148abc80b9deb5e4783f210))
+
+
+### Bug Fixes
+
+* add dark: variants so custom overrides beat shadcn primitives' baked-in dark classes ([e47158d](https://github.com/bilal-fazlani/mock-server/commit/e47158d1b08fbc2e2c37a1ae6cefb98d7e6afd9e))
+* classify resolver timeouts by error code, not message text ([ab4aec2](https://github.com/bilal-fazlani/mock-server/commit/ab4aec2d527c4200fe548989ce95c87994422a50))
+* contain long request-log payload lines in a scrollable block ([0df8365](https://github.com/bilal-fazlani/mock-server/commit/0df83652eaa84a9d655f36a7b3a4779c6a9f47ca))
+* correct method badge gray and schema icon size ([fe64ea2](https://github.com/bilal-fazlani/mock-server/commit/fe64ea21774f2f48eeb3e6e92e40f7b3ec1b41f4))
+* exclude removed-catalog endpoints from the profile Save guard ([97c7f95](https://github.com/bilal-fazlani/mock-server/commit/97c7f950da6e728155063be26e3e282e69d707e6))
+* harden dynamic resolver against dev compile errors, input mutation, and missing CLI check ([048b803](https://github.com/bilal-fazlani/mock-server/commit/048b80385c636842ceb8b9394226b8db8836e6c9))
+* highlight only the fixture body on the catalog card ([041466b](https://github.com/bilal-fazlani/mock-server/commit/041466bd8b3031a4b3d15d9a5926766e03d298ad))
+* include ScenarioPicker.tsx Tailwind rewrite in prior commit ([80c66fb](https://github.com/bilal-fazlani/mock-server/commit/80c66fbc5b17c98fb95cf77e4db131b0faa16691))
+* keep standalone bundle lean (exclude non-runtime files from tracing) ([ec05259](https://github.com/bilal-fazlani/mock-server/commit/ec052592d06f887552d672fcefdc15cfd1283520))
+* **logs:** bound pending buffer and guard stale poll/loadOlder responses ([6c13e72](https://github.com/bilal-fazlani/mock-server/commit/6c13e72516c9d6d7ae7940229604b3ef2cdbb748))
+* **logs:** keep log rows at natural height in the scroll container ([574bbe9](https://github.com/bilal-fazlani/mock-server/commit/574bbe99173f0e4b484cd1fd2cd537a15e575188))
+* make shadcn Button variants explicit so base button styles don't leak ([28f34fb](https://github.com/bilal-fazlani/mock-server/commit/28f34fb8632b2f880554bf8f96e814d630c5706f))
+* make stale detection dynamic-aware and block save on unresolved stale pins ([454b078](https://github.com/bilal-fazlani/mock-server/commit/454b0780171515cb82917dccd2602e7fbccb84ae))
+* mark esbuild as a server-external package for Next/Turbopack ([eb5138b](https://github.com/bilal-fazlani/mock-server/commit/eb5138b545c8095c68b56f3dd398f0430ec43e08))
+* match Docker build libc to runtime and harden runner image ([52dba9a](https://github.com/bilal-fazlani/mock-server/commit/52dba9a714fbae8396cbf3f15cda2173753df4f2))
+* materialize standalone symlinks so the packed tarball is self-contained; propagate signal exit codes ([e7bc7b0](https://github.com/bilal-fazlani/mock-server/commit/e7bc7b00949eb7bf9b0a8969538e98c1697cb92d))
+* pin npm 11 wherever npm ci runs to match lockfile's npm major ([0c5765c](https://github.com/bilal-fazlani/mock-server/commit/0c5765cd362cc02d83f19d1b870d3dbda7410078))
+* reconcile stale dynamicHistory index on upgrade ([be3731f](https://github.com/bilal-fazlani/mock-server/commit/be3731f9926b8026792a3d5e89db2488106e516d))
+* regenerate package-lock.json on linux to fix npm ci EBADPLATFORM ([e56e4c1](https://github.com/bilal-fazlani/mock-server/commit/e56e4c1fb97a28e826e2b8cf4984112e17d6797e))
+* regenerate package-lock.json so npm ci resolves all esbuild platform deps ([da3557f](https://github.com/bilal-fazlani/mock-server/commit/da3557f64b8915b489ce9f9336639b61342eea55))
+* reset embedded-mongo singleton on boot failure so it retries ([cf38193](https://github.com/bilal-fazlani/mock-server/commit/cf3819303c8b60b36501c16d6597d3281288703b))
+* **scenarios:** allow setting dynamic on resolver-backed endpoints ([3511bd7](https://github.com/bilal-fazlani/mock-server/commit/3511bd7628f98669aaf51dd6300e237ca5d36c64)), closes [#1](https://github.com/bilal-fazlani/mock-server/issues/1)
+* show global reset-resolver-history button for implicit resolver-backed default ([f587952](https://github.com/bilal-fazlani/mock-server/commit/f5879526790694eed095f2910f61a3c27c3f65a9))
+* suppress hover underline on shadcn Button (base a:hover leaked onto asChild link buttons) ([955dc34](https://github.com/bilal-fazlani/mock-server/commit/955dc344990562a623ad476bfc9265b205112045))
+* tolerate a single trailing slash in path templates ([8fcedaf](https://github.com/bilal-fazlani/mock-server/commit/8fcedaf2e5b29b3027da9483ca2bc781b1a81956))
+* tolerate a single trailing slash in path templates ([07641e3](https://github.com/bilal-fazlani/mock-server/commit/07641e3b64598c7c88acb8efa05b65aae6f7faec))
+* wrap base element styles in [@layer](https://github.com/layer) base so Tailwind utilities win ([4ccafc9](https://github.com/bilal-fazlani/mock-server/commit/4ccafc92842d0db471871c9155de9d8451b84815))
+
+
+### Performance Improvements
+
+* index requestLogs { ts:-1, logId:-1 } to fix slow first logs load ([120cad6](https://github.com/bilal-fazlani/mock-server/commit/120cad63b408a22b5428be5c1f8304b3189b133f))
+
 ## [0.2.1](https://github.com/bilal-fazlani/mock-server/compare/mock-server-v0.2.0...mock-server-v0.2.1) (2026-07-16)
 
 
