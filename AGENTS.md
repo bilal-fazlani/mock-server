@@ -34,6 +34,28 @@ Rules:
 
 See [RELEASE.md](RELEASE.md) for the full release flow.
 
+## package-lock.json: npm 11 only
+
+`npm ci` runs in three places — `.github/workflows/ci.yml`,
+`.github/workflows/publish-npm.yml`, and the Dockerfile `deps` stage — all on
+Node 22 images whose bundled npm is v10. Dev machines run npm 11, which writes
+a lockfile dedupe layout npm 10 rejects (`npm ci` fails with
+`Missing: <pkg>@<version> from lock file`, historically esbuild's platform
+packages). All three places therefore run `npm install -g npm@11` before
+`npm ci`. This exact failure broke CI three times (da3557f, e56e4c1, the
+release-0.3.0 PR) before the pin.
+
+- **Never regenerate `package-lock.json` with an npm major other than 11.** If
+  the pinned major ever changes, update it in all three places in the same
+  commit.
+- **After any change to `package.json` or `package-lock.json`**, verify the
+  lock is in sync with the pinned major: `npx -y npm@11 ci --dry-run` must
+  exit 0.
+- If CI fails with the `Missing: … from lock file` signature, first check for
+  an npm-major mismatch between the machine that wrote the lock and the
+  environment running `npm ci` — do **not** just regenerate the lock with
+  whatever npm is local; that non-fix is what caused each recurrence.
+
 ## Keep the mock-endpoint guide in sync
 
 There is a human-facing guide built with [Zensical](https://zensical.org) under

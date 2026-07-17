@@ -16,7 +16,10 @@ RUN apk add --no-cache ca-certificates curl \
 FROM node:22-bookworm-slim AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci
+# node:22 bundles npm 10, which rejects the npm-11-generated lockfile
+# ("Missing: ... from lock file"). Pin the npm major that wrote the lock;
+# keep in sync with ci.yml and publish-npm.yml.
+RUN npm install -g npm@11 && npm ci
 
 # --- build: produce the standalone server ---
 FROM node:22-bookworm-slim AS build

@@ -25,6 +25,11 @@ jobs:
           node-version: 22
           registry-url: https://registry.npmjs.org
 
+      # Node 22 bundles npm 10, which rejects the npm-11-generated lockfile.
+      # Keep in sync with ci.yml and the Dockerfile deps stage.
+      - name: Pin npm 11 (must match the npm major that wrote the lockfile)
+        run: npm install -g npm@11
+
       - name: Install dependencies
         run: npm ci
 
