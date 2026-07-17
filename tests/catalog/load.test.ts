@@ -285,9 +285,21 @@ describe('loadCatalog _spec', () => {
       'sys/ep/default.json': FIXTURE,
     })
     const catalog = loadCatalog(dir)
-    const schema = catalog.systems[0].endpoints[0].schema as any
-    expect(schema.responses['200'].content['application/json'].schema.$ref).toBe('#/$defs/Res')
-    expect(schema.responses['200'].content['application/json'].schema.$defs.Res.required).toEqual(['ok'])
+    const schema = catalog.systems[0].endpoints[0].schema
+    expect(schema).toMatchObject({
+      responses: {
+        '200': {
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/$defs/Res',
+                $defs: { Res: { required: ['ok'] } },
+              },
+            },
+          },
+        },
+      },
+    })
     expect(catalog.warnings).toEqual([])
   })
 

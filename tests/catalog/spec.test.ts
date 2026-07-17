@@ -16,10 +16,23 @@ describe('bundleOperation', () => {
       responseOp({ $ref: '#/components/schemas/Res' }),
       { Res: { type: 'object', required: ['ok'], properties: { ok: { type: 'boolean' } } } },
       'sys/ep',
-    ) as any
-    const schema = bundled.responses['200'].content['application/json'].schema
-    expect(schema.$ref).toBe('#/$defs/Res')
-    expect(schema.$defs.Res.required).toEqual(['ok'])
+    )
+    expect(bundled).toEqual({
+      responses: {
+        '200': {
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/$defs/Res',
+                $defs: {
+                  Res: { type: 'object', required: ['ok'], properties: { ok: { type: 'boolean' } } },
+                },
+              },
+            },
+          },
+        },
+      },
+    })
   })
 
   it('rewrites transitive refs inside copied definitions', () => {
@@ -30,15 +43,39 @@ describe('bundleOperation', () => {
         Bar: { type: 'string' },
       },
       'sys/ep',
-    ) as any
-    const schema = bundled.responses['200'].content['application/json'].schema
-    expect(schema.$defs.Foo.properties.bar.$ref).toBe('#/$defs/Bar')
-    expect(schema.$defs.Bar).toEqual({ type: 'string' })
+    )
+    expect(bundled).toEqual({
+      responses: {
+        '200': {
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/$defs/Foo',
+                $defs: {
+                  Foo: { type: 'object', properties: { bar: { $ref: '#/$defs/Bar' } } },
+                  Bar: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+      },
+    })
   })
 
   it('leaves an inline schema untouched and attaches no $defs when there are no components', () => {
-    const bundled = bundleOperation(responseOp({ type: 'object' }), {}, 'sys/ep') as any
-    expect(bundled.responses['200'].content['application/json'].schema).toEqual({ type: 'object' })
+    const bundled = bundleOperation(responseOp({ type: 'object' }), {}, 'sys/ep')
+    expect(bundled).toEqual({
+      responses: {
+        '200': {
+          content: {
+            'application/json': {
+              schema: { type: 'object' },
+            },
+          },
+        },
+      },
+    })
   })
 
   it('throws on a ref to a missing schema', () => {
@@ -60,10 +97,23 @@ describe('bundleOperation', () => {
         Node: { type: 'object', properties: { next: { $ref: '#/components/schemas/Node' } } },
       },
       'sys/ep',
-    ) as any
-    const schema = bundled.responses['200'].content['application/json'].schema
-    expect(schema.$ref).toBe('#/$defs/Node')
-    expect(schema.$defs.Node.properties.next.$ref).toBe('#/$defs/Node')
+    )
+    expect(bundled).toEqual({
+      responses: {
+        '200': {
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/$defs/Node',
+                $defs: {
+                  Node: { type: 'object', properties: { next: { $ref: '#/$defs/Node' } } },
+                },
+              },
+            },
+          },
+        },
+      },
+    })
   })
 
   it('produces a schema Ajv can compile and resolve through refs', () => {
@@ -134,8 +184,18 @@ describe('resolveEndpointSchema', () => {
     'sys/_spec.yaml',
   )
   it('bundles the matched operation and lowercases the method', () => {
-    const schema = resolveEndpointSchema(spec, 'POST', '/a', 'sys/ep') as any
-    expect(schema.responses['200'].content['application/json'].schema).toEqual({ type: 'object' })
+    const schema = resolveEndpointSchema(spec, 'POST', '/a', 'sys/ep')
+    expect(schema).toEqual({
+      responses: {
+        '200': {
+          content: {
+            'application/json': {
+              schema: { type: 'object' },
+            },
+          },
+        },
+      },
+    })
   })
   it('returns null when the path or method is absent', () => {
     expect(resolveEndpointSchema(spec, 'GET', '/a', 'sys/ep')).toBeNull()
