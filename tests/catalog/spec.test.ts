@@ -1,6 +1,9 @@
 // tests/catalog/spec.test.ts
-import { describe, expect, it } from 'vitest'
-import { SpecError, bundleOperation } from '../../src/lib/catalog/spec'
+import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
+import { afterEach, describe, expect, it } from 'vitest'
+import { SpecError, bundleOperation, findSpecFile, parseSpec, resolveEndpointSchema } from '../../src/lib/catalog/spec'
 import { compileEndpointSchema } from '../../src/lib/catalog/schema'
 
 const responseOp = (schema: unknown) => ({
@@ -74,5 +77,68 @@ describe('bundleOperation', () => {
     )
     expect(compiled.validateResponseBody(200, { id: 'x' })).toEqual([])
     expect(compiled.validateResponseBody(200, {}).length).toBeGreaterThan(0)
+  })
+})
+
+const specTmp: string[] = []
+afterEach(() => {
+  while (specTmp.length) fs.rmSync(specTmp.pop()!, { recursive: true, force: true })
+})
+function tmpDirWith(files: Record<string, string>): string {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'spec-'))
+  specTmp.push(dir)
+  for (const [name, content] of Object.entries(files)) {
+    fs.writeFileSync(path.join(dir, name), content)
+  }
+  return dir
+}
+
+describe('parseSpec', () => {
+  it('parses YAML paths and component schemas', () => {
+    const spec = parseSpec(
+      ['paths:', '  /a:', '    get:', '      responses: {}', 'components:', '  schemas:', '    Foo:', '      type: string'].join('\n'),
+      'sys/_spec.yaml',
+    )
+    expect(spec.paths['/a'].get).toEqual({ responses: {} })
+    expect(spec.componentsSchemas.Foo).toEqual({ type: 'string' })
+  })
+
+  it('parses JSON (a subset of YAML)', () => {
+    const spec = parseSpec('{"paths":{"/a":{"get":{"responses":{}}}}}', 'sys/_spec.json')
+    expect(spec.paths['/a'].get).toEqual({ responses: {} })
+    expect(spec.componentsSchemas).toEqual({})
+  })
+
+  it('throws when the document is not an object', () => {
+    expect(() => parseSpec('- 1\n- 2', 'sys/_spec.yaml')).toThrow(SpecError)
+    expect(() => parseSpec('42', 'sys/_spec.yaml')).toThrow(/must be a YAML\/JSON object/)
+  })
+})
+
+describe('findSpecFile', () => {
+  it('returns the single spec file, or null when absent', () => {
+    const withYaml = tmpDirWith({ '_spec.yaml': 'paths: {}' })
+    expect(findSpecFile(withYaml)).toBe(path.join(withYaml, '_spec.yaml'))
+    expect(findSpecFile(tmpDirWith({}))).toBeNull()
+  })
+
+  it('throws when more than one spec file is present', () => {
+    const dir = tmpDirWith({ '_spec.yaml': 'paths: {}', '_spec.json': '{"paths":{}}' })
+    expect(() => findSpecFile(dir)).toThrow(/multiple spec files/)
+  })
+})
+
+describe('resolveEndpointSchema', () => {
+  const spec = parseSpec(
+    ['paths:', '  /a:', '    post:', '      responses:', '        "200":', '          content:', '            application/json:', '              schema:', '                type: object'].join('\n'),
+    'sys/_spec.yaml',
+  )
+  it('bundles the matched operation and lowercases the method', () => {
+    const schema = resolveEndpointSchema(spec, 'POST', '/a', 'sys/ep') as any
+    expect(schema.responses['200'].content['application/json'].schema).toEqual({ type: 'object' })
+  })
+  it('returns null when the path or method is absent', () => {
+    expect(resolveEndpointSchema(spec, 'GET', '/a', 'sys/ep')).toBeNull()
+    expect(resolveEndpointSchema(spec, 'POST', '/missing', 'sys/ep')).toBeNull()
   })
 })

@@ -1,3 +1,7 @@
+import fs from 'node:fs'
+import path from 'node:path'
+import { parse as parseYaml } from 'yaml'
+
 export class SpecError extends Error {}
 
 const COMPONENTS_PREFIX = '#/components/schemas/'
@@ -74,4 +78,55 @@ export function bundleOperation(
     for (const node of nodes) node.$defs = defs
   }
   return op
+}
+
+export interface ParsedSpec {
+  paths: Record<string, Record<string, unknown>>
+  componentsSchemas: Record<string, unknown>
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+}
+
+export function parseSpec(text: string, label: string): ParsedSpec {
+  let doc: unknown
+  try {
+    doc = parseYaml(text)
+  } catch (err) {
+    throw new SpecError(`${label}: not valid YAML/JSON: ${(err as Error).message}`)
+  }
+  if (!isObject(doc)) {
+    throw new SpecError(`${label}: spec must be a YAML/JSON object`)
+  }
+  const paths = isObject(doc.paths)
+    ? (doc.paths as Record<string, Record<string, unknown>>)
+    : {}
+  const components = isObject(doc.components) ? doc.components : {}
+  const componentsSchemas = isObject(components.schemas) ? components.schemas : {}
+  return { paths, componentsSchemas }
+}
+
+const SPEC_NAMES = ['_spec.yaml', '_spec.yml', '_spec.json']
+
+export function findSpecFile(systemDir: string): string | null {
+  const present = SPEC_NAMES.filter((name) => fs.existsSync(path.join(systemDir, name)))
+  if (present.length > 1) {
+    throw new SpecError(
+      `system spec: multiple spec files (${present.join(', ')}) — keep only one`,
+    )
+  }
+  return present.length === 1 ? path.join(systemDir, present[0]) : null
+}
+
+// `endpointPath` (not `path`) avoids shadowing the imported `node:path` module.
+export function resolveEndpointSchema(
+  spec: ParsedSpec,
+  method: string,
+  endpointPath: string,
+  label: string,
+): Record<string, unknown> | null {
+  const operation = spec.paths[endpointPath]?.[method.toLowerCase()]
+  if (!isObject(operation)) return null
+  return bundleOperation(operation, spec.componentsSchemas, label)
 }
