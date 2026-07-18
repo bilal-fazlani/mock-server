@@ -212,6 +212,14 @@ adjacent placeholders), the value is coerced to a string — objects and arrays
 as JSON. Response **header** values are always rendered as strings, whatever
 the placeholder shape.
 
+!!! note "Body selectors extract strings and numbers only"
+
+    The selector grammar pulls **string and number** values out of the request;
+    a boolean or object field in the request body does not resolve, and the
+    request fails with a `500` like any other unresolved placeholder. Typed
+    booleans and objects therefore come from call literals (`flag:true`) and
+    custom-function returns — not from `$.…` selectors.
+
 !!! warning "Placeholders must resolve"
 
     If a selector placeholder can't find its value in the request, or a custom
