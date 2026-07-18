@@ -95,13 +95,129 @@ Selector placeholders use the reusable body/path/query selector grammar, so you
 can echo request data straight into the response (e.g.
 `"customerId": "{{$.customerId}}"`). Bearer selectors are deliberately not
 available to placeholders, so an authorization credential cannot be echoed into a
-fixture response. Substitution is string-only; the resolved value is inserted as
-text.
+fixture response.
+
+## Placeholder expressions
+
+Every placeholder is parsed as an **expression**: a source value — a selector or
+a `now` token — optionally piped through **function calls**:
+
+```json
+{
+  "name": "{{$.name | upper}}",
+  "label": "{{label:$.status}}"
+}
+```
+
+The grammar, in full:
+
+- **Call:** `name:arg:arg` — a function name followed by colon-separated
+  arguments (`label:$.status`, `pad:'007'`).
+- **Pipe:** `|` composes calls left to right; `x | f:a` passes the previous
+  value as `f`'s first argument. Only function calls may follow a `|` — the
+  selector/`now` forms are valid only as the leading stage.
+- **Typed arguments:** a decimal number becomes a number, `true`/`false` become
+  booleans, a `'single-quoted'` token is a literal string (quotes stripped —
+  and `:` or `|` inside the quotes are literal characters, not separators), a
+  `$.…` token is resolved against the request body, and any other bare token is
+  a string.
+- Call arguments accept **body selectors and literals only**. `path:`/`query:`
+  values can't be passed as arguments — start the chain with them
+  (`{{path:id | upper}}`) or read them from `context.request` inside a custom
+  function.
+
+Function names resolve to a [built-in transform](#built-in-transforms) or a
+[custom function](#custom-functions-_functionsts); anything else is a catalog
+error at startup, never a runtime surprise.
+
+## Built-in transforms
+
+| Transform | Effect |
+| --- | --- |
+| `upper` | Uppercase the piped value |
+
+The set is deliberately small today; seeded randomness, fake data, hashing, and
+more string filters are planned as additional built-ins on this same mechanism.
+Built-in names (including `now`, `body`, `path`, `query`, and `profileKey`) are
+reserved — a custom function may not use them.
+
+## Custom functions (`_functions.ts`)
+
+When the built-ins can't express what a fixture needs — formatting, derived
+values, combining request inputs — export your own functions from a
+`_functions.ts` (or plain-JS `_functions.mjs`) file in the catalog:
+
+```ts
+// catalog/hello-system/_functions.ts
+import type { MockFn } from '../../src/lib/mock-engine/functions'
+
+export const label: MockFn = (_ctx, status) => `CUSTOMER: ${String(status).toUpperCase()}`
+```
+
+```json
+{ "label": "{{label:$.status}}" }
+```
+
+Each **named export** becomes a callable function. The contract is
+`(context, ...args)`:
+
+- **Prefer explicit arguments.** Pass request data in as arguments
+  (`label:$.status`) — it keeps functions inspectable and reusable. Arguments
+  arrive already resolved: selectors as their extracted values, literals as
+  typed values, the piped value first.
+- **`context` is the escape hatch** for multi-source cases: `context.request`
+  carries `method`, `path`, `pathParams`, `query`, `headers`, and `body`;
+  `context.now` is the request timestamp; `context.seed` is stable per
+  `(profile, endpoint)` for reproducible pseudo-randomness.
+
+A `_functions` file may live at three levels, and the **nearest definition
+wins** when names collide:
+
+| Level | Location | Visible to |
+| --- | --- | --- |
+| Catalog | `catalog/_functions.ts` | every endpoint |
+| System | `catalog/<system>/_functions.ts` | that system's endpoints |
+| Endpoint | `catalog/<system>/<endpoint>/_functions.ts` | that endpoint's fixtures |
+
+Functions run in the same sandbox as
+[scenario resolvers](dynamic.md#compilation-sandboxing-and-timeouts): compiled
+once at startup, executed in an empty `node:vm` context with a **100 ms
+per-call timeout**, no `require`, `process`, `fetch`, or `console`. In
+practice:
+
+- **Type-only imports only.** `import type { MockFn } from …` is erased at
+  compile time and is fine; a value import fails at catalog load because the
+  sandbox has no `require`. (The `MockFn` import path shown above resolves for
+  catalogs inside this repository; editor type-checking is optional either way.)
+- **Write pure functions.** Module-level mutable state survives across requests
+  for the life of the process — it is not part of the contract. Derive
+  variability from `context.now` and `context.seed` instead of `Date`/`Math.random`
+  so responses stay reproducible.
+- **Failures are loud.** A function that throws, exceeds its timeout, or
+  returns something unusable (e.g. `undefined`) fails the request with a `500`
+  naming the function and the placeholder.
+
+## Typed substitution
+
+Substitution preserves types. When a fixture string is **exactly one
+placeholder**, the resolved value is emitted raw — numbers stay numbers,
+booleans stay booleans, and a function may even return an object or array:
+
+```json
+{ "amount": "{{$.amount}}" }   // → { "amount": 42 }, not { "amount": "42" }
+```
+
+When a placeholder is **interpolated** into surrounding text (including two
+adjacent placeholders), the value is coerced to a string — objects and arrays
+as JSON. Response **header** values are always rendered as strings, whatever
+the placeholder shape.
 
 !!! warning "Placeholders must resolve"
 
-    If a selector placeholder can't find its value in the request, the endpoint
-    returns `500` for that request. An unknown `now:` formatter is a hard error
-    too (only `iso` and `YYYYMMDD` exist). The catalog validator catches malformed
-    placeholders ahead of time — resolution against a specific request is the one
-    thing it can't pre-check.
+    If a selector placeholder can't find its value in the request, or a custom
+    function fails, the endpoint returns `500` for that request. Everything
+    checkable ahead of time is checked at startup — malformed expressions,
+    unknown `now:` formats, and unknown function names (including a function
+    defined only in *another* system's scope) are catalog errors — but
+    resolution against a specific request is the one thing validation can't
+    pre-check.

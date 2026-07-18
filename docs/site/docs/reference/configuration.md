@@ -46,22 +46,23 @@ walks the tree looking for **structural** problems; if it finds any, it stops
 there and reports *all of them at once* as a single startup error — nothing else
 runs until the tree itself is well-formed:
 
-- Every entry directly under `catalog/` is a directory (a system) — anything else
-  is a stray entry.
+- Every entry directly under `catalog/` is a directory (a system) or a
+  `_functions.ts`/`_functions.mjs` file — anything else is a stray entry.
 - Every system directory has a `_system.json` that parses as a JSON object with
   non-empty `name` and `baseUrlEnv` strings.
-- Every entry inside a system directory (other than `_system.json`) is a directory
-  (an endpoint) — anything else is a stray entry.
+- Every entry inside a system directory (other than `_system.json` and
+  `_functions.ts`/`_functions.mjs`) is a directory (an endpoint) — anything else
+  is a stray entry.
 - Every endpoint directory has an `_endpoint.json` that parses as a JSON object
   with non-empty `displayName`, `method`, and `path` strings. If present,
   `mockType` is `profiled` or `global`; `profileIdSelector` is a non-empty string;
   and `captureProfileKeys` is an array of objects with non-empty `namespace` and
   `keySelector` strings.
-- Every entry inside an endpoint directory (other than `_endpoint.json` and
-  `_schema.json`) is a file named `<scenario>.json` (fixture-backed) or
-  `<scenario>.ts` (resolver-backed), where `<scenario>` matches
-  `[a-z0-9][a-z0-9_-]*` — anything else (wrong case, bad characters, a
-  sub-directory) is a stray entry.
+- Every entry inside an endpoint directory (other than `_endpoint.json`,
+  `_schema.json`, and `_functions.ts`/`_functions.mjs`) is a file named
+  `<scenario>.json` (fixture-backed) or `<scenario>.ts` (resolver-backed), where
+  `<scenario>` matches `[a-z0-9][a-z0-9_-]*` — anything else (wrong case, bad
+  characters, a sub-directory) is a stray entry.
 - Dotfiles anywhere in the tree are silently ignored, not flagged.
 
 Once the tree parses structurally, a second pass checks **semantics** against the
@@ -88,11 +89,24 @@ now-known catalog and reports its own list of errors:
   but `"real"`.
 - Each fixture (`<slug>.json`) is valid JSON with a numeric `status` and a
   `body` key. Fixtures are loaded into memory as part of this pass.
-- Every placeholder inside a fixture is either a `now` expression — one of the
-  named formats `iso`, `YYYYMMDD`, `date`, `time`, `epoch`, or `epochMillis`,
-  optionally with a relative offset, e.g. `now+3d:iso` — or a valid
-  body/path/query selector (never Bearer), and any `path:` placeholder
-  references a declared param.
+- Every placeholder inside a fixture parses as a
+  [placeholder expression](../building/fixtures.md#placeholder-expressions):
+  the leading stage is a `now` expression — one of the named formats `iso`,
+  `YYYYMMDD`, `date`, `time`, `epoch`, or `epochMillis`, optionally with a
+  relative offset, e.g. `now+3d:iso` — a valid body/path/query selector (never
+  Bearer), or a function call; every function name it calls (in pipes or as the
+  source) is a built-in transform or a user function **visible from that
+  endpoint's scope** (endpoint → system → catalog). An unknown name — a typo, a
+  function defined only in another system, or a syntactic form used as a call
+  (bare `now`, piped `| now:iso`, `body:$.x`) — is an error. Any `path:`
+  placeholder, including one nested in a call argument, references a declared
+  param.
+- Every `_functions.ts`/`_functions.mjs` file compiles and evaluates in the
+  sandbox. A user function whose name is reserved (`now`, `body`, `path`,
+  `query`, `profileKey`, or any built-in transform), a compile error, or both a
+  `.ts` and an `.mjs` file at the same level are all errors. Like a broken
+  resolver, a broken `_functions` file is caught before deploy by
+  `npm run validate:catalog`.
 - No two endpoints of the same method have **overlapping** path templates (which
   would make matching ambiguous).
 - If an endpoint has a `_schema.json`, it must compile as valid JSON Schema, and
