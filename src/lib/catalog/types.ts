@@ -1,3 +1,5 @@
+import type { CompiledFn } from '../mock-engine/functions'
+
 export interface ProfileKeyCaptureDef {
   namespace: string
   keySelector: string
@@ -44,4 +46,8 @@ export interface Catalog {
   /** Non-fatal load diagnostics (e.g. an endpoint with no matching spec
    *  operation). Populated by loadCatalog; empty when there are none. */
   warnings?: string[]
+  /** Resolves the merged (catalog < system < endpoint, nearest wins) user
+   * function table for a given endpoint. Backed by loadFunctions' resolveTable;
+   * optional so existing test fixtures of this type keep compiling. */
+  resolveFunctions?: (systemSlug: string, endpointName: string) => Map<string, CompiledFn>
 }

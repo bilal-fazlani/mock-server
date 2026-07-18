@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import { loadFunctions } from '../mock-engine/functions-load'
 import { type ParsedSpec, SpecError, findSpecFile, parseSpec, resolveEndpointSchema } from './spec'
 import type { Catalog, EndpointDef, ScenarioMeta, SystemDef } from './types'
 
@@ -146,10 +147,13 @@ export function loadCatalog(catalogDir: string): Catalog {
     })
   }
 
+  const fns = loadFunctions(catalogDir)
+  problems.push(...fns.problems)
+
   if (problems.length > 0) {
     throw new CatalogLoadError(`invalid catalog structure:\n - ${problems.join('\n - ')}`)
   }
-  return { systems, warnings }
+  return { systems, warnings, resolveFunctions: fns.resolveTable }
 }
 
 function optionalMockType(

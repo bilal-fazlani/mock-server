@@ -240,7 +240,23 @@ export async function routeRequest(
     const fixture = deps.loadFixture(system.slug, endpoint.name, scenario)
     const now = deps.now ? deps.now() : new Date()
     const placeholders: Record<string, string> = {}
-    const body = resolveTemplate(fixture.body, ctx, now, placeholders)
+    const fnCtx = {
+      request: {
+        method: req.method,
+        path: req.path,
+        pathParams: ctx.pathParams,
+        query: Object.fromEntries([...ctx.query.keys()].map((k) => [k, ctx.query.getAll(k)])),
+        headers: ctx.headers,
+        body: ctx.body,
+      },
+      now,
+      seed: `${profileId ?? 'none'}:${endpoint.name}`,
+    }
+    const functions = deps.catalog.resolveFunctions
+      ? deps.catalog.resolveFunctions(system.slug, endpoint.name)
+      : new Map()
+    const opts = { fnCtx, functions }
+    const body = resolveTemplate(fixture.body, ctx, now, placeholders, opts)
     if (compiled) {
       const issues = compiled.validateResponseBody(fixture.status, body)
       if (issues.length > 0) {
@@ -257,7 +273,11 @@ export async function routeRequest(
     }
     const headers = {
       'content-type': 'application/json',
-      ...(resolveTemplate(fixture.headers ?? {}, ctx, now, placeholders) as Record<string, string>),
+      // Headers always render as strings — #12 type preservation is bodies-only.
+      ...(resolveTemplate(fixture.headers ?? {}, ctx, now, placeholders, {
+        ...opts,
+        stringOnly: true,
+      }) as Record<string, string>),
     }
     trace.placeholders = placeholders
     trace.outcome = 'fixture'
