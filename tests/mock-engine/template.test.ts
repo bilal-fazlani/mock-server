@@ -82,6 +82,16 @@ describe('resolveTemplate', () => {
   it('throws PlaceholderError for an unresolved selector', () => {
     expect(() => resolveTemplate({ a: '{{$.missing}}' }, ctx(), now)).toThrow(PlaceholderError)
   })
+
+  it('applies a built-in transform through a pipe', () => {
+    const c = ctx({ body: { name: 'bilal' } })
+    expect(resolveTemplate({ n: '{{$.name | upper}}' }, c, now)).toEqual({ n: 'BILAL' })
+  })
+
+  it('errors on an unknown function name at resolve time', () => {
+    expect(() => resolveTemplate({ n: '{{$.name | bogus}}' }, ctx({ body: { name: 'x' } }), now))
+      .toThrow(PlaceholderError)
+  })
 })
 
 describe('listPlaceholders', () => {
