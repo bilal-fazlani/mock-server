@@ -4,6 +4,7 @@
   "body": {
     "customerId": "{{$.customerId}}",
     "status": "success",
-    "message": "Hello, {{$.customerId}}!"
+    "message": "Hello, {{$.customerId}}!",
+    "label": "{{label:$.customerId}}"
   }
 }

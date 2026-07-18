@@ -1,5 +1,6 @@
 import path from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
+import { loadCatalog } from '../../src/lib/catalog/load'
 import { buildSchemaRegistry } from '../../src/lib/catalog/schema'
 import type { Catalog } from '../../src/lib/catalog/types'
 import { loadFixture } from '../../src/lib/mock-engine/fixtures'
@@ -1190,5 +1191,29 @@ describe('resolver-backed scenario (dynamic slug)', () => {
     expect(res.status).toBe(200)
     const body = JSON.parse(res.bodyBytes.toString('utf8'))
     expect(body.customerId).toBe('c1')
+  })
+})
+
+describe('user functions (real hello-system catalog)', () => {
+  // Boots against the shipped catalog on disk (not the synthetic CATALOG
+  // above) so this exercises the real _functions.ts load/compile/dispatch
+  // path end to end — no mocking of the function table.
+  const CATALOG_DIR = path.join(__dirname, '../../catalog')
+  const realCatalog = loadCatalog(CATALOG_DIR)
+
+  it('renders a fixture value computed by a user function', async () => {
+    const d = deps({
+      catalog: realCatalog,
+      schemas: buildSchemaRegistry(realCatalog).schemas,
+      env: { HELLO_SYSTEM_URL: 'http://real.example' },
+      getProfile: withProfile(profile({ profileId: 'c1', endpointScenarios: {} })),
+      loadFixture: (systemSlug, endpointName, scenario) =>
+        loadFixture(CATALOG_DIR, systemSlug, endpointName, scenario),
+    })
+
+    const res = await routeRequest(post('/hello/world', { customerId: 'c1' }), d)
+
+    expect(res.status).toBe(200)
+    expect(json(res).label).toBe('CUSTOMER: C1')
   })
 })
