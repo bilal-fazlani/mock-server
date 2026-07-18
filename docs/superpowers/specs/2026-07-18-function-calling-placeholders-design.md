@@ -1,6 +1,8 @@
 # Function calling from fixture placeholders — design
 
-**Status:** design approved, pending implementation plan
+**Status:** design approved; plan:
+`docs/superpowers/plans/2026-07-18-function-calling-placeholders.md`
+(both revised 2026-07-18 after review)
 **Date:** 2026-07-18
 **Issue:** [#20](https://github.com/bilal-fazlani/mock-server/issues/20)
 **Re-scopes:** #13 (pipe filters), #14 (seeded randomness), #15 (Faker) — these
@@ -26,38 +28,52 @@ The unifying decision: **a placeholder is an expression parsed into a
 function-call AST, then evaluated once by a single evaluator.** Built-in and
 user-defined functions share one grammar, one AST, one evaluation pipeline.
 
-Two function namespaces, called identically:
+Three kinds of names, one grammar, one evaluator:
 
-- **Built-in functions** — trusted server code: `now`, `uuid`, `body`, `path`,
-  `query`, `bearer`, `profileKey`, plus the transforms that absorb #13/#14/#15:
-  `upper`, `lower`, `trim`, `base64`, `hash`, `random`, `faker`.
+- **Syntactic forms** — trusted server code parsed into dedicated AST nodes,
+  never dispatched as calls: `now…`, body `$.…` selectors, `path:`, `query:`,
+  `profileKey:` (and `bearer` where it is valid today). Their spellings are
+  the existing vocabulary and keep working unchanged. They are valid as the
+  leading stage of an expression, and (`$.…` only) as a call argument — a
+  *call node* named `now`/`body`/`path`/`query`/`profileKey` (piped
+  `… | now:iso`, spelled `body:$.name`, bare `now`) is rejected at load (see
+  **Static validation**).
+- **Callable built-in functions** — trusted server code the evaluator
+  dispatches in call/pipe position: the transforms that absorb #13/#14/#15:
+  `upper`, `lower`, `trim`, `base64`, `hash`, `random`, `faker`, plus `uuid`.
 - **User functions** — named exports from `_functions.ts` / `_functions.mjs`
-  files in the catalog (see **Scope** below).
+  files in the catalog (see **Scope** below), dispatched exactly like callable
+  built-ins.
 
-Today's spellings (`now:iso`, `path:id`, `random:int:1:100`, `$.x`) already
-*are* colon-delimited calls or body sugar, so they keep working — this is a
-near-zero breaking change (see **Surface syntax**).
+Today's spellings (`now:iso`, `path:id`, `$.x`) parse into the same AST the
+new call syntax uses, so they keep working — this is a near-zero breaking
+change (see **Surface syntax**).
 
 ## Surface syntax — colon-primary + pipe
 
-- **Call:** `name:arg:arg` — `now:iso`, `path:id`, `hash:sha256`,
-  `random:int:1:100`
-- **Nullary:** bare name — `uuid`, `bearer`
-- **Body sugar:** `$.name` → the call `body:$.name`
+- **Call:** `name:arg:arg` — `hash:sha256`, `random:int:1:100`
+- **Nullary:** bare name — `uuid`
+- **Body sugar:** `$.name` → a body-selector AST node (conceptually
+  `body('$.name')`; `body:` is **not** a surface spelling)
 - **Chains (composition):** `|` — `$.body.token | hash:sha256 | upper`
+- **Typed, quotable args:** decimal numbers and `true`/`false` parse as typed
+  literals; `'single-quoted'` args are literal strings, and `:` / `|` inside
+  quotes are **not** separators (`pad:'a|b:c'` is one string argument)
 
-All spellings normalize into the **same function-call AST at parse time**, so
-there is one evaluator underneath, not a legacy path plus a new path. Examples:
+All spellings normalize into the **same AST at parse time**, so there is one
+evaluator underneath, not a legacy path plus a new path. Examples:
 
 | Placeholder | Parsed AST |
 | --- | --- |
-| `now:iso` | `now('iso')` |
-| `$.name` | `body('$.name')` |
+| `now:iso` | now node (format `iso`) |
+| `$.name` | selector node (body path `name`) |
 | `random:int:1:100` | `random('int', 1, 100)` |
-| `$.body.token \| hash:sha256 \| upper` | `upper(hash(body('$.body.token'), 'sha256'))` |
+| `$.body.token \| hash:sha256 \| upper` | `upper(hash(⟨selector $.body.token⟩, 'sha256'))` |
 
 `x | f:a` desugars to `f(x, a)` — the pipe threads the previous value in as the
-first argument.
+first argument. Piped (non-leading) stages must be calls: a selector after `|`
+does not parse (`$.a | $.b`), and a syntactic-form name after `|` parses as a
+call but fails validation as an unknown function (`$.a | now:iso`).
 
 ### Deliberate limitation
 
@@ -111,15 +127,20 @@ interface FnContext {
   production dependency; `tsx`/`typescript` are dev-only and not in the
   standalone bundle — the transpile path is the supported one.)
 - **Sandbox:** evaluate in a `node:vm` context with an **empty sandbox** — no
-  `require`/`process`/`fetch`/`console` leak from the host.
+  `require`/`process`/`fetch`/`console` leak from the host. Because there is
+  no `require`, a value `import` in a `_functions` file **fails at load**;
+  type-only imports (`import type`) are erased by the transpile and are fine.
 - **Timeout:** per-call timeout, reusing the `DEFAULT_DYNAMIC_TIMEOUT_MS = 100`
   pattern, with dedicated compile/runtime/timeout error classes.
 - **Synchronous and I/O-free by construction** (no `fetch`/`require` in the
   sandbox) — `resolveTemplate` stays synchronous; no async render path; no
   external state to be non-deterministic.
 - **Always-on, no opt-in gate.** The author already controls their catalog;
-  loading a catalog already runs resolver code. The vm sandbox is the safety
-  boundary, not a feature flag.
+  loading a catalog already runs resolver code, so the trust model is
+  unchanged: **catalog authors are trusted**. The vm sandbox is isolation
+  hygiene consistent with the resolver — `node:vm` explicitly disclaims being
+  a security mechanism, and host-object references passed as context cross
+  realms — not a hard security boundary, and not a feature flag.
 - Compiled **once at catalog load**, cached.
 
 Named exports become callable functions; a `MockFn` shape is expected per
@@ -141,21 +162,31 @@ Rules:
 
 - **Resolution = nearest wins.** Resolving a name walks
   **endpoint → system → catalog → built-ins**; first match wins.
-- **Built-in names are reserved.** A user function named `hash`/`now`/`body`/…
-  is a **load error**, never a silent override — the built-in vocabulary stays
-  stable and statically known.
+- **Built-in names are reserved.** Reserved = the syntactic-form names (`now`,
+  `body`, `path`, `query`, `profileKey`) plus every callable built-in. A user
+  function exporting a reserved name is a **load error**, never a silent
+  override — the built-in vocabulary stays stable and statically known.
+  Reservation guards user exports only; it is **not** the validation whitelist
+  (see **Static validation**).
 - **User-vs-user across scopes = shadowing, allowed.** An endpoint `label`
   intentionally overrides a catalog-wide `label`. Duplicate names within one
   file are already impossible (JS forbids duplicate named exports).
 
 ## Static validation (`src/lib/catalog/validate.ts`)
 
-- The whitelist for a given fixture is **built-ins ∪ the user functions visible
-  from that fixture's location**.
+- The whitelist for a given fixture is **callable built-ins ∪ the user
+  functions visible from that fixture's location** — *not* the reserved-name
+  set. Syntactic-form names are reserved but not callable, so a call node
+  bearing one (`{{$.a | now:iso}}`, `{{body:$.name}}`, bare `{{now}}`) is an
+  unknown-function load error, exactly like a typo.
 - At load: parse every placeholder to its AST; reject **unknown function names**
   and **malformed expressions** (bad selectors, unbalanced syntax). A call to a
   function defined only in *another* system → unknown-function load error
   (genuine encapsulation).
+- **Invariant:** if a catalog loads, every placeholder parses and every call
+  name it contains is dispatchable by the evaluator. Remaining resolve-time
+  failures are data-dependent (unresolved selector, function throw/timeout) —
+  never "unknown function".
 - Argument *values/types* stay resolve-time (open-ended). Optional: check user
   function arity via `fn.length`.
 
@@ -166,6 +197,12 @@ A function may return a typed value. Applying #12's rule to function returns:
 - When the placeholder is the **entire string** and the return is non-string,
   emit the raw type: `"{{ discount:0.2 }}"` → `0.2` (number), an object, etc.
 - When **interpolated** into surrounding text, coerce to string.
+- **Sole-placeholder detection is exact:** the string must be a *single*
+  placeholder spanning the whole string. `"{{$.first}} {{$.last}}"` is
+  interpolation (two placeholders), not a sole placeholder — a naive anchored
+  `^\{\{(.+?)\}\}$` regex backtracks across it and misclassifies it.
+- **Bodies only.** Response **header** values always coerce to string,
+  whatever the placeholder shape.
 
 This is the same rule #12 defines for selectors, extended to function returns —
 the two land together.
@@ -178,6 +215,9 @@ the two land together.
 - User functions *can* still be non-deterministic (the vm exposes JS `Date` /
   `Math`). Docs steer authors to `context.now` and `context.seed`. Seed-shimming
   `Math.random` inside the sandbox is a possible nice-to-have, **not v1**.
+- The vm context of a `_functions` file lives for the catalog's lifetime, so
+  **module-level mutable state survives across requests**. This is not part of
+  the contract; docs steer authors to pure functions of `(context, args)`.
 
 ## Error handling
 
@@ -209,7 +249,12 @@ fallback.
 - Evaluator: built-ins; user functions; nearest-wins resolution; reserved-name
   clash; scope-encapsulation (cross-system call rejected).
 - Execution: timeout, throw → 500; sandbox isolation (no host globals).
-- Type preservation (whole-string vs interpolated) with #12.
+- Type preservation (whole-string vs interpolated) with #12, including the
+  adjacent-placeholder edge (`"{{$.a}} {{$.b}}"` interpolates) and headers
+  staying strings.
+- Syntactic form in call position rejected at load (`$.a | now:iso`,
+  `body:$.name`, bare `now`).
+- Quoted literals: `:` and `|` inside `'…'` are literal, not separators.
 - Determinism: seeded `random`/`faker` stable per `(profileId, endpoint)`.
 
 ## Docs impact (per AGENTS.md — ask before editing)
@@ -217,6 +262,11 @@ fallback.
 Guide-affecting: `building/fixtures.md` (placeholders/templating — the big one),
 `reference/configuration.md` (validation rules), `reference/request-lifecycle.md`.
 Ask before editing per the AGENTS.md workflow.
+
+Author-facing caveats the guide must cover: `_functions` files cannot use value
+imports (no `require` in the sandbox; `import type` is fine); module-level
+state persists across requests (write pure functions); header placeholders
+always render as strings; `:` and `|` are separators unless single-quoted.
 
 ## Out of scope (v1)
 
