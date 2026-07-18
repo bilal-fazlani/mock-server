@@ -1,6 +1,6 @@
 ---
 name: feature-lifecycle
-description: Use when starting feature work in this repo that we are committed to building (not merely exploring an idea) — tracks it as a GitHub issue on project board #3 (owner bilal-fazlani) and drives it across the Backlog → Ready → In Progress → In Review → Done lanes as work proceeds. Confirms before creating the ticket, updates a task checklist in real time, logs deviations as comments, and closes out only on the user's approval.
+description: Use when starting feature work in this repo that we are committed to building (not merely exploring an idea) — tracks it as a GitHub issue on project board #3 (owner bilal-fazlani) and drives it across the Backlog → Refining → Ready → In Progress → In Review → Done lanes as work proceeds. Moves the card to Refining while shaping the feature, populates the card and moves it to Ready once the spec/plan (or, for small features, the answered questions + details + lightweight checklist) are complete, confirms before creating the ticket, updates a task checklist in real time, logs deviations as comments, and closes out only on the user's approval.
 ---
 
 # Feature lifecycle on the GitHub Project board
@@ -30,11 +30,15 @@ Do **not** run this yourself — it is an auth change the user performs.
 ## Board facts
 
 - Project number `3`, owner `bilal-fazlani`.
-- Lanes, in order (exact GitHub casing): `Backlog` → `Ready` → `In progress` →
-  `In review` → `Done`. `reference.md` matches option names case-insensitively.
+- Lanes, in order (exact GitHub casing): `Backlog` → `Refining` → `Ready` →
+  `In progress` → `In review` → `Done`. `reference.md` matches option names
+  case-insensitively.
 - **Automations already handle:** issue created → added to board + set `Backlog`;
   issue closed ⇄ status `Done` (bidirectional). So: never manually add-to-project or
   set Backlog, and to finish just **close the issue** (Done follows automatically).
+- **`Refining` and `Ready` are manual moves** (no automation) — the procedure below
+  drives them: into `Refining` when shaping starts, into `Ready` once shaping is done
+  and the card is populated.
 
 ## The procedure
 
@@ -81,21 +85,45 @@ idea and picking up an existing issue.
 
 The board auto-adds it and sets `Backlog`. Do nothing else here.
 
-### 2. Capture full detail — trigger: we have enough information
+### 2. Refine — trigger: we begin giving shape to the feature in dialogue
 
-Update the issue body with the full details
-(`gh issue edit N --body-file -`). If the user chose *issue + spec*, write/link the
-`docs/superpowers/specs/*.md` design doc and keep the issue body as summary + link.
-Card stays in `Backlog`.
+The moment active shaping starts — refining the feature with the user in conversation —
+move the card to **Refining** (see `reference.md` → "Move a card"). This fires for
+**both** entry points: a new-idea ticket just opened in phase 1, and an existing
+`Backlog` ticket picked up in phase 0. Only pull a `Backlog` card into `Refining`; never
+drag a card already at `Ready` or beyond backward.
 
-### 3. Break down — trigger: the plan is decomposed into steps
+The card lives in **Refining** for the whole shaping conversation. While it sits here:
 
-Add a Markdown task checklist to the issue body:
+- **Capture detail** into the issue body (`gh issue edit N --body-file -`).
+- If the user chose *issue + spec*, write/link the `docs/superpowers/specs/*.md` design
+  doc and keep the issue body as summary + link.
+- **Large features:** author the implementation **plan** (spec + plan both land here).
+- **Small features (no spec/plan):** **answer every open question** raised while shaping.
 
-```
-- [ ] first task
-- [ ] second task
-```
+The card stays in **Refining** until the phase-3 gate is met — do not advance early.
+
+### 3. Ready — trigger: refinement is complete and the card is populated
+
+Advance only when shaping has actually finished. Two paths:
+
+- **Large feature (spec + plan):** details captured **and** the spec is ready
+  (`docs/superpowers/specs/…`) **and** the plan is ready.
+- **Small feature (no spec/plan):** every open question answered **and** details written
+  to the body **and** a lightweight `- [ ]` checklist added.
+
+**Before moving, populate the card** — update the issue body (`gh issue edit N --body-file -`)
+so it carries, in this order:
+
+1. **Major decisions** taken during refinement.
+2. A short **summary of what came out of the refinement discussion**.
+3. **Spec / plan links** — large path only; omit when none exist.
+4. The **task checklist**:
+
+   ```
+   - [ ] first task
+   - [ ] second task
+   ```
 
 Then move the card to **Ready** (see `reference.md` → "Move a card").
 

@@ -7,8 +7,8 @@ missing-scope error, the user must run `gh auth refresh -s project,read:project`
 Throughout, replace `N` with the issue number and the lane name with the target lane.
 
 **Exact lane option names (case matters in GitHub, so the recipes below match
-case-insensitively):** `Backlog`, `Ready`, `In progress`, `In review`, `Done` — note the
-lowercase `p`/`r` in "In progress" / "In review".
+case-insensitively):** `Backlog`, `Refining`, `Ready`, `In progress`, `In review`, `Done`
+— note the lowercase `p`/`r` in "In progress" / "In review".
 
 ## Move a card to a lane
 
