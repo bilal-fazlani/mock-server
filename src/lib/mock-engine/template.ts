@@ -1,37 +1,22 @@
-import {
-  extractValue,
-  parseSelector,
-  RequestContext,
-  SelectorParseError,
-} from '../catalog/selector'
-import { NowFormatError, parseNow, renderNow } from './now'
+import { RequestContext } from '../catalog/selector'
+import { ExprParseError, parseExpr } from './expr'
+import { evaluate } from './evaluate'
 
 export class PlaceholderError extends Error {}
 
 const PLACEHOLDER_RE = /\{\{(.+?)\}\}/g
 
 function resolvePlaceholder(expr: string, ctx: RequestContext, now: Date): string {
+  let ast
   try {
-    const spec = parseNow(expr)
-    if (spec) return renderNow(spec, now)
+    ast = parseExpr(expr)
   } catch (err) {
-    if (err instanceof NowFormatError) throw new PlaceholderError(err.message)
-    throw err
-  }
-  let selector: ReturnType<typeof parseSelector>
-  try {
-    selector = parseSelector(expr)
-  } catch (err) {
-    if (err instanceof SelectorParseError) {
+    if (err instanceof ExprParseError) {
       throw new PlaceholderError(`invalid placeholder "{{${expr}}}": ${err.message}`)
     }
     throw err
   }
-  const value = extractValue(selector, ctx)
-  if (value === null) {
-    throw new PlaceholderError(`placeholder "{{${expr}}}" did not resolve against the request`)
-  }
-  return String(value)
+  return String(evaluate(ast, { ctx, now }))
 }
 
 export function resolveTemplate(

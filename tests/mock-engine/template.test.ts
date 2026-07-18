@@ -73,6 +73,15 @@ describe('resolveTemplate', () => {
     expect(() => resolveTemplate('{{now:nope}}', ctx(), now)).toThrow(PlaceholderError)
     expect(() => resolveTemplate('{{banana}}', ctx(), now)).toThrow(PlaceholderError)
   })
+
+  it('still stringifies a sole numeric selector (pre-#12 behavior preserved in this task)', () => {
+    const c = ctx({ body: { amount: 42 } })
+    expect(resolveTemplate({ a: '{{$.amount}}' }, c, now)).toEqual({ a: '42' })
+  })
+
+  it('throws PlaceholderError for an unresolved selector', () => {
+    expect(() => resolveTemplate({ a: '{{$.missing}}' }, ctx(), now)).toThrow(PlaceholderError)
+  })
 })
 
 describe('listPlaceholders', () => {
