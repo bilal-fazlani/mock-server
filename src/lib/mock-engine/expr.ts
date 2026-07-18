@@ -29,13 +29,13 @@ export function parseExpr(raw: string): Expr {
 }
 
 function parseSource(stage: string, raw: string): Expr {
-  const now = tryNow(stage, raw)
+  const now = tryNow(stage)
   if (now) return now
-  if (isSelectorToken(stage)) return selectorNode(stage, raw)
+  if (isSelectorToken(stage)) return selectorNode(stage)
   return parseCall(stage, raw)
 }
 
-function tryNow(stage: string, raw: string): Expr | null {
+function tryNow(stage: string): Expr | null {
   try {
     const spec = parseNow(stage)
     return spec ? { kind: 'now', spec } : null
@@ -54,7 +54,7 @@ function isSelectorToken(t: string): boolean {
   )
 }
 
-function selectorNode(token: string, raw: string): Expr {
+function selectorNode(token: string): Expr {
   try {
     return { kind: 'selector', raw: token, selector: parseSelector(token) }
   } catch (err) {
@@ -69,7 +69,7 @@ function parseCall(stage: string, raw: string): Expr {
   if (!NAME_RE.test(name)) {
     throw new ExprParseError(`invalid placeholder "{{${raw}}}": bad function name "${name}"`)
   }
-  const args = parts.slice(1).map((p) => parseArg(p, raw))
+  const args = parts.slice(1).map((p) => parseArg(p))
   return { kind: 'call', name, args }
 }
 
@@ -96,14 +96,14 @@ function splitArgs(stage: string): string[] {
   return splitOutsideQuotes(stage, ':').map((s) => s.trim())
 }
 
-function parseArg(token: string, raw: string): Expr {
+function parseArg(token: string): Expr {
   if (token.startsWith("'") && token.endsWith("'") && token.length >= 2) {
     return { kind: 'lit', value: token.slice(1, -1) }
   }
   if (token === 'true') return { kind: 'lit', value: true }
   if (token === 'false') return { kind: 'lit', value: false }
   if (/^-?\d+(\.\d+)?$/.test(token)) return { kind: 'lit', value: Number(token) }
-  if (token.startsWith('$')) return selectorNode(token, raw)
+  if (token.startsWith('$')) return selectorNode(token)
   return { kind: 'lit', value: token }
 }
 
