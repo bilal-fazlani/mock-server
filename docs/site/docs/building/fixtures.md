@@ -212,13 +212,15 @@ adjacent placeholders), the value is coerced to a string — objects and arrays
 as JSON. Response **header** values are always rendered as strings, whatever
 the placeholder shape.
 
-!!! note "Body selectors extract strings and numbers only"
+!!! note "Body selectors extract any JSON value"
 
-    The selector grammar pulls **string and number** values out of the request;
-    a boolean or object field in the request body does not resolve, and the
-    request fails with a `500` like any other unresolved placeholder. Typed
-    booleans and objects therefore come from call literals (`flag:true`) and
-    custom-function returns — not from `$.…` selectors.
+    A `$.…` selector pulls out **whatever JSON value the field holds** — strings,
+    numbers, booleans, `null`, and whole object or array subtrees. `{{$.isActive}}`
+    against `{ "isActive": false }` emits `false`; `{{$.user}}` echoes the entire
+    `user` subtree. A field that is literally JSON `null` resolves to `null` — a
+    *present* value, distinct from an absent one. Only a path that isn't there at
+    all (a missing key or an out-of-range array index) is unresolved, and that
+    fails with a `500` like any other unresolved placeholder.
 
 !!! warning "Placeholders must resolve"
 

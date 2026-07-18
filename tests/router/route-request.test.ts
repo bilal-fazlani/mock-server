@@ -662,6 +662,22 @@ describe('profile key mappings', () => {
     ])
   })
 
+  it('treats a non-scalar capture key value as unresolved (400)', async () => {
+    const captures: ProfileKeyMappingCaptureInput[] = []
+    const d = deps({
+      getProfile: withProfile(profile({ profileId: 'c1', endpointScenarios: {} })),
+      captureProfileKeyMapping: async (input: ProfileKeyMappingCaptureInput) => {
+        captures.push(input)
+      },
+    } as Partial<RouterDeps>)
+
+    const res = await routeRequest(post('/capture-assessment', { customerId: 'c1', eventID: true }), d)
+
+    expect(res.status).toBe(400)
+    expect(json(res).error).toMatch(/\$\.eventID/)
+    expect(captures).toHaveLength(0)
+  })
+
   it('returns 409 and does not proxy when capture conflicts on a real request', async () => {
     const d = deps({
       getProfile: withProfile(profile({ endpointScenarios: { capture_assessment: 'real' } })),

@@ -2,7 +2,7 @@ import { matchPath, parsePathTemplate } from '../catalog/path-template'
 import { schemaKey, type SchemaRegistry } from '../catalog/schema'
 import {
   extractProfileIdValue,
-  extractValue,
+  extractScalar,
   parseProfileIdSelector,
   parseSelector,
   RequestContext,
@@ -529,7 +529,7 @@ async function captureProfileKeys(
 ): Promise<RouteResult | null> {
   for (const capture of endpoint.captureProfileKeys ?? []) {
     const selector = parseSelector(capture.keySelector)
-    const value = extractValue(selector, ctx)
+    const value = extractScalar(selector, ctx)
     if (value === null) {
       traceError(
         trace,

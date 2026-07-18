@@ -96,20 +96,26 @@ describe('parseProfileIdSelector', () => {
 })
 
 describe('extractValue', () => {
-  it('extracts nested body fields and array indices', () => {
+  it('extracts nested body fields and array indices as found values', () => {
     const c = ctx({ body: { customer: { id: 'cus-1' }, items: [{ n: 7 }] } })
-    expect(extractValue(parseSelector('$.customer.id'), c)).toBe('cus-1')
-    expect(extractValue(parseSelector('$.items[0].n'), c)).toBe(7)
+    expect(extractValue(parseSelector('$.customer.id'), c)).toEqual({ found: true, value: 'cus-1' })
+    expect(extractValue(parseSelector('$.items[0].n'), c)).toEqual({ found: true, value: 7 })
   })
 
-  it('returns null for every non-scalar failure shape', () => {
-    const c = ctx({ body: { a: null, b: {}, c: [], missing: undefined } })
-    expect(extractValue(parseSelector('$.a'), c)).toBeNull()
-    expect(extractValue(parseSelector('$.b'), c)).toBeNull()
-    expect(extractValue(parseSelector('$.c'), c)).toBeNull()
-    expect(extractValue(parseSelector('$.nope'), c)).toBeNull()
-    expect(extractValue(parseSelector('$.nope.deeper'), c)).toBeNull()
-    expect(extractValue(parseSelector('$.b[0]'), c)).toBeNull()
+  it('carries booleans, JSON null, objects, and arrays as found values', () => {
+    const c = ctx({ body: { active: false, missing: null, user: { name: 'x' }, tags: [1, 2] } })
+    expect(extractValue(parseSelector('$.active'), c)).toEqual({ found: true, value: false })
+    expect(extractValue(parseSelector('$.missing'), c)).toEqual({ found: true, value: null })
+    expect(extractValue(parseSelector('$.user'), c)).toEqual({ found: true, value: { name: 'x' } })
+    expect(extractValue(parseSelector('$.tags'), c)).toEqual({ found: true, value: [1, 2] })
+  })
+
+  it('reports found:false only when the path is genuinely absent', () => {
+    const c = ctx({ body: { b: {}, c: [] } })
+    expect(extractValue(parseSelector('$.nope'), c)).toEqual({ found: false })
+    expect(extractValue(parseSelector('$.nope.deeper'), c)).toEqual({ found: false })
+    expect(extractValue(parseSelector('$.b[0]'), c)).toEqual({ found: false })
+    expect(extractValue(parseSelector('$.c[3]'), c)).toEqual({ found: false })
   })
 
   it('extracts from path params and query params (no body required)', () => {
@@ -117,10 +123,10 @@ describe('extractValue', () => {
       pathParams: { customerId: 'cus-9' },
       query: new URLSearchParams('cid=q-1'),
     })
-    expect(extractValue(parseSelector('path:customerId'), c)).toBe('cus-9')
-    expect(extractValue(parseSelector('query:cid'), c)).toBe('q-1')
-    expect(extractValue(parseSelector('path:other'), c)).toBeNull()
-    expect(extractValue(parseSelector('query:other'), c)).toBeNull()
+    expect(extractValue(parseSelector('path:customerId'), c)).toEqual({ found: true, value: 'cus-9' })
+    expect(extractValue(parseSelector('query:cid'), c)).toEqual({ found: true, value: 'q-1' })
+    expect(extractValue(parseSelector('path:other'), c)).toEqual({ found: false })
+    expect(extractValue(parseSelector('query:other'), c)).toEqual({ found: false })
   })
 
   it('extracts the nested key value from profile key selectors', () => {
@@ -130,9 +136,18 @@ describe('extractValue', () => {
       query: new URLSearchParams('eventId=evt-query'),
     })
 
-    expect(extractValue(parseSelector('profileKey:event-id:$.eventID'), c)).toBe('evt-body')
-    expect(extractValue(parseSelector('profileKey:event-id:path:eventId'), c)).toBe('evt-path')
-    expect(extractValue(parseSelector('profileKey:event-id:query:eventId'), c)).toBe('evt-query')
+    expect(extractValue(parseSelector('profileKey:event-id:$.eventID'), c)).toEqual({
+      found: true,
+      value: 'evt-body',
+    })
+    expect(extractValue(parseSelector('profileKey:event-id:path:eventId'), c)).toEqual({
+      found: true,
+      value: 'evt-path',
+    })
+    expect(extractValue(parseSelector('profileKey:event-id:query:eventId'), c)).toEqual({
+      found: true,
+      value: 'evt-query',
+    })
   })
 })
 
