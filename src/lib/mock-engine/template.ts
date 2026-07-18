@@ -1,12 +1,18 @@
 import { RequestContext } from '../catalog/selector'
 import { ExprParseError, parseExpr } from './expr'
-import { evaluate } from './evaluate'
+import { evaluate, EvalValue } from './evaluate'
 
 export class PlaceholderError extends Error {}
 
+export interface TemplateOptions {
+  /** Headers mode: whole-string placeholders coerce to string too (Task 8). */
+  stringOnly?: boolean
+  // Task 7 adds: fnCtx, functions, timeoutMs
+}
+
 const PLACEHOLDER_RE = /\{\{(.+?)\}\}/g
 
-function resolvePlaceholder(expr: string, ctx: RequestContext, now: Date): string {
+function resolvePlaceholderTyped(expr: string, ctx: RequestContext, now: Date): EvalValue {
   let ast
   try {
     ast = parseExpr(expr)
@@ -16,7 +22,16 @@ function resolvePlaceholder(expr: string, ctx: RequestContext, now: Date): strin
     }
     throw err
   }
-  return String(evaluate(ast, { ctx, now }))
+  return evaluate(ast, { ctx, now })
+}
+
+function resolvePlaceholder(expr: string, ctx: RequestContext, now: Date): string {
+  return String(resolvePlaceholderTyped(expr, ctx, now))
+}
+
+// Trace values readable for objects/arrays, not "[object Object]".
+function stringifyForTrace(value: unknown): string {
+  return typeof value === 'object' && value !== null ? JSON.stringify(value) : String(value)
 }
 
 export function resolveTemplate(
@@ -24,8 +39,17 @@ export function resolveTemplate(
   ctx: RequestContext,
   now: Date,
   resolutions?: Record<string, string>,
+  options?: TemplateOptions,
 ): unknown {
   if (typeof node === 'string') {
+    PLACEHOLDER_RE.lastIndex = 0
+    const first = PLACEHOLDER_RE.exec(node)
+    PLACEHOLDER_RE.lastIndex = 0
+    if (first && first[0] === node && !options?.stringOnly) {
+      const value = resolvePlaceholderTyped(first[1], ctx, now)
+      if (resolutions) resolutions[node] = stringifyForTrace(value)
+      return value
+    }
     return node.replace(PLACEHOLDER_RE, (_, expr: string) => {
       const value = resolvePlaceholder(expr, ctx, now)
       if (resolutions) resolutions[`{{${expr}}}`] = value
@@ -33,11 +57,11 @@ export function resolveTemplate(
     })
   }
   if (Array.isArray(node)) {
-    return node.map((item) => resolveTemplate(item, ctx, now, resolutions))
+    return node.map((item) => resolveTemplate(item, ctx, now, resolutions, options))
   }
   if (node !== null && typeof node === 'object') {
     return Object.fromEntries(
-      Object.entries(node).map(([k, v]) => [k, resolveTemplate(v, ctx, now, resolutions)]),
+      Object.entries(node).map(([k, v]) => [k, resolveTemplate(v, ctx, now, resolutions, options)]),
     )
   }
   return node
