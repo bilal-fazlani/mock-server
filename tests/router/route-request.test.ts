@@ -1,5 +1,7 @@
+import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { loadCatalog } from '../../src/lib/catalog/load'
 import { buildSchemaRegistry } from '../../src/lib/catalog/schema'
 import type { Catalog } from '../../src/lib/catalog/types'
@@ -1215,5 +1217,77 @@ describe('user functions (real hello-system catalog)', () => {
 
     expect(res.status).toBe(200)
     expect(json(res).label).toBe('CUSTOMER: C1')
+  })
+})
+
+describe('user function errors surface as structured 500s, not crashes', () => {
+  // Final-review finding: a throwing/timing-out user function used to escape
+  // routeRequest as an unhandled exception (FunctionRuntimeError /
+  // FunctionTimeoutError went uncaught). These prove routeRequest resolves
+  // normally with the route's own 500 JSON shape instead of rejecting.
+  const tmpDirs: string[] = []
+
+  afterEach(() => {
+    while (tmpDirs.length) fs.rmSync(tmpDirs.pop()!, { recursive: true, force: true })
+  })
+
+  function tmpCatalogDir(files: Record<string, unknown>): string {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mock-fn-error-'))
+    tmpDirs.push(dir)
+    for (const [rel, content] of Object.entries(files)) {
+      const full = path.join(dir, rel)
+      fs.mkdirSync(path.dirname(full), { recursive: true })
+      fs.writeFileSync(full, typeof content === 'string' ? content : JSON.stringify(content))
+    }
+    return dir
+  }
+
+  function buildDeps(dir: string) {
+    const catalog = loadCatalog(dir)
+    return deps({
+      catalog,
+      schemas: buildSchemaRegistry(catalog).schemas,
+      env: {},
+      loadFixture: (systemSlug, endpointName, scenario) => loadFixture(dir, systemSlug, endpointName, scenario),
+    })
+  }
+
+  const SYSTEM_META = { name: 'Fn Error System', baseUrlEnv: 'FN_ERROR_URL' }
+  // Global mock endpoint — no profile machinery needed to exercise the
+  // function-call/error path.
+  const ENDPOINT_META = { displayName: 'Boom', method: 'GET', path: '/boom', mockType: 'global' }
+
+  it('a user function that throws produces a 500 naming the function, not an unhandled exception', async () => {
+    const dir = tmpCatalogDir({
+      'sys/_system.json': SYSTEM_META,
+      'sys/ep/_endpoint.json': ENDPOINT_META,
+      'sys/ep/default.json': { status: 200, body: { result: '{{boom}}' } },
+      'sys/_functions.ts': `export function boom() { throw new Error('kaboom') }`,
+    })
+
+    const res = await routeRequest(get('/boom'), buildDeps(dir))
+
+    expect(res.status).toBe(500)
+    const body = json(res)
+    expect(body.endpoint).toBe('ep')
+    expect(String(body.error)).toMatch(/boom/)
+    expect(String(body.error)).toMatch(/kaboom/)
+  })
+
+  it('a user function that spins past its timeout produces a 500 mentioning the timeout', async () => {
+    const dir = tmpCatalogDir({
+      'sys/_system.json': SYSTEM_META,
+      'sys/ep/_endpoint.json': ENDPOINT_META,
+      'sys/ep/default.json': { status: 200, body: { result: '{{spin}}' } },
+      'sys/_functions.ts': `export function spin() { while (true) {} }`,
+    })
+
+    const res = await routeRequest(get('/boom'), buildDeps(dir))
+
+    expect(res.status).toBe(500)
+    const body = json(res)
+    expect(body.endpoint).toBe('ep')
+    expect(String(body.error)).toMatch(/spin/)
+    expect(String(body.error)).toMatch(/exceeded|timeout|ms/i)
   })
 })

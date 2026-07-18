@@ -1,7 +1,7 @@
 import { RequestContext } from '../catalog/selector'
 import { ExprParseError, parseExpr } from './expr'
 import { evaluate, EvalValue } from './evaluate'
-import { CompiledFn, FnContext } from './functions'
+import { CompiledFn, FnContext, FunctionRuntimeError, FunctionTimeoutError } from './functions'
 
 export class PlaceholderError extends Error {}
 
@@ -25,14 +25,27 @@ function resolvePlaceholderTyped(expr: string, ctx: RequestContext, now: Date, o
     }
     throw err
   }
-  return evaluate(ast, { ctx, now, ...options })
+  try {
+    return evaluate(ast, { ctx, now, ...options })
+  } catch (err) {
+    // A user function that threw, timed out, or returned something unusable
+    // (see evaluate.ts) surfaces here without knowing which placeholder it
+    // was evaluated from. This is the one spot that has both the placeholder
+    // text and the underlying error, so it's where the two get stitched
+    // together into the PlaceholderError that route-request's catch turns
+    // into a structured 500 (design doc: "Error handling").
+    if (err instanceof FunctionRuntimeError || err instanceof FunctionTimeoutError) {
+      throw new PlaceholderError(`placeholder "{{${expr}}}" failed: ${err.message}`)
+    }
+    throw err
+  }
 }
 
 function resolvePlaceholder(expr: string, ctx: RequestContext, now: Date, options?: TemplateOptions): string {
-  return String(resolvePlaceholderTyped(expr, ctx, now, options))
+  return stringifyForTrace(resolvePlaceholderTyped(expr, ctx, now, options))
 }
 
-// Trace values readable for objects/arrays, not "[object Object]".
+// Trace/interpolation values readable for objects/arrays, not "[object Object]".
 function stringifyForTrace(value: unknown): string {
   return typeof value === 'object' && value !== null ? JSON.stringify(value) : String(value)
 }

@@ -2,7 +2,7 @@ import { Expr } from './expr'
 import { extractValue, RequestContext } from '../catalog/selector'
 import { renderNow } from './now'
 import { PlaceholderError } from './template'
-import { CompiledFn, DEFAULT_FN_TIMEOUT_MS, FnContext, FnValue } from './functions'
+import { CompiledFn, DEFAULT_FN_TIMEOUT_MS, FnContext, FnValue, FunctionRuntimeError } from './functions'
 
 export interface EvalDeps {
   ctx: RequestContext
@@ -13,7 +13,11 @@ export interface EvalDeps {
 }
 
 type BuiltinTransform = (input: EvalValue, args: EvalValue[]) => EvalValue
-export type EvalValue = string | number | boolean | null
+// Widened to match FnValue: user functions may (and whole-string placeholders
+// are documented to) return objects/arrays, not just scalars. Keeping this as
+// an alias of FnValue means the call branch below can return fn.invoke()'s
+// result without an unchecked cast.
+export type EvalValue = FnValue
 
 const BUILTIN_TRANSFORMS: Record<string, BuiltinTransform> = {
   upper: (input) => String(input ?? '').toUpperCase(),
@@ -52,9 +56,27 @@ export function evaluate(expr: Expr, deps: EvalDeps): EvalValue {
       const fn = deps.functions?.get(expr.name)
       if (fn) {
         if (!deps.fnCtx) throw new PlaceholderError(`function "${expr.name}" needs request context`)
-        return fn.invoke(deps.fnCtx, args as FnValue[], deps.timeoutMs ?? DEFAULT_FN_TIMEOUT_MS) as EvalValue
+        const result = fn.invoke(deps.fnCtx, args, deps.timeoutMs ?? DEFAULT_FN_TIMEOUT_MS)
+        const unusable = describeUnusable(result)
+        if (unusable) {
+          throw new FunctionRuntimeError(`function "${expr.name}" returned ${unusable}, which cannot be used as a response value`)
+        }
+        return result
       }
       throw new PlaceholderError(`unknown function "${expr.name}" in placeholder`)
     }
   }
+}
+
+// The FnValue type promises string | number | boolean | null | arrays/objects
+// of those, but nothing enforces that at the vm sandbox boundary — a user
+// function can hand back undefined, a function, a symbol, or a bigint at
+// runtime. Thrown as FunctionRuntimeError so it flows through the same
+// placeholder-text wrapping as a genuine throw/timeout (see
+// resolvePlaceholderTyped in template.ts).
+function describeUnusable(value: unknown): string | null {
+  if (value === undefined) return 'undefined'
+  const t = typeof value
+  if (t === 'function' || t === 'symbol' || t === 'bigint') return `a ${t}`
+  return null
 }
