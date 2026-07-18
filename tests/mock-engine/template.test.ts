@@ -73,6 +73,42 @@ describe('resolveTemplate', () => {
     expect(() => resolveTemplate('{{now:nope}}', ctx(), now)).toThrow(PlaceholderError)
     expect(() => resolveTemplate('{{banana}}', ctx(), now)).toThrow(PlaceholderError)
   })
+
+  it('emits a raw number when the whole string is a numeric selector (#12)', () => {
+    const c = ctx({ body: { amount: 42 } })
+    expect(resolveTemplate({ a: '{{$.amount}}' }, c, now)).toEqual({ a: 42 })
+  })
+
+  it('coerces to string when interpolated into surrounding text', () => {
+    const c = ctx({ body: { amount: 42 } })
+    expect(resolveTemplate({ a: 'total: {{$.amount}}' }, c, now)).toEqual({ a: 'total: 42' })
+  })
+
+  it('treats adjacent placeholders as interpolation, not a sole placeholder', () => {
+    const c = ctx({ body: { first: 'Ada', last: 'Lovelace' } })
+    expect(resolveTemplate({ n: '{{$.first}} {{$.last}}' }, c, now)).toEqual({ n: 'Ada Lovelace' })
+  })
+
+  it('keeps a whole-string placeholder a string under stringOnly (headers mode)', () => {
+    const c = ctx({ body: { amount: 42 } })
+    expect(resolveTemplate({ a: '{{$.amount}}' }, c, now, undefined, { stringOnly: true })).toEqual({
+      a: '42',
+    })
+  })
+
+  it('throws PlaceholderError for an unresolved selector', () => {
+    expect(() => resolveTemplate({ a: '{{$.missing}}' }, ctx(), now)).toThrow(PlaceholderError)
+  })
+
+  it('applies a built-in transform through a pipe', () => {
+    const c = ctx({ body: { name: 'bilal' } })
+    expect(resolveTemplate({ n: '{{$.name | upper}}' }, c, now)).toEqual({ n: 'BILAL' })
+  })
+
+  it('errors on an unknown function name at resolve time', () => {
+    expect(() => resolveTemplate({ n: '{{$.name | bogus}}' }, ctx({ body: { name: 'x' } }), now))
+      .toThrow(PlaceholderError)
+  })
 })
 
 describe('listPlaceholders', () => {

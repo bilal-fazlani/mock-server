@@ -40,6 +40,29 @@ function catalog(endpoints: EndpointDef[]): Catalog {
   return { systems: [{ name: 'Test System', slug: 'test-system', baseUrlEnv: 'TEST_URL', endpoints }] }
 }
 
+function validateCatalogWith(
+  fixture: { body: unknown; headers?: unknown },
+  opts: { endpointFunctions?: string } = {},
+): string[] {
+  const sys = 'test-system'
+  const ep = 'hello_world'
+  const files: Record<string, unknown> = {
+    [`${sys}/_system.json`]: { name: 'Test System', baseUrlEnv: 'TEST_URL' },
+    [`${sys}/${ep}/_endpoint.json`]: {
+      displayName: 'Hello World',
+      method: 'POST',
+      path: '/hello/world',
+      mockType: 'global',
+    },
+    [`${sys}/${ep}/default.json`]: { status: 200, ...fixture },
+  }
+  if (opts.endpointFunctions !== undefined) {
+    files[`${sys}/${ep}/_functions.ts`] = opts.endpointFunctions
+  }
+  const dir = tmpCatalogDir(files)
+  return validateCatalog(loadCatalog(dir), dir).errors
+}
+
 const GOOD_FIXTURE = { status: 200, body: { ok: true } }
 const globalEndpoint = (overrides: Partial<EndpointDef> = {}) =>
   ({
@@ -356,8 +379,11 @@ describe('validateCatalog', () => {
     })
     expect(validateCatalog(catalog([endpoint()]), dir).errors.join('\n')).toMatch(/numeric "status"/)
 
+    // "banana" parses fine as a zero-arg call — it's now scoped-function
+    // validation that rejects it (see "placeholder function scoping" below).
+    // A malformed function name is what still fails to parse at all.
     const dir2 = tmpCatalogDir({
-      'test-system/hello_world/default.json': { status: 200, body: { x: '{{banana}}' } },
+      'test-system/hello_world/default.json': { status: 200, body: { x: '{{123bad}}' } },
     })
     expect(validateCatalog(catalog([endpoint()]), dir2).errors.join('\n')).toMatch(/invalid placeholder/)
 
@@ -398,6 +424,36 @@ describe('validateCatalog', () => {
   it('validates the real catalog tree', () => {
     const catalogRoot = path.join(__dirname, '../../catalog')
     expect(validateCatalog(loadCatalog(catalogRoot), catalogRoot).errors).toEqual([])
+  })
+})
+
+describe('validateCatalog placeholder function scoping', () => {
+  it('rejects a placeholder calling an unknown function', () => {
+    const errors = validateCatalogWith({ body: { x: '{{bogusFn:$.a}}' } })
+    expect(errors.join('\n')).toMatch(/unknown function "bogusFn"/)
+  })
+
+  it('accepts a placeholder calling a function defined in that endpoint scope', () => {
+    const errors = validateCatalogWith(
+      { body: { x: '{{mine:$.a}}' } },
+      { endpointFunctions: `export function mine(c, a) { return a }` },
+    )
+    expect(errors).toEqual([])
+  })
+
+  it('still flags an undeclared path param', () => {
+    const errors = validateCatalogWith({ body: { x: '{{path:missing}}' } })
+    expect(errors.join('\n')).toMatch(/undeclared path param/)
+  })
+
+  it('rejects a syntactic form used as a call (piped now)', () => {
+    const errors = validateCatalogWith({ body: { x: '{{$.a | now:iso}}' } })
+    expect(errors.join('\n')).toMatch(/unknown function "now"/)
+  })
+
+  it('rejects bare {{now}} (reserved, but not callable)', () => {
+    const errors = validateCatalogWith({ body: { x: '{{now}}' } })
+    expect(errors.join('\n')).toMatch(/unknown function "now"/)
   })
 })
 

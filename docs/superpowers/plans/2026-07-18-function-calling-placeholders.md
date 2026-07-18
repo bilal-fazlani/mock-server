@@ -14,7 +14,8 @@
 - **Near-zero breaking change:** all existing placeholder spellings (`now`, `now±<n><unit>:<format>`, `$.body.path`, `path:name`, `query:name`, `profileKey:ns:sel`) must keep resolving exactly as today. Existing tests in `tests/mock-engine/template.test.ts`, `tests/mock-engine/now.test.ts`, `tests/catalog/selector.test.ts`, `tests/catalog/validate.test.ts` must keep passing except where a task explicitly updates them for the #12 type-preservation change.
 - **Reuse the resolver pattern verbatim** where possible: `src/lib/mock-engine/resolver.ts` is the reference for transpile + `vm` sandbox + timeout + realm-crossing error handling (`isTimeout`/`message` helpers). Do not invent a second sandbox style.
 - **Sandbox is empty:** user functions get no `require`/`process`/`fetch`/`console`. Synchronous, I/O-free.
-- **Built-in names are reserved:** `now`, `body`, `path`, `query`, `profileKey`, `upper` (the demonstrative transform) — a user function exporting any of these is a load error.
+- **Two built-in name sets with distinct jobs:** `RESERVED_NAMES` (`now`, `body`, `path`, `query`, `profileKey`, plus every callable built-in) guards user exports only — a user function exporting one is a load error (Task 6). `CALLABLE_BUILTINS` (just `upper` in this plan) is the set the evaluator can dispatch; **validation whitelists call names against `CALLABLE_BUILTINS` ∪ the endpoint's user-function table, never against `RESERVED_NAMES`** (Task 9) — so `{{$.a | now:iso}}`, `{{body:$.name}}`, and bare `{{now}}` are unknown-function load errors.
+- **Headers stay strings:** #12 type preservation applies to fixture bodies only; header rendering passes `stringOnly: true` (Tasks 4, 8).
 - **Tests:** Vitest. Run a single file with `npx vitest run <path>`. Test files live under `tests/` mirroring `src/lib/` paths.
 - **Commits:** Conventional Commits. Use `feat(templating): …` for user-facing additions, `refactor(templating): …` for behavior-preserving internal changes, `test(templating): …` where a commit is tests-only. Never regenerate `package-lock.json` (no dependency changes in this plan).
 - **Deferred to sibling issues (do NOT implement here):** the full #13 filter set (`lower`, `trim`, `base64`, `hash`), #14 `random`, #15 `faker`, #10 `uuid`, and paren-nesting. This plan ships only the primitive plus `upper` as the one demonstrative transform.
@@ -53,7 +54,7 @@
   export function parseExpr(raw: string): Expr           // throws ExprParseError
   export function callNames(expr: Expr): string[]        // dedup not required
   ```
-  Grammar: a placeholder is `stage ('|' stage)*`. The leftmost stage is the source; each subsequent `| stage` desugars so the previous expression becomes the stage call's **first** argument (`x | f:a` → `call f [x, a]`). A stage is one of: a `now…` token → `now` node (via `parseNow`); a token starting with `$`, `path:`, `query:`, `profileKey:` → `selector` node (via `parseSelector`); otherwise a call `name(:arg)*` where `name` matches `/^[a-zA-Z_][a-zA-Z0-9_]*$/`. A call arg is: a decimal number → `lit` number; `true`/`false` → `lit` boolean; a `'single-quoted'` string → `lit` string (quotes stripped); a `$…` token → `selector` node; any other bare token → `lit` string. Piped (non-leading) stages must be calls (a `now`/selector cannot appear after `|`).
+  Grammar: a placeholder is `stage ('|' stage)*`. The leftmost stage is the source; each subsequent `| stage` desugars so the previous expression becomes the stage call's **first** argument (`x | f:a` → `call f [x, a]`). A stage is one of: a `now…` token → `now` node (via `parseNow`); a token starting with `$`, `path:`, `query:`, `profileKey:` → `selector` node (via `parseSelector`); otherwise a call `name(:arg)*` where `name` matches `/^[a-zA-Z_][a-zA-Z0-9_]*$/`. A call arg is: a decimal number → `lit` number; `true`/`false` → `lit` boolean; a `'single-quoted'` string → `lit` string (quotes stripped); a `$…` token → `selector` node; any other bare token → `lit` string. Piped (non-leading) stages must be calls (a `now`/selector cannot appear after `|`). Single quotes suspend **both** separators: `:` and `|` inside `'…'` are literal characters, not splits.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -122,6 +123,14 @@ describe('parseExpr', () => {
     })
   })
 
+  it('keeps : and | inside single quotes literal', () => {
+    expect(parseExpr("pad:'a|b:c'")).toEqual({
+      kind: 'call',
+      name: 'pad',
+      args: [{ kind: 'lit', value: 'a|b:c' }],
+    })
+  })
+
   it('collects call names across a chain', () => {
     expect(callNames(parseExpr('$.tok | hash:sha256 | upper')).sort()).toEqual(['hash', 'upper'])
   })
@@ -159,7 +168,7 @@ export class ExprParseError extends Error {}
 const NAME_RE = /^[a-zA-Z_][a-zA-Z0-9_]*$/
 
 export function parseExpr(raw: string): Expr {
-  const stages = raw.split('|').map((s) => s.trim())
+  const stages = splitOutsideQuotes(raw, '|').map((s) => s.trim())
   if (stages.some((s) => s.length === 0)) {
     throw new ExprParseError(`invalid placeholder "{{${raw}}}": empty stage`)
   }
@@ -220,14 +229,15 @@ function parseCall(stage: string, raw: string): Expr {
   return { kind: 'call', name, args }
 }
 
-// Colon-separated, but a single-quoted segment may itself contain colons.
-function splitArgs(stage: string): string[] {
+// Split on a separator, except inside a single-quoted segment — quotes
+// suspend both ':' (args) and '|' (stages).
+function splitOutsideQuotes(input: string, sep: ':' | '|'): string[] {
   const out: string[] = []
   let cur = ''
   let inQuote = false
-  for (const ch of stage) {
+  for (const ch of input) {
     if (ch === "'") inQuote = !inQuote
-    if (ch === ':' && !inQuote) {
+    if (ch === sep && !inQuote) {
       out.push(cur)
       cur = ''
     } else {
@@ -235,7 +245,11 @@ function splitArgs(stage: string): string[] {
     }
   }
   out.push(cur)
-  return out.map((s) => s.trim())
+  return out
+}
+
+function splitArgs(stage: string): string[] {
+  return splitOutsideQuotes(stage, ':').map((s) => s.trim())
 }
 
 function parseArg(token: string, raw: string): Expr {
@@ -291,7 +305,7 @@ git commit -m "feat(templating): add placeholder expression parser and AST"
   export interface EvalDeps {
     ctx: RequestContext
     now: Date
-    // Task 8 adds: fnCtx, functions, timeoutMs
+    // Task 7 adds: fnCtx, functions, timeoutMs
   }
   export function evaluate(expr: Expr, deps: EvalDeps): string | number | boolean | null
   // template.ts keeps: resolveTemplate(node, ctx, now, resolutions?), listPlaceholders, PlaceholderError
@@ -340,10 +354,17 @@ const BUILTIN_TRANSFORMS: Record<string, BuiltinTransform> = {
   upper: (input) => String(input ?? '').toUpperCase(),
 }
 
-// Names that may never be used as a user function (Task 7 reads this).
+// The only call names evaluate() can dispatch besides user functions.
+// Task 9 validates call names against this set ∪ the endpoint's user table —
+// never against RESERVED_NAMES.
+export const CALLABLE_BUILTINS = new Set(Object.keys(BUILTIN_TRANSFORMS))
+
+// Names a user function may never export (Task 6 reads this): the syntactic
+// forms (parsed into dedicated AST nodes, not callable) plus every callable
+// built-in.
 export const RESERVED_NAMES = new Set<string>([
   'now', 'body', 'path', 'query', 'profileKey',
-  ...Object.keys(BUILTIN_TRANSFORMS),
+  ...CALLABLE_BUILTINS,
 ])
 
 export function evaluate(expr: Expr, deps: EvalDeps): EvalValue {
@@ -453,7 +474,7 @@ git commit -m "test(templating): cover pipe composition with the upper built-in"
 - Test: `tests/mock-engine/template.test.ts`
 
 **Interfaces:**
-- Produces: `resolveTemplate` now returns the **raw typed value** when a string is exactly one placeholder (`^{{…}}$`); interpolated placeholders still coerce to string. `evaluate` already returns typed values.
+- Produces: `resolveTemplate` returns the **raw typed value** when a string is exactly one placeholder. Sole detection must check that the **first `PLACEHOLDER_RE` match spans the whole string** — an anchored lazy regex like `^\{\{(.+?)\}\}$` backtracks across `"{{$.a}} {{$.b}}"` and misclassifies it as one placeholder (runtime 500 on a fixture that validates clean). Interpolated placeholders still coerce to string. Also introduces `TemplateOptions` with `stringOnly?: boolean` (header rendering — Task 8 — keeps whole-string placeholders as strings; Task 7 extends this options bag) and JSON-stringifies non-string values recorded into `resolutions`. `evaluate` already returns typed values.
 
 - [ ] **Step 1: Write the failing test** (and update the Task-2 preservation test to the new behavior)
 
@@ -468,6 +489,16 @@ git commit -m "test(templating): cover pipe composition with the upper built-in"
     const c = ctx({ body: { amount: 42 } })
     expect(resolveTemplate({ a: 'total: {{$.amount}}' }, c, now)).toEqual({ a: 'total: 42' })
   })
+
+  it('treats adjacent placeholders as interpolation, not a sole placeholder', () => {
+    const c = ctx({ body: { first: 'Ada', last: 'Lovelace' } })
+    expect(resolveTemplate({ n: '{{$.first}} {{$.last}}' }, c, now)).toEqual({ n: 'Ada Lovelace' })
+  })
+
+  it('keeps a whole-string placeholder a string under stringOnly (headers mode)', () => {
+    const c = ctx({ body: { amount: 42 } })
+    expect(resolveTemplate({ a: '{{$.amount}}' }, c, now, undefined, { stringOnly: true })).toEqual({ a: '42' })
+  })
 ```
 
 Delete/replace the Task-2 case titled *"still stringifies a sole numeric selector"* — that behavior is intentionally superseded here.
@@ -480,15 +511,26 @@ Expected: FAIL — sole numeric selector currently yields `'42'`, not `42`.
 - [ ] **Step 3: Write minimal implementation**
 
 ```ts
-// src/lib/mock-engine/template.ts — replace the string branch of resolveTemplate
-const SOLE_PLACEHOLDER_RE = /^\{\{(.+?)\}\}$/
+// src/lib/mock-engine/template.ts
+export interface TemplateOptions {
+  /** Headers mode: whole-string placeholders coerce to string too (Task 8). */
+  stringOnly?: boolean
+  // Task 7 adds: fnCtx, functions, timeoutMs
+}
 
-// inside resolveTemplate, the `typeof node === 'string'` branch:
+// `resolveTemplate` gains a final `options?: TemplateOptions` param; every
+// recursive call (array + object branches) forwards it.
+
+// Inside resolveTemplate, the `typeof node === 'string'` branch. Sole
+// detection: the FIRST lazy match must span the whole string. Do NOT use an
+// anchored `^\{\{(.+?)\}\}$` regex — it backtracks across
+// `"{{$.a}} {{$.b}}"` and misparses two placeholders as one.
   if (typeof node === 'string') {
-    const sole = SOLE_PLACEHOLDER_RE.exec(node)
-    if (sole) {
-      const value = resolvePlaceholderTyped(sole[1], ctx, now)
-      if (resolutions) resolutions[`{{${sole[1]}}}`] = String(value)
+    PLACEHOLDER_RE.lastIndex = 0
+    const first = PLACEHOLDER_RE.exec(node)
+    if (first && first[0] === node && !options?.stringOnly) {
+      const value = resolvePlaceholderTyped(first[1], ctx, now)
+      if (resolutions) resolutions[node] = stringifyForTrace(value)
       return value
     }
     return node.replace(PLACEHOLDER_RE, (_, expr: string) => {
@@ -497,6 +539,11 @@ const SOLE_PLACEHOLDER_RE = /^\{\{(.+?)\}\}$/
       return value
     })
   }
+
+// Trace values readable for objects/arrays, not "[object Object]".
+function stringifyForTrace(value: unknown): string {
+  return typeof value === 'object' && value !== null ? JSON.stringify(value) : String(value)
+}
 ```
 
 Add a typed sibling that returns the raw value (and refactor `resolvePlaceholder` to reuse the parse):
@@ -886,7 +933,7 @@ git commit -m "feat(templating): discover and scope-resolve user _functions (nea
 
 **Interfaces:**
 - Consumes: `CompiledFn` (Task 5), `FnContext` (Task 5).
-- Produces: `EvalDeps` gains optional `fnCtx`, `functions`, `timeoutMs`. `resolveTemplate`/`resolvePlaceholderTyped` gain an optional final `options` param carrying them, default empty (so all existing call sites and tests keep working). Built-in transforms resolve first; then the user `functions` table; else `PlaceholderError`.
+- Produces: `EvalDeps` gains optional `fnCtx`, `functions`, `timeoutMs`. The `TemplateOptions` bag introduced in Task 4 is extended with the same fields and threaded through `resolveTemplate`/`resolvePlaceholderTyped` (all existing call sites and tests keep working). Built-in transforms resolve first; then the user `functions` table; else `PlaceholderError`.
 
   ```ts
   export interface EvalDeps {
@@ -896,8 +943,8 @@ git commit -m "feat(templating): discover and scope-resolve user _functions (nea
     functions?: Map<string, CompiledFn>
     timeoutMs?: number
   }
-  // template.ts:
-  export interface TemplateOptions { fnCtx?: FnContext; functions?: Map<string, CompiledFn>; timeoutMs?: number }
+  // template.ts (extends Task 4's TemplateOptions):
+  export interface TemplateOptions { stringOnly?: boolean; fnCtx?: FnContext; functions?: Map<string, CompiledFn>; timeoutMs?: number }
   export function resolveTemplate(node, ctx, now, resolutions?, options?: TemplateOptions): unknown
   ```
 
@@ -978,6 +1025,7 @@ import { CompiledFn } from './functions'
 import { FnContext } from './functions'
 
 export interface TemplateOptions {
+  stringOnly?: boolean // Task 4
   fnCtx?: FnContext
   functions?: Map<string, CompiledFn>
   timeoutMs?: number
@@ -1070,7 +1118,8 @@ In `route-request.ts`, at the fixture render block (around `route-request.ts:240
     const opts = { fnCtx, functions }
     const body = resolveTemplate(fixture.body, ctx, now, placeholders, opts)
     // ...
-    ...(resolveTemplate(fixture.headers ?? {}, ctx, now, placeholders, opts) as Record<string, string>),
+    // Headers always render as strings — #12 type preservation is bodies-only.
+    ...(resolveTemplate(fixture.headers ?? {}, ctx, now, placeholders, { ...opts, stringOnly: true }) as Record<string, string>),
 ```
 
 - [ ] **Step 4: Run test to verify it passes**
@@ -1094,8 +1143,8 @@ git commit -m "feat(templating): load user functions at catalog load and pass th
 - Test: `tests/catalog/validate.test.ts`
 
 **Interfaces:**
-- Consumes: `parseExpr`, `callNames`, `ExprParseError` (Task 1); `RESERVED_NAMES` (Task 2); the endpoint's resolved function table (from Task 8's `resolveFunctions`, threaded into `validate`).
-- Produces: for each fixture placeholder, replace the `parseNow`/`parseSelector` loop (`validate.ts` ~185–210) with: `parseExpr(expr)`; on `ExprParseError` → existing "invalid placeholder" error; for each name in `callNames`, error unless it is a `RESERVED_NAMES` built-in **or** present in the endpoint's function table; preserve the undeclared-path-param check by walking the AST for `selector` nodes with `source === 'path'`.
+- Consumes: `parseExpr`, `callNames`, `ExprParseError` (Task 1); `CALLABLE_BUILTINS` (Task 2); the endpoint's resolved function table (from Task 8's `resolveFunctions`, threaded into `validate`).
+- Produces: for each fixture placeholder, replace the `parseNow`/`parseSelector` loop (`validate.ts` ~189–211) with: `parseExpr(expr)`; on `ExprParseError` → existing "invalid placeholder" error; for each name in `callNames`, error unless it is a `CALLABLE_BUILTINS` name **or** present in the endpoint's function table — **never accept via `RESERVED_NAMES`**: syntactic forms are reserved but not callable, so `{{$.a | now:iso}}`, `{{body:$.name}}`, and bare `{{now}}` must fail here (this keeps validation exactly as strict as the evaluator); preserve the undeclared-path-param check by walking the AST for `selector` nodes with `source === 'path'`.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1119,6 +1168,16 @@ git commit -m "feat(templating): load user functions at catalog load and pass th
     const errors = validateCatalogWith({ body: { x: '{{path:missing}}' } })
     expect(errors.join('\n')).toMatch(/undeclared path param/)
   })
+
+  it('rejects a syntactic form used as a call (piped now)', () => {
+    const errors = validateCatalogWith({ body: { x: '{{$.a | now:iso}}' } })
+    expect(errors.join('\n')).toMatch(/unknown function "now"/)
+  })
+
+  it('rejects bare {{now}} (reserved, but not callable)', () => {
+    const errors = validateCatalogWith({ body: { x: '{{now}}' } })
+    expect(errors.join('\n')).toMatch(/unknown function "now"/)
+  })
 ```
 
 (Implement `validateCatalogWith` as a thin helper in the test that writes a temp catalog with one system/endpoint/fixture and optional `_functions.ts`, then runs the catalog validator — follow the existing temp-dir pattern already used in `tests/catalog/validate.test.ts`.)
@@ -1131,9 +1190,9 @@ Expected: FAIL — unknown-function names are not yet rejected.
 - [ ] **Step 3: Write minimal implementation**
 
 ```ts
-// src/lib/catalog/validate.ts — replace the placeholder loop (~185–210)
+// src/lib/catalog/validate.ts — replace the placeholder loop (~189–211)
 import { parseExpr, callNames, ExprParseError, Expr } from '../mock-engine/expr'
-import { RESERVED_NAMES } from '../mock-engine/evaluate'
+import { CALLABLE_BUILTINS } from '../mock-engine/evaluate'
 
 // `fnTable` = names visible for this endpoint (Set<string>), derived from the
 // resolveFunctions table for (systemSlug, endpoint.name); pass it into this scope.
@@ -1149,7 +1208,7 @@ for (const expr of placeholders) {
     throw err
   }
   for (const name of callNames(ast)) {
-    if (!RESERVED_NAMES.has(name) && !fnTable.has(name)) {
+    if (!CALLABLE_BUILTINS.has(name) && !fnTable.has(name)) {
       errors.push(`${label}: fixture ${file} placeholder "{{${expr}}}" calls unknown function "${name}"`)
     }
   }
@@ -1229,6 +1288,8 @@ export const label: MockFn = (_ctx, status) => `CUSTOMER: ${String(status).toUpp
 
 Add a placeholder to the chosen fixture, e.g. `"label": "{{label:$.status}}"` (pick a fixture/field that matches the endpoint's body selectors). Export `MockFn`/`FnContext` from the package entry so the published import path resolves.
 
+Note: the vm sandbox has no `require`, so `_functions` files may use **type-only** imports only (`import type { … }` — erased at transpile). A value import fails at catalog load. The docs pass must call this out.
+
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run tests/router/route-request.test.ts && npx vitest run`
@@ -1274,8 +1335,11 @@ git commit -m "test(templating): verify function-calling end to end"
 
 This feature changes the placeholder/templating surface. Per AGENTS.md, after implementation, **ask the user** before touching the guide. Affected pages: `docs/site/docs/building/fixtures.md` (placeholders/templating — primary), `docs/site/docs/reference/configuration.md` (validation rules), `docs/site/docs/reference/request-lifecycle.md`. Do not edit them as part of these tasks.
 
+Author-facing caveats the guide must cover: `_functions` files cannot use value imports (no `require` in the sandbox; `import type` is fine); module-level state persists across requests (write pure functions); header placeholders always render as strings; `:` and `|` are separators unless single-quoted.
+
 ## Self-review notes
 
 - **Spec coverage:** unified AST (Task 1), colon+pipe syntax (Tasks 1,3), `(context,…args)` with `context.request` escape hatch (Tasks 5,7), esbuild+vm+timeout execution mirroring the resolver (Task 5), 3-scope nearest-wins + reserved built-ins (Task 6), scope-aware validation (Task 9), type-preserving returns/#12 (Task 4), hard-error on unknown/throw/timeout (Tasks 5,7,9), `MockFn` type + example (Task 10). Determinism `seed` is threaded (Task 8); the seeded `random`/`faker` built-ins themselves are deferred to #14/#15 as designed.
 - **Deferred (matches spec Out-of-scope):** full #13 filter set beyond `upper`, #14 `random`, #15 `faker`, #10 `uuid`, paren-nesting, `Math.random` seed-shim.
 - **Type consistency:** `Expr`, `EvalValue`/`FnValue`, `FnContext`, `CompiledFn`, `TemplateOptions`, `resolveFunctions` names are used identically across tasks.
+- **Review revisions (2026-07-18):** sole-placeholder detection by first-match-spans-string (Task 4) instead of an anchored lazy regex, which misparsed `"{{$.a}} {{$.b}}"`; validation whitelists `CALLABLE_BUILTINS` ∪ user table — `RESERVED_NAMES` only guards user exports (Tasks 2, 9); headers render `stringOnly` (Tasks 4, 8); quote-aware `|`/`:` splitting (Task 1); trace `resolutions` JSON-stringified (Task 4); no-`require` and module-state caveats recorded for the docs pass.

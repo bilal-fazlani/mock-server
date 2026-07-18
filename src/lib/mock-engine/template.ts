@@ -1,37 +1,53 @@
-import {
-  extractValue,
-  parseSelector,
-  RequestContext,
-  SelectorParseError,
-} from '../catalog/selector'
-import { NowFormatError, parseNow, renderNow } from './now'
+import { RequestContext } from '../catalog/selector'
+import { ExprParseError, parseExpr } from './expr'
+import { evaluate, EvalValue } from './evaluate'
+import { CompiledFn, FnContext, FunctionRuntimeError, FunctionTimeoutError } from './functions'
 
 export class PlaceholderError extends Error {}
 
+export interface TemplateOptions {
+  /** Headers mode: whole-string placeholders coerce to string too (Task 8). */
+  stringOnly?: boolean
+  fnCtx?: FnContext
+  functions?: Map<string, CompiledFn>
+  timeoutMs?: number
+}
+
 const PLACEHOLDER_RE = /\{\{(.+?)\}\}/g
 
-function resolvePlaceholder(expr: string, ctx: RequestContext, now: Date): string {
+function resolvePlaceholderTyped(expr: string, ctx: RequestContext, now: Date, options?: TemplateOptions): EvalValue {
+  let ast
   try {
-    const spec = parseNow(expr)
-    if (spec) return renderNow(spec, now)
+    ast = parseExpr(expr)
   } catch (err) {
-    if (err instanceof NowFormatError) throw new PlaceholderError(err.message)
-    throw err
-  }
-  let selector: ReturnType<typeof parseSelector>
-  try {
-    selector = parseSelector(expr)
-  } catch (err) {
-    if (err instanceof SelectorParseError) {
+    if (err instanceof ExprParseError) {
       throw new PlaceholderError(`invalid placeholder "{{${expr}}}": ${err.message}`)
     }
     throw err
   }
-  const value = extractValue(selector, ctx)
-  if (value === null) {
-    throw new PlaceholderError(`placeholder "{{${expr}}}" did not resolve against the request`)
+  try {
+    return evaluate(ast, { ctx, now, ...options })
+  } catch (err) {
+    // A user function that threw, timed out, or returned something unusable
+    // (see evaluate.ts) surfaces here without knowing which placeholder it
+    // was evaluated from. This is the one spot that has both the placeholder
+    // text and the underlying error, so it's where the two get stitched
+    // together into the PlaceholderError that route-request's catch turns
+    // into a structured 500 (design doc: "Error handling").
+    if (err instanceof FunctionRuntimeError || err instanceof FunctionTimeoutError) {
+      throw new PlaceholderError(`placeholder "{{${expr}}}" failed: ${err.message}`)
+    }
+    throw err
   }
-  return String(value)
+}
+
+function resolvePlaceholder(expr: string, ctx: RequestContext, now: Date, options?: TemplateOptions): string {
+  return stringifyForTrace(resolvePlaceholderTyped(expr, ctx, now, options))
+}
+
+// Trace/interpolation values readable for objects/arrays, not "[object Object]".
+function stringifyForTrace(value: unknown): string {
+  return typeof value === 'object' && value !== null ? JSON.stringify(value) : String(value)
 }
 
 export function resolveTemplate(
@@ -39,20 +55,29 @@ export function resolveTemplate(
   ctx: RequestContext,
   now: Date,
   resolutions?: Record<string, string>,
+  options?: TemplateOptions,
 ): unknown {
   if (typeof node === 'string') {
+    PLACEHOLDER_RE.lastIndex = 0
+    const first = PLACEHOLDER_RE.exec(node)
+    PLACEHOLDER_RE.lastIndex = 0
+    if (first && first[0] === node && !options?.stringOnly) {
+      const value = resolvePlaceholderTyped(first[1], ctx, now, options)
+      if (resolutions) resolutions[node] = stringifyForTrace(value)
+      return value
+    }
     return node.replace(PLACEHOLDER_RE, (_, expr: string) => {
-      const value = resolvePlaceholder(expr, ctx, now)
+      const value = resolvePlaceholder(expr, ctx, now, options)
       if (resolutions) resolutions[`{{${expr}}}`] = value
       return value
     })
   }
   if (Array.isArray(node)) {
-    return node.map((item) => resolveTemplate(item, ctx, now, resolutions))
+    return node.map((item) => resolveTemplate(item, ctx, now, resolutions, options))
   }
   if (node !== null && typeof node === 'object') {
     return Object.fromEntries(
-      Object.entries(node).map(([k, v]) => [k, resolveTemplate(v, ctx, now, resolutions)]),
+      Object.entries(node).map(([k, v]) => [k, resolveTemplate(v, ctx, now, resolutions, options)]),
     )
   }
   return node

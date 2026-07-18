@@ -1,7 +1,8 @@
 import fs from 'node:fs'
 import { DurationError, parseDelayMs } from '../mock-engine/duration'
+import { CALLABLE_BUILTINS } from '../mock-engine/evaluate'
+import { callNames, parseExpr, ExprParseError, type Expr } from '../mock-engine/expr'
 import { fixtureFilePath, type Fixture } from '../mock-engine/fixtures'
-import { parseNow } from '../mock-engine/now'
 import { listPlaceholders } from '../mock-engine/template'
 import {
   parsePathTemplate,
@@ -51,6 +52,7 @@ export function validateCatalog(catalog: Catalog, catalogDir: string): Validatio
       const declaredParams = new Set(
         template?.segments.flatMap((s) => (s.type === 'param' ? [s.name] : [])) ?? [],
       )
+      const fnTable = new Set(catalog.resolveFunctions?.(system.slug, endpoint.name).keys() ?? [])
       const mockType = endpoint.mockType ?? 'profiled'
 
       if (mockType === 'global') {
@@ -191,21 +193,29 @@ export function validateCatalog(catalog: Catalog, catalogDir: string): Validatio
           ...listPlaceholders(fixture.headers ?? {}),
         ]
         for (const expr of placeholders) {
+          let ast: Expr
           try {
-            if (parseNow(expr)) continue
-          } catch {
-            errors.push(`${label}: fixture ${file} has invalid placeholder "{{${expr}}}"`)
-            continue
+            ast = parseExpr(expr)
+          } catch (err) {
+            if (err instanceof ExprParseError) {
+              errors.push(`${label}: fixture ${file} has invalid placeholder "{{${expr}}}"`)
+              continue
+            }
+            throw err
           }
-          try {
-            const sel = parseSelector(expr)
-            if (sel.source === 'path' && !declaredParams.has(sel.name)) {
+          for (const name of callNames(ast)) {
+            if (!CALLABLE_BUILTINS.has(name) && !fnTable.has(name)) {
+              errors.push(
+                `${label}: fixture ${file} placeholder "{{${expr}}}" calls unknown function "${name}"`,
+              )
+            }
+          }
+          for (const sel of selectorNodes(ast)) {
+            if (sel.selector.source === 'path' && !declaredParams.has(sel.selector.name)) {
               errors.push(
                 `${label}: fixture ${file} placeholder "{{${expr}}}" references undeclared path param`,
               )
             }
-          } catch {
-            errors.push(`${label}: fixture ${file} has invalid placeholder "{{${expr}}}"`)
           }
         }
       }
@@ -226,6 +236,16 @@ export function validateCatalog(catalog: Catalog, catalogDir: string): Validatio
   }
 
   return { errors, fixtures, schemas }
+}
+
+function selectorNodes(expr: Expr): Array<Extract<Expr, { kind: 'selector' }>> {
+  const out: Array<Extract<Expr, { kind: 'selector' }>> = []
+  const walk = (e: Expr): void => {
+    if (e.kind === 'selector') out.push(e)
+    else if (e.kind === 'call') e.args.forEach(walk)
+  }
+  walk(expr)
+  return out
 }
 
 function parseSelectorForValidation(
