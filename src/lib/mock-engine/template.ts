@@ -1,18 +1,21 @@
 import { RequestContext } from '../catalog/selector'
 import { ExprParseError, parseExpr } from './expr'
 import { evaluate, EvalValue } from './evaluate'
+import { CompiledFn, FnContext } from './functions'
 
 export class PlaceholderError extends Error {}
 
 export interface TemplateOptions {
   /** Headers mode: whole-string placeholders coerce to string too (Task 8). */
   stringOnly?: boolean
-  // Task 7 adds: fnCtx, functions, timeoutMs
+  fnCtx?: FnContext
+  functions?: Map<string, CompiledFn>
+  timeoutMs?: number
 }
 
 const PLACEHOLDER_RE = /\{\{(.+?)\}\}/g
 
-function resolvePlaceholderTyped(expr: string, ctx: RequestContext, now: Date): EvalValue {
+function resolvePlaceholderTyped(expr: string, ctx: RequestContext, now: Date, options?: TemplateOptions): EvalValue {
   let ast
   try {
     ast = parseExpr(expr)
@@ -22,11 +25,11 @@ function resolvePlaceholderTyped(expr: string, ctx: RequestContext, now: Date): 
     }
     throw err
   }
-  return evaluate(ast, { ctx, now })
+  return evaluate(ast, { ctx, now, ...options })
 }
 
-function resolvePlaceholder(expr: string, ctx: RequestContext, now: Date): string {
-  return String(resolvePlaceholderTyped(expr, ctx, now))
+function resolvePlaceholder(expr: string, ctx: RequestContext, now: Date, options?: TemplateOptions): string {
+  return String(resolvePlaceholderTyped(expr, ctx, now, options))
 }
 
 // Trace values readable for objects/arrays, not "[object Object]".
@@ -46,12 +49,12 @@ export function resolveTemplate(
     const first = PLACEHOLDER_RE.exec(node)
     PLACEHOLDER_RE.lastIndex = 0
     if (first && first[0] === node && !options?.stringOnly) {
-      const value = resolvePlaceholderTyped(first[1], ctx, now)
+      const value = resolvePlaceholderTyped(first[1], ctx, now, options)
       if (resolutions) resolutions[node] = stringifyForTrace(value)
       return value
     }
     return node.replace(PLACEHOLDER_RE, (_, expr: string) => {
-      const value = resolvePlaceholder(expr, ctx, now)
+      const value = resolvePlaceholder(expr, ctx, now, options)
       if (resolutions) resolutions[`{{${expr}}}`] = value
       return value
     })

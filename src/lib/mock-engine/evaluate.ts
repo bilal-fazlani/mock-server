@@ -2,10 +2,14 @@ import { Expr } from './expr'
 import { extractValue, RequestContext } from '../catalog/selector'
 import { renderNow } from './now'
 import { PlaceholderError } from './template'
+import { CompiledFn, DEFAULT_FN_TIMEOUT_MS, FnContext, FnValue } from './functions'
 
 export interface EvalDeps {
   ctx: RequestContext
   now: Date
+  fnCtx?: FnContext
+  functions?: Map<string, CompiledFn>
+  timeoutMs?: number
 }
 
 type BuiltinTransform = (input: EvalValue, args: EvalValue[]) => EvalValue
@@ -45,6 +49,11 @@ export function evaluate(expr: Expr, deps: EvalDeps): EvalValue {
       const args = expr.args.map((a) => evaluate(a, deps))
       const builtin = BUILTIN_TRANSFORMS[expr.name]
       if (builtin) return builtin(args[0] ?? null, args.slice(1))
+      const fn = deps.functions?.get(expr.name)
+      if (fn) {
+        if (!deps.fnCtx) throw new PlaceholderError(`function "${expr.name}" needs request context`)
+        return fn.invoke(deps.fnCtx, args as FnValue[], deps.timeoutMs ?? DEFAULT_FN_TIMEOUT_MS) as EvalValue
+      }
       throw new PlaceholderError(`unknown function "${expr.name}" in placeholder`)
     }
   }
