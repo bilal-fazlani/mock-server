@@ -100,6 +100,41 @@ describe('resolveTemplate', () => {
     expect(() => resolveTemplate({ a: '{{$.missing}}' }, ctx(), now)).toThrow(PlaceholderError)
   })
 
+  it('emits a raw boolean when the whole string is a boolean selector', () => {
+    const c = ctx({ body: { isActive: false } })
+    expect(resolveTemplate({ a: '{{$.isActive}}' }, c, now)).toEqual({ a: false })
+  })
+
+  it('stringifies a boolean extracted value inside surrounding text', () => {
+    const c = ctx({ body: { isActive: true } })
+    expect(resolveTemplate('active: {{$.isActive}}', c, now)).toBe('active: true')
+  })
+
+  it('substitutes a body field that is literally JSON null (present, not missing)', () => {
+    const c = ctx({ body: { middleName: null } })
+    expect(resolveTemplate({ a: '{{$.middleName}}' }, c, now)).toEqual({ a: null })
+    expect(resolveTemplate('mn: {{$.middleName}}', c, now)).toBe('mn: null')
+  })
+
+  it('still throws for an absent key, distinguishing it from a present null', () => {
+    expect(() => resolveTemplate({ a: '{{$.middleName}}' }, ctx({ body: {} }), now)).toThrow(
+      PlaceholderError,
+    )
+  })
+
+  it('echoes a whole object/array subtree in whole-string position', () => {
+    const c = ctx({ body: { user: { name: 'Ada', roles: ['admin'] }, tags: [1, 2] } })
+    expect(resolveTemplate({ u: '{{$.user}}' }, c, now)).toEqual({
+      u: { name: 'Ada', roles: ['admin'] },
+    })
+    expect(resolveTemplate({ t: '{{$.tags}}' }, c, now)).toEqual({ t: [1, 2] })
+  })
+
+  it('JSON-stringifies a subtree when interpolated into surrounding text', () => {
+    const c = ctx({ body: { user: { name: 'Ada' } } })
+    expect(resolveTemplate('user: {{$.user}}', c, now)).toBe('user: {"name":"Ada"}')
+  })
+
   it('applies a built-in transform through a pipe', () => {
     const c = ctx({ body: { name: 'bilal' } })
     expect(resolveTemplate({ n: '{{$.name | upper}}' }, c, now)).toEqual({ n: 'BILAL' })

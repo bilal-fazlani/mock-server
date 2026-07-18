@@ -95,31 +95,58 @@ function parseBodyPath(raw: string): Array<string | number> {
   return segments
 }
 
-export function extractValue(
-  selector: Selector,
-  ctx: RequestContext,
-): string | number | null {
+// Extraction separates "the selector resolved to a value" from "no value is
+// there". `null` used to double as both, which made a body field that is
+// literally `false`/`null`/`{}` indistinguishable from a missing one. The
+// `value` is whatever JSON the body/path/query held — any JSON type, including
+// `null` — so callers that need a scalar (identity keys) narrow it themselves.
+export type Extraction = { found: false } | { found: true; value: unknown }
+
+const NOT_FOUND: Extraction = { found: false }
+
+export function extractValue(selector: Selector, ctx: RequestContext): Extraction {
   if (selector.source === 'profileKey') return extractValue(selector.keySelector, ctx)
-  if (selector.source === 'path') return ctx.pathParams[selector.name] ?? null
-  if (selector.source === 'query') return ctx.query.get(selector.name)
+  if (selector.source === 'path') {
+    const v = ctx.pathParams[selector.name]
+    return v === undefined ? NOT_FOUND : { found: true, value: v }
+  }
+  if (selector.source === 'query') {
+    const v = ctx.query.get(selector.name)
+    return v === null ? NOT_FOUND : { found: true, value: v }
+  }
   let current: unknown = ctx.body
   for (const seg of selector.segments) {
     if (typeof seg === 'number') {
-      if (!Array.isArray(current)) return null
+      if (!Array.isArray(current)) return NOT_FOUND
       current = current[seg]
     } else {
-      if (current === null || typeof current !== 'object' || Array.isArray(current)) return null
+      if (current === null || typeof current !== 'object' || Array.isArray(current)) return NOT_FOUND
       current = (current as Record<string, unknown>)[seg]
     }
   }
-  return typeof current === 'string' || typeof current === 'number' ? current : null
+  // A present body key that is JSON `null` stays `{ found: true, value: null }`;
+  // only an absent key (JS `undefined`) is treated as missing.
+  return current === undefined ? NOT_FOUND : { found: true, value: current }
+}
+
+// Identity keys (profile IDs, capture keys) are only ever strings or numbers;
+// any richer JSON value is nonsense there and collapses to "unresolved". This
+// narrowing lives at the identity boundary, keeping the shared extractor wide.
+export function extractScalar(
+  selector: Selector,
+  ctx: RequestContext,
+): string | number | null {
+  const extraction = extractValue(selector, ctx)
+  if (!extraction.found) return null
+  const { value } = extraction
+  return typeof value === 'string' || typeof value === 'number' ? value : null
 }
 
 export function extractProfileIdValue(
   selector: ProfileIdSelector,
   ctx: RequestContext,
 ): string | number | null {
-  if (selector.source !== 'bearer') return extractValue(selector, ctx)
+  if (selector.source !== 'bearer') return extractScalar(selector, ctx)
 
   const authorization = headerValue(ctx.headers, 'authorization')
   const match = authorization?.trim().match(BEARER_TOKEN_RE)

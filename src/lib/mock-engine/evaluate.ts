@@ -43,11 +43,15 @@ export function evaluate(expr: Expr, deps: EvalDeps): EvalValue {
     case 'now':
       return renderNow(expr.spec, deps.now)
     case 'selector': {
-      const v = extractValue(expr.selector, deps.ctx)
-      if (v === null) {
+      const extraction = extractValue(expr.selector, deps.ctx)
+      if (!extraction.found) {
         throw new PlaceholderError(`placeholder "{{${expr.raw}}}" did not resolve against the request`)
       }
-      return v
+      // A resolved selector carries any JSON value — booleans, JSON null, and
+      // whole object/array subtrees all round-trip through the same typed
+      // channel as #12's literals and function returns. The body is parsed
+      // JSON, so its values are structurally FnValue.
+      return extraction.value as EvalValue
     }
     case 'call': {
       const args = expr.args.map((a) => evaluate(a, deps))
