@@ -9,6 +9,9 @@ const ENDPOINT_META = '_endpoint.json'
 const SCHEMA_META = '_schema.json'
 const SPEC_FILE = /^_spec\.(ya?ml|json)$/
 const SCENARIO_FILE = /^([a-z0-9][a-z0-9_-]*)\.(json|ts)$/
+// User function files (loaded separately by loadFunctions at every scope) are
+// not systems, endpoints, or scenarios — skip them in the structural scans below.
+const FUNCTIONS_FILE = /^_functions\.(ts|mjs)$/
 
 export class CatalogLoadError extends Error {}
 
@@ -25,6 +28,7 @@ export function loadCatalog(catalogDir: string): Catalog {
   const warnings: string[] = []
 
   for (const sysEntry of sortedEntries(catalogDir)) {
+    if (sysEntry.isFile() && FUNCTIONS_FILE.test(sysEntry.name)) continue
     if (!sysEntry.isDirectory()) {
       problems.push(`unexpected entry in catalog root (systems are directories): ${sysEntry.name}`)
       continue
@@ -49,6 +53,7 @@ export function loadCatalog(catalogDir: string): Catalog {
     for (const epEntry of sortedEntries(systemDir)) {
       if (epEntry.name === SYSTEM_META) continue
       if (epEntry.isFile() && SPEC_FILE.test(epEntry.name)) continue
+      if (epEntry.isFile() && FUNCTIONS_FILE.test(epEntry.name)) continue
       if (!epEntry.isDirectory()) {
         problems.push(`${slug}: unexpected entry (endpoints are directories): ${epEntry.name}`)
         continue
@@ -93,6 +98,7 @@ export function loadCatalog(catalogDir: string): Catalog {
       const resolverSlugs = new Set<string>()
       for (const fixEntry of sortedEntries(endpointDir)) {
         if (fixEntry.name === ENDPOINT_META || fixEntry.name === SCHEMA_META) continue
+        if (fixEntry.isFile() && FUNCTIONS_FILE.test(fixEntry.name)) continue
         const match = fixEntry.isFile() ? SCENARIO_FILE.exec(fixEntry.name) : null
         if (!match) {
           problems.push(
