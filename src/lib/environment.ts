@@ -84,6 +84,21 @@ export const APP_ENVIRONMENT: EnvironmentDefinition[] = [
     display: true,
   },
   {
+    name: 'RESOLVER_HISTORY_TTL_DURATION',
+    category: 'Routing',
+    description:
+      'How long resolver history survives for a caller with no profile. History owned by a profile or global mock never expires.',
+    defaultValue: '1d',
+    display: true,
+  },
+  {
+    name: 'REQUEST_LOG_TTL_DURATION',
+    category: 'System',
+    description: 'How long request logs are retained before MongoDB expires them.',
+    defaultValue: '1d',
+    display: true,
+  },
+  {
     name: 'NODE_ENV',
     category: 'Runtime',
     description: 'Runtime mode reported by Next.js and Node.',
