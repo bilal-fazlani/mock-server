@@ -5,7 +5,7 @@ directories and JSON files under a `catalog/` tree — no request-handling code 
 and the routing engine serves them. Point your app at it in local dev or CI,
 switch scenarios per caller, and proxy to the real upstream when you want to.
 When a scenario has to be *decided* per call, a scenario can also be backed by a
-small TypeScript [resolver](building/dynamic.md) that picks one of your fixtures.
+small JavaScript [resolver](building/dynamic.md) that picks one of your fixtures.
 
 This guide covers the mental model below, then splits into **[Building
 mocks](building/endpoints.md)** (authoring the catalog) and **[Driving
@@ -42,9 +42,9 @@ Eight concepts:
 | **Profile** | A record keyed by a *business ID* (e.g. `customer-123`) that stores, per profiled endpoint, which scenario that caller should receive — but *only where it differs from* the configured implicit scenario. A pick can also be an ordered [scenario sequence](building/scenarios.md#scenario-sequences) served call-by-call. Stored in MongoDB, edited in the UI at `/ui`. |
 | **Global mock selection** | A shared scenario pick for a profile-less endpoint. Stored once in MongoDB, applies to every caller, and is edited on `/ui/global-mocks`. |
 | **Profile key mapping** | A MongoDB lookup from another request key to a profile ID, such as `event-id / evt-123 → customer-123`. Useful when a later callback has an event ID but no profile ID. |
-| **Scenario** | A named outcome for an endpoint, backed by one file per scenario: either a `<scenario>.json` fixture or a `<scenario>.ts` resolver. Every endpoint must have a `default` (either backing); the special `real` scenario (proxy to the live upstream) is *implicit on every endpoint* and must never have a file. See [Scenarios](building/scenarios.md) and [Code-backed scenario resolvers](building/dynamic.md). |
+| **Scenario** | A named outcome for an endpoint, backed by one file per scenario: either a `<scenario>.json` fixture or a `<scenario>.mjs` resolver. Every endpoint must have a `default` (either backing); the special `real` scenario (proxy to the live upstream) is *implicit on every endpoint* and must never have a file. See [Scenarios](building/scenarios.md) and [Code-backed scenario resolvers](building/dynamic.md). |
 | **Fixture** | The canned JSON response (status + headers + body) backing a fixture-backed scenario, with optional request-driven placeholders. |
-| **Resolver** | A pure, synchronous TypeScript function backing a code-backed scenario (`<scenario>.ts`); it inspects the request and a bounded history and returns which fixture-backed scenario (or `"real"`) should answer this call. See [Code-backed scenario resolvers](building/dynamic.md). |
+| **Resolver** | A pure, synchronous JavaScript function backing a code-backed scenario (`<scenario>.mjs`); it inspects the request and a bounded history and returns which fixture-backed scenario (or `"real"`) should answer this call. See [Code-backed scenario resolvers](building/dynamic.md). |
 
 At request time the engine does this:
 
@@ -79,9 +79,9 @@ catalog/
     hello_world/                # endpoint directory; its name IS the endpoint name
       _endpoint.json            # { "displayName", "method", "path", optional "mockType", "profileIdSelector", "captureProfileKeys" }
       _schema.json              # optional — per-endpoint request/response JSON Schema (mutually exclusive with a system _spec), see Schemas
-      default.json              # required — every endpoint needs a default scenario, as default.json or default.ts
+      default.json              # required — every endpoint needs a default scenario, as default.json or default.mjs
       failure.json              # any other <scenario>.json is a fixture-backed scenario
-      by-amount.ts              # any other <scenario>.ts is a resolver-backed scenario, see Code-backed scenario resolvers
+      by-amount.mjs              # any other <scenario>.mjs is a resolver-backed scenario, see Code-backed scenario resolvers
 ```
 
 The **system slug** is not derived from anything — it *is* the directory name

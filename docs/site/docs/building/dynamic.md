@@ -1,9 +1,9 @@
-# Code-backed scenario resolvers (`<slug>.ts`)
+# Code-backed scenario resolvers (`<slug>.mjs`)
 
 ## What it is
 
 Every scenario is backed by either a fixture (`<slug>.json`) or a **resolver**
-(`<slug>.ts`) — same slug grammar (`[a-z0-9][a-z0-9_-]*`), same directory, just
+(`<slug>.mjs`) — same slug grammar (`[a-z0-9][a-z0-9_-]*`), same directory, just
 a different file extension. A slug can never have both:
 
 ```text
@@ -14,16 +14,16 @@ catalog/
       default.json      # fixture-backed scenario
       pending.json       # fixture-backed scenario
       failure.json       # fixture-backed scenario
-      dynamic.ts          # resolver-backed scenario — an ordinary slug, not special
+      dynamic.mjs          # resolver-backed scenario — an ordinary slug, not special
 ```
 
-There is no special filename for a resolver — `dynamic.ts` above is a plain
+There is no special filename for a resolver — `dynamic.mjs` above is a plain
 example slug, not a reserved concept. Name resolver files for what they do
-(`by-amount.ts`, `poll-twice-then-succeed.ts`, `default.ts`); the slug becomes
+(`by-amount.mjs`, `poll-twice-then-succeed.mjs`, `default.mjs`); the slug becomes
 the label shown in pickers, logs, and the catalog page (unless overridden by
 `description` — see below).
 
-Resolvers are trusted, version-controlled TypeScript, deployed with the mock
+Resolvers are trusted, version-controlled JavaScript, deployed with the mock
 server — not a sandbox against malicious authors, but a way to *enforce* the
 resolver contract (pure, synchronous, no I/O) rather than merely document it.
 
@@ -31,20 +31,9 @@ A resolver default-exports a function that looks at the incoming request and a
 bounded history of what it returned before, and picks which scenario should
 answer this call:
 
-```ts
-export default function pick(input: {
-  request: {
-    method: string
-    path: string
-    pathParams: Record<string, string>
-    query: Record<string, string[]>
-    headers: Record<string, string>
-    body: unknown
-  }
-  history: string[]
-  profileId: string | null
-}): string {
-  const body = input.request.body as { forceFail?: boolean } | null
+```js
+export default function pick(input) {
+  const body = input.request.body
   if (body?.forceFail) return 'failure'
   return input.history.length < 2 ? 'pending' : 'default'
 }
@@ -103,10 +92,10 @@ This is the one rule everything else follows from:
   the fixture `description` field. Without it, the picker, catalog page, and
   logs fall back to showing the slug itself:
 
-  ```ts
+  ```js
   export const description = 'Routes by transfer amount'
 
-  export default function pick(input: { /* … */ }): string {
+  export default function pick(input) {
     // …
   }
   ```
@@ -117,19 +106,38 @@ This is the one rule everything else follows from:
   appears only there (not in the picker or logs), and an empty string is
   treated as absent:
 
-  ```ts
+  ```js
   export const description = 'Routes by transfer amount'
   export const summary = 'Large transfers hold; small ones settle'
 
-  export default function pick(input: { /* … */ }): string {
+  export default function pick(input) {
     // …
   }
   ```
 
-## `default.ts`: making request-driven routing the baseline
+### Editor support (optional)
+
+For autocomplete on `input` in any editor, paste this self-contained JSDoc
+block at the top of the resolver — it needs nothing installed and no
+`tsconfig.json`, and is safe to delete:
+
+```js
+// @ts-check
+/** @typedef {{request: {method: string, path: string,
+ *   pathParams: Record<string,string>, query: Record<string,string[]>,
+ *   headers: Record<string,string>, body: unknown},
+ *   history: string[], profileId: string | null}} ResolverInput */
+
+/** @param {ResolverInput} input */
+export default function pick(input) {
+  return input.history.length < 2 ? 'pending' : 'default'
+}
+```
+
+## `default.mjs`: making request-driven routing the baseline
 
 Because `default` is the zero-delta scenario a no-pick profile lands on
-(when `PASSTHROUGH_AS_DEFAULT=false`), backing it with a resolver — `default.ts`
+(when `PASSTHROUGH_AS_DEFAULT=false`), backing it with a resolver — `default.mjs`
 instead of `default.json` — makes **request-driven routing the endpoint's
 automatic baseline**. Profiles that need a fixed outcome regardless of the
 request body still pin a fixture-backed scenario as an override; profiles with
@@ -142,22 +150,18 @@ catalog/
   payments/
     transfer/
       _endpoint.json
-      default.ts        # routes by amount — the automatic baseline
+      default.mjs        # routes by amount — the automatic baseline
       success.json
       reject.json
       hold.json
       failure.json
 ```
 
-```ts
+```js
 export const description = 'Routes by transfer amount'
 
-export default function routeByAmount(input: {
-  request: { body: unknown }
-  history: string[]
-  profileId: string | null
-}): string {
-  const amount = (input.request.body as { amount?: number } | null)?.amount ?? 0
+export default function routeByAmount(input) {
+  const amount = input.request.body?.amount ?? 0
   if (amount > 100_000) return 'hold'
   if (amount > 10_000) return 'reject'
   return 'success'
@@ -218,7 +222,7 @@ request logs, so resolver behavior never depends on log retention:
 
 | Situation | Trace error code | When |
 | --- | --- | --- |
-| The `.ts` file fails to transpile or doesn't default-export a function | `resolver_compile_error` | Dev mode, at request time (production catches this at startup instead — see below). |
+| The `.mjs` file fails to transpile or doesn't default-export a function | `resolver_compile_error` | Dev mode, at request time (production catches this at startup instead — see below). |
 | A slug is resolver-backed (declared in the endpoint's resolver scenarios) but no compiled resolver is found for it | `resolver_missing` | Request time. Nothing is appended to history. |
 | The resolver throws | `resolver_threw` | Request time. |
 | The resolver exceeds its timeout (~100&nbsp;ms) | `resolver_timeout` | Request time — guards against a runaway synchronous loop. |
@@ -227,7 +231,7 @@ request logs, so resolver behavior never depends on log retention:
 `resolver_missing` and the old `dynamic_resolver_missing` are not the same
 thing. The old code fired when a profile pinned the reserved `dynamic` slug and
 the endpoint's `_dynamic.ts` had since been removed. That case no longer exists:
-`dynamic` isn't a reserved name, so a pin at a slug whose `.ts` file was later
+`dynamic` isn't a reserved name, so a pin at a slug whose `.mjs` file was later
 deleted means the slug is **no longer resolver-backed at all** — it's ordinary
 undeclared-scenario drift, exactly like a fixture-scenario pin whose file
 disappears. The picker renders it as a disabled `<slug> — unavailable` entry,
@@ -240,10 +244,13 @@ endpoint, but no compiled resolver could be produced for it at request time.
 ## Compilation, sandboxing, and timeouts
 
 - **Compiled at boot — fail-fast in both dev and production.** When the runtime
-  first initializes, *every* endpoint's `<slug>.ts` resolvers are transpiled
+  first initializes, *every* endpoint's `<slug>.mjs` resolvers are transpiled
   (via esbuild) and compiled up front, and any resolver that fails to
   transpile or doesn't default-export a function aborts that initialization —
-  the same fail-fast error list as catalog and fixture problems. This is not
+  the same fail-fast error list as catalog and fixture problems. A leftover
+  `<slug>.ts` resolver (from before authoring moved to `.mjs`-only) is caught
+  on the same list, with an error telling you to rename it — never silently
+  skipped. This is not
   production-only: a resolver that is already broken at boot fails hard in
   development too (the first request to *any* endpoint throws the aggregated
   startup error, not a scoped `resolver_compile_error`). `npm run
@@ -269,13 +276,13 @@ endpoint's **Single**-mode scenario picker, alongside fixture-backed scenarios
 and `Passthrough` — tagged with a small `</>` code badge ("Resolved by code at
 request time") so it's visually distinct from a fixture pick, while keeping
 the same tone rules (`default` green, other slugs amber, `real` red — a
-`default.ts` *is* still the store-nothing baseline). Selecting it and saving
+`default.mjs` *is* still the store-nothing baseline). Selecting it and saving
 means every future call to that endpoint, for that profile, runs the resolver;
 once selected, a **Reset resolver history** button appears. The same badge and
 reset button are available on the **global mocks** form for global endpoints.
 
 On the `/ui/catalog` endpoint page, a resolver-backed scenario card shows its
-**TypeScript source**, syntax-highlighted, in place of the JSON body a fixture
+**JavaScript source**, syntax-highlighted, in place of the JSON body a fixture
 card shows — far more useful than a one-line "resolved at request time"
 placeholder, especially with self-describing slugs.
 

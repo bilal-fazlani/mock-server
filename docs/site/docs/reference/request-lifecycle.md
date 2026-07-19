@@ -15,13 +15,13 @@ What the engine does for every incoming request, in order:
 | 3b | For a global endpoint, skip profile ID resolution and read the saved shared selection from `globalMockScenarios`. | — |
 | 4 | For a profiled endpoint, load that profile from MongoDB. | Not found → `UNMOCKED_USERS` policy: `ERROR` → `404`; `DEFAULT_MOCK` → serve `default`; `REAL` → proxy |
 | 5 | Resolve the scenario: saved profile/global pick, else the implicit scenario from `PASSTHROUGH_AS_DEFAULT`. If the pick is a [sequence](../building/scenarios.md#scenario-sequences), atomically advance its progress counter and take the step it lands on (sticking on the last step once exhausted). | Pinned key no longer declared → `500` |
-| 6 | If the resolved scenario slug is **resolver-backed**, look up its compiled `<slug>.ts`, read that slug's history window, and invoke it with the request + history + profile ID. Rewrite the scenario to its return value and append that value to the slug's history. | Compile error (dev) → `500 resolver_compile_error`; no compiled resolver found → `500 resolver_missing`; throws → `500 resolver_threw`; exceeds its timeout → `500 resolver_timeout`; returns anything other than a fixture-backed declared scenario or `"real"` → `500 resolver_bad_return` (nothing appended to history) |
+| 6 | If the resolved scenario slug is **resolver-backed**, look up its compiled `<slug>.mjs`, read that slug's history window, and invoke it with the request + history + profile ID. Rewrite the scenario to its return value and append that value to the slug's history. | Compile error (dev) → `500 resolver_compile_error`; no compiled resolver found → `500 resolver_missing`; throws → `500 resolver_threw`; exceeds its timeout → `500 resolver_timeout`; returns anything other than a fixture-backed declared scenario or `"real"` → `500 resolver_bad_return` (nothing appended to history) |
 | 7 | For direct-profile endpoints with `captureProfileKeys`, store each mapping before fixture serving or real proxying. | Capture key missing → `400`; same key for a different profile → `409 profile_key_mapping_conflict` |
 | 8a | If scenario is `real`: proxy to the `baseUrlEnv` upstream and return its response. | Missing base URL → `500` (startup prevents this only when `PASSTHROUGH_AS_DEFAULT=true`) |
-| 8b | Otherwise: take the cached fixture, resolve placeholders — a [placeholder expression](../building/fixtures.md#placeholder-expressions) may invoke built-in transforms and sandboxed [custom functions](../building/fixtures.md#custom-functions-_functionsts) — wait the fixture's [`delay`](../building/fixtures.md#response-delay) if one is set, and return its status/headers/body. | Placeholder didn't resolve, or named an unknown function → `500 template_error`; a custom function threw or returned an unusable value → `500 function_error`; it exceeded its timeout → `500 function_timeout`. Every one names the function and the placeholder (see [Errors](../building/fixtures.md#errors)) |
+| 8b | Otherwise: take the cached fixture, resolve placeholders — a [placeholder expression](../building/fixtures.md#placeholder-expressions) may invoke built-in transforms and sandboxed [custom functions](../building/fixtures.md#custom-functions-_functionsmjs) — wait the fixture's [`delay`](../building/fixtures.md#response-delay) if one is set, and return its status/headers/body. | Placeholder didn't resolve, or named an unknown function → `500 template_error`; a custom function threw or returned an unusable value → `500 function_error`; it exceeded its timeout → `500 function_timeout`. Every one names the function and the placeholder (see [Errors](../building/fixtures.md#errors)) |
 
 Step 6 only runs when the resolved scenario slug (step 5) is backed by a
-`<slug>.ts` resolver — for every fixture-backed scenario, routing falls
+`<slug>.mjs` resolver — for every fixture-backed scenario, routing falls
 straight from step 5 to step 7. Once step 6 rewrites the scenario, the rest of
 the walk (steps 7, 8a/8b) proceeds exactly as if that rewritten slug
 (including `real`) had been the original pick. `trace.scenarioSource` still
@@ -89,13 +89,13 @@ endpoints without `profileIdSelector`.
 ## Reserved scenario names
 
 - **`default`** — every endpoint must have it, as either `default.json` or
-  `default.ts`.
+  `default.mjs`.
 - **`real`** — must never have a fixture or resolver file (`real.json` and
-  `real.ts` are both errors). It means passthrough to the system's configured
+  `real.mjs` are both errors). It means passthrough to the system's configured
   upstream base URL.
 
 Any other scenario slug may be backed by either a fixture (`<slug>.json`) or a
-resolver (`<slug>.ts`, never both). A resolver-backed slug isn't a different
+resolver (`<slug>.mjs`, never both). A resolver-backed slug isn't a different
 *kind* of scenario name — it's an ordinary declared scenario whose response is
 computed at request time instead of read from a file; selecting it runs the
 resolver and rewrites the scenario to whatever fixture-backed slug (or `real`)
@@ -121,16 +121,16 @@ Startup fails hard if any of:
 
 - existing catalog/fixture checks fail: path templates, selectors, fixture shape,
   placeholders, ambiguous endpoints, schemas;
-- a scenario slug has both `<slug>.json` and `<slug>.ts`;
+- a scenario slug has both `<slug>.json` and `<slug>.mjs`;
 - an endpoint lacks a `default` scenario (neither `default.json` nor
-  `default.ts`), declares `real.json` or `real.ts`, or has no fixture-backed
+  `default.mjs`), declares `real.json` or `real.mjs`, or has no fixture-backed
   scenario at all;
 - a global endpoint declares profile-only fields;
 - a profiled endpoint lacks `profileIdSelector`;
 - `PASSTHROUGH_AS_DEFAULT=true` and any system's `baseUrlEnv` is unset;
-- any scenario resolver (`<slug>.ts`) fails to compile or doesn't
+- any scenario resolver (`<slug>.mjs`) fails to compile or doesn't
   default-export a function;
-- any `_functions.ts`/`_functions.mjs` file fails to compile, exports a
+- any `_functions.mjs` file fails to compile, exports a
   function under a reserved built-in name, uses a `default` export, or sits
   beside a second `_functions` file of the other extension at the same level;
 - a fixture placeholder calls a function name that isn't a built-in transform
@@ -172,7 +172,7 @@ flowchart TD
     Pick -- Single scenario --> ProfilePin["scenario = saved pin"]
     Pick -- Sequence --> Advance["Atomically advance progress<br/>scenario = current step<br/>(stick on final step)"]
 
-    ProfileImplicit --> IsResolverBacked{"scenario slug is<br/>resolver-backed (.ts)?"}
+    ProfileImplicit --> IsResolverBacked{"scenario slug is<br/>resolver-backed (.mjs)?"}
     ProfilePin --> IsResolverBacked
     Advance --> IsResolverBacked
     GlobalSel --> IsResolverBacked
@@ -232,7 +232,7 @@ flowchart TD
   fixture and `real`, so any sequence step can select passthrough.
 - **A resolver-backed scenario** runs after scenario resolution (including
   sequence advancement) but before the `real`/fixture branch, whenever the
-  resolved slug is backed by a `<slug>.ts` file. It rewrites the scenario in
+  resolved slug is backed by a `<slug>.mjs` file. It rewrites the scenario in
   place, so everything downstream — passthrough, fixture load, templating,
   schema checks, tracing — treats the resolver's return value exactly like a
   directly picked scenario. `trace.scenarioSource` keeps reporting how the

@@ -29,10 +29,10 @@ Each endpoint directory needs one `_endpoint.json`:
 
 There is no `scenarios` field to fill in. Scenarios are discovered from the
 files sitting next to `_endpoint.json`: each `<scenario>.json` fixture or
-`<scenario>.ts` resolver (filename matching `[a-z0-9][a-z0-9_-]*`, one file per
+`<scenario>.mjs` resolver (filename matching `[a-z0-9][a-z0-9_-]*`, one file per
 slug — never both) becomes a scenario key. The endpoint **must** have a
-`default` scenario, as either `default.json` or `default.ts`, and **must not**
-have a `real.json` or `real.ts` — passthrough is implicit. At least one
+`default` scenario, as either `default.json` or `default.mjs`, and **must not**
+have a `real.json` or `real.mjs` — passthrough is implicit. At least one
 scenario per endpoint must be fixture-backed. Each fixture may carry an
 optional `description` string used as its UI label plus an optional `summary`
 shown beneath it on the catalog page, and each resolver may export equivalent

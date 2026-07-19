@@ -65,7 +65,7 @@ bodies.**
 
 `scenarios` lists every **declared** scenario (fixture- and resolver-backed) as
 `{ slug: label }`. `resolverScenarios` is the subset of those slugs backed by a
-`<slug>.ts` resolver instead of a `<slug>.json` fixture — see [Code-backed
+`<slug>.mjs` resolver instead of a `<slug>.json` fixture — see [Code-backed
 scenario resolvers](../building/dynamic.md). The `real` passthrough is always
 implicit and never appears in either list. `mockType` is `"profiled"` or
 `"global"`.
