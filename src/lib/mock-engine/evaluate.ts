@@ -8,7 +8,7 @@ export interface EvalDeps {
   ctx: RequestContext
   now: Date
   fnCtx?: FnContext
-  functions?: Map<string, CompiledFn>
+  functions?: ReadonlyMap<string, CompiledFn>
   timeoutMs?: number
 }
 

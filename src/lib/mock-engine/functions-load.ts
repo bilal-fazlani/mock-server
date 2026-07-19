@@ -5,7 +5,9 @@ import { RESERVED_NAMES } from './evaluate'
 
 export interface LoadedFunctions {
   problems: string[]
-  resolveTable(systemSlug: string, endpointName: string): Map<string, CompiledFn>
+  // Readonly because the merged table is memoized and handed to every caller —
+  // a mutation would leak into every later render of that endpoint.
+  resolveTable(systemSlug: string, endpointName: string): ReadonlyMap<string, CompiledFn>
 }
 
 type Level = Map<string, CompiledFn>
@@ -18,7 +20,9 @@ export function loadFunctions(catalogDir: string): LoadedFunctions {
     const hasTs = existsSync(ts)
     const hasMjs = existsSync(mjs)
     if (!hasTs && !hasMjs) return new Map()
-    if (hasTs && hasMjs) problems.push(`${label}: both _functions.ts and _functions.mjs present; using .ts`)
+    // Fatal like every other entry in `problems`, so it must not read as a
+    // recovery ("using .ts") — the catalog does not load until one is removed.
+    if (hasTs && hasMjs) problems.push(`${label}: both _functions.ts and _functions.mjs present; keep only one`)
     const file = hasTs ? ts : mjs
     const loader = hasTs ? 'ts' : 'js'
     let compiled: Map<string, CompiledFn>

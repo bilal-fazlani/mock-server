@@ -14,13 +14,13 @@ export class ExprParseError extends Error {}
 const NAME_RE = /^[a-zA-Z_][a-zA-Z0-9_]*$/
 
 export function parseExpr(raw: string): Expr {
-  // Caught before splitting: an odd number of quotes leaves splitOutsideQuotes
-  // in the quoted state at end of input, which would otherwise swallow the
-  // opening quote into a literal ("{{pad:'oops}}" → the string "'oops").
-  if (countQuotes(raw) % 2 !== 0) {
+  // An opening quote that is never closed would otherwise be swallowed into a
+  // literal ("{{pad:'oops}}" → the string "'oops"), so it fails here instead.
+  const split = splitOutsideQuotes(raw, '|')
+  if (split.unterminated) {
     throw new ExprParseError(`invalid placeholder "{{${raw}}}": unterminated single quote`)
   }
-  const stages = splitOutsideQuotes(raw, '|').map((s) => s.trim())
+  const stages = split.parts.map((s) => s.trim())
   if (stages.some((s) => s.length === 0)) {
     throw new ExprParseError(`invalid placeholder "{{${raw}}}": empty stage`)
   }
@@ -81,32 +81,41 @@ function parseCall(stage: string, raw: string): CallExpr {
 }
 
 // Split on a separator, except inside a single-quoted segment — quotes
-// suspend both ':' (args) and '|' (stages).
-function splitOutsideQuotes(input: string, sep: ':' | '|'): string[] {
-  const out: string[] = []
+// suspend both ':' (args) and '|' (stages). `unterminated` reports a quote that
+// opened and never closed, which callers turn into a parse error.
+function splitOutsideQuotes(input: string, sep: ':' | '|'): { parts: string[]; unterminated: boolean } {
+  const parts: string[] = []
   let cur = ''
   let inQuote = false
   for (const ch of input) {
-    if (ch === "'") inQuote = !inQuote
+    if (ch === "'") {
+      if (inQuote) inQuote = false
+      else if (opensQuote(cur)) inQuote = true
+    }
     if (ch === sep && !inQuote) {
-      out.push(cur)
+      parts.push(cur)
       cur = ''
     } else {
       cur += ch
     }
   }
-  out.push(cur)
-  return out
+  parts.push(cur)
+  return { parts, unterminated: inQuote }
 }
 
-function countQuotes(input: string): number {
-  let n = 0
-  for (const ch of input) if (ch === "'") n++
-  return n
+// A quote only delimits a literal when it *starts* a token — nothing but
+// whitespace since the last separator, which is exactly what parseArg's
+// startsWith/endsWith check assumes. Anywhere else it is an ordinary character,
+// so an apostrophe in a bare token ("label:it's") stays literal text.
+function opensQuote(cur: string): boolean {
+  const seen = cur.trimEnd()
+  return seen === '' || seen.endsWith(':') || seen.endsWith('|')
 }
 
+// Only reached after parseExpr's whole-expression scan has rejected an
+// unterminated quote, so the flag is already known to be false here.
 function splitArgs(stage: string): string[] {
-  return splitOutsideQuotes(stage, ':').map((s) => s.trim())
+  return splitOutsideQuotes(stage, ':').parts.map((s) => s.trim())
 }
 
 function parseArg(token: string): Expr {

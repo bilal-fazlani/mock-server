@@ -49,7 +49,7 @@ describe('evaluate with user functions', () => {
     const functions = compileFunctions(`export function n() { return ${literal} }`, 'f', 'js')
     expect(() =>
       resolveTemplate('{{n}}', base.ctx, base.now, undefined, { fnCtx: base.fnCtx, functions }),
-    ).toThrow(new RegExp(`returned ${literal.replace('-', '-')}`))
+    ).toThrow(new RegExp(`returned ${literal}`))
   })
 
   it('tags a thrown user function with the function_error code', () => {

@@ -49,5 +49,5 @@ export interface Catalog {
   /** Resolves the merged (catalog < system < endpoint, nearest wins) user
    * function table for a given endpoint. Backed by loadFunctions' resolveTable;
    * optional so existing test fixtures of this type keep compiling. */
-  resolveFunctions?: (systemSlug: string, endpointName: string) => Map<string, CompiledFn>
+  resolveFunctions?: (systemSlug: string, endpointName: string) => ReadonlyMap<string, CompiledFn>
 }

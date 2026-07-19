@@ -47,9 +47,8 @@ request-log writes, and `no_match`. `error` is for framework/routing/setup
 failures such as invalid JSON, unresolved selectors, missing mappings, stale
 scenario pins, template errors (`template_error`, plus `function_error` and
 `function_timeout` for failures inside a [custom
-function](../building/fixtures.md#custom-functions-_functionsts)), missing
-passthrough base URLs, passthrough
-failures, and resolver failures (`resolver_missing`, `resolver_threw`,
+function](../building/fixtures.md#errors)), missing passthrough base URLs,
+passthrough failures, and resolver failures (`resolver_missing`, `resolver_threw`,
 `resolver_timeout`, `resolver_bad_return`, and — in development —
 `resolver_compile_error`; see [Code-backed scenario
 resolvers](../building/dynamic.md#errors)). `/_next/` paths are filtered

@@ -24,7 +24,7 @@ export interface TemplateOptions {
   /** Headers mode: whole-string placeholders coerce to string too (Task 8). */
   stringOnly?: boolean
   fnCtx?: FnContext
-  functions?: Map<string, CompiledFn>
+  functions?: ReadonlyMap<string, CompiledFn>
   timeoutMs?: number
 }
 
