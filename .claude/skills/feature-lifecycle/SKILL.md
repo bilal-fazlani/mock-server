@@ -82,6 +82,8 @@ idea and picking up an existing issue.
    If the phase-0 survey surfaced a parent or a dependency, set it **at creation**:
    add `--parent P`, `--blocked-by B`, and/or `--blocking X` (see "Issue relationships").
 4. **Record the issue number `#N`** — you'll reference it for the rest of the session.
+5. **Add it to `tickets.tldraw`** — see "The ticket board diagram". If you are working in a
+   feature worktree, you cannot do this here; note it and do it on `main` at merge time.
 
 The board auto-adds it and sets `Backlog`. Do nothing else here.
 
@@ -175,10 +177,54 @@ Then post a **summary comment** describing what shipped, and move the card to
 - **8a. Approved** — trigger: the user says merge / push / merge-PR.
   Perform the git action they asked for, then **close the issue**:
   `gh issue close N`. The board auto-sets `Done`. (Do not also edit the Status field —
-  closing is enough.)
+  closing is enough.) Then **update `tickets.tldraw` on `main`** — move the node to the
+  `shipped` column, recolour it `grey`, set line 2 to `closed`, draw `satisfied` arrows to
+  whatever it unblocked, and move any newly-unblocked ticket left. Commit it with the merge.
 - **8b. Changes requested** — trigger: the user asks for changes during review.
   Post a comment capturing the requested changes, move the card back to
   **In Progress**, and return to phase 5.
+
+## The ticket board diagram (`tickets.tldraw`)
+
+`tickets.tldraw` at the repo root is a dependency board for this repo's issues. **Every
+change to a ticket's status must be reflected on it** — the ticket and the diagram are
+updated together, never one without the other. Use the `tldraw-offline` skill to edit it.
+
+**Edit it only in the main worktree, on `main`** (`/Users/bilal/Projects/mock-server/tickets.tldraw`).
+It is a binary file (a zip wrapping `db.sqlite`), so git cannot merge two versions — if two
+branches both edit it, one side's work is lost. Never edit it from inside a feature worktree;
+finish the branch, merge, then update the diagram on `main`.
+
+### What the columns mean
+
+Position encodes **dependency readiness**, not the project board's lane. A card moving
+`Ready` → `In progress` changes nothing here; closing an issue or resolving a blocker does.
+
+| Column | x band | Holds |
+| --- | --- | --- |
+| `shipped (closed)` | 0 | closed issues |
+| `actionable now` | ~623 | nothing blocking them |
+| `after wave 2` | ~1330 | unblocked once wave 1 lands |
+| `after wave 3` | ~1830 | unblocked once wave 2 lands |
+| `independent / no dependencies` | 0, y≈1050 | no edges at all; scheduled by priority |
+
+### When to update
+
+- **Issue opened** — add a node in the x band matching its dependency depth. No blockers → `actionable now`; no edges at all → the independent row.
+- **Issue closed** — recolour `grey`, set line 2 to `closed`, move it to the `shipped` column, and draw a `satisfied` arrow to anything it unblocked.
+- **A blocker resolves** — move the newly-unblocked ticket left into the earliest band that is now correct.
+- **A relationship changes** (parent/sub-issue, blocked-by, blocking) — add or remove the arrow, and re-band if readiness changed. A ticket in the independent row that gains an arrow must move out of it.
+
+### Node and arrow spec (match exactly)
+
+- **Node:** `geo` rectangle, `w:250 h:95`, `dash:"draw"`, `fill:"semi"`, `size:"s"`, `font:"draw"`, text centered. Exactly two lines: `#<num> <short title>`, then one word — `closed`, or the ticket's `area:` tag.
+- **Colour tracks the `area:` label** (the same axis as the GitHub labels): `grey`=closed, `violet`=templating, `orange`=build. `blue` is currently a shared bucket for `fault-sim`, `tech-debt`, and `ui` — when adding a ticket in one of those areas, use `blue` and do not invent a new colour without saying so.
+- **Arrow:** `kind:"arc"`, `color:"yellow"`, `dash:"draw"`, `arrowheadEnd:"arrow"`, `arrowheadStart:"none"`, **bound at both ends** to the two ticket shapes — never free-floating. Label it with a short phrase naming the dependency.
+
+### Known inconsistencies — do not copy them as precedent
+
+- **#22** is labelled `tech-debt / do first` but coloured `violet` (the templating colour), while **#6** is labelled `tech-debt` and coloured `blue`. The same tag maps to two colours. Follow the area-label rule above for new tickets.
+- **#12** (closed) has no outgoing arrow, unlike its closed siblings #20 and #23 which both carry `satisfied` arrows. Either it unblocked nothing, or an arrow was never drawn.
 
 ## The `Refs #N` rule (do not violate)
 

@@ -125,3 +125,17 @@ labels.
 If a new issue genuinely fits no existing area, create a new `area: <name>` label (color
 `1D76DB`, matching the family) rather than leaving it unlabelled — and mention the new area
 to the user.
+
+## Ticket work also updates the diagram
+
+`tickets.tldraw` at the repo root is a dependency board for this repo's issues, tracked in
+git. **Any ticket status change updates it too** — opening an issue, closing one, resolving
+a blocker, or changing a parent/blocked-by relationship. Updating the ticket without
+updating the diagram leaves it silently wrong; they move together.
+
+**Edit it only in the main worktree, on `main`.** It is a binary file (a zip around
+`db.sqlite`) that git cannot merge, so two branches editing it means one side's work is
+lost. From a feature worktree, note the change and apply it on `main` after merging.
+
+The column conventions, node/arrow spec, and colour rules are in the `feature-lifecycle`
+skill under "The ticket board diagram". Use the `tldraw-offline` skill to edit it.
