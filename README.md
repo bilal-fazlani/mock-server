@@ -4,8 +4,10 @@ A data-driven HTTP mock server. You describe upstream endpoints as JSON files in
 `catalog/` tree — no request-handling code — and the server routes incoming requests
 to canned responses. Which response a given caller gets is chosen per **profile**
 (a business ID such as `customer-123`) and per **scenario** (a named outcome like
-`default`, `frozen`, or `failure`), all editable from a built-in web UI. Any endpoint
-can also proxy through to a real upstream (`real` passthrough).
+`default`, `frozen`, or `failure`), all editable from a built-in web UI. When a
+scenario has to be *decided* rather than pinned, back it with a small TypeScript
+resolver instead of a fixture. Any endpoint can also proxy through to a real
+upstream (`real` passthrough).
 
 Built with [Next.js](https://nextjs.org) and MongoDB.
 
@@ -17,6 +19,11 @@ Built with [Next.js](https://nextjs.org) and MongoDB.
   picks can be ordered sequences served call-by-call.
 - **Profile-ID selectors** — resolve the caller from the request body, path, query,
   or a Bearer token/JWT claim.
+- **Code-backed resolvers** — back a scenario with a `<scenario>.ts` file: a pure,
+  synchronous function that reads the request plus a bounded history of what it
+  returned before, and picks which fixture-backed scenario (or `real`) answers this
+  call. Models request-driven branching and multi-call flows like "pending twice,
+  then success" without touching any profile.
 - **Placeholders** — echo request values and timestamps into responses.
 - **Schema validation** — optional per-endpoint request/response JSON Schema checks.
 - **`real` passthrough** — proxy any endpoint to its configured live upstream.

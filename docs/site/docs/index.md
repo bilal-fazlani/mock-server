@@ -4,6 +4,8 @@ A **data-driven** mock server: you mock an upstream service by creating
 directories and JSON files under a `catalog/` tree — no request-handling code —
 and the routing engine serves them. Point your app at it in local dev or CI,
 switch scenarios per caller, and proxy to the real upstream when you want to.
+When a scenario has to be *decided* per call, a scenario can also be backed by a
+small TypeScript [resolver](building/dynamic.md) that picks one of your fixtures.
 
 This guide covers the mental model below, then splits into **[Building
 mocks](building/endpoints.md)** (authoring the catalog) and **[Driving
@@ -27,7 +29,9 @@ run](get-started/install.md)** for Docker, from-source, and CI setups, and
 
 The mock server is **data-driven**. You never write request-handling code to add
 an endpoint — you create directories and JSON files under a `catalog/` tree. The
-routing engine walks that tree and reads them at startup.
+routing engine walks that tree and reads them at startup. Code enters only as an
+opt-in *choice* of response: a [resolver](building/dynamic.md) picks which
+fixture answers a call, and never builds the response itself.
 
 Eight concepts:
 
@@ -63,7 +67,7 @@ The full ordered walk is documented in [Request lifecycle](reference/request-lif
 
 ## The catalog tree
 
-Everything lives under a single `ui/catalog/` tree — one directory per system,
+Everything lives under a single `catalog/` tree — one directory per system,
 one sub-directory per endpoint, one file per scenario. There is no central
 manifest to edit.
 
