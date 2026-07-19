@@ -17,6 +17,10 @@ const eslintConfig = defineConfig([
     // (docs/site/site) and a Python venv (docs/site/.venv) with vendored
     // minified JS — none of it is lintable app source.
     "docs/site/**",
+    // Feature worktrees checked out under the repo: they are full copies of
+    // the tree, so linting them double-reports every file and applies this
+    // config's path-based overrides (e.g. bin/**) to the wrong paths.
+    ".claude/worktrees/**",
   ]),
   {
     // bin/ scripts are plain CommonJS (no "type": "module" in package.json,
