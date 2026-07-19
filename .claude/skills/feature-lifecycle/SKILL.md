@@ -218,13 +218,22 @@ Position encodes **dependency readiness**, not the project board's lane. A card 
 ### Node and arrow spec (match exactly)
 
 - **Node:** `geo` rectangle, `w:250 h:95`, `dash:"draw"`, `fill:"semi"`, `size:"s"`, `font:"draw"`, text centered. Exactly two lines: `#<num> <short title>`, then one word — `closed`, or the ticket's `area:` tag.
-- **Colour tracks the `area:` label** (the same axis as the GitHub labels): `grey`=closed, `violet`=templating, `orange`=build. `blue` is currently a shared bucket for `fault-sim`, `tech-debt`, and `ui` — when adding a ticket in one of those areas, use `blue` and do not invent a new colour without saying so.
+- **Line 2 is the `area:` label, never the type label.** `templating`, `build`, `resolver`, `fault-sim`, `ui` — not `bug`/`enhancement`/`tech-debt`. A closed ticket shows `closed` instead.
+- **Colour tracks that same area:** `grey`=closed (overrides area), `violet`=templating, `orange`=build, `blue`=shared bucket for `resolver`, `fault-sim`, and `ui`. Use `blue` for those three; don't invent a colour without saying so.
 - **Arrow:** `kind:"arc"`, `color:"yellow"`, `dash:"draw"`, `arrowheadEnd:"arrow"`, `arrowheadStart:"none"`, **bound at both ends** to the two ticket shapes — never free-floating. Label it with a short phrase naming the dependency.
 
-### Known inconsistencies — do not copy them as precedent
+### Arrows are editorial, not derived
 
-- **#22** is labelled `tech-debt / do first` but coloured `violet` (the templating colour), while **#6** is labelled `tech-debt` and coloured `blue`. The same tag maps to two colours. Follow the area-label rule above for new tickets.
-- **#12** (closed) has no outgoing arrow, unlike its closed siblings #20 and #23 which both carry `satisfied` arrows. Either it unblocked nothing, or an arrow was never drawn.
+GitHub records **no** `blocked-by` / `blocking` relationships for these issues — every arrow
+on the canvas is hand-drawn judgement about what unblocks what. So do not try to reconcile
+the arrows against `gh issue view --json blockedBy`; it is empty and will read as "delete
+every arrow". Equally, a node with no arrows is not necessarily wrong — #12 (closed) has
+none and that is correct.
+
+The one thing that *is* checkable against GitHub is **state**: any issue closed on GitHub
+must be `grey`, show `closed`, and sit in the shipped column. Verify with
+`gh issue list --state closed --json number`. This is the failure mode that has actually
+occurred — #22 sat in `actionable now` as an open-looking violet node after it was closed.
 
 ## The `Refs #N` rule (do not violate)
 
