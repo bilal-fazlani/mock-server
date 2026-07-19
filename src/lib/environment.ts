@@ -79,7 +79,7 @@ export const APP_ENVIRONMENT: EnvironmentDefinition[] = [
   {
     name: 'RESOLVER_HISTORY_LIMIT',
     category: 'Routing',
-    description: 'Number of past returned slugs passed to scenario resolvers (<slug>.ts) as history.',
+    description: 'Number of past returned slugs passed to scenario resolvers (<slug>.mjs) as history.',
     defaultValue: '10',
     display: true,
   },

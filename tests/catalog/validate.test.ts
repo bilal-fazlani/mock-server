@@ -57,7 +57,7 @@ function validateCatalogWith(
     [`${sys}/${ep}/default.json`]: { status: 200, ...fixture },
   }
   if (opts.endpointFunctions !== undefined) {
-    files[`${sys}/${ep}/_functions.ts`] = opts.endpointFunctions
+    files[`${sys}/${ep}/_functions.mjs`] = opts.endpointFunctions
   }
   const dir = tmpCatalogDir(files)
   return validateCatalog(loadCatalog(dir), dir).errors

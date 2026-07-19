@@ -18,10 +18,12 @@ export class FunctionCompileError extends Error {}
 export class FunctionRuntimeError extends Error {}
 export class FunctionTimeoutError extends Error {}
 
-export function compileFunctions(source: string, label: string, loader: 'ts' | 'js'): Map<string, CompiledFn> {
+export function compileFunctions(source: string, label: string): Map<string, CompiledFn> {
   let code: string
   try {
-    code = transformSync(source, { loader, format: 'cjs', target: 'node18' }).code
+    // ESM→CJS only — `.mjs` is the sole authoring format (#26); esbuild stays
+    // for the module-format transform, not for type stripping.
+    code = transformSync(source, { loader: 'js', format: 'cjs', target: 'node18' }).code
   } catch (err) {
     throw new FunctionCompileError(`${label}: failed to transpile: ${message(err)}`)
   }

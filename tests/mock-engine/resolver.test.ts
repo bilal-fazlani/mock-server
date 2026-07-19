@@ -18,7 +18,7 @@ const input = (over: Partial<ResolverInput> = {}): ResolverInput => ({
 describe('compileResolver', () => {
   it('runs a default-exported function and returns its value', () => {
     const r = compileResolver(
-      `export default (i: { history: string[] }) => i.history.length < 2 ? 'pending' : 'success'`,
+      `export default (i) => i.history.length < 2 ? 'pending' : 'success'`,
       'x/y',
     )
     expect(r.invoke(input(), 100)).toBe('pending')
@@ -27,7 +27,7 @@ describe('compileResolver', () => {
 
   it('branches on request content', () => {
     const r = compileResolver(
-      `export default (i: any) => i.request.body?.amount > 10 ? 'flagged' : 'default'`,
+      `export default (i) => i.request.body?.amount > 10 ? 'flagged' : 'default'`,
       'x/y',
     )
     expect(r.invoke(input({ request: { ...input().request, body: { amount: 99 } } }), 100)).toBe('flagged')
@@ -71,8 +71,8 @@ describe('compileResolver', () => {
 })
 
 describe('resolverFilePath', () => {
-  it('points at <catalogDir>/<system>/<endpoint>/<slug>.ts', () => {
-    expect(resolverFilePath('/cat', 'sys', 'ep', 'by-amount')).toBe('/cat/sys/ep/by-amount.ts')
+  it('points at <catalogDir>/<system>/<endpoint>/<slug>.mjs', () => {
+    expect(resolverFilePath('/cat', 'sys', 'ep', 'by-amount')).toBe('/cat/sys/ep/by-amount.mjs')
   })
 })
 
@@ -80,7 +80,7 @@ describe('compileResolver description export', () => {
   it('exposes export const description', () => {
     const compiled = compileResolver(
       `export const description = 'Routes by amount'\nexport default () => 'success'`,
-      'sys/ep/by-amount.ts',
+      'sys/ep/by-amount.mjs',
     )
     expect(compiled.description).toBe('Routes by amount')
   })
@@ -110,8 +110,16 @@ describe('compileResolver summary export', () => {
   })
 
   it('names the resolver generically in compile errors', () => {
-    expect(() => compileResolver('const nope =', 'sys/ep/broken.ts')).toThrowError(
-      /sys\/ep\/broken\.ts: failed to transpile resolver/,
+    expect(() => compileResolver('const nope =', 'sys/ep/broken.mjs')).toThrowError(
+      /sys\/ep\/broken\.mjs: failed to transpile resolver/,
     )
+  })
+
+  // .mjs is the only authoring format (#26): TS syntax must fail transpile
+  // loudly rather than be silently stripped.
+  it('rejects TypeScript syntax', () => {
+    expect(() =>
+      compileResolver(`export default (i: { history: string[] }): string => 'x'`, 'l'),
+    ).toThrow(ResolverCompileError)
   })
 })

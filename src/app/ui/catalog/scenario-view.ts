@@ -34,7 +34,7 @@ export async function buildScenarioViews(
             resolverFilePath(catalogDir, system.slug, endpoint.name, key),
             'utf8',
           )
-          return { key, label, ...(summary ? { summary } : {}), isDefault, kind: 'resolver' as const, code, html: await highlight(code, 'typescript') }
+          return { key, label, ...(summary ? { summary } : {}), isDefault, kind: 'resolver' as const, code, html: await highlight(code, 'javascript') }
         } catch (err) {
           return { key, label, ...(summary ? { summary } : {}), isDefault, kind: 'error' as const, message: (err as Error).message }
         }

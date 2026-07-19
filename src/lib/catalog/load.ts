@@ -8,9 +8,13 @@ const SYSTEM_META = '_system.json'
 const ENDPOINT_META = '_endpoint.json'
 const SCHEMA_META = '_schema.json'
 const SPEC_FILE = /^_spec\.(ya?ml|json)$/
-const SCENARIO_FILE = /^([a-z0-9][a-z0-9_-]*)\.(json|ts)$/
+// `.ts` still matches so a pre-#26 catalog gets a targeted migration error
+// below instead of the generic "unexpected entry" complaint.
+const SCENARIO_FILE = /^([a-z0-9][a-z0-9_-]*)\.(json|mjs|ts)$/
 // User function files (loaded separately by loadFunctions at every scope) are
 // not systems, endpoints, or scenarios — skip them in the structural scans below.
+// `.ts` still matches only so the entry is skipped here rather than flagged as
+// "unexpected" — loadFunctions owns the loud `_functions.ts` migration error.
 const FUNCTIONS_FILE = /^_functions\.(ts|mjs)$/
 
 export class CatalogLoadError extends Error {}
@@ -103,12 +107,19 @@ export function loadCatalog(catalogDir: string): Catalog {
         if (!match) {
           problems.push(
             `${slug}/${endpointName}: unexpected entry (scenarios are <name>.json fixtures or ` +
-              `<name>.ts resolvers, name matching [a-z0-9][a-z0-9_-]*): ${fixEntry.name}`,
+              `<name>.mjs resolvers, name matching [a-z0-9][a-z0-9_-]*): ${fixEntry.name}`,
           )
           continue
         }
         const [, scenario, ext] = match
         if (ext === 'ts') {
+          // Dropped in #26. Loud, not skipped: a silently ignored resolver file
+          // would make its scenario vanish from the endpoint with no pointer to why.
+          problems.push(
+            `${slug}/${endpointName}: ${scenario}.ts resolvers are no longer supported; ` +
+              `rename to ${scenario}.mjs and remove type annotations`,
+          )
+        } else if (ext === 'mjs') {
           resolverSlugs.add(scenario)
           // Label = slug for now; getRuntime patches in the compiled resolver's
           // `description` and `summary` exports after compilation.
@@ -126,7 +137,7 @@ export function loadCatalog(catalogDir: string): Catalog {
         if (fixtureSlugs.has(scenario)) {
           problems.push(
             `${slug}/${endpointName}: scenario "${scenario}" is backed by both ` +
-              `${scenario}.json and ${scenario}.ts — pick one`,
+              `${scenario}.json and ${scenario}.mjs — pick one`,
           )
         }
       }

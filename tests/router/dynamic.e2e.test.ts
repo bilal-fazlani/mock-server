@@ -87,13 +87,13 @@ describe('dynamic resolver end-to-end (real compileResolver + real history store
       'sys/ep/_endpoint.json': ENDPOINT_META,
       'sys/ep/default.json': DEFAULT_FIXTURE,
       'sys/ep/failure.json': FAILURE_FIXTURE,
-      'sys/ep/dynamic.ts': DYNAMIC_SOURCE,
+      'sys/ep/dynamic.mjs': DYNAMIC_SOURCE,
     })
     const catalog = loadCatalog(dir)
 
     // Compile once via the real compileResolver, exactly as the runtime does.
     const source = fs.readFileSync(resolverFilePath(dir, 'sys', 'ep', 'dynamic'), 'utf8')
-    const resolver: CompiledResolver = compileResolver(source, 'sys/ep/dynamic.ts')
+    const resolver: CompiledResolver = compileResolver(source, 'sys/ep/dynamic.mjs')
 
     const history = makeHistoryStore()
 

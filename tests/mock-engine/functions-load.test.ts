@@ -12,7 +12,7 @@ const CTX = { request: { method: 'GET', path: '/', pathParams: {}, query: {}, he
 
 describe('loadFunctions', () => {
   it('resolves catalog-level functions everywhere', () => {
-    writeFileSync(join(dir, '_functions.ts'), `export function hi() { return 'hi' }`)
+    writeFileSync(join(dir, '_functions.mjs'), `export function hi() { return 'hi' }`)
     mkdirSync(join(dir, 'sys', 'ep'), { recursive: true })
     const loaded = loadFunctions(dir)
     expect(loaded.problems).toEqual([])
@@ -20,22 +20,22 @@ describe('loadFunctions', () => {
   })
 
   it('endpoint shadows catalog (nearest wins)', () => {
-    writeFileSync(join(dir, '_functions.ts'), `export function label() { return 'catalog' }`)
+    writeFileSync(join(dir, '_functions.mjs'), `export function label() { return 'catalog' }`)
     mkdirSync(join(dir, 'sys', 'ep'), { recursive: true })
-    writeFileSync(join(dir, 'sys', 'ep', '_functions.ts'), `export function label() { return 'endpoint' }`)
+    writeFileSync(join(dir, 'sys', 'ep', '_functions.mjs'), `export function label() { return 'endpoint' }`)
     const loaded = loadFunctions(dir)
     expect(loaded.resolveTable('sys', 'ep').get('label')!.invoke(CTX, [], 100)).toBe('endpoint')
   })
 
   it('reports a reserved-name clash and skips the function', () => {
-    writeFileSync(join(dir, '_functions.ts'), `export function upper() { return 'x' }`)
+    writeFileSync(join(dir, '_functions.mjs'), `export function upper() { return 'x' }`)
     const loaded = loadFunctions(dir)
     expect(loaded.problems.join('\n')).toMatch(/"upper" is a reserved name/i)
     expect(loaded.resolveTable('sys', 'ep').has('upper')).toBe(false)
   })
 
   it('reports a compile error once, without double-labeling the path', () => {
-    writeFileSync(join(dir, '_functions.ts'), `export function broken( { return`)
+    writeFileSync(join(dir, '_functions.mjs'), `export function broken( { return`)
     const loaded = loadFunctions(dir)
     expect(loaded.problems).toHaveLength(1)
     expect(loaded.problems[0]).toMatch(/failed to transpile/)
@@ -44,21 +44,36 @@ describe('loadFunctions', () => {
   })
 
   it('rejects a default export', () => {
-    writeFileSync(join(dir, '_functions.ts'), `export default function () { return 'x' }`)
+    writeFileSync(join(dir, '_functions.mjs'), `export default function () { return 'x' }`)
     const loaded = loadFunctions(dir)
     expect(loaded.problems.join('\n')).toMatch(/default export is not usable/)
     expect(loaded.resolveTable('sys', 'ep').has('default')).toBe(false)
   })
 
-  it('prefers .ts and reports the clash when .ts and .mjs coexist', () => {
+  // .ts authoring was dropped (#26): a leftover .ts must fail catalog load
+  // loudly — silently ignoring it would make its functions vanish.
+  it('errors on a leftover _functions.ts with a rename-to-.mjs message', () => {
+    writeFileSync(join(dir, '_functions.ts'), `export function hi() { return 'hi' }`)
+    const loaded = loadFunctions(dir)
+    expect(loaded.problems.join('\n')).toMatch(/_functions\.ts is no longer supported.*rename to _functions\.mjs/)
+    expect(loaded.resolveTable('sys', 'ep').size).toBe(0)
+  })
+
+  it('errors on _functions.ts even when _functions.mjs is also present', () => {
     writeFileSync(join(dir, '_functions.ts'), `export function which() { return 'ts' }`)
     writeFileSync(join(dir, '_functions.mjs'), `export function which() { return 'mjs' }`)
     const loaded = loadFunctions(dir)
-    expect(loaded.problems.join('\n')).toMatch(/both _functions.ts and _functions.mjs/)
-    expect(loaded.resolveTable('sys', 'ep').get('which')!.invoke(CTX, [], 100)).toBe('ts')
+    expect(loaded.problems.join('\n')).toMatch(/_functions\.ts is no longer supported/)
   })
 
-  it('compiles a .mjs file when no .ts is present', () => {
+  it('labels a nested leftover .ts with its system/endpoint path', () => {
+    mkdirSync(join(dir, 'sys', 'ep'), { recursive: true })
+    writeFileSync(join(dir, 'sys', 'ep', '_functions.ts'), `export function hi() { return 'hi' }`)
+    const loaded = loadFunctions(dir)
+    expect(loaded.problems.join('\n')).toMatch(/^sys\/ep: _functions\.ts is no longer supported/m)
+  })
+
+  it('compiles a .mjs file', () => {
     writeFileSync(join(dir, '_functions.mjs'), `export function which() { return 'mjs' }`)
     const loaded = loadFunctions(dir)
     expect(loaded.problems).toEqual([])
@@ -66,7 +81,7 @@ describe('loadFunctions', () => {
   })
 
   it('returns the same merged table on repeated resolves', () => {
-    writeFileSync(join(dir, '_functions.ts'), `export function hi() { return 'hi' }`)
+    writeFileSync(join(dir, '_functions.mjs'), `export function hi() { return 'hi' }`)
     const loaded = loadFunctions(dir)
     expect(loaded.resolveTable('sys', 'ep')).toBe(loaded.resolveTable('sys', 'ep'))
   })

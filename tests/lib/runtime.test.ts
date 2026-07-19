@@ -60,7 +60,7 @@ describe('getRuntime', () => {
       'catalog/sys/_system.json': SYSTEM_META,
       'catalog/sys/ep/_endpoint.json': ENDPOINT_META,
       'catalog/sys/ep/success.json': FIXTURE,
-      'catalog/sys/ep/default.ts': `export const description = 'Routes by amount'\nexport default () => 'success'`,
+      'catalog/sys/ep/default.mjs': `export const description = 'Routes by amount'\nexport default () => 'success'`,
     })
     process.chdir(dir)
     process.env = { ...originalEnv }
@@ -83,7 +83,7 @@ describe('getRuntime', () => {
       'catalog/sys/_system.json': SYSTEM_META,
       'catalog/sys/ep/_endpoint.json': ENDPOINT_META,
       'catalog/sys/ep/success.json': FIXTURE,
-      'catalog/sys/ep/default.ts': `export const summary = 'Routes by amount'\nexport default () => 'success'`,
+      'catalog/sys/ep/default.mjs': `export const summary = 'Routes by amount'\nexport default () => 'success'`,
     })
     process.chdir(dir)
     process.env = { ...originalEnv }
@@ -99,7 +99,7 @@ describe('getRuntime', () => {
       'catalog/sys/_system.json': SYSTEM_META,
       'catalog/sys/ep/_endpoint.json': ENDPOINT_META,
       'catalog/sys/ep/default.json': FIXTURE,
-      'catalog/sys/ep/pick.ts': `export default () => 'default'`,
+      'catalog/sys/ep/pick.mjs': `export default () => 'default'`,
     })
     process.chdir(dir)
     process.env = { ...originalEnv, NODE_ENV: 'production' }
@@ -111,7 +111,7 @@ describe('getRuntime', () => {
 
     // Delete the source on disk: the prod cache-read path must keep serving the
     // compiled resolver built at startup (a per-call re-read would throw/return null).
-    fs.rmSync(path.join(dir, 'catalog/sys/ep/pick.ts'))
+    fs.rmSync(path.join(dir, 'catalog/sys/ep/pick.mjs'))
     const resolver = rt.getCompiledResolver('sys', 'ep', 'pick')
     expect(resolver).not.toBeNull()
     expect(
@@ -141,7 +141,7 @@ describe('getRuntime', () => {
       'catalog/sys/_system.json': SYSTEM_META,
       'catalog/sys/ep/_endpoint.json': ENDPOINT_META,
       'catalog/sys/ep/default.json': FIXTURE,
-      'catalog/sys/ep/pick.ts': `export default (=>`,
+      'catalog/sys/ep/pick.mjs': `export default (=>`,
     })
     process.chdir(dir)
     process.env = { ...originalEnv }

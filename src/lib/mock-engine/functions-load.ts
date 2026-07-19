@@ -15,19 +15,18 @@ type Level = Map<string, CompiledFn>
 export function loadFunctions(catalogDir: string): LoadedFunctions {
   const problems: string[] = []
   const compileAt = (dir: string, label: string): Level => {
-    const ts = join(dir, '_functions.ts')
+    // `.ts` authoring was dropped (#26) — probing for it only to fail loudly,
+    // because a silently ignored `_functions.ts` would make its functions
+    // vanish with nothing but confusing downstream placeholder errors.
+    if (existsSync(join(dir, '_functions.ts'))) {
+      problems.push(`${label}: _functions.ts is no longer supported; rename to _functions.mjs and remove type annotations`)
+      return new Map()
+    }
     const mjs = join(dir, '_functions.mjs')
-    const hasTs = existsSync(ts)
-    const hasMjs = existsSync(mjs)
-    if (!hasTs && !hasMjs) return new Map()
-    // Fatal like every other entry in `problems`, so it must not read as a
-    // recovery ("using .ts") — the catalog does not load until one is removed.
-    if (hasTs && hasMjs) problems.push(`${label}: both _functions.ts and _functions.mjs present; keep only one`)
-    const file = hasTs ? ts : mjs
-    const loader = hasTs ? 'ts' : 'js'
+    if (!existsSync(mjs)) return new Map()
     let compiled: Map<string, CompiledFn>
     try {
-      compiled = compileFunctions(readFileSync(file, 'utf8'), `${label}/_functions.${hasTs ? 'ts' : 'mjs'}`, loader)
+      compiled = compileFunctions(readFileSync(mjs, 'utf8'), `${label}/_functions.mjs`)
     } catch (err) {
       // compileFunctions already prefixes its messages with the file label.
       problems.push((err as Error).message)

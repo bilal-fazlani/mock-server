@@ -150,13 +150,13 @@ describe('loadCatalog', () => {
     expect(catalog.systems[0].endpoints[0].scenarios).toEqual({})
   })
 
-  it('discovers <slug>.ts scenario files as resolver-backed scenarios', () => {
+  it('discovers <slug>.mjs scenario files as resolver-backed scenarios', () => {
     const dir = tmpCatalogDir({
       'sys/_system.json': SYSTEM_META,
       'sys/ep/_endpoint.json': ENDPOINT_META,
       'sys/ep/default.json': FIXTURE,
       'sys/ep/hold.json': FIXTURE,
-      'sys/ep/by-amount.ts': `export default () => 'default'`,
+      'sys/ep/by-amount.mjs': `export default () => 'default'`,
     })
     const catalog = loadCatalog(dir)
     const ep = catalog.systems[0].endpoints[0]
@@ -165,22 +165,22 @@ describe('loadCatalog', () => {
     expect(ep.resolverScenarios).toEqual(['by-amount'])
   })
 
-  it('rejects a slug backed by both x.json and x.ts', () => {
+  it('rejects a slug backed by both x.json and x.mjs', () => {
     const dir = tmpCatalogDir({
       'sys/_system.json': SYSTEM_META,
       'sys/ep/_endpoint.json': ENDPOINT_META,
       'sys/ep/default.json': FIXTURE,
       'sys/ep/hold.json': FIXTURE,
-      'sys/ep/hold.ts': `export default () => 'default'`,
+      'sys/ep/hold.mjs': `export default () => 'default'`,
     })
-    expect(() => loadCatalog(dir)).toThrowError(/backed by both[\s\S]*hold\.json and hold\.ts/)
+    expect(() => loadCatalog(dir)).toThrowError(/backed by both[\s\S]*hold\.json and hold\.mjs/)
   })
 
-  it('allows default.ts in place of default.json', () => {
+  it('allows default.mjs in place of default.json', () => {
     const dir = tmpCatalogDir({
       'sys/_system.json': SYSTEM_META,
       'sys/ep/_endpoint.json': ENDPOINT_META,
-      'sys/ep/default.ts': `export default () => 'success'`,
+      'sys/ep/default.mjs': `export default () => 'success'`,
       'sys/ep/success.json': FIXTURE,
     })
     const ep = loadCatalog(dir).systems[0].endpoints[0]

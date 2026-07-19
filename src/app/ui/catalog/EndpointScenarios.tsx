@@ -129,7 +129,7 @@ function ScenarioContent({ scenario }: { scenario: ScenarioView }) {
     return (
       <div className="grid gap-2">
         <p className="font-mono text-[0.85rem] text-secondary-foreground">
-          Resolved at request time by <code>{scenario.key}.ts</code>
+          Resolved at request time by <code>{scenario.key}.mjs</code>
         </p>
         <div
           className="overflow-x-auto rounded-sm border border-border text-[0.8rem] [&_pre]:p-3"
