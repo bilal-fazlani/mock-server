@@ -2,6 +2,9 @@ export type DirectSelector =
   | { source: 'body'; segments: Array<string | number> }
   | { source: 'path'; name: string }
   | { source: 'query'; name: string }
+  // `name` is always lower-cased at parse time, so lookup is a case-insensitive
+  // match against whatever casing the caller actually sent.
+  | { source: 'header'; name: string }
 
 export type ProfileKeySelector = {
   source: 'profileKey'
@@ -28,6 +31,15 @@ export interface RequestContext {
 }
 
 const NAME_RE = /^[a-zA-Z_][a-zA-Z0-9_-]*$/
+// Credential-bearing headers a fixture must never be able to echo back. The
+// check is at parse time, so a blocked name fails catalog validation at startup
+// rather than silently rendering nothing at request time.
+const BLOCKED_HEADERS = new Set([
+  'authorization',
+  'proxy-authorization',
+  'cookie',
+  'set-cookie',
+])
 const PROFILE_KEY_NAMESPACE_RE = /^[a-z0-9][a-z0-9_-]*$/
 const BODY_TOKEN_RE = /\.([a-zA-Z_][a-zA-Z0-9_]*)|\[(\d+)\]/g
 const BEARER_TOKEN_RE = /^Bearer +([a-zA-Z0-9\-._~+/]+=*)$/i
@@ -70,11 +82,24 @@ export function parseSelector(raw: string): Selector {
     if (!NAME_RE.test(name)) throw new SelectorParseError(`invalid query selector: ${raw}`)
     return { source: 'query', name }
   }
+  if (raw.startsWith('header:')) {
+    const name = raw.slice('header:'.length).toLowerCase()
+    // The RFC token charset would admit "'" and "|", which are separators in the
+    // placeholder expression grammar — a header named with either could not be
+    // written inside {{ }}. NAME_RE covers every realistic header name instead.
+    if (!NAME_RE.test(name)) throw new SelectorParseError(`invalid header selector: ${raw}`)
+    if (BLOCKED_HEADERS.has(name)) {
+      throw new SelectorParseError(
+        `header selector "${raw}" reads a credential header and is not allowed`,
+      )
+    }
+    return { source: 'header', name }
+  }
   if (raw.startsWith('$')) {
     return { source: 'body', segments: parseBodyPath(raw) }
   }
   throw new SelectorParseError(
-    `selector must start with "$", "path:", or "query:": ${raw}`,
+    `selector must start with "$", "path:", "query:", or "header:": ${raw}`,
   )
 }
 
@@ -112,6 +137,10 @@ export function extractValue(selector: Selector, ctx: RequestContext): Extractio
   }
   if (selector.source === 'query') {
     const v = ctx.query.get(selector.name)
+    return v === null ? NOT_FOUND : { found: true, value: v }
+  }
+  if (selector.source === 'header') {
+    const v = headerValue(ctx.headers, selector.name)
     return v === null ? NOT_FOUND : { found: true, value: v }
   }
   let current: unknown = ctx.body

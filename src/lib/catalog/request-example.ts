@@ -42,6 +42,8 @@ export function buildEndpointRequestExample(endpoint: EndpointDef): EndpointRequ
       setBodyPath(body, selector.segments)
     } else if (selector.source === 'query') {
       query.push(`${selector.name}=<${selector.name}>`)
+    } else if (selector.source === 'header') {
+      headers[selector.name] = `<${selector.name}>`
     }
     // path selectors are covered by the path-template substitution below
   }

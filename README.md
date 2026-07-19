@@ -18,7 +18,7 @@ Built with [Next.js](https://nextjs.org) and MongoDB.
 - **Profiles & scenarios** — pick, per caller, which scenario each endpoint returns;
   picks can be ordered sequences served call-by-call.
 - **Profile-ID selectors** — resolve the caller from the request body, path, query,
-  or a Bearer token/JWT claim.
+  a header, or a Bearer token/JWT claim.
 - **Code-backed resolvers** — back a scenario with a `<scenario>.mjs` file: a pure,
   synchronous function that reads the request plus a bounded history of what it
   returned before, and picks which fixture-backed scenario (or `real`) answers this

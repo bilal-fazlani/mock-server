@@ -10,6 +10,30 @@ describe('parseExpr', () => {
     })
   })
 
+  it('parses a header selector as a source, not a function call', () => {
+    expect(parseExpr('header:x-request-id')).toEqual({
+      kind: 'selector',
+      raw: 'header:x-request-id',
+      selector: { source: 'header', name: 'x-request-id' },
+    })
+    expect(parseExpr('header:x-request-id | upper')).toEqual({
+      kind: 'call',
+      name: 'upper',
+      args: [
+        {
+          kind: 'selector',
+          raw: 'header:x-request-id',
+          selector: { source: 'header', name: 'x-request-id' },
+        },
+      ],
+    })
+  })
+
+  it('rejects a blocked header selector at parse time', () => {
+    expect(() => parseExpr('header:authorization')).toThrow(ExprParseError)
+    expect(() => parseExpr('header:cookie')).toThrow(ExprParseError)
+  })
+
   it('parses now with offset+format', () => {
     expect(parseExpr('now+1d:iso')).toEqual({
       kind: 'now',

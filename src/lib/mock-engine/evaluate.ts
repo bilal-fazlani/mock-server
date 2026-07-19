@@ -32,7 +32,7 @@ export const CALLABLE_BUILTINS = new Set(Object.keys(BUILTIN_TRANSFORMS))
 // forms (parsed into dedicated AST nodes, not callable) plus every callable
 // built-in.
 export const RESERVED_NAMES = new Set<string>([
-  'now', 'body', 'path', 'query', 'profileKey',
+  'now', 'body', 'path', 'query', 'header', 'profileKey',
   ...CALLABLE_BUILTINS,
 ])
 

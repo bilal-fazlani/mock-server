@@ -211,12 +211,23 @@ describe('validateCatalog', () => {
       validateCatalog(
         catalog([
           endpoint({
-            captureProfileKeys: [{ namespace: 'event-id', keySelector: 'header:eventID' }],
+            captureProfileKeys: [{ namespace: 'event-id', keySelector: 'bearer' }],
           } as Partial<EndpointDef>),
         ]),
         dir,
       ).errors.join('\n'),
     ).toMatch(/keySelector/)
+
+    expect(
+      validateCatalog(
+        catalog([
+          endpoint({
+            captureProfileKeys: [{ namespace: 'event-id', keySelector: 'header:x-event-id' }],
+          } as Partial<EndpointDef>),
+        ]),
+        dir,
+      ).errors,
+    ).toEqual([])
   })
 
   it('validates path selectors inside profileKey and captureProfileKeys', () => {
@@ -410,6 +421,24 @@ describe('validateCatalog', () => {
         e.includes('invalid placeholder "{{now+3x:iso}}"'),
       ),
     ).toBe(true)
+  })
+
+  it('accepts a header placeholder and rejects one reading a credential header', () => {
+    const dir = tmpCatalogDir({
+      'test-system/hello_world/default.json': {
+        status: 200,
+        headers: { 'x-request-id': '{{header:x-request-id}}' },
+        body: { trace: '{{header:traceparent}}' },
+      },
+    })
+    expect(validateCatalog(catalog([endpoint()]), dir).errors).toEqual([])
+
+    const dir2 = tmpCatalogDir({
+      'test-system/hello_world/default.json': { status: 200, body: { x: '{{header:cookie}}' } },
+    })
+    expect(validateCatalog(catalog([endpoint()]), dir2).errors.join('\n')).toMatch(
+      /invalid placeholder "\{\{header:cookie\}\}"/,
+    )
   })
 
   it('builds a fixture cache keyed by file path', () => {

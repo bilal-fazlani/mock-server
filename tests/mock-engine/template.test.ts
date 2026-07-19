@@ -37,6 +37,27 @@ describe('resolveTemplate', () => {
     })
   })
 
+  it('echoes request headers into the body and response headers', () => {
+    const c = ctx({ headers: { 'X-Request-Id': 'req-42', 'x-tenant': 'acme' } })
+    expect(
+      resolveTemplate(
+        {
+          correlationId: '{{header:x-request-id}}',
+          tenant: 'tenant={{header:X-Tenant}}',
+        },
+        c,
+        now,
+      ),
+    ).toEqual({ correlationId: 'req-42', tenant: 'tenant=acme' })
+    expect(resolveTemplate({ 'x-request-id': '{{header:x-request-id}}' }, c, now)).toEqual({
+      'x-request-id': 'req-42',
+    })
+  })
+
+  it('fails loudly when an echoed header is absent from the request', () => {
+    expect(() => resolveTemplate('{{header:x-request-id}}', ctx(), now)).toThrow(PlaceholderError)
+  })
+
   it('resolves now formatters deterministically from the injected date', () => {
     expect(resolveTemplate('{{now:YYYYMMDD}}', ctx(), now)).toBe('20260702')
     expect(resolveTemplate('{{now:iso}}', ctx(), now)).toBe('2026-07-02T10:20:30.000Z')

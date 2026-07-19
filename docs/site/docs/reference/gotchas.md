@@ -93,9 +93,13 @@ curl -s <origin>/customers/customer-123/status
 - **`real` is always selectable.** If `PASSTHROUGH_AS_DEFAULT=false` and a system
   has no configured base URL, explicit `real` picks show a UI warning and return
   `500` at request time until the base URL is set.
-- **Body selectors don't allow hyphens** in keys; path/query names do.
+- **Body selectors don't allow hyphens** in keys; path/query/header names do.
   `$.customer-id` is invalid — the JSON key would need to be `customer_id` (or use
-  a path/query selector).
+  a path/query/header selector).
+- **Credential headers can't be read by a `header:` selector.** `authorization`,
+  `proxy-authorization`, `cookie`, and `set-cookie` are rejected at startup, so a
+  fixture can never echo a credential back. Route on a Bearer token with
+  `bearer` / `bearer:<claim>` instead.
 - **Bearer JWT selectors decode; they do not verify.** `bearer:sub` reads a
   top-level string/number claim for mock routing only. Missing or malformed
   credentials return `400`, and persisted `Authorization` headers are redacted.

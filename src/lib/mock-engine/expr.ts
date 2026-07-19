@@ -57,6 +57,7 @@ function isSelectorToken(t: string): boolean {
     t.startsWith('$') ||
     t.startsWith('path:') ||
     t.startsWith('query:') ||
+    t.startsWith('header:') ||
     t.startsWith('profileKey:')
   )
 }

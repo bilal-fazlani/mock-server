@@ -71,12 +71,14 @@ now-known catalog and reports its own list of errors:
 - Every `path` is a well-formed template starting with `/`.
 - Profiled endpoints must declare `profileIdSelector`; global endpoints must not
   declare `profileIdSelector` or `captureProfileKeys`.
-- Every profiled `profileIdSelector` is valid. It may use body/path/query, a
-  `profileKey` lookup, `bearer`, or `bearer:<claim>`. Bearer claim names match
+- Every profiled `profileIdSelector` is valid. It may use body/path/query/header,
+  a `profileKey` lookup, `bearer`, or `bearer:<claim>`. Bearer claim names match
   `[a-zA-Z_][a-zA-Z0-9_-]*`. A `path:` selector, including one nested inside
-  `profileKey`, must reference a `{param}` that exists in the template.
+  `profileKey`, must reference a `{param}` that exists in the template. A
+  `header:` selector naming a credential header — `authorization`,
+  `proxy-authorization`, `cookie`, or `set-cookie` — is rejected.
 - Every `captureProfileKeys` namespace matches `[a-z0-9][a-z0-9_-]*`; every
-  `keySelector` is a valid reusable body/path/query selector (not Bearer); and
+  `keySelector` is a valid reusable body/path/query/header selector (not Bearer); and
   `captureProfileKeys` is allowed only when a profiled endpoint's
   `profileIdSelector` resolves the profile directly.
 - Every scenario slug is backed by exactly one file: `<slug>.json` **XOR**
@@ -93,8 +95,8 @@ now-known catalog and reports its own list of errors:
   [placeholder expression](../building/fixtures.md#placeholder-expressions):
   the leading stage is a `now` expression — one of the named formats `iso`,
   `YYYYMMDD`, `date`, `time`, `epoch`, or `epochMillis`, optionally with a
-  relative offset, e.g. `now+3d:iso` — a valid body/path/query selector (never
-  Bearer), or a function call; every function name it calls (in pipes or as the
+  relative offset, e.g. `now+3d:iso` — a valid body/path/query/header selector
+  (never Bearer, never a credential header), or a function call; every function name it calls (in pipes or as the
   source) is a built-in transform or a user function **visible from that
   endpoint's scope** (endpoint → system → catalog). An unknown name — a typo, a
   function defined only in another system, or a syntactic form used as a call

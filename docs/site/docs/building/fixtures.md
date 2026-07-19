@@ -81,6 +81,7 @@ substituted at request time. Two kinds:
 | `{{$.path.in.body}}` | A value pulled from the request body |
 | `{{path:name}}` | A path parameter from the URL |
 | `{{query:name}}` | A query-string parameter |
+| `{{header:name}}` | A request header, matched case-insensitively |
 
 The `now` placeholder takes the form `now[±<n><unit>]:<format>`. The `<format>`
 is one of a fixed, named set — `iso`, `YYYYMMDD`, `date`, `time`, `epoch`, or
@@ -91,11 +92,45 @@ one hour in the future as Unix seconds. Both the offset and the format name are
 statically validated, so an invalid `now` expression is a catalog error, not a
 runtime surprise. All formats are computed in UTC.
 
-Selector placeholders use the reusable body/path/query selector grammar, so you
-can echo request data straight into the response (e.g.
+Selector placeholders use the reusable body/path/query/header selector grammar,
+so you can echo request data straight into the response (e.g.
 `"customerId": "{{$.customerId}}"`). Bearer selectors are deliberately not
 available to placeholders, so an authorization credential cannot be echoed into a
 fixture response.
+
+### Echoing a request header
+
+`{{header:name}}` reads a request header, which is the usual way to hand a
+correlation ID back to the caller — in the body, in a response header, or both:
+
+```json
+{
+  "status": 200,
+  "headers": { "x-request-id": "{{header:x-request-id}}" },
+  "body": { "traceparent": "{{header:traceparent}}", "status": "ACTIVE" }
+}
+```
+
+```bash
+curl <origin>/accounts/balance -H 'X-Request-Id: req-42'
+```
+
+Header names are matched **case-insensitively**, so `{{header:x-request-id}}` and
+`{{header:X-Request-Id}}` are the same selector and both match whatever casing the
+caller sent. The name must match `[a-zA-Z_][a-zA-Z0-9_-]*` — the wider character
+set HTTP allows includes `'` and `|`, which are separators in the placeholder
+grammar.
+
+!!! warning "Credential headers cannot be echoed"
+
+    `authorization`, `proxy-authorization`, `cookie`, and `set-cookie` are
+    rejected. Writing `{{header:cookie}}` is a **catalog error at startup**, not a
+    blank value at request time — the mock will not start until the placeholder is
+    removed. This is the same guarantee that keeps Bearer selectors out of
+    placeholders.
+
+A header the caller did not send is an unresolved placeholder, which fails the
+request with a `500` naming it — the same loud behavior as an absent body field.
 
 ## Placeholder expressions
 
@@ -124,9 +159,9 @@ The grammar, in full:
   apostrophe inside a bare word stays ordinary text (`label:it's` is the string
   `it's`); a quote that opens a token and never closes (`pad:'oops`) is a
   catalog error, not a literal.
-- Call arguments accept **body selectors and literals only**. `path:`/`query:`
-  values can't be passed as arguments — start the chain with them
-  (`{{path:id | upper}}`) or read them from `context.request` inside a custom
+- Call arguments accept **body selectors and literals only**. `path:`, `query:`,
+  and `header:` values can't be passed as arguments — start the chain with them
+  (`{{path:id | upper}}`, `{{header:x-request-id | upper}}`) or read them from `context.request` inside a custom
   function.
 
 Function names resolve to a [built-in transform](#built-in-transforms) or a
@@ -141,8 +176,8 @@ error at startup, never a runtime surprise.
 
 The set is deliberately small today; seeded randomness, fake data, hashing, and
 more string filters are planned as additional built-ins on this same mechanism.
-Built-in names (including `now`, `body`, `path`, `query`, and `profileKey`) are
-reserved — a custom function may not use them.
+Built-in names (including `now`, `body`, `path`, `query`, `header`, and
+`profileKey`) are reserved — a custom function may not use them.
 
 ## Custom functions (`_functions.mjs`)
 

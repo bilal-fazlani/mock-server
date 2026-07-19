@@ -12,21 +12,29 @@ caller's business ID. It can read the ID directly from the request, or it can
 resolve another key through a stored [profile key mapping](#profile-key-mappings).
 Global endpoints skip this entire step.
 
-Profile-ID selectors have four request sources, chosen by prefix:
+Profile-ID selectors have five request sources, chosen by prefix:
 
 | Form | Reads from | Examples |
 | --- | --- | --- |
 | `$.…` | Parsed JSON request body | `$.customerId`, `$.data.customer.id`, `$.items[0].id` |
 | `path:name` | A path parameter | `path:customerId` (requires `{customerId}` in the template) |
 | `query:name` | A query-string parameter | `query:customerId` → `?customerId=…` |
+| `header:name` | A request header, matched case-insensitively | `header:x-customer-id` → `X-Customer-Id: customer-123` |
 | `bearer`<br>`bearer:<claim>` | The `Authorization: Bearer …` header | `bearer` uses the opaque token itself; `bearer:sub` reads the top-level `sub` claim from a JWT |
 
 **Body path grammar.** Starts with `$`, then a chain of `.key` and `[index]`
 tokens. Object keys must match `[a-zA-Z_][a-zA-Z0-9_]*` (letters, digits,
 underscore — *no hyphens*). Array indices are numeric: `$.orders[0].id`.
 
-**Path / query names** may additionally contain hyphens
+**Path / query / header names** may additionally contain hyphens
 (`[a-zA-Z_][a-zA-Z0-9_-]*`).
+
+**Header selectors** match the header name case-insensitively, so
+`header:x-customer-id` resolves whatever casing the caller sent. Credential
+headers — `authorization`, `proxy-authorization`, `cookie`, and `set-cookie` —
+are rejected wherever a header selector is accepted, and using one is a catalog
+error at startup. Read a Bearer credential with `bearer` / `bearer:<claim>`
+instead, which is purpose-built for it.
 
 **Bearer selectors.** The authorization scheme is matched case-insensitively and
 the credential after `Bearer` must match `[a-zA-Z0-9\-._~+/]+=*` (one or more
@@ -62,7 +70,7 @@ must be a string or number.
     `bearer` and `bearer:<claim>` are valid only in `profileIdSelector`. They
     cannot be used in fixture placeholders, `captureProfileKeys.keySelector`, or
     inside `profileKey:<namespace>:…`. An endpoint resolved directly from a Bearer
-    token may still capture other body/path/query keys. The catalog page's
+    token may still capture other body/path/query/header keys. The catalog page's
     **Copy as cURL** action includes a placeholder authorization header for
     Bearer-profiled endpoints.
 
@@ -116,8 +124,8 @@ Later callback: resolve the profile ID through the stored order mapping:
     request body, and validation rejects same-method path overlaps as ambiguous.
 
 The nested selector after `profileKey:<namespace>:` uses the reusable direct
-selector grammar: body, path, or query. Bearer selectors are profile-ID-only and
-cannot be nested here. Namespaces must match `[a-z0-9][a-z0-9_-]*`. The mapping is
+selector grammar: body, path, query, or header. Bearer selectors are
+profile-ID-only and cannot be nested here. Namespaces must match `[a-z0-9][a-z0-9_-]*`. The mapping is
 stored in MongoDB in `profileKeyMappings` with `namespace`, `key`, `profileId`,
 `capturedBy`, `createdAt`, and `modifiedAt`. There is no TTL index.
 

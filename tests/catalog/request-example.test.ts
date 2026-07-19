@@ -68,6 +68,14 @@ describe('buildEndpointRequestExample', () => {
     expect(example.body).toBeNull()
   })
 
+  it('shows a header selector as a request header', () => {
+    const example = buildEndpointRequestExample(
+      endpoint({ method: 'GET', path: '/lookup', profileIdSelector: 'header:x-tenant-id' }),
+    )
+    expect(example.headers).toEqual({ 'x-tenant-id': '<x-tenant-id>' })
+    expect(example.body).toBeNull()
+  })
+
   it('returns an empty body for endpoints without body selectors', () => {
     const example = buildEndpointRequestExample(
       endpoint({ mockType: 'global', profileIdSelector: undefined, path: '/oauth/token' }),

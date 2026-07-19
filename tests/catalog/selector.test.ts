@@ -27,6 +27,30 @@ describe('parseSelector', () => {
     expect(parseSelector('query:cid')).toEqual({ source: 'query', name: 'cid' })
   })
 
+  it('parses header selectors and lower-cases the name', () => {
+    expect(parseSelector('header:x-request-id')).toEqual({ source: 'header', name: 'x-request-id' })
+    expect(parseSelector('header:X-Request-Id')).toEqual({ source: 'header', name: 'x-request-id' })
+    expect(parseSelector('header:traceparent')).toEqual({ source: 'header', name: 'traceparent' })
+  })
+
+  it('rejects credential headers so a fixture cannot echo them', () => {
+    for (const bad of [
+      'header:authorization',
+      'header:Authorization',
+      'header:proxy-authorization',
+      'header:cookie',
+      'header:Set-Cookie',
+    ]) {
+      expect(() => parseSelector(bad), bad).toThrow(SelectorParseError)
+    }
+  })
+
+  it('rejects malformed header names', () => {
+    for (const bad of ['header:', 'header:1-bad', 'header:has space', "header:qu'ote"]) {
+      expect(() => parseSelector(bad), bad).toThrow(SelectorParseError)
+    }
+  })
+
   it('parses profile key selectors with body, path, and query nested selectors', () => {
     expect(parseSelector('profileKey:event-id:$.eventID')).toEqual({
       source: 'profileKey',
@@ -50,7 +74,7 @@ describe('parseSelector', () => {
       'profileKey:EventID:$.eventID',
       'profileKey:-event-id:$.eventID',
       'profileKey:event-id:',
-      'profileKey:event-id:header:eventID',
+      'profileKey:event-id:cookie:eventID',
       'profileKey:event-id:profileKey:other-id:$.eventID',
     ]) {
       expect(() => parseSelector(bad), bad).toThrow(SelectorParseError)
@@ -69,7 +93,6 @@ describe('parseSelector', () => {
       'path:',
       'query:',
       '$.a.',
-      'header:x',
       'bearer',
       'bearer:sub',
     ]) {
@@ -127,6 +150,36 @@ describe('extractValue', () => {
     expect(extractValue(parseSelector('query:cid'), c)).toEqual({ found: true, value: 'q-1' })
     expect(extractValue(parseSelector('path:other'), c)).toEqual({ found: false })
     expect(extractValue(parseSelector('query:other'), c)).toEqual({ found: false })
+  })
+
+  it('extracts headers case-insensitively and reports an absent one as not found', () => {
+    const c = ctx({ headers: { 'X-Request-Id': 'req-1', traceparent: 'tp-1' } })
+    expect(extractValue(parseSelector('header:x-request-id'), c)).toEqual({
+      found: true,
+      value: 'req-1',
+    })
+    expect(extractValue(parseSelector('header:X-REQUEST-ID'), c)).toEqual({
+      found: true,
+      value: 'req-1',
+    })
+    expect(extractValue(parseSelector('header:traceparent'), c)).toEqual({
+      found: true,
+      value: 'tp-1',
+    })
+    expect(extractValue(parseSelector('header:x-absent'), c)).toEqual({ found: false })
+  })
+
+  it('supports a header selector nested in a profile key selector', () => {
+    const c = ctx({ headers: { 'x-tenant-id': 'tenant-7' } })
+    expect(parseSelector('profileKey:tenant:header:x-tenant-id')).toEqual({
+      source: 'profileKey',
+      namespace: 'tenant',
+      keySelector: { source: 'header', name: 'x-tenant-id' },
+    })
+    expect(extractValue(parseSelector('profileKey:tenant:header:x-tenant-id'), c)).toEqual({
+      found: true,
+      value: 'tenant-7',
+    })
   })
 
   it('extracts the nested key value from profile key selectors', () => {
