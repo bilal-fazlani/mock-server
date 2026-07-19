@@ -82,5 +82,9 @@ function describeUnusable(value: unknown): string | null {
   if (value === undefined) return 'undefined'
   const t = typeof value
   if (t === 'function' || t === 'symbol' || t === 'bigint') return `a ${t}`
+  // NaN/±Infinity are typeof "number" but have no JSON representation —
+  // JSON.stringify silently turns them into null, so the response would carry
+  // a null the author never wrote. Rejected loudly instead.
+  if (t === 'number' && !Number.isFinite(value)) return String(value)
   return null
 }

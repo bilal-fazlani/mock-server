@@ -120,7 +120,7 @@ The grammar, in full:
   booleans, a `'single-quoted'` token is a literal string (quotes stripped —
   and `:` or `|` inside the quotes are literal characters, not separators), a
   `$.…` token is resolved against the request body, and any other bare token is
-  a string.
+  a string. An unclosed quote (`pad:'oops`) is a catalog error, not a literal.
 - Call arguments accept **body selectors and literals only**. `path:`/`query:`
   values can't be passed as arguments — start the chain with them
   (`{{path:id | upper}}`) or read them from `context.request` inside a custom
@@ -159,7 +159,8 @@ export const label: MockFn = (_ctx, status) => `CUSTOMER: ${String(status).toUpp
 ```
 
 Each **named export** becomes a callable function. The contract is
-`(context, ...args)`:
+`(context, ...args)`. A `default` export has no name for a placeholder to call,
+so it is a catalog error at startup — export named functions instead.
 
 - **Prefer explicit arguments.** Pass request data in as arguments
   (`label:$.status`) — it keeps functions inspectable and reusable. Arguments
@@ -194,8 +195,11 @@ practice:
   variability from `context.now` and `context.seed` instead of `Date`/`Math.random`
   so responses stay reproducible.
 - **Failures are loud.** A function that throws, exceeds its timeout, or
-  returns something unusable (e.g. `undefined`) fails the request with a `500`
-  naming the function and the placeholder.
+  returns something unusable fails the request with a `500` naming the function
+  and the placeholder. Unusable means `undefined`, a function, a symbol, a
+  bigint, or a non-finite number (`NaN`, `Infinity`) — none of which have a JSON
+  representation. The request trace records these as `function_error` or
+  `function_timeout`, distinct from a `template_error` in the placeholder itself.
 
 ## Typed substitution
 

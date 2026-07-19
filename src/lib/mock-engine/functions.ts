@@ -19,19 +19,11 @@ export class FunctionRuntimeError extends Error {}
 export class FunctionTimeoutError extends Error {}
 
 export function compileFunctions(source: string, label: string, loader: 'ts' | 'js'): Map<string, CompiledFn> {
-  let code = source
-  if (loader === 'ts') {
-    try {
-      code = transformSync(source, { loader: 'ts', format: 'cjs', target: 'node18' }).code
-    } catch (err) {
-      throw new FunctionCompileError(`${label}: failed to transpile: ${message(err)}`)
-    }
-  } else {
-    try {
-      code = transformSync(source, { loader: 'js', format: 'cjs', target: 'node18' }).code
-    } catch (err) {
-      throw new FunctionCompileError(`${label}: failed to load: ${message(err)}`)
-    }
+  let code: string
+  try {
+    code = transformSync(source, { loader, format: 'cjs', target: 'node18' }).code
+  } catch (err) {
+    throw new FunctionCompileError(`${label}: failed to transpile: ${message(err)}`)
   }
 
   const sandbox: Record<string, unknown> = { module: { exports: {} } }
@@ -44,6 +36,14 @@ export function compileFunctions(source: string, label: string, loader: 'ts' | '
   }
 
   const mod = (sandbox.module as { exports: Record<string, unknown> }).exports
+  // Placeholders address functions by export name, so a default export has no
+  // name to be called by — registering it would expose a callable "default".
+  // Fatal rather than skipped so the author sees the mistake at catalog load.
+  if ('default' in mod) {
+    throw new FunctionCompileError(
+      `${label}: default export is not usable; export named functions instead`,
+    )
+  }
   sandbox.__exports = mod
   const out = new Map<string, CompiledFn>()
   for (const [name, val] of Object.entries(mod)) {

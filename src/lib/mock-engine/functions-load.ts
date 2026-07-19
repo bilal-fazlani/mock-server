@@ -25,12 +25,13 @@ export function loadFunctions(catalogDir: string): LoadedFunctions {
     try {
       compiled = compileFunctions(readFileSync(file, 'utf8'), `${label}/_functions.${hasTs ? 'ts' : 'mjs'}`, loader)
     } catch (err) {
-      problems.push(`${label}: ${(err as Error).message}`)
+      // compileFunctions already prefixes its messages with the file label.
+      problems.push((err as Error).message)
       return new Map()
     }
     for (const name of [...compiled.keys()]) {
       if (RESERVED_NAMES.has(name)) {
-        problems.push(`${label}: reserved name "${name}" is ignored`)
+        problems.push(`${label}: "${name}" is a reserved name and cannot be used for a function`)
         compiled.delete(name)
       }
     }
@@ -48,12 +49,20 @@ export function loadFunctions(catalogDir: string): LoadedFunctions {
     }
   }
 
+  // Levels are immutable once loaded, so the merged table for a given endpoint
+  // is too — compute it once instead of on every fixture render.
+  const tableCache = new Map<string, Map<string, CompiledFn>>()
+
   return {
     problems,
     resolveTable(systemSlug, endpointName) {
+      const key = `${systemSlug}/${endpointName}`
+      const cached = tableCache.get(key)
+      if (cached) return cached
       const merged = new Map(catalogLevel)
       for (const [k, v] of systemLevels.get(systemSlug) ?? []) merged.set(k, v)
-      for (const [k, v] of endpointLevels.get(`${systemSlug}/${endpointName}`) ?? []) merged.set(k, v)
+      for (const [k, v] of endpointLevels.get(key) ?? []) merged.set(k, v)
+      tableCache.set(key, merged)
       return merged
     },
   }

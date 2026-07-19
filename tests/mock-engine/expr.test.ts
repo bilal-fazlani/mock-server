@@ -80,4 +80,23 @@ describe('parseExpr', () => {
   it('rejects an empty stage', () => {
     expect(() => parseExpr('$.a |')).toThrow(ExprParseError)
   })
+
+  it('rejects an unterminated single quote', () => {
+    expect(() => parseExpr("pad:'oops")).toThrow(/unterminated single quote/)
+    expect(() => parseExpr("$.a | pad:'oops")).toThrow(ExprParseError)
+  })
+
+  // "now" is only a syntactic form in source position; after a pipe it parses as
+  // an ordinary call, which validation then rejects as an unknown function.
+  it('parses now after a pipe as an ordinary call node', () => {
+    expect(parseExpr('$.x | now:iso')).toEqual({
+      kind: 'call',
+      name: 'now',
+      args: [
+        { kind: 'selector', raw: '$.x', selector: { source: 'body', segments: ['x'] } },
+        { kind: 'lit', value: 'iso' },
+      ],
+    })
+    expect(callNames(parseExpr('$.x | now:iso'))).toEqual(['now'])
+  })
 })

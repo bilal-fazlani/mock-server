@@ -45,7 +45,10 @@ non-2xx, because the mock served the selected scenario correctly. `warn` is for 
 such as `UNMOCKED_USERS` fallback, schema drift on `real`, failed Mongo
 request-log writes, and `no_match`. `error` is for framework/routing/setup
 failures such as invalid JSON, unresolved selectors, missing mappings, stale
-scenario pins, template errors, missing passthrough base URLs, passthrough
+scenario pins, template errors (`template_error`, plus `function_error` and
+`function_timeout` for failures inside a [custom
+function](../building/fixtures.md#custom-functions-_functionsts)), missing
+passthrough base URLs, passthrough
 failures, and resolver failures (`resolver_missing`, `resolver_threw`,
 `resolver_timeout`, `resolver_bad_return`, and — in development —
 `resolver_compile_error`; see [Code-backed scenario

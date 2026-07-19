@@ -1,27 +1,34 @@
-import { NowSpec, parseNow, NowFormatError } from './now'
-import { parseSelector, Selector, SelectorParseError } from '../catalog/selector'
+import { type NowSpec, parseNow, NowFormatError } from './now'
+import { parseSelector, type Selector, SelectorParseError } from '../catalog/selector'
+
+export type CallExpr = { kind: 'call'; name: string; args: Expr[] }
 
 export type Expr =
   | { kind: 'lit'; value: string | number | boolean }
   | { kind: 'selector'; raw: string; selector: Selector }
   | { kind: 'now'; spec: NowSpec }
-  | { kind: 'call'; name: string; args: Expr[] }
+  | CallExpr
 
 export class ExprParseError extends Error {}
 
 const NAME_RE = /^[a-zA-Z_][a-zA-Z0-9_]*$/
 
 export function parseExpr(raw: string): Expr {
+  // Caught before splitting: an odd number of quotes leaves splitOutsideQuotes
+  // in the quoted state at end of input, which would otherwise swallow the
+  // opening quote into a literal ("{{pad:'oops}}" → the string "'oops").
+  if (countQuotes(raw) % 2 !== 0) {
+    throw new ExprParseError(`invalid placeholder "{{${raw}}}": unterminated single quote`)
+  }
   const stages = splitOutsideQuotes(raw, '|').map((s) => s.trim())
   if (stages.some((s) => s.length === 0)) {
     throw new ExprParseError(`invalid placeholder "{{${raw}}}": empty stage`)
   }
-  let expr = parseSource(stages[0], raw)
+  let expr: Expr = parseSource(stages[0], raw)
   for (let i = 1; i < stages.length; i++) {
+    // Only a call may follow "|": parseCall rejects selector/now tokens as bad
+    // function names, so the stage is a CallExpr by construction here.
     const call = parseCall(stages[i], raw)
-    if (call.kind !== 'call') {
-      throw new ExprParseError(`invalid placeholder "{{${raw}}}": only functions may follow "|"`)
-    }
     call.args.unshift(expr)
     expr = call
   }
@@ -63,7 +70,7 @@ function selectorNode(token: string): Expr {
   }
 }
 
-function parseCall(stage: string, raw: string): Expr {
+function parseCall(stage: string, raw: string): CallExpr {
   const parts = splitArgs(stage)
   const name = parts[0]
   if (!NAME_RE.test(name)) {
@@ -90,6 +97,12 @@ function splitOutsideQuotes(input: string, sep: ':' | '|'): string[] {
   }
   out.push(cur)
   return out
+}
+
+function countQuotes(input: string): number {
+  let n = 0
+  for (const ch of input) if (ch === "'") n++
+  return n
 }
 
 function splitArgs(stage: string): string[] {
