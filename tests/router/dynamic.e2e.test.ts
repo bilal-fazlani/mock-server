@@ -48,10 +48,14 @@ const DYNAMIC_SOURCE = `export default (i) => i.history.length < 1 ? 'failure' :
 // not a fake that always returns a canned value.
 function makeHistoryStore() {
   const store = new Map<string, string[]>()
+  // Whether each append was flagged owner-less (the signal the real store turns
+  // into a TTL on the row).
+  const ownerless: boolean[] = []
   const key = (ownerType: string, ownerKey: string, endpointName: string, scenario: string) =>
     `${ownerType}|${ownerKey}|${endpointName}|${scenario}`
   return {
     store,
+    ownerless,
     getDynamicHistory: async (
       ownerType: string,
       ownerKey: string,
@@ -64,10 +68,12 @@ function makeHistoryStore() {
       endpointName: string,
       scenario: string,
       slug: string,
+      isOwnerless = false,
     ) => {
       const k = key(ownerType, ownerKey, endpointName, scenario)
       const existing = store.get(k) ?? []
       store.set(k, [...existing, slug])
+      ownerless.push(isOwnerless)
     },
   }
 }
@@ -143,5 +149,62 @@ describe('dynamic resolver end-to-end (real compileResolver + real history store
 
     // The real in-memory store actually accumulated both appended slugs, in order.
     expect(history.store.get('profile|customer-123|ep|dynamic')).toEqual(['failure', 'default'])
+    // A profile that exists owns its history: never flagged owner-less.
+    expect(history.ownerless).toEqual([false, false])
+  })
+
+  // Under DEFAULT_MOCK a caller with no profile still runs a resolver-backed
+  // `default`, minting a history key from arbitrary request content. Those rows
+  // must be flagged owner-less so the store can expire them.
+  it('flags history appended for an unmocked caller as owner-less', async () => {
+    const dir = tmpCatalogDir({
+      'sys/_system.json': SYSTEM_META,
+      'sys/ep/_endpoint.json': ENDPOINT_META,
+      'sys/ep/failure.json': FAILURE_FIXTURE,
+      'sys/ep/success.json': DEFAULT_FIXTURE,
+      'sys/ep/default.mjs': `export default (i) => i.history.length < 1 ? 'failure' : 'success'`,
+    })
+    const catalog = loadCatalog(dir)
+    const source = fs.readFileSync(resolverFilePath(dir, 'sys', 'ep', 'default'), 'utf8')
+    const resolver = compileResolver(source, 'sys/ep/default.mjs')
+    const history = makeHistoryStore()
+
+    const known: MockProfile = {
+      profileId: 'known',
+      endpointScenarios: {},
+      createdAt: NOW,
+      modifiedAt: NOW,
+    }
+
+    const deps: RouterDeps = {
+      catalog,
+      passthroughAsDefault: false,
+      unmockedUsers: 'DEFAULT_MOCK',
+      timeoutMs: 1000,
+      env: {},
+      getProfile: async (id) => (id === 'known' ? known : null),
+      getProfileKeyMapping: async () => null,
+      getGlobalMockScenario: async () => null,
+      captureProfileKeyMapping: async () => {},
+      advanceScenarioProgress: async () => 1,
+      getCompiledResolver: () => resolver,
+      getDynamicHistory: history.getDynamicHistory,
+      appendDynamicHistory: history.appendDynamicHistory,
+      passthrough: async () => ({ status: 299, headers: {}, bodyBytes: Buffer.from('proxied') }),
+      loadFixture: (systemSlug, endpointName, scenario) =>
+        loadFixture(dir, systemSlug, endpointName, scenario),
+      now: () => NOW,
+    }
+    const handle = createMockHandler(deps)
+
+    const unmocked = await handle(statusRequest('drive-by-id'), statusRoute('drive-by-id'))
+    expect(unmocked.status).toBe(503)
+    expect(history.store.get('profile|drive-by-id|ep|default')).toEqual(['failure'])
+    expect(history.ownerless).toEqual([true])
+
+    // The same endpoint's `default` resolver, reached by a caller that does
+    // have a profile, stays permanent.
+    await handle(statusRequest('known'), statusRoute('known'))
+    expect(history.ownerless).toEqual([true, false])
   })
 })

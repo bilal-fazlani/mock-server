@@ -1,5 +1,6 @@
 import { Db, MongoClient, MongoServerError } from 'mongodb'
 import { parseRequestLogTtlSeconds } from '../config'
+import { pruneOrphanedHistoryOnce } from '../dynamic/prune'
 import { resolveMongoUri } from '../mongo/embedded'
 
 /**
@@ -84,6 +85,7 @@ export async function getDb(): Promise<Db> {
     client = new MongoClient(uri)
     await client.connect()
     await ensureIndexes(client.db(dbName()))
+    await pruneOrphanedHistoryOnce(client.db(dbName()))
   }
   return client.db(dbName())
 }
@@ -183,6 +185,13 @@ async function ensureDynamicHistoryIndex(db: Db): Promise<void> {
     { ownerType: 1, ownerKey: 1, endpointName: 1, scenario: 1 },
     { unique: true, name: 'dynamicHistory_owner_endpoint_scenario_unique' },
   )
+  // Owner-less windows (an unmocked caller's profile ID) carry an `expiresAt`
+  // and are reaped at that instant; rows for a real owner omit the field and
+  // are never touched by a TTL index. Unlike the requestLogs TTL, the retention
+  // window lives in the document rather than the index, so expireAfterSeconds
+  // is a constant 0 and a changed RESOLVER_HISTORY_TTL_DURATION needs no index
+  // migration — it just moves the next append's `expiresAt`.
+  await collection.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 })
 }
 
 export async function getProfile(db: Db, profileId: string): Promise<MockProfile | null> {

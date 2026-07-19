@@ -90,6 +90,12 @@ export interface RouterDeps {
     endpointName: string,
     scenario: string,
     slug: string,
+    /**
+     * True when the owner has no document behind it — an unmocked profile ID
+     * under UNMOCKED_USERS=DEFAULT_MOCK. Such windows get a TTL so arbitrary
+     * caller-supplied IDs can't mint permanent keys.
+     */
+    ownerless: boolean,
   ) => Promise<void>
   dynamicResolverTimeoutMs?: number
   passthrough: (req: PassthroughRequest) => Promise<ProxiedResponse>
@@ -142,6 +148,9 @@ export async function routeRequest(
   }
 
   let profileId: string | null = null
+  // Tracks whether the resolved profile actually exists: an unmocked caller's
+  // history window has no owner to ever delete it, so it is stored with a TTL.
+  let ownerless = false
   let scenario: string
   if ((endpoint.mockType ?? 'profiled') === 'global') {
     const globalPick = await deps.getGlobalMockScenario(system.slug, endpoint.name)
@@ -157,6 +166,7 @@ export async function routeRequest(
     const profile = await deps.getProfile(profileId)
 
     if (!profile) {
+      ownerless = true
       switch (deps.unmockedUsers) {
         case 'ERROR':
           traceError(trace, 'profile_not_found', `profile "${profileId}" not found`)
@@ -185,7 +195,7 @@ export async function routeRequest(
   }
 
   if (endpoint.resolverScenarios.includes(scenario)) {
-    const resolved = await runResolver(system, endpoint, scenario, profileId, ctx, deps, trace)
+    const resolved = await runResolver(system, endpoint, scenario, profileId, ownerless, ctx, deps, trace)
     if (!resolved.ok) return resolved.result
     trace.resolver = { slug: scenario, returned: resolved.scenario }
     scenario = resolved.scenario
@@ -344,6 +354,7 @@ async function runResolver(
   endpoint: EndpointDef,
   slug: string,
   profileId: string | null,
+  ownerless: boolean,
   ctx: RequestContext,
   deps: RouterDeps,
   trace: RouteTrace,
@@ -438,7 +449,7 @@ async function runResolver(
     }
   }
 
-  await deps.appendDynamicHistory(ownerType, ownerKey, endpoint.name, slug, returned)
+  await deps.appendDynamicHistory(ownerType, ownerKey, endpoint.name, slug, returned, ownerless)
   return { ok: true, scenario: returned }
 }
 

@@ -80,6 +80,13 @@ curl -s <origin>/customers/customer-123/status
   then success" resolver keeps counting across restarts until you press **Reset
   resolver history** (or delete the profile). Two resolver-backed scenarios on the
   same endpoint keep independent windows, capped at `RESOLVER_HISTORY_LIMIT`.
+- **History for a caller with *no* profile expires; history for a real profile
+  doesn't.** Under `UNMOCKED_USERS=DEFAULT_MOCK` an unknown ID still runs a
+  resolver-backed `default`, and its window would otherwise live forever — so it
+  expires after `RESOLVER_HISTORY_TTL_DURATION` (default `1d`) of no calls from
+  that ID. Load-testing with random IDs leaves nothing permanent behind. See
+  [Retention for callers with no
+  profile](../building/dynamic.md#retention-for-callers-with-no-profile).
 - **Profiles and global mocks store deltas.** With `PASSTHROUGH_AS_DEFAULT=false`,
   picking `default` stores nothing. With `PASSTHROUGH_AS_DEFAULT=true`, picking
   `real` stores nothing. Removing a stored fixture-backed scenario makes that
