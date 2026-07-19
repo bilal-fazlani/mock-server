@@ -103,8 +103,9 @@ now-known catalog and reports its own list of errors:
   param.
 - Every `_functions.ts`/`_functions.mjs` file compiles and evaluates in the
   sandbox. A user function whose name is reserved (`now`, `body`, `path`,
-  `query`, `profileKey`, or any built-in transform), a compile error, or both a
-  `.ts` and an `.mjs` file at the same level are all errors. Like a broken
+  `query`, `profileKey`, or any built-in transform), a `default` export (a
+  placeholder has no name to call it by), a compile error, or both a `.ts` and
+  an `.mjs` file at the same level are all errors. Like a broken
   resolver, a broken `_functions` file is caught before deploy by
   `npm run validate:catalog`.
 - No two endpoints of the same method have **overlapping** path templates (which

@@ -80,4 +80,44 @@ describe('parseExpr', () => {
   it('rejects an empty stage', () => {
     expect(() => parseExpr('$.a |')).toThrow(ExprParseError)
   })
+
+  it('rejects an unterminated single quote', () => {
+    expect(() => parseExpr("pad:'oops")).toThrow(/unterminated single quote/)
+    expect(() => parseExpr("$.a | pad:'oops")).toThrow(ExprParseError)
+  })
+
+  // A quote only opens a literal at the start of a token, so an apostrophe
+  // inside a bare word is ordinary text, not an unterminated quote.
+  it('keeps an apostrophe inside a bare token literal', () => {
+    expect(parseExpr("label:it's")).toEqual({
+      kind: 'call',
+      name: 'label',
+      args: [{ kind: 'lit', value: "it's" }],
+    })
+  })
+
+  it('still suspends separators inside a quoted literal', () => {
+    expect(parseExpr("pad:'a|b':'c:d'")).toEqual({
+      kind: 'call',
+      name: 'pad',
+      args: [
+        { kind: 'lit', value: 'a|b' },
+        { kind: 'lit', value: 'c:d' },
+      ],
+    })
+  })
+
+  // "now" is only a syntactic form in source position; after a pipe it parses as
+  // an ordinary call, which validation then rejects as an unknown function.
+  it('parses now after a pipe as an ordinary call node', () => {
+    expect(parseExpr('$.x | now:iso')).toEqual({
+      kind: 'call',
+      name: 'now',
+      args: [
+        { kind: 'selector', raw: '$.x', selector: { source: 'body', segments: ['x'] } },
+        { kind: 'lit', value: 'iso' },
+      ],
+    })
+    expect(callNames(parseExpr('$.x | now:iso'))).toEqual(['now'])
+  })
 })

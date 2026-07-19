@@ -295,7 +295,7 @@ export async function routeRequest(
       err instanceof FixtureError ||
       err instanceof DurationError
     ) {
-      traceError(trace, 'template_error', err.message)
+      traceError(trace, err instanceof PlaceholderError ? err.code : 'template_error', err.message)
       return jsonResult(500, { error: err.message, endpoint: endpoint.name, scenario })
     }
     throw err

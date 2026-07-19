@@ -3,13 +3,28 @@ import { ExprParseError, parseExpr } from './expr'
 import { evaluate, EvalValue } from './evaluate'
 import { CompiledFn, FnContext, FunctionRuntimeError, FunctionTimeoutError } from './functions'
 
-export class PlaceholderError extends Error {}
+/**
+ * Trace code for a placeholder failure. User-function failures get their own
+ * codes — mirroring the resolver's `resolver_threw` / `resolver_timeout` — so
+ * logs can tell an author's function apart from a bad template. The 500 body is
+ * identical either way; this is log taxonomy only.
+ */
+export type PlaceholderErrorCode = 'template_error' | 'function_error' | 'function_timeout'
+
+export class PlaceholderError extends Error {
+  constructor(
+    message: string,
+    readonly code: PlaceholderErrorCode = 'template_error',
+  ) {
+    super(message)
+  }
+}
 
 export interface TemplateOptions {
   /** Headers mode: whole-string placeholders coerce to string too (Task 8). */
   stringOnly?: boolean
   fnCtx?: FnContext
-  functions?: Map<string, CompiledFn>
+  functions?: ReadonlyMap<string, CompiledFn>
   timeoutMs?: number
 }
 
@@ -35,7 +50,10 @@ function resolvePlaceholderTyped(expr: string, ctx: RequestContext, now: Date, o
     // together into the PlaceholderError that route-request's catch turns
     // into a structured 500 (design doc: "Error handling").
     if (err instanceof FunctionRuntimeError || err instanceof FunctionTimeoutError) {
-      throw new PlaceholderError(`placeholder "{{${expr}}}" failed: ${err.message}`)
+      throw new PlaceholderError(
+        `placeholder "{{${expr}}}" failed: ${err.message}`,
+        err instanceof FunctionTimeoutError ? 'function_timeout' : 'function_error',
+      )
     }
     throw err
   }
@@ -60,6 +78,9 @@ export function resolveTemplate(
   if (typeof node === 'string') {
     PLACEHOLDER_RE.lastIndex = 0
     const first = PLACEHOLDER_RE.exec(node)
+    // exec() on a /g regex advances lastIndex; PLACEHOLDER_RE is module-global
+    // and shared with listPlaceholders, so leaving it set would make a later
+    // matchAll start mid-string and miss placeholders.
     PLACEHOLDER_RE.lastIndex = 0
     if (first && first[0] === node && !options?.stringOnly) {
       const value = resolvePlaceholderTyped(first[1], ctx, now, options)

@@ -45,6 +45,47 @@ describe('evaluate with user functions', () => {
     ).toThrow(/noret/)
   })
 
+  it.each(['NaN', 'Infinity', '-Infinity'])('rejects a %s return as unusable', (literal) => {
+    const functions = compileFunctions(`export function n() { return ${literal} }`, 'f', 'js')
+    expect(() =>
+      resolveTemplate('{{n}}', base.ctx, base.now, undefined, { fnCtx: base.fnCtx, functions }),
+    ).toThrow(new RegExp(`returned ${literal}`))
+  })
+
+  it('tags a thrown user function with the function_error code', () => {
+    const functions = compileFunctions(`export function boom() { throw new Error('nope') }`, 'f', 'js')
+    try {
+      resolveTemplate('{{boom}}', base.ctx, base.now, undefined, { fnCtx: base.fnCtx, functions })
+      expect.unreachable('should have thrown')
+    } catch (err) {
+      expect(err).toBeInstanceOf(PlaceholderError)
+      expect((err as PlaceholderError).code).toBe('function_error')
+    }
+  })
+
+  it('tags a timed-out user function with the function_timeout code', () => {
+    const functions = compileFunctions(`export function spin() { while (true) {} }`, 'f', 'js')
+    try {
+      resolveTemplate('{{spin}}', base.ctx, base.now, undefined, {
+        fnCtx: base.fnCtx,
+        functions,
+        timeoutMs: 20,
+      })
+      expect.unreachable('should have thrown')
+    } catch (err) {
+      expect((err as PlaceholderError).code).toBe('function_timeout')
+    }
+  })
+
+  it('leaves a plain template failure on the template_error code', () => {
+    try {
+      resolveTemplate('{{$.missing}}', base.ctx, base.now)
+      expect.unreachable('should have thrown')
+    } catch (err) {
+      expect((err as PlaceholderError).code).toBe('template_error')
+    }
+  })
+
   it('emits the raw object for a whole-string object return (#12 extended to function returns)', () => {
     const functions = compileFunctions(`export function obj() { return { a: 1, b: [2, 3] } }`, 'f', 'js')
     const result = resolveTemplate('{{obj}}', base.ctx, base.now, undefined, {

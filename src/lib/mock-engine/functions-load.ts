@@ -5,7 +5,9 @@ import { RESERVED_NAMES } from './evaluate'
 
 export interface LoadedFunctions {
   problems: string[]
-  resolveTable(systemSlug: string, endpointName: string): Map<string, CompiledFn>
+  // Readonly because the merged table is memoized and handed to every caller —
+  // a mutation would leak into every later render of that endpoint.
+  resolveTable(systemSlug: string, endpointName: string): ReadonlyMap<string, CompiledFn>
 }
 
 type Level = Map<string, CompiledFn>
@@ -18,19 +20,22 @@ export function loadFunctions(catalogDir: string): LoadedFunctions {
     const hasTs = existsSync(ts)
     const hasMjs = existsSync(mjs)
     if (!hasTs && !hasMjs) return new Map()
-    if (hasTs && hasMjs) problems.push(`${label}: both _functions.ts and _functions.mjs present; using .ts`)
+    // Fatal like every other entry in `problems`, so it must not read as a
+    // recovery ("using .ts") — the catalog does not load until one is removed.
+    if (hasTs && hasMjs) problems.push(`${label}: both _functions.ts and _functions.mjs present; keep only one`)
     const file = hasTs ? ts : mjs
     const loader = hasTs ? 'ts' : 'js'
     let compiled: Map<string, CompiledFn>
     try {
       compiled = compileFunctions(readFileSync(file, 'utf8'), `${label}/_functions.${hasTs ? 'ts' : 'mjs'}`, loader)
     } catch (err) {
-      problems.push(`${label}: ${(err as Error).message}`)
+      // compileFunctions already prefixes its messages with the file label.
+      problems.push((err as Error).message)
       return new Map()
     }
     for (const name of [...compiled.keys()]) {
       if (RESERVED_NAMES.has(name)) {
-        problems.push(`${label}: reserved name "${name}" is ignored`)
+        problems.push(`${label}: "${name}" is a reserved name and cannot be used for a function`)
         compiled.delete(name)
       }
     }
@@ -48,12 +53,20 @@ export function loadFunctions(catalogDir: string): LoadedFunctions {
     }
   }
 
+  // Levels are immutable once loaded, so the merged table for a given endpoint
+  // is too — compute it once instead of on every fixture render.
+  const tableCache = new Map<string, Map<string, CompiledFn>>()
+
   return {
     problems,
     resolveTable(systemSlug, endpointName) {
+      const key = `${systemSlug}/${endpointName}`
+      const cached = tableCache.get(key)
+      if (cached) return cached
       const merged = new Map(catalogLevel)
       for (const [k, v] of systemLevels.get(systemSlug) ?? []) merged.set(k, v)
-      for (const [k, v] of endpointLevels.get(`${systemSlug}/${endpointName}`) ?? []) merged.set(k, v)
+      for (const [k, v] of endpointLevels.get(key) ?? []) merged.set(k, v)
+      tableCache.set(key, merged)
       return merged
     },
   }

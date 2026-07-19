@@ -18,7 +18,7 @@ What the engine does for every incoming request, in order:
 | 6 | If the resolved scenario slug is **resolver-backed**, look up its compiled `<slug>.ts`, read that slug's history window, and invoke it with the request + history + profile ID. Rewrite the scenario to its return value and append that value to the slug's history. | Compile error (dev) → `500 resolver_compile_error`; no compiled resolver found → `500 resolver_missing`; throws → `500 resolver_threw`; exceeds its timeout → `500 resolver_timeout`; returns anything other than a fixture-backed declared scenario or `"real"` → `500 resolver_bad_return` (nothing appended to history) |
 | 7 | For direct-profile endpoints with `captureProfileKeys`, store each mapping before fixture serving or real proxying. | Capture key missing → `400`; same key for a different profile → `409 profile_key_mapping_conflict` |
 | 8a | If scenario is `real`: proxy to the `baseUrlEnv` upstream and return its response. | Missing base URL → `500` (startup prevents this only when `PASSTHROUGH_AS_DEFAULT=true`) |
-| 8b | Otherwise: take the cached fixture, resolve placeholders — a [placeholder expression](../building/fixtures.md#placeholder-expressions) may invoke built-in transforms and sandboxed [custom functions](../building/fixtures.md#custom-functions-_functionsts) — wait the fixture's [`delay`](../building/fixtures.md#response-delay) if one is set, and return its status/headers/body. | Placeholder didn't resolve, or a placeholder function threw, exceeded its timeout, or returned an unusable value → `500` naming the function and placeholder |
+| 8b | Otherwise: take the cached fixture, resolve placeholders — a [placeholder expression](../building/fixtures.md#placeholder-expressions) may invoke built-in transforms and sandboxed [custom functions](../building/fixtures.md#custom-functions-_functionsts) — wait the fixture's [`delay`](../building/fixtures.md#response-delay) if one is set, and return its status/headers/body. | Placeholder didn't resolve, or named an unknown function → `500 template_error`; a custom function threw or returned an unusable value → `500 function_error`; it exceeded its timeout → `500 function_timeout`. Every one names the function and the placeholder (see [Errors](../building/fixtures.md#errors)) |
 
 Step 6 only runs when the resolved scenario slug (step 5) is backed by a
 `<slug>.ts` resolver — for every fixture-backed scenario, routing falls
@@ -131,9 +131,10 @@ Startup fails hard if any of:
 - any scenario resolver (`<slug>.ts`) fails to compile or doesn't
   default-export a function;
 - any `_functions.ts`/`_functions.mjs` file fails to compile, exports a
-  function under a reserved built-in name, or a fixture placeholder calls a
-  function name that isn't a built-in transform or a user function visible
-  from that endpoint's scope.
+  function under a reserved built-in name, uses a `default` export, or sits
+  beside a second `_functions` file of the other extension at the same level;
+- a fixture placeholder calls a function name that isn't a built-in transform
+  or a user function visible from that endpoint's scope.
 
 The full list of checks is in
 [Validation rules](configuration.md#validation-rules).

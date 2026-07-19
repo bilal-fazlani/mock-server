@@ -120,7 +120,10 @@ The grammar, in full:
   booleans, a `'single-quoted'` token is a literal string (quotes stripped —
   and `:` or `|` inside the quotes are literal characters, not separators), a
   `$.…` token is resolved against the request body, and any other bare token is
-  a string.
+  a string. A quote only opens a literal at the **start** of a token, so an
+  apostrophe inside a bare word stays ordinary text (`label:it's` is the string
+  `it's`); a quote that opens a token and never closes (`pad:'oops`) is a
+  catalog error, not a literal.
 - Call arguments accept **body selectors and literals only**. `path:`/`query:`
   values can't be passed as arguments — start the chain with them
   (`{{path:id | upper}}`) or read them from `context.request` inside a custom
@@ -159,7 +162,8 @@ export const label: MockFn = (_ctx, status) => `CUSTOMER: ${String(status).toUpp
 ```
 
 Each **named export** becomes a callable function. The contract is
-`(context, ...args)`:
+`(context, ...args)`. A `default` export has no name for a placeholder to call,
+so it is a catalog error at startup — export named functions instead.
 
 - **Prefer explicit arguments.** Pass request data in as arguments
   (`label:$.status`) — it keeps functions inspectable and reusable. Arguments
@@ -194,8 +198,28 @@ practice:
   variability from `context.now` and `context.seed` instead of `Date`/`Math.random`
   so responses stay reproducible.
 - **Failures are loud.** A function that throws, exceeds its timeout, or
-  returns something unusable (e.g. `undefined`) fails the request with a `500`
-  naming the function and the placeholder.
+  returns something unusable fails the request with a `500` naming the function
+  and the placeholder — never a silent empty string.
+
+### Errors
+
+Catalog errors are raised at startup, so the server never begins serving with a
+broken `_functions` file. Request errors return a `500` and are recorded in the
+[request trace](../driving/request-logs.md) under their own code.
+
+| Situation | Trace error code | When |
+| --- | --- | --- |
+| The file fails to transpile or throws while evaluating | — | Startup. The catalog does not load. |
+| The file has a `default` export, or exports a [reserved name](#built-in-transforms) | — | Startup. The catalog does not load. |
+| Both `_functions.ts` and `_functions.mjs` exist at the same level | — | Startup. The catalog does not load — remove one. |
+| The function throws | `function_error` | Request time. |
+| The function exceeds its 100&nbsp;ms timeout | `function_timeout` | Request time — guards against a runaway synchronous loop. |
+| The function returns something with no JSON representation — `undefined`, a function, a symbol, a bigint, or a non-finite number (`NaN`, `Infinity`) | `function_error` | Request time. |
+| The placeholder itself fails — an unresolved selector, or an unknown function name | `template_error` | Request time. |
+
+The function codes are deliberately distinct from `template_error` so a log
+reader can tell an author's function apart from a bad placeholder; the `500`
+body is identical either way.
 
 ## Typed substitution
 
