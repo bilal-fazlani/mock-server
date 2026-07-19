@@ -25,7 +25,7 @@ export interface EndpointDef {
   captureProfileKeys?: ProfileKeyCaptureDef[]
   scenarios: Record<string, ScenarioMeta>
   /**
-   * Slugs in `scenarios` backed by a `<slug>.ts` resolver instead of a
+   * Slugs in `scenarios` backed by a `<slug>.mjs` resolver instead of a
    * `<slug>.json` fixture. Always present; empty when the endpoint has none.
    */
   resolverScenarios: string[]

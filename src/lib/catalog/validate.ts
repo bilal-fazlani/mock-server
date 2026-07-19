@@ -118,12 +118,12 @@ export function validateCatalog(catalog: Catalog, catalogDir: string): Validatio
       if (!(DEFAULT_SCENARIO in endpoint.scenarios)) {
         errors.push(
           `${label}: missing required "${DEFAULT_SCENARIO}" scenario ` +
-            `(no default.json or default.ts)`,
+            `(no default.json or default.mjs)`,
         )
       }
       if (REAL_SCENARIO in endpoint.scenarios) {
         errors.push(
-          `${label}: scenario "${REAL_SCENARIO}" must not exist (real.json or real.ts) — ` +
+          `${label}: scenario "${REAL_SCENARIO}" must not exist (real.json or real.mjs) — ` +
             `passthrough is implicit`,
         )
       }
@@ -132,14 +132,14 @@ export function validateCatalog(catalog: Catalog, catalogDir: string): Validatio
       )
       if (Object.keys(endpoint.scenarios).length > 0 && fixtureBacked.length === 0) {
         errors.push(
-          `${label}: every scenario is resolver-backed (.ts) — declare at least one ` +
+          `${label}: every scenario is resolver-backed (.mjs) — declare at least one ` +
             `fixture-backed scenario for resolvers to return`,
         )
       }
 
       for (const scenario of Object.keys(endpoint.scenarios)) {
         if (scenario === REAL_SCENARIO) continue // already flagged above
-        if (endpoint.resolverScenarios.includes(scenario)) continue // backed by <slug>.ts, not a fixture
+        if (endpoint.resolverScenarios.includes(scenario)) continue // backed by <slug>.mjs, not a fixture
         const file = fixtureFilePath(catalogDir, system.slug, endpoint.name, scenario)
         if (!fs.existsSync(file)) {
           errors.push(`${label}: missing fixture for scenario "${scenario}" (${file})`)

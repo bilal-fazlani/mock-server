@@ -3,7 +3,7 @@
 ## Fixtures
 
 Not every scenario is a fixture — a scenario can instead be backed by a
-`<slug>.ts` resolver that computes its outcome at request time; see
+`<slug>.mjs` resolver that computes its outcome at request time; see
 [Code-backed scenario resolvers](dynamic.md). This page covers the
 fixture-backed (`<slug>.json`) case.
 
@@ -130,7 +130,7 @@ The grammar, in full:
   function.
 
 Function names resolve to a [built-in transform](#built-in-transforms) or a
-[custom function](#custom-functions-_functionsts); anything else is a catalog
+[custom function](#custom-functions-_functionsmjs); anything else is a catalog
 error at startup, never a runtime surprise.
 
 ## Built-in transforms
@@ -144,17 +144,15 @@ more string filters are planned as additional built-ins on this same mechanism.
 Built-in names (including `now`, `body`, `path`, `query`, and `profileKey`) are
 reserved — a custom function may not use them.
 
-## Custom functions (`_functions.ts`)
+## Custom functions (`_functions.mjs`)
 
 When the built-ins can't express what a fixture needs — formatting, derived
 values, combining request inputs — export your own functions from a
-`_functions.ts` (or plain-JS `_functions.mjs`) file in the catalog:
+`_functions.mjs` file in the catalog:
 
-```ts
-// catalog/hello-system/_functions.ts
-import type { MockFn } from '../../src/lib/mock-engine/functions'
-
-export const label: MockFn = (_ctx, status) => `CUSTOMER: ${String(status).toUpperCase()}`
+```js
+// catalog/hello-system/_functions.mjs
+export const label = (_ctx, status) => `CUSTOMER: ${String(status).toUpperCase()}`
 ```
 
 ```json
@@ -179,9 +177,9 @@ wins** when names collide:
 
 | Level | Location | Visible to |
 | --- | --- | --- |
-| Catalog | `catalog/_functions.ts` | every endpoint |
-| System | `catalog/<system>/_functions.ts` | that system's endpoints |
-| Endpoint | `catalog/<system>/<endpoint>/_functions.ts` | that endpoint's fixtures |
+| Catalog | `catalog/_functions.mjs` | every endpoint |
+| System | `catalog/<system>/_functions.mjs` | that system's endpoints |
+| Endpoint | `catalog/<system>/<endpoint>/_functions.mjs` | that endpoint's fixtures |
 
 Functions run in the same sandbox as
 [scenario resolvers](dynamic.md#compilation-sandboxing-and-timeouts): compiled
@@ -189,10 +187,9 @@ once at startup, executed in an empty `node:vm` context with a **100 ms
 per-call timeout**, no `require`, `process`, `fetch`, or `console`. In
 practice:
 
-- **Type-only imports only.** `import type { MockFn } from …` is erased at
-  compile time and is fine; a value import fails at catalog load because the
-  sandbox has no `require`. (The `MockFn` import path shown above resolves for
-  catalogs inside this repository; editor type-checking is optional either way.)
+- **No imports.** The sandbox has no `require`, so an `import` fails at
+  catalog load. Everything a function needs arrives through its arguments and
+  `context`.
 - **Write pure functions.** Module-level mutable state survives across requests
   for the life of the process — it is not part of the contract. Derive
   variability from `context.now` and `context.seed` instead of `Date`/`Math.random`
@@ -200,6 +197,26 @@ practice:
 - **Failures are loud.** A function that throws, exceeds its timeout, or
   returns something unusable fails the request with a `500` naming the function
   and the placeholder — never a silent empty string.
+
+### Editor support (optional)
+
+For autocomplete on `context` in any editor, paste this self-contained JSDoc
+block at the top of the file — it needs nothing installed and no
+`tsconfig.json`, and is safe to delete:
+
+```js
+// @ts-check
+/** @typedef {{request: {method: string, path: string,
+ *   pathParams: Record<string,string>, query: Record<string,string[]>,
+ *   headers: Record<string,string>, body: unknown},
+ *   now: Date, seed: string}} FnContext */
+
+/** @param {FnContext} ctx */
+export const whoami = (ctx) => ctx.request.headers['x-user'] ?? 'anonymous'
+```
+
+With `// @ts-check` on, the editor also flags typos like
+`ctx.request.params` (it is `pathParams`) before a request ever runs.
 
 ### Errors
 
@@ -211,7 +228,7 @@ broken `_functions` file. Request errors return a `500` and are recorded in the
 | --- | --- | --- |
 | The file fails to transpile or throws while evaluating | — | Startup. The catalog does not load. |
 | The file has a `default` export, or exports a [reserved name](#built-in-transforms) | — | Startup. The catalog does not load. |
-| Both `_functions.ts` and `_functions.mjs` exist at the same level | — | Startup. The catalog does not load — remove one. |
+| A `_functions.ts` file exists (`.ts` authoring was removed) | — | Startup. The catalog does not load — rename it to `_functions.mjs` and remove type annotations. |
 | The function throws | `function_error` | Request time. |
 | The function exceeds its 100&nbsp;ms timeout | `function_timeout` | Request time — guards against a runaway synchronous loop. |
 | The function returns something with no JSON representation — `undefined`, a function, a symbol, a bigint, or a non-finite number (`NaN`, `Infinity`) | `function_error` | Request time. |

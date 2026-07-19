@@ -43,7 +43,7 @@ function resolverKey(systemSlug: string, endpointName: string, slug: string): st
   return `${systemSlug}/${endpointName}/${slug}`
 }
 
-// Compiles every endpoint's <slug>.ts resolvers at startup, aggregating
+// Compiles every endpoint's <slug>.mjs resolvers at startup, aggregating
 // failures into the same fail-fast error list as catalog/config problems.
 // Also patches each resolver-backed scenario's UI label and summary from the
 // compiled module's optional `description`/`summary` exports (label = slug
@@ -57,7 +57,7 @@ export function compileResolvers(
   for (const system of catalog.systems) {
     for (const endpoint of system.endpoints) {
       for (const slug of endpoint.resolverScenarios) {
-        const label = `${system.slug}/${endpoint.name}/${slug}.ts`
+        const label = `${system.slug}/${endpoint.name}/${slug}.mjs`
         try {
           const source = fs.readFileSync(
             resolverFilePath(catalogDir, system.slug, endpoint.name, slug),
@@ -78,7 +78,7 @@ export function compileResolvers(
 }
 
 // Dev-mode counterpart to compileResolvers: re-reads and re-compiles a single
-// endpoint's <slug>.ts per call so edits apply live. A compile error here
+// endpoint's <slug>.mjs per call so edits apply live. A compile error here
 // surfaces as a request-time 500 rather than a startup failure.
 function devCompileResolver(
   catalog: Catalog,
@@ -92,7 +92,7 @@ function devCompileResolver(
     ?.endpoints.find((e) => e.name === endpointName)
   if (!endpoint?.resolverScenarios.includes(slug)) return null
   const source = fs.readFileSync(resolverFilePath(catalogDir, systemSlug, endpointName, slug), 'utf8')
-  return compileResolver(source, `${systemSlug}/${endpointName}/${slug}.ts`)
+  return compileResolver(source, `${systemSlug}/${endpointName}/${slug}.mjs`)
 }
 
 // Startup validation gate: the first request (or page render) that touches

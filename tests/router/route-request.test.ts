@@ -1278,7 +1278,7 @@ describe('user function errors surface as structured 500s, not crashes', () => {
       'sys/_system.json': SYSTEM_META,
       'sys/ep/_endpoint.json': ENDPOINT_META,
       'sys/ep/default.json': { status: 200, body: { result: '{{boom}}' } },
-      'sys/_functions.ts': `export function boom() { throw new Error('kaboom') }`,
+      'sys/_functions.mjs': `export function boom() { throw new Error('kaboom') }`,
     })
 
     const res = await routeRequest(get('/boom'), buildDeps(dir))
@@ -1295,7 +1295,7 @@ describe('user function errors surface as structured 500s, not crashes', () => {
       'sys/_system.json': SYSTEM_META,
       'sys/ep/_endpoint.json': ENDPOINT_META,
       'sys/ep/default.json': { status: 200, body: { result: '{{spin}}' } },
-      'sys/_functions.ts': `export function spin() { while (true) {} }`,
+      'sys/_functions.mjs': `export function spin() { while (true) {} }`,
     })
 
     const res = await routeRequest(get('/boom'), buildDeps(dir))

@@ -63,10 +63,10 @@ curl -s <origin>/customers/customer-123/status
   selection that stored a scenario pick under the old name needs re-picking (see
   below).
 - **`default` and `real` are reserved slugs.** Every endpoint must have a
-  `default` scenario — either `default.json` or `default.ts`; no endpoint may have
-  a `real.json` or `real.ts` — validation enforces both.
+  `default` scenario — either `default.json` or `default.mjs`; no endpoint may have
+  a `real.json` or `real.mjs` — validation enforces both.
 - **Restart in production for catalog, fixture, *or* resolver changes.** The whole
-  tree is loaded once at startup, and every `<scenario>.ts` is compiled up front —
+  tree is loaded once at startup, and every `<scenario>.mjs` is compiled up front —
   a resolver that doesn't compile fails the boot. In development, fixture edits and
   resolver edits both apply live, and a broken resolver is a request-time
   `500 resolver_compile_error` instead of a crash.

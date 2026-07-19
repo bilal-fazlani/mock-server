@@ -92,7 +92,7 @@ describe('buildScenarioViews - resolver source and syntax highlighting', () => {
     dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mock-scenario-view-'))
     fs.mkdirSync(path.join(dir, 'test-system', 'hello_world'), { recursive: true })
     fs.writeFileSync(
-      path.join(dir, 'test-system', 'hello_world', 'by-amount.ts'),
+      path.join(dir, 'test-system', 'hello_world', 'by-amount.mjs'),
       "export default function resolve() {\n  return 'default'\n}\n",
     )
     fs.writeFileSync(

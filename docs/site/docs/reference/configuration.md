@@ -14,7 +14,7 @@ shows how they steer routing.
 | `UNMOCKED_USERS` | `ERROR` (default)<br>`DEFAULT_MOCK`<br>`REAL` | What happens when a profiled endpoint extracts a profile ID but **no profile exists** for it. `ERROR`: loud `404`. `DEFAULT_MOCK`: serve the endpoint's `default` fixture. `REAL`: proxy to the live upstream — the classic "mock a few curated users, pass everyone else through" setup. |
 | `PASSTHROUGH_TIMEOUT_MS` | Number of milliseconds<br>(default `30000`) | Timeout for `real` upstream requests. A timeout returns `504`. |
 | `MOCK_CONSOLE_LOG_LEVEL` | `info` (default)<br>`warn`<br>`error` | Controls one-line console request logs. `info` logs every matched or unmatched mock request. `warn` logs warnings and errors. `error` logs only framework/routing/setup failures. See [Request logs](../driving/request-logs.md). |
-| `RESOLVER_HISTORY_LIMIT` | Positive integer<br>(default `10`) | Number of previously-returned scenario slugs kept and passed as `history` to a resolver-backed scenario (`<slug>.ts`), per slug. See [Code-backed scenario resolvers](../building/dynamic.md). |
+| `RESOLVER_HISTORY_LIMIT` | Positive integer<br>(default `10`) | Number of previously-returned scenario slugs kept and passed as `history` to a resolver-backed scenario (`<slug>.mjs`), per slug. See [Code-backed scenario resolvers](../building/dynamic.md). |
 | `REQUEST_LOG_TTL_DURATION` | Duration string<br>(default `1d`) | How long request logs are retained before MongoDB expires them. A positive integer with a unit — `s`, `m`, `h`, or `d` (e.g. `30m`, `24h`, `7d`). Changing it migrates the existing TTL index in place on the next start; there is no way to disable expiry. See [Request logs](../driving/request-logs.md). |
 
 !!! note "Embedded MongoDB is ephemeral"
@@ -47,11 +47,11 @@ there and reports *all of them at once* as a single startup error — nothing el
 runs until the tree itself is well-formed:
 
 - Every entry directly under `catalog/` is a directory (a system) or a
-  `_functions.ts`/`_functions.mjs` file — anything else is a stray entry.
+  `_functions.mjs` file — anything else is a stray entry.
 - Every system directory has a `_system.json` that parses as a JSON object with
   non-empty `name` and `baseUrlEnv` strings.
 - Every entry inside a system directory (other than `_system.json` and
-  `_functions.ts`/`_functions.mjs`) is a directory (an endpoint) — anything else
+  `_functions.mjs`) is a directory (an endpoint) — anything else
   is a stray entry.
 - Every endpoint directory has an `_endpoint.json` that parses as a JSON object
   with non-empty `displayName`, `method`, and `path` strings. If present,
@@ -59,8 +59,8 @@ runs until the tree itself is well-formed:
   and `captureProfileKeys` is an array of objects with non-empty `namespace` and
   `keySelector` strings.
 - Every entry inside an endpoint directory (other than `_endpoint.json`,
-  `_schema.json`, and `_functions.ts`/`_functions.mjs`) is a file named
-  `<scenario>.json` (fixture-backed) or `<scenario>.ts` (resolver-backed), where
+  `_schema.json`, and `_functions.mjs`) is a file named
+  `<scenario>.json` (fixture-backed) or `<scenario>.mjs` (resolver-backed), where
   `<scenario>` matches `[a-z0-9][a-z0-9_-]*` — anything else (wrong case, bad
   characters, a sub-directory) is a stray entry.
 - Dotfiles anywhere in the tree are silently ignored, not flagged.
@@ -80,9 +80,9 @@ now-known catalog and reports its own list of errors:
   `captureProfileKeys` is allowed only when a profiled endpoint's
   `profileIdSelector` resolves the profile directly.
 - Every scenario slug is backed by exactly one file: `<slug>.json` **XOR**
-  `<slug>.ts` — both existing for the same slug is an error.
+  `<slug>.mjs` — both existing for the same slug is an error.
 - Every endpoint has a `default` scenario, as either `default.json` or
-  `default.ts`, and **must not** have a `real.json` or `real.ts` — `real` is a
+  `default.mjs`, and **must not** have a `real.json` or `real.mjs` — `real` is a
   reserved slug, never a fixture or a resolver.
 - Every endpoint has **at least one fixture-backed scenario** — an endpoint
   whose scenarios are all resolvers would leave resolvers nothing to return
@@ -101,20 +101,20 @@ now-known catalog and reports its own list of errors:
   (bare `now`, piped `| now:iso`, `body:$.x`) — is an error. Any `path:`
   placeholder, including one nested in a call argument, references a declared
   param.
-- Every `_functions.ts`/`_functions.mjs` file compiles and evaluates in the
+- Every `_functions.mjs` file compiles and evaluates in the
   sandbox. A user function whose name is reserved (`now`, `body`, `path`,
   `query`, `profileKey`, or any built-in transform), a `default` export (a
-  placeholder has no name to call it by), a compile error, or both a `.ts` and
-  an `.mjs` file at the same level are all errors. Like a broken
-  resolver, a broken `_functions` file is caught before deploy by
-  `npm run validate:catalog`.
+  placeholder has no name to call it by), a compile error, or a leftover
+  `_functions.ts` file (`.ts` authoring was removed — rename to `.mjs`) are
+  all errors. Like a broken resolver, a broken `_functions` file is caught
+  before deploy by `npm run validate:catalog`.
 - No two endpoints of the same method have **overlapping** path templates (which
   would make matching ambiguous).
 - If an endpoint has a `_schema.json`, it must compile as valid JSON Schema, and
   every scenario fixture's `body` must match its status-matched response schema —
   see [Schemas](../building/schemas.md).
 - `PASSTHROUGH_AS_DEFAULT=true` → every system's `baseUrlEnv` is set.
-- Every scenario resolver (`<slug>.ts`) compiles and default-exports a
+- Every scenario resolver (`<slug>.mjs`) compiles and default-exports a
   function. `npm run validate:catalog` runs this same compilation step, so a
   broken resolver is caught before deploy — see
   [Code-backed scenario resolvers](../building/dynamic.md#compilation-sandboxing-and-timeouts).

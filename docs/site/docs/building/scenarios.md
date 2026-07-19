@@ -4,27 +4,27 @@
 
 Every scenario an endpoint can produce is backed by exactly one file in its
 directory: either a fixture (`<scenario>.json`) or a code-backed resolver
-(`<scenario>.ts`) — never both for the same slug. Either way the filename
+(`<scenario>.mjs`) — never both for the same slug. Either way the filename
 (minus its extension) is the scenario key, matching the same grammar
 `[a-z0-9][a-z0-9_-]*`. One name is reserved:
 
 - `real` — **must never have a fixture or resolver file** (neither `real.json`
-  nor `real.ts` may exist — a validation error either way). Every endpoint
+  nor `real.mjs` may exist — a validation error either way). Every endpoint
   implicitly supports proxying the request to the live upstream whose base URL
   is read from the system's `baseUrlEnv`. The proxied status, headers, and body
   are returned as-is.
 
 `default` is not reserved in the sense of being off-limits — it's **required**
-on every endpoint, backed by either `default.json` or `default.ts`. Served
+on every endpoint, backed by either `default.json` or `default.mjs`. Served
 when a selection resolves to `default`, and under `UNMOCKED_USERS=DEFAULT_MOCK`.
 Because it's a fixed name (not a repointable field), "follow the default" and
 "pick `default`" are the same thing when `PASSTHROUGH_AS_DEFAULT=false`. When
-`default` is backed by a resolver (`default.ts`), that resolver becomes the
+`default` is backed by a resolver (`default.mjs`), that resolver becomes the
 endpoint's automatic, request-driven baseline — see [Code-backed scenario
-resolvers](dynamic.md#defaultts-making-request-driven-routing-the-baseline).
+resolvers](dynamic.md#defaultmjs-making-request-driven-routing-the-baseline).
 
 An endpoint's scenarios can freely mix fixtures and resolvers — some slugs
-`.json`, others `.ts` — with one constraint enforced at startup: every
+`.json`, others `.mjs` — with one constraint enforced at startup: every
 endpoint needs **at least one fixture-backed scenario**, since a resolver must
 ultimately return a fixture-backed slug (or `"real"`) and would otherwise have
 nothing to return.
@@ -39,8 +39,8 @@ nothing to return.
 
 ## Code-backed scenarios
 
-A scenario backed by `<slug>.ts` instead of `<slug>.json` defers the response
-decision to a small TypeScript function instead of a static fixture: it looks
+A scenario backed by `<slug>.mjs` instead of `<slug>.json` defers the response
+decision to a small JavaScript function instead of a static fixture: it looks
 at the request (and a bounded history of what it returned before) and returns
 the slug of a fixture-backed scenario on the same endpoint (or `"real"`) to
 serve. That returned slug then flows through the normal pipeline — fixture

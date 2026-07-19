@@ -35,13 +35,15 @@ export function resolverFilePath(
   endpointName: string,
   slug: string,
 ): string {
-  return path.join(catalogDir, systemSlug, endpointName, `${slug}.ts`)
+  return path.join(catalogDir, systemSlug, endpointName, `${slug}.mjs`)
 }
 
 export function compileResolver(source: string, label: string): CompiledResolver {
   let code: string
   try {
-    code = transformSync(source, { loader: 'ts', format: 'cjs', target: 'node18' }).code
+    // ESM→CJS only — `.mjs` is the sole authoring format (#26); esbuild stays
+    // for the module-format transform, not for type stripping.
+    code = transformSync(source, { loader: 'js', format: 'cjs', target: 'node18' }).code
   } catch (err) {
     throw new ResolverCompileError(`${label}: failed to transpile resolver: ${message(err)}`)
   }

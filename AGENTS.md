@@ -139,3 +139,10 @@ lost. From a feature worktree, note the change and apply it on `main` after merg
 
 The column conventions, node/arrow spec, and colour rules are in the `feature-lifecycle`
 skill under "The ticket board diagram". Use the `tldraw-offline` skill to edit it.
+
+## Browser preview from a feature worktree runs the wrong code
+
+`preview_start` reads the repo-root `.claude/launch.json` and its `dev` entry spawns
+`npm run dev` at the **main checkout** — from a worktree you'll silently verify stale code.
+Add a config whose `runtimeArgs` use `npm --prefix <worktree-path> run dev`, then confirm
+with `lsof -a -p <pid> -d cwd` that the server's cwd is the worktree before trusting it.

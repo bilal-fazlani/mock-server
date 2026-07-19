@@ -17,7 +17,7 @@ When the resolved scenario slug is resolver-backed, the trace's `scenario`
 field is overwritten with the *resolved* slug — the resolver's return value,
 not the pinned slug that ran it — and a separate `trace.resolver = { slug,
 returned }` field records the pick, e.g. `{ slug: "default", returned:
-"hold" }` for a `default.ts` resolver that routed to `hold`.
+"hold" }` for a `default.mjs` resolver that routed to `hold`.
 `trace.scenarioSource` is **not** overwritten by the resolver; it keeps
 reporting the original selection mechanism (`pin`, `sequence`, `implicit`,
 `global`, or `unmocked_policy`), so a log entry reads as "source `implicit`,
