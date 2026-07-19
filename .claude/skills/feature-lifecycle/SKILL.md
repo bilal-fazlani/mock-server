@@ -177,9 +177,9 @@ Then post a **summary comment** describing what shipped, and move the card to
 - **8a. Approved** — trigger: the user says merge / push / merge-PR.
   Perform the git action they asked for, then **close the issue**:
   `gh issue close N`. The board auto-sets `Done`. (Do not also edit the Status field —
-  closing is enough.) Then **update `tickets.tldraw` on `main`** — move the node to the
-  `shipped` column, recolour it `grey`, set line 2 to `closed`, draw `satisfied` arrows to
-  whatever it unblocked, and move any newly-unblocked ticket left. Commit it with the merge.
+  closing is enough.) Then **update `tickets.tldraw` on `main`** — restyle and reposition the
+  node the way the canvas already presents closed tickets, connect it to whatever it
+  unblocked, and re-place any newly-unblocked ticket. Commit it with the merge.
 - **8b. Changes requested** — trigger: the user asks for changes during review.
   Post a comment capturing the requested changes, move the card back to
   **In Progress**, and return to phase 5.
@@ -195,45 +195,38 @@ It is a binary file (a zip wrapping `db.sqlite`), so git cannot merge two versio
 branches both edit it, one side's work is lost. Never edit it from inside a feature worktree;
 finish the branch, merge, then update the diagram on `main`.
 
-### What the columns mean
+### Read the canvas before you change it
 
-Position encodes **dependency readiness**, not the project board's lane. A card moving
-`Ready` → `In progress` changes nothing here; closing an issue or resolving a blocker does.
+The canvas is the spec. Its layout, columns, colours, sizes, and text format are whatever is
+on it right now — they have changed before and will change again. **Always inspect the
+current shapes first and infer the conventions in use**, then make your edit match them. Do
+not carry in a remembered layout, and do not assume a particular column or grouping exists.
 
-| Column | x band | Holds |
-| --- | --- | --- |
-| `shipped (closed)` | 0 | closed issues |
-| `actionable now` | ~623 | nothing blocking them |
-| `after wave 2` | ~1330 | unblocked once wave 1 lands |
-| `after wave 3` | ~1830 | unblocked once wave 2 lands |
-| `independent / no dependencies` | 0, y≈1050 | no edges at all; scheduled by priority |
+If the convention is genuinely ambiguous, pick the reading most consistent with the majority
+of existing shapes and say what you inferred.
+
+### What it encodes
+
+Dependency readiness, not the project board's lane. `Ready` → `In progress` changes nothing
+here; opening or closing an issue, or a dependency appearing/resolving, does.
 
 ### When to update
 
-- **Issue opened** — add a node in the x band matching its dependency depth. No blockers → `actionable now`; no edges at all → the independent row.
-- **Issue closed** — recolour `grey`, set line 2 to `closed`, move it to the `shipped` column, and draw a `satisfied` arrow to anything it unblocked.
-- **A blocker resolves** — move the newly-unblocked ticket left into the earliest band that is now correct.
-- **A relationship changes** (parent/sub-issue, blocked-by, blocking) — add or remove the arrow, and re-band if readiness changed. A ticket in the independent row that gains an arrow must move out of it.
-
-### Node and arrow spec (match exactly)
-
-- **Node:** `geo` rectangle, `w:250 h:95`, `dash:"draw"`, `fill:"semi"`, `size:"s"`, `font:"draw"`, text centered. Exactly two lines: `#<num> <short title>`, then one word — `closed`, or the ticket's `area:` tag.
-- **Line 2 is the `area:` label, never the type label.** `templating`, `build`, `resolver`, `fault-sim`, `ui` — not `bug`/`enhancement`/`tech-debt`. A closed ticket shows `closed` instead.
-- **Colour tracks that same area:** `grey`=closed (overrides area), `violet`=templating, `orange`=build, `blue`=shared bucket for `resolver`, `fault-sim`, and `ui`. Use `blue` for those three; don't invent a colour without saying so.
-- **Arrow:** `kind:"arc"`, `color:"yellow"`, `dash:"draw"`, `arrowheadEnd:"arrow"`, `arrowheadStart:"none"`, **bound at both ends** to the two ticket shapes — never free-floating. Label it with a short phrase naming the dependency.
+Any ticket status or relationship change: issue opened or closed, a blocker resolved, a
+parent/sub-issue or blocked-by link added or removed. Add, move, restyle, or connect nodes
+so the canvas again reflects reality under its own conventions.
 
 ### Arrows are editorial, not derived
 
 GitHub records **no** `blocked-by` / `blocking` relationships for these issues — every arrow
-on the canvas is hand-drawn judgement about what unblocks what. So do not try to reconcile
-the arrows against `gh issue view --json blockedBy`; it is empty and will read as "delete
-every arrow". Equally, a node with no arrows is not necessarily wrong — #12 (closed) has
-none and that is correct.
+is hand-drawn judgement about what unblocks what. Never reconcile arrows against
+`gh issue view --json blockedBy`; it is empty and will read as "delete every arrow". A node
+with no arrows is not necessarily wrong.
 
-The one thing that *is* checkable against GitHub is **state**: any issue closed on GitHub
-must be `grey`, show `closed`, and sit in the shipped column. Verify with
+The one thing that *is* checkable against GitHub is **state**: every issue closed on GitHub
+must be presented on the canvas the way the other closed tickets are. Verify with
 `gh issue list --state closed --json number`. This is the failure mode that has actually
-occurred — #22 sat in `actionable now` as an open-looking violet node after it was closed.
+occurred — a closed ticket left looking open.
 
 ## The `Refs #N` rule (do not violate)
 
