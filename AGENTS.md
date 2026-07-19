@@ -100,6 +100,24 @@ of the job, not just editing the text inside it.
 Purely internal changes (refactors with no behavior change, test-only edits, styling with no
 functional effect) don't need doc updates.
 
+## A new env var lands in four places, not one
+
+Adding a config variable means adding it **everywhere it is surfaced**, in the same commit:
+
+1. **The parser** in `src/lib/config.ts`, validated at the startup gate in `src/lib/runtime.ts`
+   so a bad value fails loudly at boot rather than mid-request.
+2. **`APP_ENVIRONMENT`** in `src/lib/environment.ts` — this is what the `/ui/environment`
+   page renders. A variable missing here is invisible to anyone operating the server, and
+   nothing fails: the page just silently doesn't mention it. Set `category`, a one-line
+   `description`, `defaultValue` when there is one, and `possibleValues` for an enum.
+   `tests/lib/environment.test.ts` asserts the full row list, so it must be updated too.
+3. **`.env.example`**, with the comment explaining what the value does.
+4. **`docs/site/docs/reference/configuration.md`**, the canonical settings table — per
+   "Documentation is part of every feature" above.
+
+The same applies when a variable is renamed or removed. This rule exists because
+`REQUEST_LOG_TTL_DURATION` shipped documented but absent from the environment page.
+
 ## GitHub issue labels
 
 Issues are labelled on **two orthogonal axes** — one **type** and one **area**. Whenever

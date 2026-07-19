@@ -218,6 +218,33 @@ request logs, so resolver behavior never depends on log retention:
   selection (resetting the endpoint back to its default) likewise drops that
   endpoint's global history for the slugs involved.
 
+### Retention for callers with no profile
+
+Under `UNMOCKED_USERS=DEFAULT_MOCK`, a request whose profile ID has no profile
+still runs a resolver-backed `default` — and appends to a history window keyed
+by that ID. Since the ID comes from request content, an unbounded number of
+such windows can be minted, and there is no profile to delete that would ever
+clear them.
+
+Those windows therefore expire on their own:
+
+- A window written for a **caller with no profile** carries an expiry, and
+  MongoDB removes it once reached. The window is `RESOLVER_HISTORY_TTL_DURATION`
+  (default `1d`) — see
+  [Configuration](../reference/configuration.md#app-configuration).
+- The expiry **slides forward on every call**, so an ID that keeps calling keeps
+  its window; only an idle one is reaped.
+- A window written for a **real profile or a global-mock selection carries no
+  expiry at all** and is kept indefinitely. Creating a profile for an ID that
+  was previously unmocked promotes its existing history to permanent on the next
+  call, so a "pending twice, then success" resolver never silently restarts on a
+  curated profile.
+
+Removing a `<slug>.mjs` from an endpoint strands that slug's windows the same
+way — nothing owns them any more. They are swept on the next server start:
+history for any `(endpoint, scenario)` pair that is no longer resolver-backed in
+the catalog is deleted.
+
 ## Errors
 
 | Situation | Trace error code | When |

@@ -8,6 +8,7 @@ import {
   parsePassthroughAsDefault,
   parseRequestLogTtlSeconds,
   parseResolverHistoryLimit,
+  parseResolverHistoryTtlSeconds,
   parseUnmockedUsers,
   resolveCatalogDir,
   type ConsoleLogLevel,
@@ -29,6 +30,7 @@ export interface Runtime {
   timeoutMs: number
   schemas: SchemaRegistry
   resolverHistoryLimit: number
+  resolverHistoryTtlSeconds: number
   loadFixture: (systemSlug: string, endpointName: string, scenario: string) => Fixture
   getCompiledResolver: (
     systemSlug: string,
@@ -103,6 +105,9 @@ export function getRuntime(): Runtime {
   const unmockedUsers = parseUnmockedUsers(process.env.UNMOCKED_USERS)
   const consoleLogLevel = parseConsoleLogLevel(process.env.MOCK_CONSOLE_LOG_LEVEL)
   const resolverHistoryLimit = parseResolverHistoryLimit(process.env.RESOLVER_HISTORY_LIMIT)
+  const resolverHistoryTtlSeconds = parseResolverHistoryTtlSeconds(
+    process.env.RESOLVER_HISTORY_TTL_DURATION,
+  )
   // Validate REQUEST_LOG_TTL_DURATION at the same startup gate as the other
   // config; the value itself is re-parsed by ensureIndexes (which runs on first
   // DB connect, independent of the runtime), so we discard it here.
@@ -134,6 +139,7 @@ export function getRuntime(): Runtime {
     timeoutMs: Number(process.env.PASSTHROUGH_TIMEOUT_MS ?? 30000),
     schemas,
     resolverHistoryLimit,
+    resolverHistoryTtlSeconds,
     loadFixture: isDev
       ? (systemSlug, endpointName, scenario) =>
           loadFixture(catalogDir, systemSlug, endpointName, scenario)

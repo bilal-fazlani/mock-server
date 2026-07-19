@@ -30,8 +30,17 @@ async function handle(
       advanceScenarioProgress(await getDb(), profileId, endpointName, steps),
     getDynamicHistory: async (ownerType, ownerKey, endpointName, scenario) =>
       getDynamicHistory(await getDb(), ownerType, ownerKey, endpointName, scenario),
-    appendDynamicHistory: async (ownerType, ownerKey, endpointName, scenario, slug) =>
-      appendDynamicHistory(await getDb(), ownerType, ownerKey, endpointName, scenario, slug, rt.resolverHistoryLimit),
+    appendDynamicHistory: async (ownerType, ownerKey, endpointName, scenario, slug, ownerless) =>
+      appendDynamicHistory(
+        await getDb(),
+        ownerType,
+        ownerKey,
+        endpointName,
+        scenario,
+        slug,
+        rt.resolverHistoryLimit,
+        ownerless ? rt.resolverHistoryTtlSeconds : null,
+      ),
     passthrough,
     writeLog: async (entry) => insertLogEntry(await getDb(), entry),
   })
