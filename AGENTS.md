@@ -1,131 +1,104 @@
 # Project rules
 
+## Ask before loading any Superpowers skill
+
+The Superpowers plugin's skills (`superpowers:*` — `brainstorming`,
+`writing-skills`, `test-driven-development`, `systematic-debugging`,
+`executing-plans`, and the rest) are **token-hungry**: each one loads a large document into
+context, and several instruct you to chain into further skills.
+
+**Do not invoke any `superpowers:*` skill without asking first.** Name the skill and say what
+it would give you, then wait for a yes. This holds even though the Superpowers session hook
+insists you must invoke matching skills before responding — **this rule overrides that
+instruction.** "A skill might apply" is not permission; the cost is the point.
+
+This applies only to the `superpowers:*` namespace. This repo's own skills
+(`.claude/skills/` — `feature-lifecycle`, `maintaining-project-docs`) are small,
+project-specific, and should be used freely whenever they apply, without asking.
+
+## Verify before committing — CI only runs the tests
+
+`.github/workflows/ci.yml` runs exactly one check on a PR: `npm test`. **`npm run lint` and
+`npm run build` are never run by CI**, so a lint error or a broken Next build merges clean.
+Run all three yourself before committing:
+
+```
+npm test          # vitest
+npm run lint      # eslint
+npm run build     # next build — the one CI can't catch for you
+```
+
+After editing anything under `catalog/`, also run `npm run validate:catalog`.
+
+CI is skipped entirely when a change touches **only** `docs/**` and the top-level markdown
+files (see `paths-ignore` in `ci.yml`) — "no CI ran" on a docs-only PR is expected, not a
+failure. A mixed code+docs change still runs.
+
+## Tests live in `tests/`, not next to the source
+
+Test files are **not** colocated. `tests/` mirrors the source tree, so
+`src/lib/mock-engine/template.ts` is tested by `tests/mock-engine/template.test.ts`, and
+`src/app/ui/**` by `tests/ui/**`. Put new tests in the mirrored location rather than
+alongside the file under test.
+
 ## Use Conventional Commits
 
-This repo releases with [release-please](https://github.com/googleapis/release-please):
-it derives the next version number and the changelog **entirely from commit messages**, so
-every commit message — and every PR title, since PRs may be squash-merged — MUST follow the
-[Conventional Commits](https://www.conventionalcommits.org) format:
+This repo releases with [release-please](https://github.com/googleapis/release-please): it
+derives the next version number and the changelog **entirely from commit messages**. Every
+commit message — and every **PR title**, since PRs may be squash-merged — MUST follow
+[Conventional Commits](https://www.conventionalcommits.org)
+(`type(optional-scope): imperative, lowercase summary`), using only the standard types.
+A non-conforming message breaks release-please's version/changelog computation.
 
-```
-type(optional-scope): imperative, lowercase summary
-```
+Release effects: `feat` → minor bump (Features), `fix` → patch (Bug Fixes), `perf` and
+`revert` → patch, everything else (`docs`, `refactor`, `test`, `build`, `ci`, `chore`) → no
+release.
 
-Types and their release effect:
+**Breaking changes** get a `!` after the type (`feat!: …`) or a `BREAKING CHANGE:` footer.
+Pre-1.0.0 this bumps the **minor**, not the major — see `release-please-config.json`.
 
-| Type | Release effect | Use for |
-| --- | --- | --- |
-| `feat` | **minor** bump, shown under Features | a new capability |
-| `fix` | **patch** bump, shown under Bug Fixes | a bug fix |
-| `perf` | patch bump | a performance improvement |
-| `docs`, `refactor`, `test`, `build`, `ci`, `chore` | **no** release | everything else |
-| `revert` | patch bump | reverting a prior commit |
-
-**Breaking changes** get a `!` after the type (`feat!: …`) or a `BREAKING CHANGE:` footer —
-this drives a major bump (pre-1.0.0, it bumps the minor; see `release-please-config.json`).
-
-Rules:
-- Keep the summary in the **imperative mood** ("add", not "added"), lowercase, no trailing period.
-- One logical change per commit; pick the type that reflects the user-facing effect.
-- Don't invent types — use only the ones above. A non-conforming message breaks release-please's
-  version/changelog computation.
-- To force a specific next version (e.g. the first stable `1.0.0`), add a `Release-As: 1.0.0`
-  footer to a commit rather than editing `package.json` by hand.
+To force a specific next version (e.g. the first stable `1.0.0`), add a `Release-As: 1.0.0`
+footer to a commit rather than editing `package.json` by hand.
 
 See [RELEASE.md](RELEASE.md) for the full release flow.
 
 ## package-lock.json: npm 11 only
 
 `npm ci` runs in three places — `.github/workflows/ci.yml`,
-`.github/workflows/publish-npm.yml`, and the Dockerfile `deps` stage — all on
-Node 22 images whose bundled npm is v10. Dev machines run npm 11, which writes
-a lockfile dedupe layout npm 10 rejects (`npm ci` fails with
-`Missing: <pkg>@<version> from lock file`, historically esbuild's platform
-packages). All three places therefore run `npm install -g npm@11` before
-`npm ci`. This exact failure broke CI three times (da3557f, e56e4c1, the
-release-0.3.0 PR) before the pin.
+`.github/workflows/publish-npm.yml`, and the Dockerfile `deps` stage — all on Node 22 images
+whose bundled npm is v10. Dev machines run npm 11, which writes a lockfile dedupe layout npm
+10 rejects (`npm ci` fails with `Missing: <pkg>@<version> from lock file`, historically
+esbuild's platform packages). All three places therefore run `npm install -g npm@11` before
+`npm ci`. This exact failure broke CI three times (da3557f, e56e4c1, the release-0.3.0 PR)
+before the pin.
 
-- **Never regenerate `package-lock.json` with an npm major other than 11.** If
-  the pinned major ever changes, update it in all three places in the same
-  commit.
-- **After any change to `package.json` or `package-lock.json`**, verify the
-  lock is in sync with the pinned major: `npx -y npm@11 ci --dry-run` must
-  exit 0.
-- If CI fails with the `Missing: … from lock file` signature, first check for
-  an npm-major mismatch between the machine that wrote the lock and the
-  environment running `npm ci` — do **not** just regenerate the lock with
-  whatever npm is local; that non-fix is what caused each recurrence.
+- **Never regenerate `package-lock.json` with an npm major other than 11.** If the pinned
+  major ever changes, update it in all three places in the same commit.
+- **After any change to `package.json` or `package-lock.json`**, verify the lock is in sync
+  with the pinned major: `npx -y npm@11 ci --dry-run` must exit 0.
+- If CI fails with the `Missing: … from lock file` signature, first check for an npm-major
+  mismatch between the machine that wrote the lock and the environment running `npm ci` — do
+  **not** just regenerate the lock with whatever npm is local; that non-fix is what caused
+  each recurrence.
 
-## Keep the mock-endpoint guide in sync
+## Documentation is part of every feature
 
-There is a human-facing guide built with [Zensical](https://zensical.org) under
-`docs/site/` (Markdown sources in `docs/site/docs/`, config in `docs/site/zensical.toml`).
-It documents how to create a mock endpoint and every framework feature involved: the
-catalog schema and endpoint fields, profile-ID selectors, path templates, scenarios and the
-`real` passthrough, the fixture file shape, placeholders, strict vs. non-strict mode,
-validation rules, and the request lifecycle. It also covers installing and running the
-server and the programmatic runtime-control API (`/ui/api/*`). The guide pages are:
+The project guide lives under `docs/site/` (Zensical; Markdown in `docs/site/docs/`, nav and
+config in `docs/site/zensical.toml`). It is the product's front door and is held to the
+standard of a mature open-source project.
 
-- `docs/site/docs/index.md` — mental model and the catalog tree overview
-- `docs/site/docs/get-started/install.md` — installing and running (npx, Docker, from source)
-- `docs/site/docs/get-started/first-mock.md` — the step-by-step walkthrough
-- `docs/site/docs/building/endpoints.md` — endpoint/system fields and path templates
-- `docs/site/docs/building/profiles.md` — profile-ID selectors and profile key mappings
-- `docs/site/docs/building/scenarios.md` — scenarios, `real` passthrough, and sequences
-- `docs/site/docs/building/fixtures.md` — fixture shape and placeholders
-- `docs/site/docs/building/schemas.md` — `_schema.json` request/response validation
-- `docs/site/docs/driving/api.md` — the `/ui/api/*` runtime-control API reference
-- `docs/site/docs/driving/dev-and-ci.md` — using the server in local dev and CI
-- `docs/site/docs/driving/request-logs.md` — request logging
-- `docs/site/docs/reference/configuration.md` — env vars and catalog validation rules
-- `docs/site/docs/reference/request-lifecycle.md` — the full request routing flow
+**Whenever you change behavior a user could observe, invoke the `maintaining-project-docs`
+skill and bring the docs in sync as part of the same work.** Do **not** ask whether the docs
+should be updated — updating them is not optional and needs no consent. The skill covers the
+structural review (does this feature warrant a new page, a split, a merge, or a reordering?),
+the content sync, the `nav` wiring, the house style, and the verification build.
 
-**Whenever you change app functionality that this guide describes, you MUST:**
+Restructuring the guide is normal maintenance, not a change that needs sign-off. Features
+routinely outgrow the structure that predates them; deciding the shape is still right is part
+of the job, not just editing the text inside it.
 
-1. **Check for drift.** After the change, compare it against the guide. Treat the change as
-   guide-affecting if it touches any of (→ names the page that documents it):
-   - the catalog tree or its file schemas (`_system.json`, `_endpoint.json`,
-     scenario fixture files) — `catalog/`, `src/lib/catalog/load.ts`,
-     `src/lib/catalog/types.ts` → `index.md`, `building/endpoints.md`
-   - profile-ID extraction / selectors and profile key mappings — `src/lib/catalog/selector.ts`
-     → `building/profiles.md`
-   - path templates and matching — `src/lib/catalog/path-template.ts`
-     → `building/endpoints.md`
-   - scenarios or the `real` passthrough — `src/lib/router/passthrough.ts`,
-     `src/lib/router/route-request.ts` → `building/scenarios.md`, `reference/request-lifecycle.md`
-   - fixture shape or resolution — `src/lib/mock-engine/fixtures.ts`
-     → `building/fixtures.md`
-   - placeholders / templating — `src/lib/mock-engine/template.ts`
-     → `building/fixtures.md`
-   - strict-mode / env behavior — `src/lib/runtime.ts`, `route-request.ts`
-     → `reference/configuration.md`, `reference/request-lifecycle.md`
-   - catalog validation rules — `src/lib/catalog/validate.ts`
-     → `reference/configuration.md`
-   - schema validation — `_schema.json` handling → `building/schemas.md`
-   - request logging — → `driving/request-logs.md`
-   - the programmatic runtime-control API (scenario/profile/global-mock control,
-     catalog discovery, progress reset, health) — `src/app/ui/api/**/route.ts`,
-     `src/lib/profiles/api-scenarios.ts`, `src/lib/scenarios.ts`
-     → `driving/api.md`, `driving/dev-and-ci.md`
-   - the CLI, Docker image, or npm packaging (how the server is installed and run) —
-     `bin/mock-server.js`, `Dockerfile`, `package.json` (`bin`/`scripts`)
-     → `get-started/install.md`
-   - the request lifecycle, or the URL layout (mock at root `/…` vs. UI under `/ui/…`)
-     → `reference/request-lifecycle.md`, `index.md`
-
-2. **Ask before editing.** If the change plausibly makes the guide stale, tell the user
-   exactly what in the guide looks affected and **ask whether they want it updated**. Do not
-   edit the guide unprompted.
-
-3. **Update only on consent.** If the user says yes, update the relevant Markdown page(s)
-   under `docs/site/docs/` to match the new behavior — keeping it accurate and grounded in
-   the actual code (verify against the source files above, don't guess). After editing, run
-   `docs/site/.venv/bin/zensical build -f docs/site/zensical.toml --clean --strict` to
-   confirm the site still builds and all internal links resolve. If the user declines, leave
-   it untouched.
-
-If a change clearly does not affect anything the guide covers (e.g. UI styling, unrelated
-refactors, the health endpoint), you don't need to raise it.
+Purely internal changes (refactors with no behavior change, test-only edits, styling with no
+functional effect) don't need doc updates.
 
 ## GitHub issue labels
 
@@ -143,18 +116,12 @@ labels.
 
 **Area — what part of the system** (pick one; all share the same blue):
 
-- `area: templating` — placeholder / fixture templating engine (`src/lib/mock-engine/template.ts`,
-  `src/lib/catalog/selector.ts`)
+- `area: templating` — placeholder / fixture templating engine
 - `area: fault-sim` — latency & fault injection
 - `area: resolver` — dynamic profile resolver & history
-- `area: ui` — dashboard UI (`src/app/ui/**`)
+- `area: ui` — dashboard UI
 - `area: build` — Docker / CI / release / packaging
 
 If a new issue genuinely fits no existing area, create a new `area: <name>` label (color
 `1D76DB`, matching the family) rather than leaving it unlabelled — and mention the new area
-to the user. Example:
-
-```
-gh issue create --label enhancement --label "area: templating" \
-  --title "…" --body "…"
-```
+to the user.

@@ -76,8 +76,8 @@ idea and picking up an existing issue.
 2. **Ask the per-feature question (fresh every time, no default):**
    *"Issue-only, or issue + a linked `docs/superpowers/specs/` design doc?"*
 3. Create the issue with an imperative, lowercase-ish title and a brief body, applying
-   **exactly one type label and one area label** per the "GitHub issue labels" section of
-   `AGENTS.md` (type: `bug`/`enhancement`/`tech-debt`/`documentation`; area: `area: …`):
+   **exactly one type label and one area label** — the taxonomy lives in the "GitHub issue
+   labels" section of `AGENTS.md`; read it there rather than assuming the label names:
    `gh issue create --label enhancement --label "area: ui" --title "..." --body "..."`
    If the phase-0 survey surfaced a parent or a dependency, set it **at creation**:
    add `--parent P`, `--blocked-by B`, and/or `--blocking X` (see "Issue relationships").
@@ -149,6 +149,17 @@ Post a comment on the issue explaining what changed and why
 Card stays in **In Progress**.
 
 ### 7. Finish — trigger: the work is complete
+
+First run the pre-commit checks from `AGENTS.md` → "Verify before committing" (`npm test`,
+`npm run lint`, `npm run build`, plus `npm run validate:catalog` if `catalog/` changed).
+CI runs only `npm test`, so a lint error or a broken build reaches review unless you catch
+it here. Do not post the summary comment until they pass.
+
+Then, if the feature changed anything a user can observe, **invoke the
+`maintaining-project-docs` skill and sync the guide** — including deciding whether the
+feature warrants a structural change, not just edited prose. Docs ship with the feature; do
+not defer them to a follow-up issue and do not ask whether to do it. The summary comment
+should state which pages changed.
 
 If the work touched the **UI** (anything the dev server renders under `/ui/`), verify it
 visually first: drive the preview, capture a screenshot, and show it to the user
