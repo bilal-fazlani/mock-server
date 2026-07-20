@@ -484,6 +484,35 @@ describe('validateCatalog placeholder function scoping', () => {
     const errors = validateCatalogWith({ body: { x: '{{now}}' } })
     expect(errors.join('\n')).toMatch(/unknown function "now"/)
   })
+
+  it('rejects a built-in called with the wrong argument count', () => {
+    expect(validateCatalogWith({ body: { x: '{{$.a | default}}' } }).join('\n')).toMatch(
+      /calls built-in "default" with 1 argument\(s\), expected 2/,
+    )
+    expect(validateCatalogWith({ body: { x: '{{$.a | default:x:y}}' } }).join('\n')).toMatch(
+      /expected 2/,
+    )
+    expect(validateCatalogWith({ body: { x: '{{$.a | upper:extra}}' } }).join('\n')).toMatch(
+      /calls built-in "upper" with 2 argument\(s\), expected 1/,
+    )
+  })
+
+  it('accepts a correctly-arited default, including in a header placeholder', () => {
+    expect(
+      validateCatalogWith({
+        body: { x: "{{$.a | default:'N/A'}}" },
+        headers: { 'x-who': '{{$.a | default:anon}}' },
+      }),
+    ).toEqual([])
+  })
+
+  it('leaves custom function arity unchecked', () => {
+    const errors = validateCatalogWith(
+      { body: { x: '{{mine:$.a:1:2:3}}' } },
+      { endpointFunctions: `export function mine(c, a) { return a }` },
+    )
+    expect(errors).toEqual([])
+  })
 })
 
 describe('validateCatalog with _schema.json', () => {

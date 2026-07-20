@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import { DurationError, parseDelayMs } from '../mock-engine/duration'
-import { CALLABLE_BUILTINS } from '../mock-engine/evaluate'
-import { callNames, parseExpr, ExprParseError, type Expr } from '../mock-engine/expr'
+import { builtinArity, CALLABLE_BUILTINS } from '../mock-engine/evaluate'
+import { callNodes, parseExpr, ExprParseError, type Expr } from '../mock-engine/expr'
 import { fixtureFilePath, type Fixture } from '../mock-engine/fixtures'
 import { listPlaceholders } from '../mock-engine/template'
 import {
@@ -203,10 +203,22 @@ export function validateCatalog(catalog: Catalog, catalogDir: string): Validatio
             }
             throw err
           }
-          for (const name of callNames(ast)) {
-            if (!CALLABLE_BUILTINS.has(name) && !fnTable.has(name)) {
+          for (const call of callNodes(ast)) {
+            if (!CALLABLE_BUILTINS.has(call.name) && !fnTable.has(call.name)) {
               errors.push(
-                `${label}: fixture ${file} placeholder "{{${expr}}}" calls unknown function "${name}"`,
+                `${label}: fixture ${file} placeholder "{{${expr}}}" calls unknown function "${call.name}"`,
+              )
+              continue
+            }
+            // Built-ins declare a fixed argument count (the piped value counts
+            // as the first one), so "{{$.x | default}}" is a startup error
+            // rather than a 500 on the first request that hits the fixture.
+            // Custom functions are plain JS and take whatever they take.
+            const arity = builtinArity(call.name)
+            if (arity !== undefined && call.args.length !== arity) {
+              errors.push(
+                `${label}: fixture ${file} placeholder "{{${expr}}}" calls built-in "${call.name}" ` +
+                  `with ${call.args.length} argument(s), expected ${arity}`,
               )
             }
           }

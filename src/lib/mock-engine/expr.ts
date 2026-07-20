@@ -131,10 +131,15 @@ function parseArg(token: string): Expr {
 }
 
 export function callNames(expr: Expr): string[] {
-  const out: string[] = []
+  return callNodes(expr).map((c) => c.name)
+}
+
+/** Every call in the expression, so validation can check names and arity. */
+export function callNodes(expr: Expr): CallExpr[] {
+  const out: CallExpr[] = []
   const walk = (e: Expr): void => {
     if (e.kind === 'call') {
-      out.push(e.name)
+      out.push(e)
       e.args.forEach(walk)
     }
   }

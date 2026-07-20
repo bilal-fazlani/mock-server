@@ -131,6 +131,8 @@ grammar.
 
 A header the caller did not send is an unresolved placeholder, which fails the
 request with a `500` naming it — the same loud behavior as an absent body field.
+Pipe it through [`default`](#fallbacks-for-missing-values) when the header is
+optional: `{{header:x-request-id | default:unknown}}`.
 
 ## Placeholder expressions
 
@@ -170,14 +172,62 @@ error at startup, never a runtime surprise.
 
 ## Built-in transforms
 
-| Transform | Effect |
-| --- | --- |
-| `upper` | Uppercase the piped value |
+| Transform | Arguments | Effect |
+| --- | --- | --- |
+| `upper` | the piped value | Uppercase the piped value |
+| `default` | the piped value, plus a fallback | Substitute the fallback when the piped value is [missing](#fallbacks-for-missing-values) |
+
+Every built-in takes a **fixed number of arguments**, counting the piped value as
+the first one. Calling one with the wrong count — `{{$.name | default}}` — is a
+catalog error at startup, not a `500` on the first request that reaches the
+fixture. Custom functions are ordinary JavaScript and take whatever they take.
 
 The set is deliberately small today; seeded randomness, fake data, hashing, and
 more string filters are planned as additional built-ins on this same mechanism.
 Built-in names (including `now`, `body`, `path`, `query`, `header`, and
 `profileKey`) are reserved — a custom function may not use them.
+
+### Fallbacks for missing values
+
+By default an unresolved placeholder fails the request with a `500`, which is what
+catches fixture typos. When a field is genuinely optional, pipe it through
+`default` to supply a value instead:
+
+```json
+{
+  "name": "{{$.name | default:Guest}}",
+  "nickname": "{{$.nickname | default:''}}",
+  "retries": "{{$.retries | default:0}}",
+  "requestId": "{{header:x-request-id | default:unknown}}"
+}
+```
+
+`default` fires when its input is **absent** — a body key that isn't there, an
+out-of-range array index, a header or query parameter the caller didn't send — or
+when the value is explicitly JSON `null`. An empty string and `false` are real
+values and pass straight through, so `{{$.nickname | default:Guest}}` against
+`{ "nickname": "" }` renders the empty string, not `Guest`.
+
+The fallback is a [typed argument](#placeholder-expressions) like any other:
+`default:Guest` and `default:'N/A'` are strings, `default:''` is the empty
+string, `default:0` is the number, `default:true` is the boolean, and
+`default:$.other` reads another body field — so fallbacks chain,
+`{{$.nickname | default:$.name | default:'anonymous'}}`.
+
+!!! note "A missing value short-circuits the whole chain"
+
+    Absence travels down the pipe: every stage between the selector and the
+    `default` is **skipped**, so `{{$.name | upper | default:Guest}}` renders
+    `Guest` rather than uppercasing nothing. The same holds for custom
+    functions — `{{describe:$.name | default:Guest}}` never calls `describe`
+    when `$.name` is absent. A function that needs to see absence itself should
+    be given a concrete value first: `{{$.name | default:'' | describe}}`.
+
+    JSON `null` is *not* short-circuited this way — it is a real value
+    everywhere except at `default`'s own input. Against `{ "nothing": null }`,
+    `{{$.nothing | default:Guest}}` renders `Guest`, but
+    `{{$.nothing | upper | default:Guest}}` renders `upper`'s output of an empty
+    value. Put `default` first when a transform follows it.
 
 ## Custom functions (`_functions.mjs`)
 
@@ -301,9 +351,10 @@ the placeholder shape.
 !!! warning "Placeholders must resolve"
 
     If a selector placeholder can't find its value in the request, or a custom
-    function fails, the endpoint returns `500` for that request. Everything
+    function fails, the endpoint returns `500` for that request — unless the
+    placeholder supplies a [`default`](#fallbacks-for-missing-values). Everything
     checkable ahead of time is checked at startup — malformed expressions,
-    unknown `now:` formats, and unknown function names (including a function
-    defined only in *another* system's scope) are catalog errors — but
-    resolution against a specific request is the one thing validation can't
-    pre-check.
+    unknown `now:` formats, unknown function names (including a function defined
+    only in *another* system's scope), and built-ins called with the wrong number
+    of arguments are catalog errors — but resolution against a specific request
+    is the one thing validation can't pre-check.
