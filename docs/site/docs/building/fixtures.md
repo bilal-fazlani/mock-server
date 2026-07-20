@@ -160,7 +160,8 @@ The grammar, in full:
   a string. A quote only opens a literal at the **start** of a token, so an
   apostrophe inside a bare word stays ordinary text (`label:it's` is the string
   `it's`); a quote that opens a token and never closes (`pad:'oops`) is a
-  catalog error, not a literal.
+  catalog error, not a literal. A trailing colon with nothing after it is the
+  empty string, so `default:` and `default:''` are the same argument.
 - Call arguments accept **body selectors and literals only**. `path:`, `query:`,
   and `header:` values can't be passed as arguments — start the chain with them
   (`{{path:id | upper}}`, `{{header:x-request-id | upper}}`) or read them from `context.request` inside a custom
@@ -175,7 +176,12 @@ error at startup, never a runtime surprise.
 | Transform | Arguments | Effect |
 | --- | --- | --- |
 | `upper` | the piped value | Uppercase the piped value |
+| `lower` | the piped value | Lowercase the piped value |
+| `trim` | the piped value | Strip leading and trailing whitespace |
 | `default` | the piped value, plus a fallback | Substitute the fallback when the piped value is [missing](#fallbacks-for-missing-values) |
+
+They compose left to right, so `{{$.name | trim | upper}}` trims first and
+uppercases the result.
 
 Every built-in takes a **fixed number of arguments**, counting the piped value as
 the first one. Calling one with the wrong count — `{{$.name | default}}` — is a
@@ -183,9 +189,25 @@ catalog error at startup, not a `500` on the first request that reaches the
 fixture. Custom functions are ordinary JavaScript and take whatever they take.
 
 The set is deliberately small today; seeded randomness, fake data, hashing, and
-more string filters are planned as additional built-ins on this same mechanism.
-Built-in names (including `now`, `body`, `path`, `query`, `header`, and
-`profileKey`) are reserved — a custom function may not use them.
+encoding are planned as additional built-ins on this same mechanism. Built-in
+names (including `now`, `body`, `path`, `query`, `header`, and `profileKey`) are
+reserved — a custom function may not use them.
+
+### What a transform accepts
+
+`upper`, `lower`, and `trim` take **text**, and a placeholder can carry any JSON
+value, so they state what they do with the rest:
+
+- **Numbers and booleans are stringified.** `{{$.count | upper}}` against
+  `{ "count": 42 }` renders `"42"` — the transform is a no-op on the digits, but
+  the value is now a string.
+- **A JSON `null` passes straight through, untransformed.** `{{$.nickname | upper}}`
+  against `{ "nickname": null }` renders `null`. Nothing is uppercased and
+  nothing fails — the same way `UPPER(NULL)` is `NULL` in SQL.
+- **Objects and arrays fail the request** with a `500` naming the transform and
+  what it received. There is no useful uppercase of an object, and the
+  alternative — `"[object Object]"` in a response body — is a silent wrong
+  answer.
 
 ### Fallbacks for missing values
 
@@ -214,20 +236,30 @@ string, `default:0` is the number, `default:true` is the boolean, and
 `default:$.other` reads another body field — so fallbacks chain,
 `{{$.nickname | default:$.name | default:'anonymous'}}`.
 
-!!! note "A missing value short-circuits the whole chain"
+!!! note "Empty values skip the transforms in between"
 
-    Absence travels down the pipe: every stage between the selector and the
-    `default` is **skipped**, so `{{$.name | upper | default:Guest}}` renders
-    `Guest` rather than uppercasing nothing. The same holds for custom
-    functions — `{{describe:$.name | default:Guest}}` never calls `describe`
-    when `$.name` is absent. A function that needs to see absence itself should
-    be given a concrete value first: `{{$.name | default:'' | describe}}`.
+    An absent value and a `null` both travel down the pipe untouched: every
+    [transform](#built-in-transforms) between the selector and the `default` is
+    **skipped**, so `{{$.name | upper | default:Guest}}` renders `Guest` rather
+    than uppercasing nothing. Order doesn't matter, and the two kinds of empty
+    behave the same:
 
-    JSON `null` is *not* short-circuited this way — it is a real value
-    everywhere except at `default`'s own input. Against `{ "nothing": null }`,
-    `{{$.nothing | default:Guest}}` renders `Guest`, but
-    `{{$.nothing | upper | default:Guest}}` renders `upper`'s output of an empty
-    value. Put `default` first when a transform follows it.
+    | Placeholder | `name` absent | `"name": null` |
+    | --- | --- | --- |
+    | `{{$.name}}` | `500` | `null` |
+    | <code>{{$.name \| upper}}</code> | `500` | `null` |
+    | <code>{{$.name \| default:Guest}}</code> | `Guest` | `Guest` |
+    | <code>{{$.name \| upper \| default:Guest}}</code> | `Guest` | `Guest` |
+
+    Wherever there is a `default`, the two columns agree. Without one they part
+    company for the reason they are different things: absence has no value to
+    render and fails loudly, while `null` **is** a value and renders as itself.
+
+    Custom functions differ on one point: an absent value skips them too —
+    `{{describe:$.name | default:Guest}}` never calls `describe` — because there
+    is nothing to pass. A `null` **is** passed to them, since your own code can
+    decide what a null means. To have a function handle absence itself, give it
+    something concrete first: `{{$.name | default:'' | describe}}`.
 
 ## Custom functions (`_functions.mjs`)
 

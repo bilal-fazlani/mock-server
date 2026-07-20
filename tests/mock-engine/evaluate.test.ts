@@ -12,6 +12,70 @@ const base = {
   timeoutMs: 100,
 }
 
+describe('string transforms (#13)', () => {
+  const ctx = {
+    body: {
+      name: '  Bilal Fazlani  ',
+      count: 42,
+      flag: true,
+      nothing: null,
+      user: { id: 1 },
+      tags: ['a'],
+    },
+    pathParams: {},
+    query: new URLSearchParams(),
+    headers: {},
+  }
+  const resolve = (tpl: string): unknown => resolveTemplate(tpl, ctx, base.now)
+
+  it('upper, lower, and trim transform a string', () => {
+    expect(resolve('{{$.name | upper}}')).toBe('  BILAL FAZLANI  ')
+    expect(resolve('{{$.name | lower}}')).toBe('  bilal fazlani  ')
+    expect(resolve('{{$.name | trim}}')).toBe('Bilal Fazlani')
+  })
+
+  it('chains left to right', () => {
+    expect(resolve('{{$.name | trim | upper}}')).toBe('BILAL FAZLANI')
+    expect(resolve('{{$.name | upper | trim}}')).toBe('BILAL FAZLANI')
+  })
+
+  it('stringifies a number or boolean input', () => {
+    expect(resolve('{{$.count | upper}}')).toBe('42')
+    expect(resolve('{{$.flag | upper}}')).toBe('TRUE')
+    expect(resolve('{{$.count | trim}}')).toBe('42')
+  })
+
+  it.each([
+    ['{{$.user | upper}}', /cannot transform an object/],
+    ['{{$.tags | upper}}', /cannot transform an array/],
+    ['{{$.tags | trim}}', /"trim" cannot transform an array/],
+  ])('rejects a container input: %s', (tpl, message) => {
+    expect(() => resolve(tpl)).toThrow(PlaceholderError)
+    expect(() => resolve(tpl)).toThrow(message)
+  })
+
+  it('passes a JSON null through untransformed', () => {
+    expect(resolve('{{$.nothing | upper}}')).toBe(null)
+    expect(resolve('{{$.nothing | trim | upper}}')).toBe(null)
+  })
+
+  // The point of the null-skips-transforms rule: order stops mattering, and an
+  // absent field and a null field give the same answer in every shape.
+  it.each([
+    ['{{SEL | default:Guest}}', 'Guest'],
+    ['{{SEL | upper | default:Guest}}', 'Guest'],
+    ['{{SEL | trim | upper | default:Guest}}', 'Guest'],
+    ['{{SEL | default:Guest | upper}}', 'GUEST'],
+  ])('treats absence and null identically in %s', (shape, expected) => {
+    expect(resolve(shape.replace('SEL', '$.missing'))).toBe(expected)
+    expect(resolve(shape.replace('SEL', '$.nothing'))).toBe(expected)
+  })
+
+  it('is arity-1, so an extra argument is rejected', () => {
+    expect(() => resolve('{{$.name | lower:extra}}')).toThrow(/takes 1 argument/)
+  })
+})
+
 describe('default transform (#11)', () => {
   const ctx = {
     body: { name: 'bilal', empty: '', nothing: null, flag: false, list: ['a'] },
@@ -156,6 +220,19 @@ describe('evaluate with user functions', () => {
     } catch (err) {
       expect((err as PlaceholderError).code).toBe('template_error')
     }
+  })
+
+  it('passes a JSON null to a user function, unlike absence', () => {
+    const functions = compileFunctions(`export function kind(ctx, x) { return x === null ? 'null' : typeof x }`, 'f')
+    const ctx = { ...base.ctx, body: { nothing: null } }
+    expect(resolveTemplate('{{kind:$.nothing}}', ctx, base.now, undefined, { fnCtx: base.fnCtx, functions })).toBe('null')
+    // Absence skips the call entirely, so the default is what renders.
+    expect(
+      resolveTemplate('{{kind:$.gone | default:skipped}}', ctx, base.now, undefined, {
+        fnCtx: base.fnCtx,
+        functions,
+      }),
+    ).toBe('skipped')
   })
 
   it('never invokes a user function whose argument is an absent selector', () => {

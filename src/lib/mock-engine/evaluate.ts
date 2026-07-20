@@ -42,8 +42,24 @@ interface Builtin {
   apply: (args: EvalInternal[]) => EvalInternal
 }
 
+// A string transform takes whatever the pipe carries, so it has to say what it
+// does with a non-string. Scalars stringify — "{{$.count | upper}}" against a
+// numeric field is a reasonable thing to write — but an object or an array has
+// no meaningful string form: String() would quietly emit "[object Object]"
+// into the response, which is never what the fixture author meant. That fails
+// loudly instead (#13). JSON null never reaches here; see skipsTransform.
+function asText(name: string, input: EvalInternal): string {
+  if (typeof input === 'string') return input
+  if (typeof input === 'number' || typeof input === 'boolean') return String(input)
+  throw new PlaceholderError(
+    `built-in "${name}" cannot transform ${Array.isArray(input) ? 'an array' : 'an object'}`,
+  )
+}
+
 const BUILTIN_TRANSFORMS: Record<string, Builtin> = {
-  upper: { arity: 1, apply: ([input]) => String(input ?? '').toUpperCase() },
+  upper: { arity: 1, apply: ([input]) => asText('upper', input).toUpperCase() },
+  lower: { arity: 1, apply: ([input]) => asText('lower', input).toLowerCase() },
+  trim: { arity: 1, apply: ([input]) => asText('trim', input).trim() },
   // The fallback fires for an absent path *and* for an explicit JSON null —
   // the one place in the pipeline that treats null as absence (#23 keeps it a
   // substitutable value everywhere else). An empty string is a real value and
@@ -111,6 +127,13 @@ function evalNode(expr: Expr, deps: EvalDeps): EvalInternal {
         if (!builtin.absorbsMissing) {
           const missing = args.find((a) => a instanceof Missing)
           if (missing) return missing
+          // A JSON null skips the transform the same way absence does, so
+          // "{{$.x | upper | default:Guest}}" and "{{$.x | default:Guest}}"
+          // agree, and the two kinds of empty behave identically wherever a
+          // `default` is in the chain (#13). Unabsorbed, the null renders as
+          // itself — it is a real value, unlike absence, which stays a 500.
+          // Same shape as SQL: UPPER(NULL) is NULL, COALESCE absorbs it.
+          if (args[0] === null) return null
         }
         return builtin.apply(args)
       }
