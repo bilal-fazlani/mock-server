@@ -179,6 +179,7 @@ error at startup, never a runtime surprise.
 | `lower` | the piped value | Lowercase the piped value |
 | `trim` | the piped value | Strip leading and trailing whitespace |
 | `default` | the piped value, plus a fallback | Substitute the fallback when the piped value is [missing](#fallbacks-for-missing-values) |
+| `omit` | the piped value | [Drop the field](#dropping-a-field-when-its-source-is-absent) when the piped value is absent |
 
 They compose left to right, so `{{$.name | trim | upper}}` trims first and
 uppercases the result.
@@ -260,6 +261,59 @@ string, `default:0` is the number, `default:true` is the boolean, and
     is nothing to pass. A `null` **is** passed to them, since your own code can
     decide what a null means. To have a function handle absence itself, give it
     something concrete first: `{{$.name | default:'' | describe}}`.
+
+### Dropping a field when its source is absent
+
+`default` supplies a *value* when the source is missing; `omit` supplies
+*structural absence* — it removes the field entirely. This lets an echo fixture
+mirror the request: an optional field the caller leaves out is simply left out of
+the response.
+
+```json
+{ "id": "{{$.id}}", "middleName": "{{$.middleName | omit}}" }
+```
+
+```text
+request { "id": "x" }                → response { "id": "x" }
+request { "id": "x", "middleName": "Q" } → response { "id": "x", "middleName": "Q" }
+```
+
+`omit` fires **only on absence** — a key that isn't there, an out-of-range array
+index, a header the caller didn't send. This is the one place `omit` and
+`default` deliberately diverge:
+
+| `middleName` in the request | with `default:'N/A'` | with `omit` |
+| --- | --- | --- |
+| `"middleName": "Q"` | `"Q"` | `"Q"` |
+| `"middleName": null` | `"N/A"` | `null` (key kept) |
+| `middleName` absent | `"N/A"` | key dropped |
+
+`default` fills a `null`; `omit` **mirrors** it. That is what lets `omit` mock an
+API where *absent* and *present-but-null* mean different things — JSON Merge
+Patch, for instance, where `null` means "delete" and absent means "leave
+untouched". Dropping the `null` would erase exactly the distinction such an
+endpoint is built on.
+
+!!! warning "`omit` may only be the whole value of a field or header"
+
+    Because `omit` removes a **named** slot, it is valid only as the entire value
+    of an object property or a response header. Anywhere it has nothing to drop is
+    a **catalog error at startup**, not a runtime surprise:
+
+    - inside a larger string — `"hi {{$.x | omit}}!"`
+    - as an array element — `["{{$.x | omit}}"]`
+    - as the whole response body
+    - anywhere but the **last** stage of a pipe — `{{$.x | omit | upper}}`
+
+    Startup is deliberate: a misused `omit` would otherwise only fail on the
+    request that actually omits the field, passing every test where it happens to
+    be present. Response **headers** may be dropped the same way —
+    `{ "x-trace": "{{header:x-trace | omit}}" }` sends the header only when the
+    caller sent one.
+
+    Dropping a field the [response schema](schemas.md) marks **required** is still
+    a `500` at request time — an omitted required field is a real contract
+    violation, and validation catches it.
 
 ## Custom functions (`_functions.mjs`)
 

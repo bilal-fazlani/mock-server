@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { parseExpr } from '../../src/lib/mock-engine/expr'
-import { evaluate } from '../../src/lib/mock-engine/evaluate'
+import { evaluate, OMIT } from '../../src/lib/mock-engine/evaluate'
 import { compileFunctions } from '../../src/lib/mock-engine/functions'
 import { PlaceholderError, resolveTemplate } from '../../src/lib/mock-engine/template'
 
@@ -11,6 +11,24 @@ const base = {
            now: new Date(0), seed: 's' },
   timeoutMs: 100,
 }
+
+describe('omit transform (#24)', () => {
+  const at = (body: unknown) => ({ ...base, ctx: { ...base.ctx, body } })
+
+  it('returns OMIT when the source is absent', () => {
+    expect(evaluate(parseExpr('$.gone | omit'), at({}))).toBe(OMIT)
+  })
+
+  it('passes a present value or a JSON null through unchanged', () => {
+    expect(evaluate(parseExpr('$.x | omit'), at({ x: 'v' }))).toBe('v')
+    expect(evaluate(parseExpr('$.x | omit'), at({ x: null }))).toBeNull()
+    expect(evaluate(parseExpr('$.x | omit'), at({ x: false }))).toBe(false)
+  })
+
+  it('absorbs a missing value that travelled through an earlier transform', () => {
+    expect(evaluate(parseExpr('$.gone | trim | omit'), at({}))).toBe(OMIT)
+  })
+})
 
 describe('string transforms (#13)', () => {
   const ctx = {

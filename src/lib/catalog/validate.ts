@@ -230,6 +230,15 @@ export function validateCatalog(catalog: Catalog, catalogDir: string): Validatio
             }
           }
         }
+        // `omit` drops the field it is the value of, so it is only meaningful as
+        // the whole value of an object property or header. A misuse is a *static*
+        // property of the fixture but would only 500 at runtime on the request
+        // that actually omits the field, so it is caught here at startup (#24).
+        const reportOmit = (msg: string): void => {
+          errors.push(`${label}: fixture ${file} ${msg}`)
+        }
+        checkOmitPositions(fixture.body, 'root', reportOmit)
+        checkOmitPositions(fixture.headers ?? {}, 'root', reportOmit)
       }
     }
   }
@@ -258,6 +267,52 @@ function selectorNodes(expr: Expr): Array<Extract<Expr, { kind: 'selector' }>> {
   }
   walk(expr)
   return out
+}
+
+// The container a placeholder-string sits in, which decides whether an `omit`
+// there can drop anything. Only a named slot — an object property or a header —
+// can lose a key; an array element or the whole body cannot.
+type OmitPosition = 'root' | 'object-value' | 'array-element'
+
+// The whole string is exactly one placeholder (so evaluating to OMIT would drop
+// the containing key), else null. `"{{$.x | omit}}"` yes; `"hi {{$.x}}"` and
+// `"{{a}}{{b}}"` no.
+function wholeStringExpr(node: string): string | null {
+  const exprs = listPlaceholders(node)
+  return exprs.length === 1 && node === `{{${exprs[0]}}}` ? exprs[0] : null
+}
+
+// Walk the fixture body/headers and flag every `omit` that is not the whole
+// value of an object property or header (decision 4 in #24). Parse failures are
+// ignored here — the main placeholder loop already reports them.
+function checkOmitPositions(node: unknown, position: OmitPosition, report: (msg: string) => void): void {
+  if (typeof node === 'string') {
+    const whole = wholeStringExpr(node)
+    for (const expr of listPlaceholders(node)) {
+      let ast: Expr
+      try {
+        ast = parseExpr(expr)
+      } catch {
+        continue
+      }
+      if (!callNodes(ast).some((c) => c.name === 'omit')) continue
+      if (whole !== expr) {
+        report(`placeholder "{{${expr}}}" uses "omit", which must be the entire value of a field, not part of a larger string`)
+      } else if (!(ast.kind === 'call' && ast.name === 'omit')) {
+        report(`placeholder "{{${expr}}}" must end with "omit" — it is the field-dropping stage and nothing can follow it`)
+      } else if (position === 'array-element') {
+        report(`placeholder "{{${expr}}}" uses "omit" in an array element; "omit" drops a named field, so it is not allowed in an array`)
+      } else if (position === 'root') {
+        report(`placeholder "{{${expr}}}" uses "omit" as the entire body; "omit" drops a field, so it cannot be the whole response`)
+      }
+    }
+    return
+  }
+  if (Array.isArray(node)) {
+    node.forEach((item) => checkOmitPositions(item, 'array-element', report))
+  } else if (node !== null && typeof node === 'object') {
+    Object.values(node).forEach((v) => checkOmitPositions(v, 'object-value', report))
+  }
 }
 
 function parseSelectorForValidation(

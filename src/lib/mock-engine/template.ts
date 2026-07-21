@@ -1,6 +1,6 @@
 import { RequestContext } from '../catalog/selector'
 import { ExprParseError, parseExpr } from './expr'
-import { evaluate, EvalValue } from './evaluate'
+import { evaluate, EvalValue, OMIT, Omit } from './evaluate'
 import { CompiledFn, FnContext, FunctionRuntimeError, FunctionTimeoutError } from './functions'
 
 /**
@@ -30,7 +30,7 @@ export interface TemplateOptions {
 
 const PLACEHOLDER_RE = /\{\{(.+?)\}\}/g
 
-function resolvePlaceholderTyped(expr: string, ctx: RequestContext, now: Date, options?: TemplateOptions): EvalValue {
+function resolvePlaceholderTyped(expr: string, ctx: RequestContext, now: Date, options?: TemplateOptions): EvalValue | Omit {
   let ast
   try {
     ast = parseExpr(expr)
@@ -60,7 +60,14 @@ function resolvePlaceholderTyped(expr: string, ctx: RequestContext, now: Date, o
 }
 
 function resolvePlaceholder(expr: string, ctx: RequestContext, now: Date, options?: TemplateOptions): string {
-  return stringifyForTrace(resolvePlaceholderTyped(expr, ctx, now, options))
+  const value = resolvePlaceholderTyped(expr, ctx, now, options)
+  // Reached only for interpolated placeholders (`"hi {{…}}"`), where `omit` has
+  // no key to drop. validate.ts already rejects that at startup; this keeps a
+  // gap there from emitting "Symbol(omit)" into the response instead of failing.
+  if (value === OMIT) {
+    throw new PlaceholderError(`"omit" is only valid as the whole value of a field, not inside "{{${expr}}}"`)
+  }
+  return stringifyForTrace(value)
 }
 
 // Trace/interpolation values readable for objects/arrays, not "[object Object]".
@@ -82,10 +89,20 @@ export function resolveTemplate(
     // and shared with listPlaceholders, so leaving it set would make a later
     // matchAll start mid-string and miss placeholders.
     PLACEHOLDER_RE.lastIndex = 0
-    if (first && first[0] === node && !options?.stringOnly) {
+    if (first && first[0] === node) {
+      // A whole-string placeholder is evaluated typed in *both* modes so OMIT
+      // can propagate to the parent container (#24). In stringOnly (headers)
+      // mode a surviving value is then coerced to a string, matching #12's
+      // "headers render as strings" — the only difference from the typed body
+      // path is that final stringification.
       const value = resolvePlaceholderTyped(first[1], ctx, now, options)
+      if (value === OMIT) {
+        if (resolutions) resolutions[node] = '(omitted)'
+        return OMIT
+      }
+      const out = options?.stringOnly ? stringifyForTrace(value) : value
       if (resolutions) resolutions[node] = stringifyForTrace(value)
-      return value
+      return out
     }
     return node.replace(PLACEHOLDER_RE, (_, expr: string) => {
       const value = resolvePlaceholder(expr, ctx, now, options)
@@ -94,12 +111,18 @@ export function resolveTemplate(
     })
   }
   if (Array.isArray(node)) {
+    // OMIT cannot legally appear as an array element — validate.ts rejects
+    // `omit` there at startup — so a filter would be dead code; map straight.
     return node.map((item) => resolveTemplate(item, ctx, now, resolutions, options))
   }
   if (node !== null && typeof node === 'object') {
-    return Object.fromEntries(
-      Object.entries(node).map(([k, v]) => [k, resolveTemplate(v, ctx, now, resolutions, options)]),
-    )
+    const out: Record<string, unknown> = {}
+    for (const [k, v] of Object.entries(node)) {
+      const resolved = resolveTemplate(v, ctx, now, resolutions, options)
+      // An `omit` that fired drops its key from the object (or the headers map).
+      if (resolved !== OMIT) out[k] = resolved
+    }
+    return out
   }
   return node
 }

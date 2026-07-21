@@ -32,7 +32,20 @@ class Missing {
   constructor(readonly raw: string) {}
 }
 
-type EvalInternal = EvalValue | Missing
+/**
+ * "Drop the field this placeholder is the value of" (#24), produced only by the
+ * `omit` transform from a Missing input. Unlike Missing — which evaluate() turns
+ * back into a 500 — OMIT is a *legal* result: evaluate() returns it and
+ * resolveTemplate's container walk filters it out of the parent object/headers.
+ * validate.ts rejects `omit` in any position where OMIT could not be filtered
+ * (interpolation, array element, top-level body), so at runtime it only ever
+ * surfaces as the whole value of an object property or header, and never
+ * survives into a response body, header, or trace value.
+ */
+export const OMIT = Symbol('omit')
+export type Omit = typeof OMIT
+
+type EvalInternal = EvalValue | Missing | Omit
 
 interface Builtin {
   /** Total arguments including the piped value — checked at catalog load. */
@@ -69,6 +82,16 @@ const BUILTIN_TRANSFORMS: Record<string, Builtin> = {
     absorbsMissing: true,
     apply: ([input, fallback]) => (input instanceof Missing || input === null ? fallback : input),
   },
+  // Drops the field when the source is *absent*. A present value — JSON null
+  // included — passes through unchanged: null is a value the caller sent, so an
+  // echo fixture mirrors it (this is where omit and default deliberately part —
+  // default fills null, omit keeps it, #24). absorbsMissing so it sees the
+  // marker directly rather than short-circuiting on it.
+  omit: {
+    arity: 1,
+    absorbsMissing: true,
+    apply: ([input]) => (input instanceof Missing ? OMIT : input),
+  },
 }
 
 // The only call names evaluate() can dispatch besides user functions.
@@ -89,7 +112,11 @@ export const RESERVED_NAMES = new Set<string>([
   ...CALLABLE_BUILTINS,
 ])
 
-export function evaluate(expr: Expr, deps: EvalDeps): EvalValue {
+// Returns EvalValue, or OMIT when the whole expression is an `omit` that fired
+// on an absent source (#24). resolveTemplate is the only caller equipped to act
+// on OMIT — it drops the containing key — and validate.ts guarantees `omit`
+// appears only where that is possible.
+export function evaluate(expr: Expr, deps: EvalDeps): EvalValue | Omit {
   const value = evalNode(expr, deps)
   if (value instanceof Missing) {
     throw new PlaceholderError(`placeholder "{{${value.raw}}}" did not resolve against the request`)

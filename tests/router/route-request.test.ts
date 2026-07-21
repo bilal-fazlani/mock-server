@@ -1307,3 +1307,86 @@ describe('user function errors surface as structured 500s, not crashes', () => {
     expect(String(body.error)).toMatch(/exceeded|timeout|ms/i)
   })
 })
+
+describe('omit end-to-end (#24)', () => {
+  const tmpDirs: string[] = []
+  afterEach(() => {
+    while (tmpDirs.length) fs.rmSync(tmpDirs.pop()!, { recursive: true, force: true })
+  })
+  function tmpCatalogDir(files: Record<string, unknown>): string {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mock-omit-'))
+    tmpDirs.push(dir)
+    for (const [rel, content] of Object.entries(files)) {
+      const full = path.join(dir, rel)
+      fs.mkdirSync(path.dirname(full), { recursive: true })
+      fs.writeFileSync(full, typeof content === 'string' ? content : JSON.stringify(content))
+    }
+    return dir
+  }
+  function buildDeps(dir: string) {
+    const catalog = loadCatalog(dir)
+    return deps({
+      catalog,
+      schemas: buildSchemaRegistry(catalog).schemas,
+      env: {},
+      loadFixture: (s, e, sc) => loadFixture(dir, s, e, sc),
+    })
+  }
+  const SYS = { name: 'Echo System', baseUrlEnv: 'ECHO_URL' }
+  const EP = { displayName: 'Echo', method: 'POST', path: '/echo', mockType: 'global' }
+  // middleName is optional in the schema, so dropping it leaves a valid response.
+  const OPTIONAL_SCHEMA = {
+    responses: {
+      '200': {
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              required: ['id'],
+              properties: { id: { type: 'string' }, middleName: { type: 'string' } },
+            },
+          },
+        },
+      },
+    },
+  }
+  const echoDir = (schema: unknown) =>
+    tmpCatalogDir({
+      'sys/_system.json': SYS,
+      'sys/echo/_endpoint.json': EP,
+      'sys/echo/_schema.json': schema,
+      'sys/echo/default.json': {
+        status: 200,
+        body: { id: '{{$.id}}', middleName: '{{$.middleName | omit}}' },
+      },
+    })
+
+  it('drops an absent optional field and mirrors a present one', async () => {
+    const deps1 = buildDeps(echoDir(OPTIONAL_SCHEMA))
+    const dropped = await routeRequest(post('/echo', { id: 'x' }), deps1)
+    expect(dropped.status).toBe(200)
+    expect(json(dropped)).toEqual({ id: 'x' })
+
+    const deps2 = buildDeps(echoDir(OPTIONAL_SCHEMA))
+    const mirrored = await routeRequest(post('/echo', { id: 'x', middleName: 'Q' }), deps2)
+    expect(json(mirrored)).toEqual({ id: 'x', middleName: 'Q' })
+  })
+
+  it('mirrors an explicit null rather than dropping it', async () => {
+    const d = buildDeps(echoDir(OPTIONAL_SCHEMA))
+    const res = await routeRequest(post('/echo', { id: 'x', middleName: null }), d)
+    // null fails the string-typed middleName schema, proving the key was kept
+    // (not dropped) — the point is that omit did not treat null as absent.
+    expect(res.status).toBe(500)
+    expect(String(json(res).error)).toMatch(/schema/i)
+  })
+
+  it('omitting a field the response schema requires is a schema-invalid 500', async () => {
+    const REQUIRED = JSON.parse(JSON.stringify(OPTIONAL_SCHEMA))
+    REQUIRED.responses['200'].content['application/json'].schema.required = ['id', 'middleName']
+    const d = buildDeps(echoDir(REQUIRED))
+    const res = await routeRequest(post('/echo', { id: 'x' }), d)
+    expect(res.status).toBe(500)
+    expect(String(json(res).error)).toMatch(/schema/i)
+  })
+})

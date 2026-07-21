@@ -58,6 +58,58 @@ describe('resolveTemplate', () => {
     expect(() => resolveTemplate('{{header:x-request-id}}', ctx(), now)).toThrow(PlaceholderError)
   })
 
+  describe('omit (#24)', () => {
+    it('drops an object key whose source is absent, keeps present and null values', () => {
+      const c = ctx({ body: { id: 'x', nick: 'Q', middle: null } })
+      expect(
+        resolveTemplate(
+          {
+            id: '{{$.id | omit}}',
+            nick: '{{$.nick | omit}}',
+            middle: '{{$.middle | omit}}',
+            absent: '{{$.gone | omit}}',
+          },
+          c,
+          now,
+        ),
+      ).toEqual({ id: 'x', nick: 'Q', middle: null })
+    })
+
+    it('mirrors an absent field as a dropped key but a null field as null (merge-patch shape)', () => {
+      const drop = resolveTemplate({ a: '{{$.a | omit}}' }, ctx({ body: {} }), now)
+      const keep = resolveTemplate({ a: '{{$.a | omit}}' }, ctx({ body: { a: null } }), now)
+      expect(drop).toEqual({})
+      expect('a' in (keep as object)).toBe(true)
+      expect((keep as { a: unknown }).a).toBeNull()
+    })
+
+    it('drops a response header when its source is absent (stringOnly path)', () => {
+      const c = ctx({ headers: { 'x-tenant': 'acme' } })
+      expect(
+        resolveTemplate(
+          { 'x-tenant': '{{header:x-tenant | omit}}', 'x-trace': '{{header:x-trace | omit}}' },
+          c,
+          now,
+          undefined,
+          { stringOnly: true },
+        ),
+      ).toEqual({ 'x-tenant': 'acme' })
+    })
+
+    it('composes with an upstream transform: present value transformed, absent dropped', () => {
+      const c = ctx({ body: { name: '  bo  ' } })
+      expect(
+        resolveTemplate({ name: '{{$.name | trim | omit}}', mid: '{{$.mid | trim | omit}}' }, c, now),
+      ).toEqual({ name: 'bo' })
+    })
+
+    it('records a dropped placeholder in the resolutions trace', () => {
+      const res: Record<string, string> = {}
+      resolveTemplate({ a: '{{$.gone | omit}}' }, ctx({ body: {} }), now, res)
+      expect(res['{{$.gone | omit}}']).toBe('(omitted)')
+    })
+  })
+
   it('resolves now formatters deterministically from the injected date', () => {
     expect(resolveTemplate('{{now:YYYYMMDD}}', ctx(), now)).toBe('20260702')
     expect(resolveTemplate('{{now:iso}}', ctx(), now)).toBe('2026-07-02T10:20:30.000Z')

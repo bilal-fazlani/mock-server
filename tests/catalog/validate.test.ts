@@ -515,6 +515,51 @@ describe('validateCatalog placeholder function scoping', () => {
   })
 })
 
+describe('validateCatalog omit positions (#24)', () => {
+  it('accepts omit as the whole value of an object property or header', () => {
+    expect(
+      validateCatalogWith({
+        body: { middleName: '{{$.middleName | omit}}', name: '{{$.name}}' },
+        headers: { 'x-trace': '{{header:x-trace | omit}}' },
+      }),
+    ).toEqual([])
+  })
+
+  it('accepts omit after an upstream transform', () => {
+    expect(validateCatalogWith({ body: { x: '{{$.x | trim | omit}}' } })).toEqual([])
+  })
+
+  it('rejects omit inside a larger string', () => {
+    expect(validateCatalogWith({ body: { x: 'hi {{$.x | omit}}!' } }).join('\n')).toMatch(
+      /must be the entire value of a field/,
+    )
+  })
+
+  it('rejects omit that is not the final stage', () => {
+    expect(validateCatalogWith({ body: { x: '{{$.x | omit | upper}}' } }).join('\n')).toMatch(
+      /must end with "omit"/,
+    )
+  })
+
+  it('rejects omit as an array element', () => {
+    expect(validateCatalogWith({ body: { xs: ['{{$.x | omit}}'] } }).join('\n')).toMatch(
+      /not allowed in an array/,
+    )
+  })
+
+  it('rejects omit as the entire response body', () => {
+    expect(validateCatalogWith({ body: '{{$.x | omit}}' }).join('\n')).toMatch(
+      /cannot be the whole response/,
+    )
+  })
+
+  it('still catches a bad arity on omit', () => {
+    expect(validateCatalogWith({ body: { x: '{{$.x | omit:extra}}' } }).join('\n')).toMatch(
+      /built-in "omit" with 2 argument\(s\), expected 1/,
+    )
+  })
+})
+
 describe('validateCatalog with _schema.json', () => {
   const OP = {
     responses: {
