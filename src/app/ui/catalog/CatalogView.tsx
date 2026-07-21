@@ -28,6 +28,14 @@ export function CatalogView({
               <code className="font-mono text-[0.8rem] text-muted-foreground">
                 {env[system.baseUrlEnv] ?? '(not set)'}
               </code>
+              {system.hasSpec && (
+                <Link
+                  href={`/ui/catalog/${system.slug}/docs`}
+                  className="text-[0.8rem] text-muted-foreground hover:text-foreground"
+                >
+                  API docs
+                </Link>
+              )}
             </div>
             {system.endpoints.map((endpoint) => (
               <Link

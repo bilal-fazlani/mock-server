@@ -161,6 +161,7 @@ export function loadCatalog(catalogDir: string): Catalog {
       slug,
       baseUrlEnv: requireString(sysMeta, 'baseUrlEnv', slug, problems),
       endpoints,
+      ...(spec ? { hasSpec: true } : {}),
     })
   }
 

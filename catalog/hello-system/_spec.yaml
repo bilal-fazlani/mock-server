@@ -1,0 +1,125 @@
+openapi: 3.1.0
+info:
+  title: Hello System
+  version: 1.0.0
+  description: >-
+    Example system shipped with the mock server. One OpenAPI document supplies
+    the request/response schemas for every endpoint in this system; the mock
+    engine validates fixtures and live traffic against it.
+paths:
+  /hello/world:
+    post:
+      summary: Greet a customer
+      description: Returns a greeting for the customer resolved from the request body.
+      operationId: helloWorld
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GreetingRequest'
+      responses:
+        '200':
+          description: Greeting for the resolved customer.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GreetingResponse'
+        '5XX':
+          description: Greeting service failure.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GreetingFailure'
+  /customers/{customerId}/status:
+    get:
+      summary: Customer status
+      description: Returns the current status of a customer.
+      operationId: customerStatus
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Current status of the customer.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerStatus'
+  /accounts/balance:
+    post:
+      summary: Account balance state
+      description: Returns the settlement state of the account.
+      operationId: accountBalance
+      responses:
+        '200':
+          description: Settlement state of the account.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalanceState'
+        '5XX':
+          description: Balance service failure.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalanceFailure'
+components:
+  schemas:
+    GreetingRequest:
+      type: object
+      required: [customerId]
+      properties:
+        customerId:
+          type: string
+    GreetingResponse:
+      type: object
+      required: [customerId, status, message]
+      properties:
+        customerId:
+          type: string
+        status:
+          type: string
+          enum: [success]
+        message:
+          type: string
+        label:
+          type: string
+    GreetingFailure:
+      type: object
+      required: [status, message]
+      properties:
+        status:
+          type: string
+          enum: [failure]
+        message:
+          type: string
+    CustomerStatus:
+      type: object
+      required: [customerId, status, checkedAt]
+      properties:
+        customerId:
+          type: string
+        status:
+          type: string
+          enum: [ACTIVE, FROZEN]
+        checkedAt:
+          type: string
+    BalanceState:
+      type: object
+      required: [state]
+      properties:
+        state:
+          type: string
+          enum: [SETTLED, PENDING]
+        checkedAt:
+          type: string
+    BalanceFailure:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string

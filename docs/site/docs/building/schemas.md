@@ -169,3 +169,20 @@ components:
 
 Run `npm run validate:catalog` after adding or editing a `_spec` file — it
 reports the same errors as startup and prints any unmatched-endpoint warnings.
+
+### Rendered API docs
+
+A system with a `_spec` file also gets a browsable **API docs** view in the
+dashboard. The catalog page (`/ui/catalog`) shows an **API docs** link next to
+the system's name, and `/ui/catalog/<system>/docs` renders the whole document
+with [Scalar](https://github.com/scalar/scalar) — operations, request/response
+schemas, a models section, search, and generated code samples. Each operation
+carries a **Test Request** client that sends real requests to the running mock
+server, so the scenario a profile picks is observable straight from the docs
+page.
+
+The view renders the `_spec` file as authored — served verbatim at
+[`GET /ui/api/catalog/{system}/spec`](../driving/api.md#get-uiapicatalogsystemspec) —
+so `info`, `servers`, and operation descriptions that the mock engine ignores
+still appear in the docs. Systems without a `_spec` file (including systems
+using per-endpoint `_schema.json`) have no docs view.

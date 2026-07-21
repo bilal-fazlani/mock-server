@@ -39,6 +39,8 @@ export interface SystemDef {
   slug: string
   baseUrlEnv: string
   endpoints: EndpointDef[]
+  /** True when the system carries a `_spec` OpenAPI document (parsed successfully). */
+  hasSpec?: boolean
 }
 
 export interface Catalog {

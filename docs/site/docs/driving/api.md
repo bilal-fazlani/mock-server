@@ -24,6 +24,7 @@ namespace; every control route lives under `/ui/api/*`. Error responses are
 | Method & path | Request body | Success | Errors |
 |---|---|---|---|
 | `GET /ui/api/catalog` | — | `200` catalog projection | — |
+| `GET /ui/api/catalog/{system}/spec` | — | `200` the system's `_spec` document, verbatim | `404 { "error": "not_found" }` |
 | `GET /ui/api/global-mocks` | — | `200 { "scenarios": … }` | — |
 | `PUT /ui/api/global-mocks/{system}/{endpoint}` | `{ "scenario": "<key>" }` | `200 { system, endpoint, scenario }` | `404` unknown endpoint · `400` not a global mock / scenario missing / not declared / bad JSON |
 | `DELETE /ui/api/global-mocks/{system}/{endpoint}` | — | `204` (idempotent) | `404` unknown endpoint |
@@ -69,6 +70,14 @@ bodies.**
 scenario resolvers](../building/dynamic.md). The `real` passthrough is always
 implicit and never appears in either list. `mockType` is `"profiled"` or
 `"global"`.
+
+## `GET /ui/api/catalog/{system}/spec`
+
+Returns the system's `_spec` OpenAPI document exactly as it sits in the
+catalog — YAML files as `application/yaml`, JSON files as `application/json`.
+Responds `404 { "error": "not_found" }` when the system doesn't exist or has
+no `_spec` file. This is the document behind the dashboard's per-system
+[API docs view](../building/schemas.md#rendered-api-docs).
 
 ## `GET /ui/api/global-mocks` · `PUT` · `DELETE`
 

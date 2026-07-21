@@ -26,6 +26,9 @@ Built with [Next.js](https://nextjs.org) and MongoDB.
   then success" without touching any profile.
 - **Placeholders** — echo request values and timestamps into responses.
 - **Schema validation** — optional per-endpoint request/response JSON Schema checks.
+- **Rendered API docs** — a system with an OpenAPI `_spec` file gets a browsable docs
+  view in the UI ([Scalar](https://github.com/scalar/scalar)), with a try-it client
+  that fires requests at the mock.
 - **`real` passthrough** — proxy any endpoint to its configured live upstream.
 - **Request logs** — every request captured with a full decision trace, browsable in
   the UI.
