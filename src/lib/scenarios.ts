@@ -8,6 +8,21 @@ export function implicitScenario(passthroughAsDefault: boolean): string {
   return passthroughAsDefault ? REAL_SCENARIO : DEFAULT_SCENARIO
 }
 
+/**
+ * `mockType` defaults to `profiled` when unset. These are the single source of
+ * truth for that default so every surface — the router, the global-mocks page,
+ * and the profile form — agrees on which endpoints a profile can address. A
+ * global endpoint is served from the global-mocks store and never consults a
+ * profile, so it must not appear in the profile form.
+ */
+export function isGlobalEndpoint(endpoint: EndpointDef): boolean {
+  return (endpoint.mockType ?? 'profiled') === 'global'
+}
+
+export function isProfiledEndpoint(endpoint: EndpointDef): boolean {
+  return !isGlobalEndpoint(endpoint)
+}
+
 export function scenariosWithPassthrough(
   endpoint: EndpointDef,
   passthroughAsDefault: boolean,

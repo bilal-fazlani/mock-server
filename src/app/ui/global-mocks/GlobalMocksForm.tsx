@@ -3,6 +3,7 @@ import type { Catalog, EndpointDef, SystemDef } from '../../../lib/catalog/types
 import type { GlobalMockScenario } from '../../../lib/profiles/store'
 import {
   implicitScenario,
+  isGlobalEndpoint,
   scenarioOptionsWithDangling,
   scenariosWithPassthrough,
 } from '../../../lib/scenarios'
@@ -18,9 +19,7 @@ function key(system: string, endpoint: string): string {
 
 function globalEndpoints(catalog: Catalog): Array<{ system: SystemDef; endpoint: EndpointDef }> {
   return catalog.systems.flatMap((system) =>
-    system.endpoints
-      .filter((endpoint) => (endpoint.mockType ?? 'profiled') === 'global')
-      .map((endpoint) => ({ system, endpoint })),
+    system.endpoints.filter(isGlobalEndpoint).map((endpoint) => ({ system, endpoint })),
   )
 }
 
@@ -56,9 +55,7 @@ export function GlobalMocksForm({
         </section>
       ) : (
         catalog.systems.map((system) => {
-          const systemEndpoints = system.endpoints.filter(
-            (endpoint) => (endpoint.mockType ?? 'profiled') === 'global',
-          )
+          const systemEndpoints = system.endpoints.filter(isGlobalEndpoint)
           if (systemEndpoints.length === 0) return null
           return (
             <section key={system.slug} className="grid min-w-0 gap-3">

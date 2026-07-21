@@ -3,7 +3,7 @@ import { SquareArrowOutUpRight } from 'lucide-react'
 import type { Catalog } from '../../../lib/catalog/types'
 import { renderableStaleEndpoints, staleScenarios } from '../../../lib/profiles/stale'
 import type { MockProfile } from '../../../lib/profiles/store'
-import { implicitScenario, scenariosWithPassthrough } from '../../../lib/scenarios'
+import { implicitScenario, isProfiledEndpoint, scenariosWithPassthrough } from '../../../lib/scenarios'
 import { Alert } from '../../components/Alert'
 import { Input } from '../../components/ui/input'
 import { Label } from '../../components/ui/label'
@@ -74,10 +74,16 @@ export function ProfileForm({
             />
           </label>
         </section>
-        {catalog.systems.map((system) => (
+        {catalog.systems.map((system) => {
+          // Global endpoints are served from the global-mocks store and never
+          // consult a profile, so they don't belong in the profile form; a
+          // system left with no profiled endpoints renders no section at all.
+          const endpoints = system.endpoints.filter(isProfiledEndpoint)
+          if (endpoints.length === 0) return null
+          return (
           <section key={system.name} className="grid min-w-0 gap-3">
             <h2 className="mt-1 text-secondary-foreground">{system.name}</h2>
-            {system.endpoints.map((endpoint) => {
+            {endpoints.map((endpoint) => {
               const selected = profile?.endpointScenarios[endpoint.name]
               const isStale = endpoint.name in stale
               return (
@@ -125,7 +131,8 @@ export function ProfileForm({
               )
             })}
           </section>
-        ))}
+          )
+        })}
         {profile && Object.keys(staleByEndpoint).length > 0 && (
           <StaleSelectionGuard
             formId={formId}

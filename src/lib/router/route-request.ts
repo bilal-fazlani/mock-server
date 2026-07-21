@@ -27,7 +27,7 @@ import {
   type ProfileKeyMappingCaptureInput,
   type ScenarioSelection,
 } from '../profiles/store'
-import { DEFAULT_SCENARIO, implicitScenario, REAL_SCENARIO } from '../scenarios'
+import { DEFAULT_SCENARIO, implicitScenario, isGlobalEndpoint, REAL_SCENARIO } from '../scenarios'
 import type { PassthroughRequest, ProxiedResponse } from './passthrough'
 
 export interface IncomingRequest {
@@ -152,7 +152,7 @@ export async function routeRequest(
   // history window has no owner to ever delete it, so it is stored with a TTL.
   let ownerless = false
   let scenario: string
-  if ((endpoint.mockType ?? 'profiled') === 'global') {
+  if (isGlobalEndpoint(endpoint)) {
     const globalPick = await deps.getGlobalMockScenario(system.slug, endpoint.name)
     scenario = globalPick ?? implicitScenario(deps.passthroughAsDefault)
     trace.scenario = scenario

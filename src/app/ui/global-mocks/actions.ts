@@ -9,7 +9,7 @@ import {
   upsertGlobalMockScenario,
 } from '../../../lib/profiles/store'
 import { getRuntime } from '../../../lib/runtime'
-import { implicitScenario, isScenarioDeclared } from '../../../lib/scenarios'
+import { implicitScenario, isGlobalEndpoint, isScenarioDeclared } from '../../../lib/scenarios'
 
 export async function saveGlobalMocks(formData: FormData): Promise<void> {
   const { catalog, passthroughAsDefault } = getRuntime()
@@ -18,7 +18,7 @@ export async function saveGlobalMocks(formData: FormData): Promise<void> {
 
   for (const system of catalog.systems) {
     for (const endpoint of system.endpoints) {
-      if ((endpoint.mockType ?? 'profiled') !== 'global') continue
+      if (!isGlobalEndpoint(endpoint)) continue
       const value = formData.get(`scenario:${system.slug}:${endpoint.name}`)
       if (typeof value !== 'string' || value === '') continue
       if (!isScenarioDeclared(endpoint, value)) {

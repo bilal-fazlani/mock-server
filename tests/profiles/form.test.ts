@@ -36,6 +36,15 @@ const catalog: Catalog = {
           scenarios: { default: { label: 'Success' }, by_amount: { label: 'Routes by amount' } },
           resolverScenarios: ['by_amount'],
         },
+        {
+          name: 'health_check',
+          displayName: 'Health Check',
+          method: 'GET',
+          path: '/health',
+          mockType: 'global',
+          scenarios: { default: { label: 'OK' }, down: { label: 'Down' } },
+          resolverScenarios: [],
+        },
       ],
     },
   ],
@@ -165,6 +174,12 @@ describe('parseEndpointScenarios', () => {
     expect(() =>
       parseEndpointScenarios(form({ 'scenario:hello_world': 'by_amount' }), catalog, 'default'),
     ).toThrow(/by_amount/)
+  })
+
+  it('drops a selection for a global endpoint — a profile never addresses it', () => {
+    expect(
+      parseEndpointScenarios(form({ 'scenario:health_check': 'down' }), catalog, 'default'),
+    ).toEqual({})
   })
 
   it('handles multiple endpoints independently', () => {

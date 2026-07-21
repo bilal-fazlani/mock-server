@@ -214,6 +214,62 @@ describe('ProfileForm', () => {
     expect(html).not.toContain('Delete profile')
   })
 
+  it('omits global endpoints — a profile never addresses them', () => {
+    const mixed: Catalog = {
+      systems: [
+        {
+          ...catalog.systems[0],
+          endpoints: [
+            catalog.systems[0].endpoints[0],
+            {
+              name: 'health_check',
+              displayName: 'Health Check',
+              method: 'GET',
+              path: '/health',
+              mockType: 'global',
+              scenarios: { default: { label: 'OK' } },
+              resolverScenarios: [],
+            },
+          ],
+        },
+      ],
+    }
+    const html = renderToStaticMarkup(
+      <ProfileForm catalog={mixed} passthroughAsDefault={false} />,
+    )
+    expect(html).toContain('/hello/world')
+    expect(html).not.toContain('/health')
+    expect(html).not.toContain('scenario:health_check')
+  })
+
+  it('renders no section for a system whose endpoints are all global', () => {
+    const globalOnly: Catalog = {
+      systems: [
+        {
+          name: 'Ops System',
+          slug: 'ops-system',
+          baseUrlEnv: 'OPS_SYSTEM_URL',
+          endpoints: [
+            {
+              name: 'health_check',
+              displayName: 'Health Check',
+              method: 'GET',
+              path: '/health',
+              mockType: 'global',
+              scenarios: { default: { label: 'OK' } },
+              resolverScenarios: [],
+            },
+          ],
+        },
+      ],
+    }
+    const html = renderToStaticMarkup(
+      <ProfileForm catalog={globalOnly} passthroughAsDefault={false} />,
+    )
+    expect(html).not.toContain('Ops System')
+    expect(html).not.toContain('/health')
+  })
+
   it('marks resolver-backed scenarios with a code badge and offers Reset resolver history', () => {
     const resolverCatalog: Catalog = {
       systems: [

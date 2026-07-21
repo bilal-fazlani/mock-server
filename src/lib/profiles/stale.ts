@@ -1,5 +1,5 @@
 import type { Catalog, EndpointDef } from '../catalog/types'
-import { isScenarioDeclared } from '../scenarios'
+import { isProfiledEndpoint, isScenarioDeclared } from '../scenarios'
 import type { MockProfile } from './store'
 
 export function staleScenarios(profile: MockProfile, catalog: Catalog): Record<string, string> {
@@ -17,16 +17,20 @@ export function staleScenarios(profile: MockProfile, catalog: Catalog): Record<s
 }
 
 /**
- * Restricts a stale-by-endpoint map to endpoints that still exist in the
- * catalog. A pin to an endpoint the catalog no longer has renders no
- * card/control the user could touch, and `parseEndpointScenarios` drops it on
- * save anyway (self-heal) — so it must not gate the Save button.
+ * Restricts a stale-by-endpoint map to endpoints the profile form still
+ * renders a control for — i.e. profiled endpoints present in the catalog. A pin
+ * to an endpoint the catalog dropped, or to a global endpoint (which the form
+ * never shows), offers no control the user could touch, and
+ * `parseEndpointScenarios` drops it on save anyway (self-heal) — so it must not
+ * gate the Save button.
  */
 export function renderableStaleEndpoints(
   staleByEndpoint: Record<string, string[]>,
   catalog: Catalog,
 ): Record<string, string[]> {
-  const present = new Set(catalog.systems.flatMap((s) => s.endpoints.map((e) => e.name)))
+  const present = new Set(
+    catalog.systems.flatMap((s) => s.endpoints.filter(isProfiledEndpoint).map((e) => e.name)),
+  )
   return Object.fromEntries(
     Object.entries(staleByEndpoint).filter(([name]) => present.has(name)),
   )

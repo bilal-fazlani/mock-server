@@ -1,5 +1,5 @@
 import type { Catalog, EndpointDef } from '../catalog/types'
-import { isScenarioDeclared } from '../scenarios'
+import { isProfiledEndpoint, isScenarioDeclared } from '../scenarios'
 import type { ScenarioSelection } from './store'
 
 /**
@@ -16,7 +16,11 @@ export function parseEndpointScenarios(
 ): Record<string, ScenarioSelection> {
   const endpointScenarios: Record<string, ScenarioSelection> = {}
   for (const system of catalog.systems) {
+    // Global endpoints are served from the global-mocks store and never consult
+    // a profile, so a selection for one is dead data — skip them (this also
+    // self-heals any legacy profile that persisted a global-endpoint pin).
     for (const endpoint of system.endpoints) {
+      if (!isProfiledEndpoint(endpoint)) continue
       const selection = parseEndpointSelection(formData, endpoint, implicit)
       if (selection !== undefined) endpointScenarios[endpoint.name] = selection
     }

@@ -5,7 +5,7 @@ import {
   upsertGlobalMockScenario,
 } from '../../../../../../lib/profiles/store'
 import { getRuntime } from '../../../../../../lib/runtime'
-import { isScenarioDeclared } from '../../../../../../lib/scenarios'
+import { isGlobalEndpoint, isScenarioDeclared } from '../../../../../../lib/scenarios'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,7 +17,7 @@ export async function PUT(request: Request, { params }: Ctx): Promise<Response> 
   if (!found) {
     return Response.json({ error: `unknown endpoint ${system}/${endpoint}` }, { status: 404 })
   }
-  if ((found.endpoint.mockType ?? 'profiled') !== 'global') {
+  if (!isGlobalEndpoint(found.endpoint)) {
     return Response.json(
       { error: `endpoint "${endpoint}" is not a global mock` },
       { status: 400 },

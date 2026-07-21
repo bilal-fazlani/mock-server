@@ -31,6 +31,15 @@ const catalog: Catalog = {
           scenarios: { default: { label: 'Success' }, by_amount: { label: 'Routes by amount' } },
           resolverScenarios: ['by_amount'],
         },
+        {
+          name: 'health_check',
+          displayName: 'Health Check',
+          method: 'GET',
+          path: '/health',
+          mockType: 'global',
+          scenarios: { default: { label: 'OK' } },
+          resolverScenarios: [],
+        },
       ],
     },
   ],
@@ -170,5 +179,9 @@ describe('renderableStaleEndpoints', () => {
     expect(
       renderableStaleEndpoints({ hello_world: ['legacy'], removed_ep: ['default'] }, catalog),
     ).toEqual({ hello_world: ['legacy'] })
+  })
+
+  it('drops a stale global endpoint (the profile form renders no control for it)', () => {
+    expect(renderableStaleEndpoints({ health_check: ['legacy'] }, catalog)).toEqual({})
   })
 })
