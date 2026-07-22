@@ -1,6 +1,6 @@
 {
   "name": "@bilal-fazlani/mock-server",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "A generic, catalog-driven HTTP API mock server — run via npx or Docker, no request-handling code required.",
   "license": "MIT",
   "repository": {
