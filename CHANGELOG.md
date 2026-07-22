@@ -1,5 +1,54 @@
 # Changelog
 
+## [0.4.0](https://github.com/bilal-fazlani/mock-server/compare/v0.3.0...v0.4.0) (2026-07-22)
+
+
+### ⚠ BREAKING CHANGES
+
+* rename _functions.ts to _functions.mjs and <slug>.ts resolvers to <slug>.mjs, removing type annotations; catalog load errors until the rename is done.
+
+### Features
+
+* add `default` fallback transform for missing placeholder values ([814b22f](https://github.com/bilal-fazlani/mock-server/commit/814b22f5ca02e8ddefbb26297af1033bda9db7d4))
+* add `lower` and `trim` transforms, with symmetric empty-value handling ([97890d7](https://github.com/bilal-fazlani/mock-server/commit/97890d7b517b2978485629f686df1cdfb4c2d906))
+* add `omit` transform to drop a response field when its source is absent ([84d37fe](https://github.com/bilal-fazlani/mock-server/commit/84d37fe813f6655542d27e2ef2539a4c04e0c96a))
+* add header: selector for placeholders and profile selection ([4f6fc27](https://github.com/bilal-fazlani/mock-server/commit/4f6fc272ddce70cafe84bf95c380784bd71bbf24)), closes [#9](https://github.com/bilal-fazlani/mock-server/issues/9)
+* **catalog:** accept now offsets in placeholder validation ([ee21ba6](https://github.com/bilal-fazlani/mock-server/commit/ee21ba671c510ff9fc05eeb95e41293adf619614))
+* **catalog:** bundle OpenAPI component refs into standalone $defs ([b289cd4](https://github.com/bilal-fazlani/mock-server/commit/b289cd491b39cc3ec58eaef1b1df65a6fac632a7))
+* **catalog:** load endpoint schemas from a system-level _spec file ([fdb090f](https://github.com/bilal-fazlani/mock-server/commit/fdb090f32f6e839879e84d105353d4f25da8cc03))
+* **catalog:** parse system OpenAPI spec and resolve endpoint schemas ([2112e19](https://github.com/bilal-fazlani/mock-server/commit/2112e19d765e4bba6032bf5820e5ec3193539b44))
+* **catalog:** surface spec load warnings at startup and in validator ([35948e3](https://github.com/bilal-fazlani/mock-server/commit/35948e39b13cd9fe896cbb84af337e0987321959))
+* **fault-sim:** add delay duration parser ([3e98492](https://github.com/bilal-fazlani/mock-server/commit/3e984929b3eb89331c18b90c6df83b5c58007a3c)), closes [#16](https://github.com/bilal-fazlani/mock-server/issues/16)
+* **fault-sim:** apply per-fixture response delay via injected sleep ([1f52f76](https://github.com/bilal-fazlani/mock-server/commit/1f52f76761bce2ce1ea229b791143913200eda66)), closes [#16](https://github.com/bilal-fazlani/mock-server/issues/16)
+* **fault-sim:** show injected delay on the request console line ([dee368a](https://github.com/bilal-fazlani/mock-server/commit/dee368ac09c13a8697ffd400c115a56c6e38592e)), closes [#16](https://github.com/bilal-fazlani/mock-server/issues/16)
+* **fault-sim:** validate fixture delay field at catalog load ([d7ad20c](https://github.com/bilal-fazlani/mock-server/commit/d7ad20c55585d3571c252f79fd7271f1d83d5b80)), closes [#16](https://github.com/bilal-fazlani/mock-server/issues/16)
+* flag placeholders over schema-optional body fields with no fallback ([256d598](https://github.com/bilal-fazlani/mock-server/commit/256d5987304b636877a1ca93965fcc9c5c41756e))
+* surface both retention windows on the environment page ([da069e6](https://github.com/bilal-fazlani/mock-server/commit/da069e63bab086a5d50b7e8cf91b94bbf3dd90ff)), closes [#6](https://github.com/bilal-fazlani/mock-server/issues/6)
+* **template:** now offset parser and renderer module ([42b29d8](https://github.com/bilal-fazlani/mock-server/commit/42b29d80270948d9703196782ec463af9521a398))
+* **template:** resolve now relative-time offsets ([6588053](https://github.com/bilal-fazlani/mock-server/commit/65880539d58c7a4d73c21b785eff2437875cf6c1))
+* **templating:** add epoch, epochMillis, date, time now formats ([89681f8](https://github.com/bilal-fazlani/mock-server/commit/89681f805429e7b4c4c55f523ead6d0523c9197b)), closes [#8](https://github.com/bilal-fazlani/mock-server/issues/8)
+* **templating:** add placeholder expression parser and AST ([c213d3d](https://github.com/bilal-fazlani/mock-server/commit/c213d3dd30e8e01a8e2f816df92087d10f8a7652))
+* **templating:** compile user _functions in a sandboxed vm with a timeout ([3ebc000](https://github.com/bilal-fazlani/mock-server/commit/3ebc0009bc23fadb2f5096250a6e340deb141f5b))
+* **templating:** discover and scope-resolve user _functions (nearest wins) ([b25c0cf](https://github.com/bilal-fazlani/mock-server/commit/b25c0cf99513aa2fd3c5bc0e8ee5d350699b39df))
+* **templating:** dispatch user functions from placeholder evaluation ([ae52b22](https://github.com/bilal-fazlani/mock-server/commit/ae52b221dee9e68b8a17c451a6c4f79ee6c666b8))
+* **templating:** emit raw typed value for whole-string placeholders ([#12](https://github.com/bilal-fazlani/mock-server/issues/12)) ([e6b35bd](https://github.com/bilal-fazlani/mock-server/commit/e6b35bd7a2414d6a0e4981a01ca102b1c2db62f1))
+* **templating:** export MockFn type and ship a worked _functions example ([0b861ae](https://github.com/bilal-fazlani/mock-server/commit/0b861ae6aa1b0183a553717a7b0358afb9af7626))
+* **templating:** let body selectors emit booleans, null, and subtrees ([743f577](https://github.com/bilal-fazlani/mock-server/commit/743f57748ee2e5e3fb824302b246f42563ab75f5)), closes [#23](https://github.com/bilal-fazlani/mock-server/issues/23) [#12](https://github.com/bilal-fazlani/mock-server/issues/12)
+* **templating:** load user functions at catalog load and pass them through the request path ([bfb2f0d](https://github.com/bilal-fazlani/mock-server/commit/bfb2f0d2df1282d59d6108cff7ec7035a591edd6))
+* **templating:** scope-aware validation of placeholder function calls ([18936cc](https://github.com/bilal-fazlani/mock-server/commit/18936ccf08f90ca480bb9a162378928da50f0649))
+* unify author code on mjs-only — drop ts support for functions and resolvers ([c357616](https://github.com/bilal-fazlani/mock-server/commit/c357616142766239c49b96d2379e6779e5d40073)), closes [#26](https://github.com/bilal-fazlani/mock-server/issues/26)
+
+
+### Bug Fixes
+
+* **build:** download mongodb signing key to file before dearmor ([8d4ba19](https://github.com/bilal-fazlani/mock-server/commit/8d4ba19d5eb7f3fda013b9857c019616a5648294)), closes [#18](https://github.com/bilal-fazlani/mock-server/issues/18)
+* expire resolver history for callers with no profile ([95f5ebb](https://github.com/bilal-fazlani/mock-server/commit/95f5ebb4332628b883c0e4a4cfb0cb4591a110ff)), closes [#6](https://github.com/bilal-fazlani/mock-server/issues/6)
+* hide global endpoints from the profile create/edit form ([67fb52b](https://github.com/bilal-fazlani/mock-server/commit/67fb52b5e17a5806b7168f0764d21e465c3d0cb1)), closes [#29](https://github.com/bilal-fazlani/mock-server/issues/29)
+* match project lane names case-insensitively in feature-lifecycle skill ([75f60fc](https://github.com/bilal-fazlani/mock-server/commit/75f60fc290df75c51ef408995370d8148a25daff))
+* **templating:** correct type-import comment in worked example ([94b01e4](https://github.com/bilal-fazlani/mock-server/commit/94b01e4508c2b61fa8f8d0651ef16f55097e917f))
+* **templating:** scope quote parsing to token starts, sync docs ([5d082ae](https://github.com/bilal-fazlani/mock-server/commit/5d082ae734c509735c8ef6abb4ac0facfa92432a))
+* **templating:** surface user-function errors as placeholder 500s and define typed returns ([bc5d833](https://github.com/bilal-fazlani/mock-server/commit/bc5d8336191d32d5ed18cef13354436c44a255a2))
+
 ## [0.3.0](https://github.com/bilal-fazlani/mock-server/compare/v0.2.1...v0.3.0) (2026-07-17)
 
 
