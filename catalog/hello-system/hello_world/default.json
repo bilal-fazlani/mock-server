@@ -4,6 +4,7 @@
   "body": {
     "customerId": "{{$.customerId}}",
     "status": "success",
+    "updatedAt": "{{now-37d:YYYY-MM-DD}}",
     "message": "Hello, {{$.customerId}}!",
     "label": "{{label:$.customerId}}"
   }

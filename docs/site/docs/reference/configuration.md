@@ -94,9 +94,9 @@ now-known catalog and reports its own list of errors:
   `body` key. Fixtures are loaded into memory as part of this pass.
 - Every placeholder inside a fixture parses as a
   [placeholder expression](../building/fixtures.md#placeholder-expressions):
-  the leading stage is a `now` expression — one of the named formats `iso`,
-  `YYYYMMDD`, `date`, `time`, `epoch`, or `epochMillis`, optionally with a
-  relative offset, e.g. `now+3d:iso` — a valid body/path/query/header selector
+  the leading stage is a `now` expression — a named format (`iso`, `epoch`,
+  `epochMillis`) or a date/time token pattern such as `YYYY-MM-DD`, optionally
+  with a relative offset, e.g. `now+3d:iso` — a valid body/path/query/header selector
   (never Bearer, never a credential header), or a function call; every function name it calls (in pipes or as the
   source) is a built-in transform or a user function **visible from that
   endpoint's scope** (endpoint → system → catalog). An unknown name — a typo, a
