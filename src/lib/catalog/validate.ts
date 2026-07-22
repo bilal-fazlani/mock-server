@@ -222,10 +222,34 @@ export function validateCatalog(catalog: Catalog, catalogDir: string): Validatio
               )
             }
           }
+          // `default`/`omit` anywhere in the chain absorbs a missing value, so a
+          // selector in such a placeholder can't 500 on absence — skip the whole
+          // expr for the optional-field lint below.
+          const hasFallback = callNodes(ast).some((c) => c.name === 'default' || c.name === 'omit')
           for (const sel of selectorNodes(ast)) {
             if (sel.selector.source === 'path' && !declaredParams.has(sel.selector.name)) {
               errors.push(
                 `${label}: fixture ${file} placeholder "{{${expr}}}" references undeclared path param`,
+              )
+            }
+            // A body selector over a field the request schema lets a caller omit,
+            // with no fallback, will 500 on exactly those requests — the schema
+            // says optional, the fixture makes it de-facto required. Detectable
+            // ahead of time, so it is a startup error rather than a runtime 500
+            // (#27). Only a *provably* optional field is flagged; anything the
+            // presence walk can't decide is left alone.
+            if (
+              !hasFallback &&
+              compiled &&
+              sel.selector.source === 'body' &&
+              compiled.guaranteesPresence(sel.selector.segments) === false
+            ) {
+              const path = bodyPath(sel.selector.segments)
+              errors.push(
+                `${label}: fixture ${file} placeholder "{{${expr}}}" reads request body field ` +
+                  `${path}, which the request schema lets callers omit; a request without it ` +
+                  `returns 500. Add a fallback ("{{${path} | omit}}" or "{{${path} | default:…}}"), ` +
+                  `or add the field to the schema's "required".`,
               )
             }
           }
@@ -257,6 +281,15 @@ export function validateCatalog(catalog: Catalog, catalogDir: string): Validatio
   }
 
   return { errors, fixtures, schemas }
+}
+
+// Render a body selector's segments back as its `$.…` source form for messages:
+// ['a', 'b', 0, 'c'] → "$.a.b[0].c".
+function bodyPath(segments: Array<string | number>): string {
+  return segments.reduce<string>(
+    (acc, seg) => acc + (typeof seg === 'number' ? `[${seg}]` : `.${seg}`),
+    '$',
+  )
 }
 
 function selectorNodes(expr: Expr): Array<Extract<Expr, { kind: 'selector' }>> {

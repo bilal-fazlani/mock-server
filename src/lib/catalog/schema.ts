@@ -33,6 +33,20 @@ export interface CompiledEndpointSchema {
   /** Like validateResponseBody, but placeholder-valued nodes are wildcards
    *  and an unmatched status returns [] (reported separately at startup). */
   validateFixtureBody(status: number, body: unknown): SchemaIssue[]
+  /**
+   * Does the request body schema *guarantee* a value at this selector path is
+   * present? (#27) Tri-state, and deliberately conservative:
+   *   - `true`  — every segment is in its parent's `required`, plain object
+   *               parents throughout: a caller cannot omit it.
+   *   - `false` — reachable but provably optional under plain
+   *               object/`required`/`properties`: a caller *can* omit it, so a
+   *               fixture reading it with no fallback will 500 on those requests.
+   *   - `undefined` — cannot decide (no request schema, any combinator, a
+   *               non-object parent, an array-index segment, or a `$ref` shape
+   *               other than a resolvable same-document `#/$defs/<name>`).
+   * Only `false` is actionable; `undefined` means "skip, stay silent".
+   */
+  guaranteesPresence(segments: Array<string | number>): boolean | undefined
 }
 
 function jsonSchema(content: Record<string, MediaTypeObject> | undefined): unknown {
@@ -110,7 +124,73 @@ export function compileEndpointSchema(raw: unknown, label: string): CompiledEndp
       )
       return toIssues(errors)
     },
+    guaranteesPresence(segments: Array<string | number>): boolean | undefined {
+      return guaranteesPresence(requestSchema, segments)
+    },
   }
+}
+
+function isObjectRecord(v: unknown): v is Record<string, unknown> {
+  return v !== null && typeof v === 'object' && !Array.isArray(v)
+}
+
+// Combinators and conditional keywords whose presence means we cannot decide
+// required-ness by a plain `required`/`properties` walk (#27). Seeing any of
+// them makes the walk return undefined (skip) rather than guess.
+const COMBINATOR_KEYS = [
+  'allOf', 'anyOf', 'oneOf', 'not', 'if', 'then', 'else',
+  'dependentRequired', 'dependentSchemas', 'patternProperties',
+]
+
+// Follow a chain of plain same-document `#/$defs/<name>` refs to the schema
+// object they name, resolving against the request-schema root's `$defs` (the
+// spec loader attaches `$defs` there). Returns undefined — meaning "undecidable,
+// skip" — for a ref with adjacent schema keywords (2020-12 merges those, which
+// this walk won't attempt), a non-`#/$defs/` ref shape, an unknown name, or a
+// reference cycle.
+function deref(
+  node: unknown,
+  defs: Record<string, unknown>,
+  seen: Set<string>,
+): Record<string, unknown> | undefined {
+  let cur = node
+  while (isObjectRecord(cur) && '$ref' in cur) {
+    const adjacent = Object.keys(cur).filter(
+      (k) => k !== '$ref' && k !== '$defs' && k !== 'title' && k !== 'description',
+    )
+    if (adjacent.length > 0) return undefined
+    const ref = cur.$ref
+    if (typeof ref !== 'string') return undefined
+    const m = /^#\/\$defs\/(.+)$/.exec(ref)
+    if (!m) return undefined
+    const name = m[1]
+    if (seen.has(name)) return undefined
+    seen.add(name)
+    cur = defs[name]
+  }
+  return isObjectRecord(cur) ? cur : undefined
+}
+
+function guaranteesPresence(
+  requestSchema: unknown,
+  segments: Array<string | number>,
+): boolean | undefined {
+  if (!isObjectRecord(requestSchema)) return undefined
+  const defs = isObjectRecord(requestSchema.$defs) ? requestSchema.$defs : {}
+  let node: unknown = requestSchema
+  for (const seg of segments) {
+    const schema = deref(node, defs, new Set())
+    if (schema === undefined) return undefined
+    if (COMBINATOR_KEYS.some((k) => k in schema)) return undefined
+    // A non-object parent can't have a named property; an array index is never
+    // guaranteed present. Either way we can't prove presence — skip.
+    if (typeof seg === 'number') return undefined
+    if ('type' in schema && schema.type !== 'object') return undefined
+    const required = Array.isArray(schema.required) ? schema.required : []
+    if (!required.includes(seg)) return false
+    node = isObjectRecord(schema.properties) ? schema.properties[seg] : undefined
+  }
+  return true
 }
 
 function isPlaceholderValue(v: unknown): boolean {

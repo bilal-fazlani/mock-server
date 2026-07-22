@@ -79,6 +79,7 @@ a validation error.
 | When | What's checked | On mismatch |
 | --- | --- | --- |
 | Startup | Every scenario fixture's `body` against the response schema matched by its `status`. | Joins the catalog's startup error list — same as a structural or semantic validation error. |
+| Startup | Every body placeholder against `requestBody`: a `{{$.…}}` selector over a field the request schema lets a caller **omit**, with no `default`/`omit` fallback. | Startup error — see [Optional fields must have a fallback](#optional-fields-must-have-a-fallback) below. |
 | Runtime — mocked scenario | The incoming request body against `requestBody`; after placeholder resolution, the generated response body against the status-matched response schema. | Request: `400` with an `error` and a `details` array. Response: `500` with the same shape. |
 | Runtime — `real` passthrough | The proxied response body, when its `content-type` is JSON, against the status-matched response schema. Requests are never validated for `real`. | Never blocks or alters the response — a mismatch is recorded as `drift_warning` in the decision trace and logs at console `warn` level. |
 
@@ -100,6 +101,37 @@ a validation error.
     An invalid JSON Schema anywhere in `_schema.json` (request or any response)
     fails catalog validation immediately, alongside fixture-body mismatches — run
     `npm run validate:catalog` after adding or editing one.
+
+### Optional fields must have a fallback
+
+When an endpoint has a request schema, a fixture placeholder that reads a body
+field the schema lets a caller **omit** — and supplies no fallback — is a
+**startup error**. The schema says the field is optional; the placeholder makes
+it de-facto required, because a request without it
+[fails with a `500`](fixtures.md#typed-substitution).
+
+```json
+// requestBody schema: "id" required, "middleName" optional
+{ "type": "object", "required": ["id"],
+  "properties": { "id": {}, "middleName": {} } }
+
+// fixture body — the {{$.middleName}} placeholder is the error
+{ "id": "{{$.id}}", "middleName": "{{$.middleName}}" }
+```
+
+`{{$.id}}` is fine — a request without `id` is already rejected with a `400`
+before templating. `{{$.middleName}}` is flagged, with three ways to resolve it:
+
+- `{{$.middleName | omit}}` — [drop the field](fixtures.md#dropping-a-field-when-its-source-is-absent) when the caller omits it
+- `{{$.middleName | default:'N/A'}}` — [substitute a value](fixtures.md#fallbacks-for-missing-values)
+- add `middleName` to the schema's `required` — if it was never really optional
+
+The check is deliberately conservative: it flags only a field **provably**
+optional under plain `object`/`required`/`properties` (following `#/$defs/`
+references). Anything it can't decide — a field behind `anyOf`/`allOf`/`if`, an
+array element, a `$ref` it can't resolve — is left alone, so it never blocks a
+valid catalog. `header:`, `path:`, and `query:` selectors are out of scope: the
+request schema describes only the JSON body.
 
 ## System-level `_spec` file
 

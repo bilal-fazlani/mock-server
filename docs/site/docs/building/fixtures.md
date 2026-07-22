@@ -444,3 +444,8 @@ the placeholder shape.
     only in *another* system's scope), and built-ins called with the wrong number
     of arguments are catalog errors — but resolution against a specific request
     is the one thing validation can't pre-check.
+
+    One slice of it *is* pre-checkable, though: when the endpoint has a
+    [request schema](schemas.md), a placeholder over a body field the schema
+    marks **optional**, with no `default`/`omit`, is caught at startup — see
+    [Optional fields must have a fallback](schemas.md#optional-fields-must-have-a-fallback).

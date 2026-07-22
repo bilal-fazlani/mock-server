@@ -635,6 +635,73 @@ describe('validateCatalog with _schema.json', () => {
   })
 })
 
+describe('validateCatalog optional-field lint (#27)', () => {
+  // A request schema requiring `id`, leaving `middleName` optional, plus a
+  // permissive response schema so only the presence lint is in play.
+  const op = (requestSchema: unknown) => ({
+    requestBody: { content: { 'application/json': { schema: requestSchema } } },
+    responses: { '200': { content: { 'application/json': { schema: { type: 'object' } } } } },
+  })
+  const OBJ = { type: 'object', required: ['id'], properties: { id: {}, middleName: {} } }
+  const run = (body: unknown, requestSchema: unknown = OBJ): string[] => {
+    const dir = tmpCatalogDir({ 'test-system/hello_world/default.json': { status: 200, body } })
+    return validateCatalog(catalog([endpoint({ schema: op(requestSchema) })]), dir).errors
+  }
+
+  it('flags an optional body field read with no fallback, but not the required one', () => {
+    const out = run({ id: '{{$.id}}', middleName: '{{$.middleName}}' }).join('\n')
+    expect(out).toMatch(/placeholder "\{\{\$\.middleName\}\}".*\$\.middleName.*lets callers omit/)
+    expect(out).not.toMatch(/\{\{\$\.id\}\}/)
+  })
+
+  it('names all three remedies', () => {
+    const out = run({ middleName: '{{$.middleName}}' }).join('\n')
+    expect(out).toMatch(/\| omit/)
+    expect(out).toMatch(/\| default:/)
+    expect(out).toMatch(/required/)
+  })
+
+  it('does not flag when default or omit is in the chain', () => {
+    expect(run({ a: "{{$.middleName | default:'N/A'}}" })).toEqual([])
+    expect(run({ a: '{{$.middleName | omit}}' })).toEqual([])
+  })
+
+  it('flags an optional selector in a call-argument position', () => {
+    // `{{upper:$.middleName}}` reads $.middleName as upper's argument.
+    expect(run({ a: '{{upper:$.middleName}}' }).join('\n')).toMatch(/\$\.middleName.*lets callers omit/)
+  })
+
+  it('does not flag a field absent from a schema (no request schema)', () => {
+    const dir = tmpCatalogDir({
+      'test-system/hello_world/default.json': { status: 200, body: { a: '{{$.middleName}}' } },
+    })
+    expect(validateCatalog(catalog([endpoint()]), dir).errors).toEqual([])
+  })
+
+  it('skips silently when a combinator makes presence undecidable', () => {
+    const combinator = { anyOf: [OBJ] }
+    expect(run({ a: '{{$.middleName}}' }, combinator)).toEqual([])
+  })
+
+  it('does not flag an array-index selector', () => {
+    const arr = {
+      type: 'object',
+      required: ['xs'],
+      properties: { xs: { type: 'array', items: {} } },
+    }
+    expect(run({ a: '{{$.xs[0]}}' }, arr)).toEqual([])
+  })
+
+  it('flags a _spec-style $ref/$defs request schema identically', () => {
+    const refSchema = {
+      $ref: '#/$defs/Body',
+      $defs: { Body: { type: 'object', required: ['id'], properties: { id: {}, middleName: {} } } },
+    }
+    expect(run({ a: '{{$.middleName}}' }, refSchema).join('\n')).toMatch(/\$\.middleName.*lets callers omit/)
+    expect(run({ a: '{{$.id}}' }, refSchema)).toEqual([])
+  })
+})
+
 describe('validateAppConfig', () => {
   const system = { name: 'Test System', slug: 'test-system', baseUrlEnv: 'TEST_URL', endpoints: [endpoint()] }
   const cat: Catalog = { systems: [system] }

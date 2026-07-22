@@ -247,3 +247,98 @@ describe('buildSchemaRegistry', () => {
     expect(errors.join('\n')).toMatch(/Test System\/hello_world.*requestBody/)
   })
 })
+
+describe('guaranteesPresence (#27)', () => {
+  const req = (schema: unknown) =>
+    compileEndpointSchema(
+      { requestBody: { content: { 'application/json': { schema } } } },
+      'sys/ep',
+    )
+
+  it('is true for a required field, false for an optional one', () => {
+    const c = req({
+      type: 'object',
+      required: ['id'],
+      properties: { id: {}, middleName: {} },
+    })
+    expect(c.guaranteesPresence(['id'])).toBe(true)
+    expect(c.guaranteesPresence(['middleName'])).toBe(false)
+  })
+
+  it('is false for a field absent from properties (not required)', () => {
+    const c = req({ type: 'object', required: ['id'], properties: { id: {} } })
+    expect(c.guaranteesPresence(['other'])).toBe(false)
+  })
+
+  it('follows a required nested path and reports the first optional segment', () => {
+    const c = req({
+      type: 'object',
+      required: ['a'],
+      properties: {
+        a: { type: 'object', required: ['b'], properties: { b: {}, maybe: {} } },
+      },
+    })
+    expect(c.guaranteesPresence(['a', 'b'])).toBe(true)
+    expect(c.guaranteesPresence(['a', 'maybe'])).toBe(false)
+  })
+
+  it('is undecidable for an array-index segment', () => {
+    const c = req({
+      type: 'object',
+      required: ['xs'],
+      properties: { xs: { type: 'array', items: {} } },
+    })
+    expect(c.guaranteesPresence(['xs', 0])).toBeUndefined()
+  })
+
+  it('is undecidable when a combinator is in the way', () => {
+    const c = req({
+      allOf: [{ type: 'object', required: ['id'], properties: { id: {} } }],
+    })
+    expect(c.guaranteesPresence(['id'])).toBeUndefined()
+  })
+
+  it('is false when descending through an unconstrained {} sub-schema', () => {
+    // `a` is required but its schema is `{}` (any value), so `b` beneath it is
+    // provably not guaranteed — a request can send `{ "a": {} }`.
+    const c = req({ type: 'object', required: ['a'], properties: { a: {} } })
+    expect(c.guaranteesPresence(['a', 'b'])).toBe(false)
+  })
+
+  it('is undecidable when a required field has no properties sub-schema at all', () => {
+    const c = req({ type: 'object', required: ['a'] })
+    expect(c.guaranteesPresence(['a', 'b'])).toBeUndefined()
+  })
+
+  it('resolves a plain #/$defs/ ref (the _spec-loader shape)', () => {
+    const c = req({
+      $ref: '#/$defs/Body',
+      $defs: {
+        Body: { type: 'object', required: ['id'], properties: { id: {}, note: {} } },
+      },
+    })
+    expect(c.guaranteesPresence(['id'])).toBe(true)
+    expect(c.guaranteesPresence(['note'])).toBe(false)
+  })
+
+  it('follows a recursive $defs schema without looping', () => {
+    // A linked list: `next` is required at every level, so a two-hop path is
+    // genuinely guaranteed — recursion here is legitimate, not a cycle.
+    const c = req({
+      $ref: '#/$defs/Node',
+      $defs: {
+        Node: {
+          type: 'object',
+          required: ['next'],
+          properties: { next: { $ref: '#/$defs/Node' } },
+        },
+      },
+    })
+    expect(c.guaranteesPresence(['next', 'next'])).toBe(true)
+  })
+
+  it('is undecidable with no request schema', () => {
+    const c = compileEndpointSchema({ responses: {} }, 'sys/ep')
+    expect(c.guaranteesPresence(['anything'])).toBeUndefined()
+  })
+})
