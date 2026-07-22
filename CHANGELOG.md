@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.5.0](https://github.com/bilal-fazlani/mock-server/compare/v0.4.0...v0.5.0) (2026-07-22)
+
+
+### ⚠ BREAKING CHANGES
+
+* the named formats `date` and `time` are removed — use the patterns YYYY-MM-DD and HH:mm:ss instead. YYYYMMDD keeps working as a token pattern.
+
+### Features
+
+* replace now format enum with free-form date/time token patterns ([a38618c](https://github.com/bilal-fazlani/mock-server/commit/a38618caaaf1d94e93dd4c26624228e8942c823c)), closes [#30](https://github.com/bilal-fazlani/mock-server/issues/30)
+
 ## [0.4.0](https://github.com/bilal-fazlani/mock-server/compare/v0.3.0...v0.4.0) (2026-07-22)
 
 
