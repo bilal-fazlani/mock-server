@@ -16,16 +16,16 @@ This applies only to the `superpowers:*` namespace. This repo's own skills
 (`.claude/skills/` — `feature-lifecycle`, `maintaining-project-docs`) are small,
 project-specific, and should be used freely whenever they apply, without asking.
 
-## Verify before committing — CI only runs the tests
+## Verify before committing — CI does not lint
 
-`.github/workflows/ci.yml` runs exactly one check on a PR: `npm test`. **`npm run lint` and
-`npm run build` are never run by CI**, so a lint error or a broken Next build merges clean.
-Run all three yourself before committing:
+`.github/workflows/ci.yml` runs `npm test`, `npm run build`, and `npm run check:prerender`
+(no `/ui` route may be statically prerendered — see #32) on a PR. **`npm run lint` is never
+run by CI**, so a lint error merges clean. Run all three yourself before committing:
 
 ```
-npm test          # vitest
-npm run lint      # eslint
-npm run build     # next build — the one CI can't catch for you
+npm test          # vitest (includes tests/ui/force-dynamic.test.ts, the source-level twin of check:prerender)
+npm run lint      # eslint — the one CI can't catch for you
+npm run build     # next build; follow with `npm run check:prerender` if /ui pages changed
 ```
 
 After editing anything under `catalog/`, also run `npm run validate:catalog`.

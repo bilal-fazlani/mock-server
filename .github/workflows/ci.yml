@@ -56,3 +56,14 @@ jobs:
 
       - name: Test
         run: npm test
+
+      # A page missing `force-dynamic` builds clean and works in dev, but a
+      # production build prerenders it with build-time env/catalog baked in
+      # (#32: /ui/profiles/new ignored runtime PASSTHROUGH_AS_DEFAULT). The
+      # build itself also catches next-build-only breakage that `npm test`
+      # never sees.
+      - name: Build
+        run: npm run build
+
+      - name: Check no /ui route is prerendered
+        run: npm run check:prerender
