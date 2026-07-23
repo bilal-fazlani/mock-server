@@ -32,6 +32,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "validate:catalog": "tsx scripts/validate-catalog.ts",
+    "check:prerender": "node scripts/check-ui-prerender.mjs",
     "prepack": "npm run build && cp -r .next/static .next/standalone/.next/static && cp -r public .next/standalone/public && node scripts/prepack-standalone.mjs"
   },
   "dependencies": {
