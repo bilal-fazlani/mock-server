@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/bilal-fazlani/mock-server/compare/v0.5.0...v0.5.1) (2026-07-23)
+
+
+### Bug Fixes
+
+* **ui:** render new-profile page per request instead of build-time prerender ([7f2440b](https://github.com/bilal-fazlani/mock-server/commit/7f2440bd635d28789fbf876934f754164dcc08df)), closes [#32](https://github.com/bilal-fazlani/mock-server/issues/32)
+
 ## [0.5.0](https://github.com/bilal-fazlani/mock-server/compare/v0.4.0...v0.5.0) (2026-07-22)
 
 
