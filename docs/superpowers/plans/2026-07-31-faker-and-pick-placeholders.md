@@ -393,7 +393,7 @@ it('accepts pick with >=1 literal and rejects a piped/selector arg', () => {
 - [ ] **Step 2:** Add a **`pick`** subsection: `{{pick:a:b:c}}`, author-supplied values, type preservation, literal-args-only.
 - [ ] **Step 3:** Add a **Determinism & seeding** note: seeded per `(profile, endpoint, position)`, reproducible per caller, stable under unrelated edits; contrast with `{{uuid}}` (unseeded, unique per request); the within-release stability contract.
 - [ ] **Step 4:** Add table rows to the placeholder table (line ~80) and the built-in transforms table (line ~236): `faker`, `pick`.
-- [ ] **Step 5:** Build docs — `cd docs/site && uvx zensical==0.0.50 build -f zensical.toml --clean --strict` → `No issues found`.
+- [ ] **Step 5:** Build docs — `cd docs/site && uvx zensical==0.0.52 build -f zensical.toml --clean --strict` → `No issues found`.
 - [ ] **Step 6: Commit** (`docs(templating): document faker and pick placeholders`)
 
 ---

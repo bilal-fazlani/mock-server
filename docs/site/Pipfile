@@ -7,7 +7,7 @@ name = "pypi"
 # Pinned to the version the docs are authored/verified against. Zensical is
 # alpha (0.0.x) and may ship breaking changes, so keep this pinned and bump
 # deliberately.
-zensical = "==0.0.50"
+zensical = "==0.0.52"
 
 [dev-packages]
 

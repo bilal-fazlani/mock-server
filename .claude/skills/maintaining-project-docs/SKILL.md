@@ -104,7 +104,7 @@ prose ("Code-backed resolvers"), not filenames.
 From `docs/site/`:
 
 ```bash
-uvx zensical==0.0.50 build -f zensical.toml --clean --strict
+uvx zensical==0.0.52 build -f zensical.toml --clean --strict
 ```
 
 Must print `No issues found`. Takes ~1.5s. The version is pinned to match `Pipfile` —
