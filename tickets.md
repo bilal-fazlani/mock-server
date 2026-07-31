@@ -10,12 +10,10 @@ flowchart LR
   I2["#2 · reset-history affordance · ui"]
   I17["#17 · fault injection · fault-sim"]
   I28["#28 · API docs view (Scalar) · ui"]
-  I34["#34 · JSON console logging · observability"]
   I35["#35 · traceparent in request logs · observability"]
 
   I10 -- "threading pattern" --> I14
   I14 -- "seed + args" --> I15
-  I34 -- "JSON line format" --> I35
 
   classDef backlog    fill:#dafbe1,stroke:#1a7f37,stroke-width:2px,color:#1f2328
   classDef refining   fill:#ffeff7,stroke:#bf3989,stroke-width:2px,color:#1f2328
@@ -24,7 +22,7 @@ flowchart LR
   classDef inreview   fill:#fbefff,stroke:#8250df,stroke-width:2px,color:#1f2328
 
   class I2,I10,I14,I15,I17,I35 backlog
-  class I28,I34 inreview
+  class I28 inreview
 ```
 
 **Legend** — node colour is the lane on [project board 3](https://github.com/users/bilal-fazlani/projects/3), matching its colours there:
@@ -49,7 +47,6 @@ flowchart LR
 | # | Title | Type | Area |
 |---|---|---|---|
 | [#35](https://github.com/bilal-fazlani/mock-server/issues/35) | propagate inbound `traceparent` into request logs and the logs view | enhancement | observability |
-| [#34](https://github.com/bilal-fazlani/mock-server/issues/34) | structured JSON console logging via `MOCK_LOG_FORMAT` | enhancement | observability |
 | [#28](https://github.com/bilal-fazlani/mock-server/issues/28) | spike: per-system API docs view rendering `_spec.yaml` with Scalar | enhancement | ui |
 | [#17](https://github.com/bilal-fazlani/mock-server/issues/17) | Fault injection — connection reset, hung socket, malformed JSON body | enhancement | fault-sim |
 | [#15](https://github.com/bilal-fazlani/mock-server/issues/15) | Placeholder: Faker integration — `{{faker:person.fullName}}`, `{{faker:internet.email}}` | enhancement | templating |
@@ -61,6 +58,7 @@ flowchart LR
 
 | # | Title | Type | Area | Closed |
 |---|---|---|---|---|
+| [#34](https://github.com/bilal-fazlani/mock-server/issues/34) | structured JSON console logging via `MOCK_LOG_FORMAT` | enhancement | observability | 2026-07-31 |
 | [#32](https://github.com/bilal-fazlani/mock-server/issues/32) | new-profile page is statically prerendered and ignores runtime `PASSTHROUGH_AS_DEFAULT` | bug | ui | 2026-07-23 |
 | [#30](https://github.com/bilal-fazlani/mock-server/issues/30) | replace `now` format enum with named formats plus free-form date/time token patterns | enhancement | templating | 2026-07-22 |
 | [#27](https://github.com/bilal-fazlani/mock-server/issues/27) | catalog lint: flag placeholders referencing schema-optional body fields without a fallback | enhancement | templating | 2026-07-22 |
