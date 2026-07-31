@@ -78,6 +78,7 @@ substituted at request time. Two kinds:
 | `{{now+3d:iso}}` | ISO-8601 timestamp offset by `+3` days from request time |
 | `{{now-15m:iso}}` | ISO-8601 timestamp offset by `-15` minutes from request time |
 | `{{uuid}}` | A freshly generated v4 UUID (e.g. `9f1c4e02-7a3b-4d15-9c8e-2f6b0d5a1e77`) |
+| `{{uuid:booking}}` | A generated v4 UUID [shared by name](#generating-an-id) — every `{{uuid:booking}}` in one response is the same id |
 | `{{$.path.in.body}}` | A value pulled from the request body |
 | `{{path:name}}` | A path parameter from the URL |
 | `{{query:name}}` | A query-string parameter |
@@ -140,12 +141,51 @@ idempotency keys, correlation ids:
 }
 ```
 
-**Every occurrence draws its own value.** A fixture returning a list gives each
-element a distinct id, and the `bookingId` and `x-request-id` above are two
-different UUIDs — there is no way to make two placeholders agree on one value.
+**By default every occurrence draws its own value.** A fixture returning a list
+gives each element a distinct id, and the `bookingId` and `x-request-id` above
+are two different UUIDs.
 
-The token takes no arguments and no format. It is a *source*, so it can only
-open a placeholder, never follow a `|`: `{{$.name | uuid}}` is a catalog error at
+#### Sharing one id across several places
+
+When a generated id has to appear in more than one place — a resource id echoed
+into a `Location` header, a parent id repeated across child records, an
+idempotency key returned in both the body and a header — give `{{uuid}}` a
+**group name**. Every `{{uuid:name}}` sharing a name renders the *same* UUID
+within one response; bare `{{uuid}}` keeps drawing a fresh value each time:
+
+```json
+{
+  "status": 201,
+  "headers": { "location": "/bookings/{{uuid:booking}}" },
+  "body": {
+    "bookingId": "{{uuid:booking}}",
+    "auditId": "{{uuid}}",
+    "legs": [
+      { "id": "{{uuid}}", "bookingId": "{{uuid:booking}}" },
+      { "id": "{{uuid}}", "bookingId": "{{uuid:booking}}" }
+    ]
+  }
+}
+```
+
+Here `location`, `bookingId`, and both `legs[].bookingId` are one UUID; `auditId`
+and each `legs[].id` are four more, all distinct.
+
+A few details:
+
+- The name is an opaque **label, not a seed** — it decides *which* placeholders
+  agree, not *what* value they produce. The value is still randomly generated.
+- Grouping is scoped to **one response**: two requests to the same fixture get
+  different UUIDs for the same group name.
+- The name is compared as text, so `{{uuid:1}}` and `{{uuid:'1'}}` are the same
+  group, and `{{uuid:}}` is a real (empty-named) group, distinct from bare
+  `{{uuid}}`.
+- The name must be a **literal**. A selector name like `{{uuid:$.orderId}}` is a
+  catalog error at startup — deciding a group from request data is not a designed
+  behaviour.
+
+The generator takes no format. It is a *source*, so it can only open a
+placeholder, never follow a `|`: `{{$.name | uuid}}` is a catalog error at
 startup. Piping the result onward works normally, so `{{uuid | upper}}` gives the
 uppercase form.
 
@@ -238,13 +278,14 @@ error at startup, never a runtime surprise.
 | `trim` | the piped value | Strip leading and trailing whitespace |
 | `default` | the piped value, plus a fallback | Substitute the fallback when the piped value is [missing](#fallbacks-for-missing-values) |
 | `omit` | the piped value | [Drop the field](#dropping-a-field-when-its-source-is-absent) when the piped value is absent |
-| `uuid` | none | Generate a [fresh v4 UUID](#generating-an-id) — a source, so it cannot follow a `\|` |
+| `uuid` | an optional group name | Generate a [v4 UUID](#generating-an-id) — a source, so it cannot follow a `\|`. Fresh per occurrence, or shared across every `{{uuid:name}}` with the same name |
 
 They compose left to right, so `{{$.name | trim | upper}}` trims first and
 uppercases the result.
 
 Every built-in takes a **fixed number of arguments**, counting the piped value as
-the first one. Calling one with the wrong count — `{{$.name | default}}`, or
+the first one — except `uuid`, which takes an optional group name and so accepts
+0 or 1. Calling one with the wrong count — `{{$.name | default}}`, or
 `{{$.name | uuid}}`, which hands a value to a built-in that takes none — is a
 catalog error at startup, not a `500` on the first request that reaches the
 fixture. Custom functions are ordinary JavaScript and take whatever they take.

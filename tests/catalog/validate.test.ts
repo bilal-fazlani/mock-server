@@ -503,9 +503,36 @@ describe('validateCatalog placeholder function scoping', () => {
     ).toEqual([])
   })
 
-  it('rejects {{uuid}} piped a value — it is a source, not a transform', () => {
+  it('accepts a grouped {{uuid:X}} in a body, a nested array, and a header (#36)', () => {
+    expect(
+      validateCatalogWith({
+        body: {
+          bookingId: '{{uuid:booking}}',
+          auditId: '{{uuid}}',
+          legs: [{ bookingId: '{{uuid:booking}}' }],
+          empty: '{{uuid:}}',
+          numeric: '{{uuid:1}}',
+        },
+        headers: { location: '/bookings/{{uuid:booking}}' },
+      }),
+    ).toEqual([])
+  })
+
+  it('rejects {{uuid}} piped a value — a source takes no input, so it is a non-literal argument (#36)', () => {
     expect(validateCatalogWith({ body: { x: '{{$.a | uuid}}' } }).join('\n')).toMatch(
-      /calls built-in "uuid" with 1 argument\(s\), expected 0/,
+      /passes a non-literal argument to built-in "uuid"/,
+    )
+  })
+
+  it('rejects a selector argument to {{uuid}} — group names are literals only (#36)', () => {
+    expect(validateCatalogWith({ body: { x: '{{uuid:$.orderId}}' } }).join('\n')).toMatch(
+      /passes a non-literal argument to built-in "uuid"/,
+    )
+  })
+
+  it('rejects {{uuid:X}} with a piped value — two arguments is outside uuid\'s 0-1 range (#36)', () => {
+    expect(validateCatalogWith({ body: { x: '{{$.a | uuid:booking}}' } }).join('\n')).toMatch(
+      /calls built-in "uuid" with 2 argument\(s\), expected 0-1/,
     )
   })
 

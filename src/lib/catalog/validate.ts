@@ -1,6 +1,11 @@
 import fs from 'node:fs'
 import { DurationError, parseDelayMs } from '../mock-engine/duration'
-import { builtinArity, CALLABLE_BUILTINS } from '../mock-engine/evaluate'
+import {
+  builtinArity,
+  builtinRequiresLiteralArgs,
+  CALLABLE_BUILTINS,
+  describeArity,
+} from '../mock-engine/evaluate'
 import { callNodes, parseExpr, ExprParseError, type Expr } from '../mock-engine/expr'
 import { fixtureFilePath, type Fixture } from '../mock-engine/fixtures'
 import { listPlaceholders } from '../mock-engine/template'
@@ -210,16 +215,32 @@ export function validateCatalog(catalog: Catalog, catalogDir: string): Validatio
               )
               continue
             }
-            // Built-ins declare a fixed argument count (the piped value counts
+            // Built-ins declare an argument-count range (the piped value counts
             // as the first one), so "{{$.x | default}}" is a startup error
             // rather than a 500 on the first request that hits the fixture.
-            // Custom functions are plain JS and take whatever they take.
+            // Most are fixed (min === max); `uuid` takes 0 or 1 (#36). Custom
+            // functions are plain JS and take whatever they take.
             const arity = builtinArity(call.name)
-            if (arity !== undefined && call.args.length !== arity) {
+            if (arity && (call.args.length < arity.min || call.args.length > arity.max)) {
               errors.push(
                 `${label}: fixture ${file} placeholder "{{${expr}}}" calls built-in "${call.name}" ` +
-                  `with ${call.args.length} argument(s), expected ${arity}`,
+                  `with ${call.args.length} argument(s), expected ${describeArity(arity)}`,
               )
+            }
+            // A literal-only built-in (`uuid`, whose argument is an opaque group
+            // name) rejects a selector or a piped value at load — otherwise
+            // "{{uuid:$.orderId}}" would half-work, and "{{$.x | uuid}}" would
+            // quietly group by the piped value instead of being the error it is
+            // for a source that takes no input (#36 decision 2).
+            if (builtinRequiresLiteralArgs(call.name)) {
+              const nonLiteral = call.args.find((a) => a.kind !== 'lit')
+              if (nonLiteral) {
+                errors.push(
+                  `${label}: fixture ${file} placeholder "{{${expr}}}" passes a non-literal argument to ` +
+                    `built-in "${call.name}"; it takes an optional literal group name only, not a selector ` +
+                    `or a piped value`,
+                )
+              }
             }
           }
           // `default`/`omit` anywhere in the chain absorbs a missing value, so a
