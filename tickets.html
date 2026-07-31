@@ -225,7 +225,7 @@
       <span class="lane-tally l-refining is-empty"><span class="dot"></span><span class="n">0</span> Refining</span>
       <span class="lane-tally l-ready is-empty"><span class="dot"></span><span class="n">0</span> Ready</span>
       <span class="lane-tally l-progress is-empty"><span class="dot"></span><span class="n">0</span> In progress</span>
-      <span class="lane-tally l-review"><span class="dot"></span><span class="n">2</span> In review</span>
+      <span class="lane-tally l-review"><span class="dot"></span><span class="n">1</span> In review</span>
       <span class="lane-tally l-done"><span class="dot"></span><span class="n">20</span> Done</span>
     </div>
   </header>
@@ -244,12 +244,10 @@ flowchart LR
   I2["#2 · reset-history affordance · ui"]
   I17["#17 · fault injection · fault-sim"]
   I28["#28 · API docs view (Scalar) · ui"]
-  I34["#34 · JSON console logging · observability"]
   I35["#35 · traceparent in request logs · observability"]
 
   I10 -- "threading pattern" --> I14
   I14 -- "seed + args" --> I15
-  I34 -- "JSON line format" --> I35
 
   classDef backlog    fill:#dafbe1,stroke:#1a7f37,stroke-width:2px,color:#1f2328
   classDef refining   fill:#ffeff7,stroke:#bf3989,stroke-width:2px,color:#1f2328
@@ -258,7 +256,7 @@ flowchart LR
   classDef inreview   fill:#fbefff,stroke:#8250df,stroke-width:2px,color:#1f2328
 
   class I2,I10,I14,I15,I17,I35 backlog
-  class I28,I34 inreview
+  class I28 inreview
       </pre>
     </div>
   </section>
