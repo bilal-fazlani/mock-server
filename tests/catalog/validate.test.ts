@@ -554,6 +554,60 @@ describe('validateCatalog placeholder function scoping', () => {
   })
 })
 
+describe('validateCatalog faker/pick placeholders (#15)', () => {
+  it('accepts an exposed zero-arg faker method and a parameterized one', () => {
+    expect(
+      validateCatalogWith({ body: { a: '{{faker:person.fullName}}', b: '{{faker:number.int:1:100}}' } }),
+    ).toEqual([])
+  })
+
+  it('rejects a helpers/utility faker method', () => {
+    expect(
+      validateCatalogWith({ body: { a: '{{faker:helpers.arrayElement:x:y}}' } }).join('\n'),
+    ).toMatch(/faker method .* is not exposed/)
+  })
+
+  it('rejects an unknown faker method', () => {
+    expect(validateCatalogWith({ body: { a: '{{faker:person.nope}}' } }).join('\n')).toMatch(
+      /unknown faker method/,
+    )
+  })
+
+  it('rejects args to a zero-arg faker method', () => {
+    expect(validateCatalogWith({ body: { a: '{{faker:person.fullName:3}}' } }).join('\n')).toMatch(
+      /takes no arguments/,
+    )
+  })
+
+  it('rejects number.int with a bad range', () => {
+    expect(validateCatalogWith({ body: { a: '{{faker:number.int:100:1}}' } }).join('\n')).toMatch(
+      /min .* max/,
+    )
+  })
+
+  it('rejects a non-literal faker method name or param', () => {
+    expect(validateCatalogWith({ body: { a: '{{uuid | faker:person.fullName}}' } }).join('\n')).toMatch(
+      /non-literal argument/,
+    )
+  })
+
+  it('rejects a prototype method masquerading as a faker method', () => {
+    expect(validateCatalogWith({ body: { a: '{{faker:person.toString}}' } }).join('\n')).toMatch(
+      /unknown faker method/,
+    )
+    expect(validateCatalogWith({ body: { a: '{{faker:person.constructor}}' } }).join('\n')).toMatch(
+      /unknown faker method/,
+    )
+  })
+
+  it('accepts pick with >=1 literal and rejects a piped/selector arg', () => {
+    expect(validateCatalogWith({ body: { a: '{{pick:red:green:blue}}' } })).toEqual([])
+    expect(validateCatalogWith({ body: { a: '{{$.x | pick:red}}' } }).join('\n')).toMatch(
+      /non-literal argument/,
+    )
+  })
+})
+
 describe('validateCatalog omit positions (#24)', () => {
   it('accepts omit as the whole value of an object property or header', () => {
     expect(
