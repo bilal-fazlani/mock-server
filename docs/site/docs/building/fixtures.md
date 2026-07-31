@@ -79,6 +79,8 @@ substituted at request time. Two kinds:
 | `{{now-15m:iso}}` | ISO-8601 timestamp offset by `-15` minutes from request time |
 | `{{uuid}}` | A freshly generated v4 UUID (e.g. `9f1c4e02-7a3b-4d15-9c8e-2f6b0d5a1e77`) |
 | `{{uuid:booking}}` | A generated v4 UUID [shared by name](#generating-an-id) — every `{{uuid:booking}}` in one response is the same id |
+| `{{faker:person.fullName}}` | A [fake data value](#generating-fake-data) from Faker (e.g. `Herminia Fadel`) |
+| `{{pick:red:green:blue}}` | One of [your own listed values](#choosing-a-value-from-your-own-list), chosen per caller (e.g. `green`) |
 | `{{$.path.in.body}}` | A value pulled from the request body |
 | `{{path:name}}` | A path parameter from the URL |
 | `{{query:name}}` | A query-string parameter |
@@ -196,6 +198,142 @@ uppercase form.
     instead. Where a caller needs a stable value, echo one the request already
     carries (`{{header:x-request-id}}`, `{{$.id}}`) rather than generating one.
 
+### Generating fake data
+
+`{{faker:module.method}}` draws a value from [Faker](https://fakerjs.dev/), covering
+the realistic-looking names, emails, addresses, and prices a hand-typed fixture
+usually fakes badly:
+
+```json
+{
+  "status": 200,
+  "body": {
+    "customerName": "{{faker:person.fullName}}",
+    "email": "{{faker:internet.email}}",
+    "city": "{{faker:location.city}}",
+    "age": "{{faker:number.int:18:65}}"
+  }
+}
+```
+
+A response might render as:
+
+```json
+{
+  "customerName": "Herminia Fadel",
+  "email": "Herminia_Fadel23@hotmail.com",
+  "city": "Port Erikview",
+  "age": 42
+}
+```
+
+Only Faker's **data-generating modules** are exposed — the ones that produce a
+value with no side effect. `helpers` (`arrayElement`, `slugify`, …) and `image`
+(network calls / placeholder URLs, not deterministic data) are deliberately
+excluded, along with any of Faker's internal members:
+
+`person`, `internet`, `location`, `commerce`, `company`, `lorem`, `number`,
+`date`, `string`, `color`, `animal`, `music`, `science`, `vehicle`, `word`,
+`phone`, `finance`, `database`, `git`, `food`, `book`, `airline`, `hacker`.
+
+Every zero-argument method on an exposed module works out of the box —
+`{{faker:person.firstName}}`, `{{faker:company.name}}`, `{{faker:date.past}}`.
+Browse the full method list in [Faker's own docs](https://fakerjs.dev/api/). A
+curated set additionally takes positional arguments, mapped onto the options
+object the underlying Faker method expects:
+
+| Placeholder | Calls | Argument(s) |
+| --- | --- | --- |
+| `{{faker:number.int:MIN:MAX}}` | `number.int({ min: MIN, max: MAX })` | `MIN`, `MAX` numeric literals, `MIN <= MAX` |
+| `{{faker:number.float:MIN:MAX}}` | `number.float({ min: MIN, max: MAX })` | `MIN`, `MAX` numeric literals, `MIN <= MAX` |
+| `{{faker:string.alphanumeric:LEN}}` | `string.alphanumeric(LEN)` | `LEN` a non-negative integer literal |
+| `{{faker:string.alpha:LEN}}` | `string.alpha(LEN)` | `LEN` a non-negative integer literal |
+| `{{faker:string.numeric:LEN}}` | `string.numeric(LEN)` | `LEN` a non-negative integer literal |
+| `{{faker:lorem.words:COUNT}}` | `lorem.words(COUNT)` | `COUNT` a positive integer literal |
+| `{{faker:lorem.sentences:COUNT}}` | `lorem.sentences(COUNT)` | `COUNT` a positive integer literal |
+
+`{{faker:number.int:1:100}}` renders a whole number between 1 and 100 inclusive.
+A method outside this table takes **no** arguments — `{{faker:person.firstName:x}}`
+is a catalog error at startup, and so is a `module.method` that isn't in the
+exposed list above or doesn't exist (`{{faker:helpers.arrayElement}}`,
+`{{faker:image.avatar}}`, `{{faker:person.bogus}}`) — every case is checked when
+the catalog loads, not on the first request that reaches the fixture.
+
+Like `uuid`, `faker` is a **source**: it takes no piped value, so
+`{{$.name | faker:person.fullName}}` is a catalog error at startup. Piping its
+result onward works normally: `{{faker:internet.email | lower}}`.
+
+### Choosing a value from your own list
+
+`{{pick:red:green:blue}}` renders one of the values **you list**, rather than
+generating one — the placeholder for a small fixed vocabulary a fixture should
+vary over: a status enum, a currency code, a shipping carrier:
+
+```json
+{
+  "status": 200,
+  "body": {
+    "currency": "{{pick:USD:EUR:GBP}}",
+    "carrier": "{{pick:ups:fedex:dhl}}"
+  }
+}
+```
+
+Each argument is a [typed argument](#placeholder-expressions) like any other,
+and the chosen value keeps its type: `{{pick:1:2:3}}` picks among the **numbers**
+`1`, `2`, `3`, not the strings `"1"`, `"2"`, `"3"`. Quote an argument that should
+stay text: `{{pick:'1':'2':'3'}}` picks among strings.
+
+`pick` accepts any number of arguments, and — like `uuid`'s group name and
+`faker`'s method path — they must all be **literals**: `{{pick:$.color}}` and
+`{{$.color | pick:red}}` are both catalog errors at startup, not a selector
+silently treated as one more candidate. It draws from the same seeded generator
+`faker` does, so it shares the same [determinism](#determinism-and-seeding): the
+same caller and endpoint always pick the same element.
+
+Like `uuid` and `faker`, `pick` is a **source** — it cannot follow a `|` — but
+its result can be piped onward: `{{pick:red:green:blue | upper}}`.
+
+### Determinism and seeding
+
+Every `{{faker:...}}` and `{{pick:...}}` placeholder is **seeded**: its value is
+derived from the active profile, the endpoint, and where the placeholder sits in
+the fixture — not drawn from an unseeded random number generator.
+
+- **Reproducible per caller.** The same profile calling the same endpoint gets
+  the same values every time, so a consuming test can assert on the rendered
+  value rather than only its shape.
+- **Different profiles diverge.** `{{faker:person.fullName}}` on the same
+  endpoint renders a different name for one profile than for another, and
+  differently again with no profile selected.
+- **Stable under unrelated edits.** Adding a placeholder elsewhere in the same
+  fixture — even earlier in the body — never changes the value an existing
+  placeholder already renders. Each placeholder's seed comes from its own
+  position, not from the order values happen to be drawn in.
+- **Position determines the value, not just the call.** Two placeholders with
+  the identical call still render independently by where they sit —
+  `"legs": ["{{faker:string.uuid}}", "{{faker:string.uuid}}"]` renders two
+  distinct ids, and the same call in the response body renders differently than
+  in a header.
+
+!!! note "Contrast with `{{uuid}}`"
+
+    `{{uuid}}` is deliberately the opposite: **unseeded**, drawing a fresh value on
+    every request so a resource id is never predictable or replayable. Reach for
+    `faker`/`pick` when a fixture should look the same to a given caller across
+    requests; reach for `uuid` when it should look different every time — that's
+    what makes it safe to use for a resource id or idempotency key.
+
+!!! warning "Stable within a release, not across upgrades"
+
+    A `faker`/`pick` value is guaranteed stable only for the lifetime of one
+    mock-server version. Upgrading the mock server — a new Faker version, or a
+    change to the seeding algorithm — can change which value a given placeholder
+    renders, even though the *shape* (a name, an email, a number in range)
+    doesn't. A test asserting on fixture output should assert the shape rather
+    than the exact value — the same contract [`{{uuid}}`](#generating-an-id)
+    already sets.
+
 ### Echoing a request header
 
 `{{header:name}}` reads a request header, which is the usual way to hand a
@@ -279,21 +417,25 @@ error at startup, never a runtime surprise.
 | `default` | the piped value, plus a fallback | Substitute the fallback when the piped value is [missing](#fallbacks-for-missing-values) |
 | `omit` | the piped value | [Drop the field](#dropping-a-field-when-its-source-is-absent) when the piped value is absent |
 | `uuid` | an optional group name | Generate a [v4 UUID](#generating-an-id) — a source, so it cannot follow a `\|`. Fresh per occurrence, or shared across every `{{uuid:name}}` with the same name |
+| `faker` | a `module.method` path, plus [positional arguments](#generating-fake-data) for a curated few methods | Draw a [fake data value](#generating-fake-data) from Faker — a source, so it cannot follow a `\|`. [Seeded](#determinism-and-seeding), unlike `uuid` |
+| `pick` | one or more literal values | [Choose one](#choosing-a-value-from-your-own-list) of the listed values — a source, so it cannot follow a `\|`. [Seeded](#determinism-and-seeding), unlike `uuid` |
 
 They compose left to right, so `{{$.name | trim | upper}}` trims first and
 uppercases the result.
 
 Every built-in takes a **fixed number of arguments**, counting the piped value as
 the first one — except `uuid`, which takes an optional group name and so accepts
-0 or 1. Calling one with the wrong count — `{{$.name | default}}`, or
-`{{$.name | uuid}}`, which hands a value to a built-in that takes none — is a
+0 or 1, and `faker`/`pick`, which take one or more (a method path, or a list of
+candidate values) and so have no upper bound. Calling one with the wrong count —
+`{{$.name | default}}`, `{{$.name | uuid}}` (hands a value to a built-in that
+takes none), or bare `{{faker}}`/`{{pick}}` (no method path or candidates) — is a
 catalog error at startup, not a `500` on the first request that reaches the
 fixture. Custom functions are ordinary JavaScript and take whatever they take.
 
-The set is deliberately small today; seeded randomness, fake data, hashing, and
-encoding are planned as additional built-ins on this same mechanism. Built-in
-names (including `now`, `body`, `path`, `query`, `header`, and `profileKey`) are
-reserved — a custom function may not use them.
+Fake data and seeded randomness are covered by `faker` and `pick`; hashing and
+encoding remain candidates for future built-ins on this same mechanism.
+Built-in names (including `now`, `body`, `path`, `query`, `header`, and
+`profileKey`) are reserved — a custom function may not use them.
 
 ### What a transform accepts
 
