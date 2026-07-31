@@ -145,23 +145,36 @@ If a new issue genuinely fits no existing area, create a new `area: <name>` labe
 `1D76DB`, matching the family) rather than leaving it unlabelled — and mention the new area
 to the user.
 
-## Ticket work also updates `tickets.md`
+## Ticket work also updates `tickets.html`
 
-`tickets.md` at the repo root is the dependency board for this repo's issues: a Mermaid
-graph of the open tickets over a table of the closed ones. **Any ticket status change
-updates it too** — opening an issue, closing one, moving a lane, resolving a blocker, or
-changing a parent/blocked-by relationship. Updating the ticket without updating the board
-leaves it silently wrong; they move together.
+`tickets.html` at the repo root is the dependency board for this repo's issues: a Mermaid
+graph of the **open** tickets, over a lane tally. **Any ticket status change updates it
+too** — opening an issue, closing one, moving a lane, resolving a blocker, or changing a
+parent/blocked-by relationship. Updating the ticket without updating the board leaves it
+silently wrong; they move together.
 
-It is plain Markdown, so edit it **inline with `Edit`, in whatever worktree you are in** —
-no subagent, no canvas app, no main-worktree restriction. Every change is a few lines:
+Edit it **inline with `Edit`, in whatever worktree you are in** — no subagent, no canvas
+app, no main-worktree restriction. Almost every change lands inside the
+`<pre class="mermaid">` block, which is ordinary Mermaid source:
 
-- **Issue opened** → add a node to the graph and a row to the *Open tickets* table; draw an
-  arrow only if there is a real ordering dependency.
-- **Lane moved** → change the node's `class` to match (see below).
-- **Issue closed** → delete its node and its `class` entry and any arrows touching it, move
-  its row from *Open tickets* to *Completed*, and re-point arrows the closure unblocks.
-- **Dependency changed** → add or remove the arrow, and update its label.
+- **Issue opened** → add a node and its `class … backlog` entry; draw an arrow only if there
+  is a real ordering dependency. Bump the `Backlog` tally.
+- **Lane moved** → move the node's id between `class` lines, and adjust both tally counts.
+- **Issue closed** → delete its node, its `class` entry, and any arrows touching it;
+  re-point arrows the closure unblocks; decrement its lane's tally and bump `Done`.
+- **Dependency changed** → add, remove, or relabel the arrow.
+
+**Two counts change on every lane move**, and nothing computes them for you — a stale tally
+is the failure mode this file invites. Re-read them off the board rather than incrementing
+from memory:
+
+```bash
+gh project item-list 3 --owner bilal-fazlani --format json --limit 200 \
+  --jq '[.items[] | select(.content.number != null) | .status] | group_by(.) | map({lane: .[0], n: length})'
+```
+
+The closed-issue history is **not** kept in the file — only the `Done` count. The record
+lives on GitHub: `gh issue list --state closed`.
 
 ### Node colour is the project-board lane, and it moves in real time
 
@@ -175,9 +188,10 @@ own colour on the board** so the two read the same:
 | `Ready` | `ready` | blue |
 | `In progress` | `inprogress` | yellow |
 | `In review` | `inreview` | purple |
-| `Done` | — | orange — node is deleted; the row moves to *Completed* |
+| `Done` | — | orange — node is deleted; only the tally count changes |
 
-If a lane's colour is ever changed on the board, re-read it and re-sync the `classDef`s:
+If a lane's colour is ever changed on the board, re-read it and re-sync **both** the Mermaid
+`classDef`s and the matching CSS custom properties in the page's `<style>`:
 
 ```bash
 gh api graphql -f query='query{ user(login:"bilal-fazlani"){ projectV2(number:3){ field(name:"Status"){ ... on ProjectV2SingleSelectField { options { name color } } } } } }'
@@ -192,7 +206,7 @@ Commit it with the work it describes; standalone board updates use
 `chore: update tickets board — …`.
 
 The node/arrow conventions and the row format are in the `feature-lifecycle` skill under
-"The ticket board (`tickets.md`)".
+"The ticket board (`tickets.html`)".
 
 ## Browser preview from a feature worktree runs the wrong code
 

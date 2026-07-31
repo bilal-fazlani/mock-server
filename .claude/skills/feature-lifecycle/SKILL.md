@@ -82,8 +82,9 @@ idea and picking up an existing issue.
    If the phase-0 survey surfaced a parent or a dependency, set it **at creation**:
    add `--parent P`, `--blocked-by B`, and/or `--blocking X` (see "Issue relationships").
 4. **Record the issue number `#N`** — you'll reference it for the rest of the session.
-5. **Add it to `tickets.md`** — a node in the graph plus a row in the *Open tickets* table;
-   see "The ticket board". Do it here, in whatever worktree you are in.
+5. **Add it to `tickets.html`** — a node in the graph, its id on the `backlog` `class` line,
+   and a bumped `Backlog` tally; see "The ticket board". Do it here, in whatever worktree
+   you are in.
 
 The board auto-adds it and sets `Backlog`. Do nothing else here.
 
@@ -91,7 +92,7 @@ The board auto-adds it and sets `Backlog`. Do nothing else here.
 
 The moment active shaping starts — refining the feature with the user in conversation —
 move the card to **Refining** (see `reference.md` → "Move a card") **and set the node to
-`refining` (pink) in `tickets.md`, in the same step**. This fires for **both** entry
+`refining` (pink) in `tickets.html`, in the same step**. This fires for **both** entry
 points: a new-idea ticket just opened in phase 1, and an existing `Backlog` ticket picked
 up in phase 0. Only pull a `Backlog` card into `Refining`; never drag a card already at
 `Ready` or beyond backward.
@@ -132,11 +133,11 @@ so it carries, in this order:
    ```
 
 Then move the card to **Ready** (see `reference.md` → "Move a card") and set the node to
-`ready` (blue) in `tickets.md`.
+`ready` (blue) in `tickets.html`.
 
 ### 4. Start work — trigger: we begin implementing
 
-Move the card to **In Progress** and set the node to `inprogress` (yellow) in `tickets.md` —
+Move the card to **In Progress** and set the node to `inprogress` (yellow) in `tickets.html` —
 both before the first edit, not after. Branching is not mandated — direct on main, a branch,
 or a worktree, whatever fits.
 
@@ -176,7 +177,7 @@ it in the issue (`gh` can't cleanly upload images anyway); the summary comment m
 text that the UI was verified visually.
 
 Then post a **summary comment** describing what shipped, move the card to **In Review**, and
-set the node to `inreview` (green) in `tickets.md`. Hand back to the user for review — do
+set the node to `inreview` (purple) in `tickets.html`. Hand back to the user for review — do
 not proceed to close.
 
 ### 8. Review outcome
@@ -184,31 +185,43 @@ not proceed to close.
 - **8a. Approved** — trigger: the user says merge / push / merge-PR.
   Perform the git action they asked for, then **close the issue**:
   `gh issue close N`. The board auto-sets `Done`. (Do not also edit the Status field —
-  closing is enough.) Then **update `tickets.md`** — delete the node and its arrows, move the
-  row from *Open tickets* to *Completed*, and re-point any arrow the closure unblocks.
-  Commit it with the merge.
+  closing is enough.) Then **update `tickets.html`** — delete the node, its `class` entry and
+  its arrows, re-point any arrow the closure unblocks, and move the count from its lane to
+  `Done`. Commit it with the merge.
 - **8b. Changes requested** — trigger: the user asks for changes during review.
   Post a comment capturing the requested changes, move the card back to
   **In Progress**, set the node back to `inprogress` (yellow), and return to phase 5.
 
-## The ticket board (`tickets.md`)
+## The ticket board (`tickets.html`)
 
-`tickets.md` at the repo root is the dependency board for this repo's issues. **Every
+`tickets.html` at the repo root is the dependency board for this repo's issues. **Every
 change to a ticket's status must be reflected in it** — the ticket and the board are
-updated together, never one without the other. It is plain Markdown: edit it inline with
-`Edit`, from any worktree, no subagent.
+updated together, never one without the other. Edit it inline with `Edit`, from any
+worktree, no subagent.
 
 ### Its shape
 
-Three sections, in this order — match what is already there rather than a remembered layout:
+A single self-contained page — inline `<style>`, no build step, Mermaid pulled from a CDN
+at view time. Two parts carry data:
 
-1. A **Mermaid `flowchart LR`** of every **open** issue.
-2. An **Open tickets** table — the same issues with their full titles.
-3. A **Completed** table — every closed issue, most recently closed first.
+1. The **lane tally** in the masthead — one `<span class="lane-tally l-…">` per lane,
+   carrying that lane's count.
+2. The **Mermaid `flowchart LR`** inside `<pre class="mermaid">` — every **open** issue.
 
 Nodes are `I<N>["#N · short label · area"]`, where the area is the `area:` label without its
-prefix. Table rows link the issue number (`[#34](https://github.com/bilal-fazlani/mock-server/issues/34)`)
-and carry the full title, type label, and area — plus the close date, in *Completed*.
+prefix. Closed issues leave the file entirely; only the `Done` tally records them, and the
+real history stays on GitHub (`gh issue list --state closed`).
+
+**The tally is hand-maintained, and it is what goes stale.** Two counts move on every lane
+transition. Read them off the board rather than incrementing from memory:
+
+```bash
+gh project item-list 3 --owner bilal-fazlani --format json --limit 200 \
+  --jq '[.items[] | select(.content.number != null) | .status] | group_by(.) | map({lane: .[0], n: length})'
+```
+
+A lane at `0` keeps its pill and gains `is-empty`; it is never deleted — the empty lanes are
+what show the pipeline.
 
 ### Node colour is the lane — update it in the same step as the card
 
@@ -222,16 +235,17 @@ board's own lane colours**, so the file and the board read alike — do not inve
 | `Ready` | `ready` | blue |
 | `In progress` | `inprogress` | yellow |
 | `In review` | `inreview` | purple |
-| `Done` | — | orange — node deleted, row moves to *Completed* |
+| `Done` | — | orange — node deleted, only the tally moves |
 
-The `classDef` hex values and a rendered legend live in `tickets.md` itself; the legend's
-`classDef` block is a duplicate of the graph's (each Mermaid block is independent), so a
-colour change edits **both**.
+Each colour is written **twice** in the file: as a Mermaid `classDef` for the graph nodes,
+and as a `--lane-*-fg` custom property for the tally dots — the latter once per theme block
+(`:root` and the `prefers-color-scheme: dark` override). Recolouring a lane edits all of
+them.
 
 **The lane move and the `class` edit are one action, never two.** Every phase below that
-moves a card says which class to set; do both before moving on to the next thing, so the
-file is correct at every point the user might read it. A card in `Refining` whose node is
-still grey is the same defect as a stale board.
+moves a card says which class to set; do both — plus the two tally counts — before moving on
+to the next thing, so the file is correct at every point the user might read it. A card in
+`Refining` whose node is still green is the same defect as a stale board.
 
 The `class` lines sit at the bottom of the graph, grouped by lane
 (`class I2,I10,I14 backlog`). Moving one issue means deleting its id from one line and
@@ -246,28 +260,34 @@ issues, so never reconcile them against `gh issue view --json blockedBy` — it 
 would read as "delete every arrow". **A node with no arrows is independent**, not an
 oversight.
 
-The graph encodes dependency readiness, not the project board's lane. `Ready` →
-`In progress` changes nothing here; opening or closing an issue, or a dependency appearing
-or resolving, does.
+The *arrows* encode dependency readiness, not the project board's lane — a lane move
+changes only a node's colour and the tally, never an arrow.
 
 ### When to update
 
-Any ticket status or relationship change: issue opened or closed, a blocker resolved, a
-parent/sub-issue or blocked-by link added or removed.
+Any ticket status or relationship change: issue opened or closed, a lane moved, a blocker
+resolved, a parent/sub-issue or blocked-by link added or removed.
 
-- **Opened** → add the node with `class … backlog` and the *Open tickets* row; add an arrow
-  only for a real ordering dependency.
-- **Lane moved** → move the node's id to the new lane's `class` line.
-- **Closed** → delete the node, its `class` entry, and every arrow touching it, move the row
-  to *Completed* with its close date, and re-point any arrow the closure unblocks (if
-  `A --> B --> C` and B closes, `A` and `C` may now stand alone or connect directly — decide
-  which and say so).
+- **Opened** → add the node and its id to `class … backlog`; add an arrow only for a real
+  ordering dependency; bump the `Backlog` tally.
+- **Lane moved** → move the node's id to the new lane's `class` line; adjust both tallies
+  (dropping `is-empty` from the lane that gained one, adding it to a lane that hit `0`).
+- **Closed** → delete the node, its `class` entry, and every arrow touching it; re-point any
+  arrow the closure unblocks (if `A --> B --> C` and B closes, `A` and `C` may now stand
+  alone or connect directly — decide which and say so); decrement its lane's tally and bump
+  `Done`.
 - **Dependency changed** → add, remove, or relabel the arrow.
 
-The one thing that is checkable against GitHub is **state**: no issue closed on GitHub may
-still appear in the graph or the *Open tickets* table. Verify with
-`gh issue list --state closed --json number`. That is the failure mode that has actually
-occurred — a closed ticket left looking open.
+### Verify before you commit it
+
+The page has no build step and nothing type-checks it, so two things are worth a look:
+
+- **State** — no issue closed on GitHub may still appear in the graph
+  (`gh issue list --state closed --json number`). That is the failure mode that has actually
+  occurred: a closed ticket left looking open.
+- **It still renders** — open `tickets.html` in the browser preview after editing. A stray
+  `<` in a node label or an unclosed tag breaks the page silently, and a Mermaid syntax error
+  leaves the raw source visible where the graph should be.
 
 ## The `Refs #N` rule (do not violate)
 

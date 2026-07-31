@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tickets — mock-server</title>
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  body { margin: 0; }
+
+  :root {
+    --bg: #fbfcfd;
+    --surface: #ffffff;
+    --surface-2: #f4f6f8;
+    --border: #d8dee4;
+    --text: #1f2328;
+    --muted: #59636e;
+    --faint: #818b96;
+
+    --lane-backlog-fg: #1a7f37;
+    --lane-refining-fg: #bf3989;
+    --lane-ready-fg: #0969da;
+    --lane-progress-fg: #9a6700;
+    --lane-review-fg: #8250df;
+    --lane-done-fg: #bc4c00;
+
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+
+    --radius: 6px;
+    --shadow: 0 1px 0 rgba(31, 35, 40, 0.04);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d1117;
+      --surface: #151b23;
+      --surface-2: #1c232b;
+      --border: #2f3742;
+      --text: #e6edf3;
+      --muted: #9198a1;
+      --faint: #7d8590;
+
+      --lane-backlog-fg: #3fb950;
+      --lane-refining-fg: #db61a2;
+      --lane-ready-fg: #58a6ff;
+      --lane-progress-fg: #d29922;
+      --lane-review-fg: #a371f7;
+      --lane-done-fg: #db6d28;
+
+      --shadow: 0 1px 0 rgba(1, 4, 9, 0.2);
+    }
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+    display: flex;
+    flex-direction: column;
+    gap: 36px;
+  }
+
+  a { color: inherit; }
+  a:focus-visible {
+    outline: 2px solid var(--text);
+    outline-offset: 2px;
+    border-radius: 3px;
+  }
+
+  /* ---- masthead ---- */
+
+  .masthead { display: flex; flex-direction: column; gap: 14px; }
+
+  .masthead h1 {
+    margin: 0;
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+  .masthead h1 .repo {
+    font-family: var(--mono);
+    font-size: 20px;
+    font-weight: 400;
+    color: var(--muted);
+    margin-left: 10px;
+  }
+
+  .tally { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+
+  .lane-tally {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 7px;
+    padding: 4px 10px 4px 8px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .lane-tally .dot {
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    border: 2px solid currentColor;
+    align-self: center;
+  }
+  .lane-tally .n {
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+    font-size: 12px;
+  }
+  .lane-tally.is-empty { opacity: .55; }
+
+  .l-backlog  { color: var(--lane-backlog-fg); }
+  .l-refining { color: var(--lane-refining-fg); }
+  .l-ready    { color: var(--lane-ready-fg); }
+  .l-progress { color: var(--lane-progress-fg); }
+  .l-review   { color: var(--lane-review-fg); }
+  .l-done     { color: var(--lane-done-fg); }
+
+  /* ---- diagram ---- */
+
+  section { display: flex; flex-direction: column; gap: 14px; }
+
+  .section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+  }
+  .section-head h2 {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--muted);
+  }
+  .section-head .note { font-size: 12px; color: var(--faint); }
+
+  .diagram {
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px 8px;
+    overflow-x: auto;
+    box-shadow: var(--shadow);
+  }
+  .diagram pre.mermaid {
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    min-width: 640px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: #1f2328;
+    white-space: pre-wrap;
+  }
+  /* once Mermaid has rendered, the <pre> holds an <svg> and needs no text styling */
+  .diagram pre.mermaid[data-processed="true"] { white-space: normal; }
+
+  footer {
+    font-size: 12px;
+    color: var(--faint);
+    border-top: 1px solid var(--border);
+    padding-top: 14px;
+    line-height: 1.7;
+  }
+  footer code {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  @media (max-width: 560px) {
+    .page { padding: 28px 16px 60px; gap: 28px; }
+    .masthead h1 { font-size: 22px; }
+    .masthead h1 .repo { display: block; margin: 4px 0 0; font-size: 14px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <header class="masthead">
+    <h1>Tickets<span class="repo">bilal-fazlani/mock-server</span></h1>
+    <!-- counts are maintained by hand — update them whenever a lane changes -->
+    <div class="tally">
+      <span class="lane-tally l-backlog"><span class="dot"></span><span class="n">6</span> Backlog</span>
+      <span class="lane-tally l-refining is-empty"><span class="dot"></span><span class="n">0</span> Refining</span>
+      <span class="lane-tally l-ready is-empty"><span class="dot"></span><span class="n">0</span> Ready</span>
+      <span class="lane-tally l-progress is-empty"><span class="dot"></span><span class="n">0</span> In progress</span>
+      <span class="lane-tally l-review"><span class="dot"></span><span class="n">2</span> In review</span>
+      <span class="lane-tally l-done"><span class="dot"></span><span class="n">20</span> Done</span>
+    </div>
+  </header>
+
+  <section>
+    <div class="section-head">
+      <h2>Dependencies</h2>
+      <span class="note">An arrow means the source must land first. No arrows = independent. Colour is the lane.</span>
+    </div>
+    <div class="diagram">
+      <pre class="mermaid">
+flowchart LR
+  I10["#10 · uuid placeholder · templating"]
+  I14["#14 · seeded randomness · templating"]
+  I15["#15 · faker integration · templating"]
+  I2["#2 · reset-history affordance · ui"]
+  I17["#17 · fault injection · fault-sim"]
+  I28["#28 · API docs view (Scalar) · ui"]
+  I34["#34 · JSON console logging · observability"]
+  I35["#35 · traceparent in request logs · observability"]
+
+  I10 -- "threading pattern" --> I14
+  I14 -- "seed + args" --> I15
+  I34 -- "JSON line format" --> I35
+
+  classDef backlog    fill:#dafbe1,stroke:#1a7f37,stroke-width:2px,color:#1f2328
+  classDef refining   fill:#ffeff7,stroke:#bf3989,stroke-width:2px,color:#1f2328
+  classDef ready      fill:#ddf4ff,stroke:#0969da,stroke-width:2px,color:#1f2328
+  classDef inprogress fill:#fff8c5,stroke:#9a6700,stroke-width:2px,color:#1f2328
+  classDef inreview   fill:#fbefff,stroke:#8250df,stroke-width:2px,color:#1f2328
+
+  class I2,I10,I14,I15,I17,I35 backlog
+  class I28,I34 inreview
+      </pre>
+    </div>
+  </section>
+
+  <footer>
+    Ticket board for <a href="https://github.com/bilal-fazlani/mock-server/issues">bilal-fazlani/mock-server</a>,
+    mirroring <a href="https://github.com/users/bilal-fazlani/projects/3">project board 3</a>. Lane colours are the
+    board's own Status colours. Open it in a browser — the graph needs a network connection to fetch Mermaid;
+    without one the <code>&lt;pre&gt;</code> still reads as plain text.
+  </footer>
+
+</div>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({ startOnLoad: true, securityLevel: 'strict' });
+</script>
+
+</body>
+</html>
