@@ -153,9 +153,31 @@ too** — opening an issue, closing one, moving a lane, resolving a blocker, or 
 parent/blocked-by relationship. Updating the ticket without updating the board leaves it
 silently wrong; they move together.
 
-Edit it **inline with `Edit`, in whatever worktree you are in** — no subagent, no canvas
-app, no main-worktree restriction. Almost every change lands inside the
-`<pre class="mermaid">` block, which is ordinary Mermaid source:
+### It is always the main worktree's copy that changes
+
+The board records live state, so it must be right on `main` **the moment a lane changes** —
+not whenever a feature branch happens to merge. A copy edited inside a worktree is invisible
+on `main` until then, and two branches editing it collide.
+
+So even when the ticket is being worked in a worktree, **edit
+`/Users/bilal/Projects/mock-server/tickets.html` by absolute path and commit it there**. You
+do not have to leave the worktree to do it:
+
+```bash
+git -C /Users/bilal/Projects/mock-server add tickets.html
+git -C /Users/bilal/Projects/mock-server commit -m "chore: update tickets board — ..."
+```
+
+This is enforced: the `PreToolUse` hook in `.claude/settings.json`
+(`.claude/hooks/tickets-board-guard.sh`) refuses any `Edit`/`Write` whose path is a
+`tickets.html` outside the main worktree, and names the right path in the refusal. It guards
+the file tools only — a `sed -i` through `Bash` slips past it, so don't reach for one.
+
+That is also why `.gitignore` un-ignores `.claude/settings.json` and `.claude/hooks/`: both
+must be present in **every** worktree checkout for the guard to apply there.
+
+Everything else is inline with `Edit` — no subagent, no canvas app. Almost every change lands
+inside the `<pre class="mermaid">` block, which is ordinary Mermaid source:
 
 - **Issue opened** → add a node and its `class … backlog` entry; draw an arrow only if there
   is a real ordering dependency. Bump the `Backlog` tally.

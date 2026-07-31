@@ -83,8 +83,8 @@ idea and picking up an existing issue.
    add `--parent P`, `--blocked-by B`, and/or `--blocking X` (see "Issue relationships").
 4. **Record the issue number `#N`** — you'll reference it for the rest of the session.
 5. **Add it to `tickets.html`** — a node in the graph, its id on the `backlog` `class` line,
-   and a bumped `Backlog` tally; see "The ticket board". Do it here, in whatever worktree
-   you are in.
+   and a bumped `Backlog` tally. Do it now, against the **main worktree's** copy — see
+   "The ticket board".
 
 The board auto-adds it and sets `Backlog`. Do nothing else here.
 
@@ -187,7 +187,8 @@ not proceed to close.
   `gh issue close N`. The board auto-sets `Done`. (Do not also edit the Status field —
   closing is enough.) Then **update `tickets.html`** — delete the node, its `class` entry and
   its arrows, re-point any arrow the closure unblocks, and move the count from its lane to
-  `Done`. Commit it with the merge.
+  `Done`. Commit it on `main` as its own `chore:` commit — if the work was done on a branch,
+  that is a separate commit from the merge, not part of it.
 - **8b. Changes requested** — trigger: the user asks for changes during review.
   Post a comment capturing the requested changes, move the card back to
   **In Progress**, set the node back to `inprogress` (yellow), and return to phase 5.
@@ -196,8 +197,23 @@ not proceed to close.
 
 `tickets.html` at the repo root is the dependency board for this repo's issues. **Every
 change to a ticket's status must be reflected in it** — the ticket and the board are
-updated together, never one without the other. Edit it inline with `Edit`, from any
-worktree, no subagent.
+updated together, never one without the other. Edit it inline with `Edit`, no subagent.
+
+**Always the main worktree's copy** — `/Users/bilal/Projects/mock-server/tickets.html` — even
+when the ticket is being worked on a branch or in a worktree. A board edit made inside a
+worktree does not reach `main` until the branch merges, which defeats the point of tracking
+lane state live. Commit it there too, without leaving the worktree:
+
+```bash
+git -C /Users/bilal/Projects/mock-server add tickets.html
+git -C /Users/bilal/Projects/mock-server commit -m "chore: update tickets board — ..."
+```
+
+A `PreToolUse` hook blocks `Edit`/`Write` on any other `tickets.html` and tells you the right
+path, so a slip costs one refused tool call rather than a silently stale board. Note that the
+board commit therefore lands on `main` **separately** from the feature branch's commits —
+that is intended, and it is why board updates carry their own `chore:` message rather than
+riding along with the feature.
 
 ### Its shape
 
