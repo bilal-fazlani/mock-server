@@ -327,3 +327,33 @@ describe('faker built-in (#15)', () => {
     ).toThrow(PlaceholderError)
   })
 })
+
+describe('pick built-in (#15)', () => {
+  it('returns one of the literal args, preserving its type', () => {
+    const result = evaluate(parseExpr('pick:1:2:3'), {
+      ...base,
+      faker: new Faker({ locale: [en] }),
+      fakerSeed: 42,
+    })
+    expect(typeof result).toBe('number')
+    expect([1, 2, 3]).toContain(result)
+  })
+
+  it('is reproducible for the same fakerSeed', () => {
+    const a = evaluate(parseExpr('pick:a:b:c'), {
+      ...base,
+      faker: new Faker({ locale: [en] }),
+      fakerSeed: 7,
+    })
+    const b = evaluate(parseExpr('pick:a:b:c'), {
+      ...base,
+      faker: new Faker({ locale: [en] }),
+      fakerSeed: 7,
+    })
+    expect(a).toBe(b)
+  })
+
+  it('throws when no faker instance is injected', () => {
+    expect(() => evaluate(parseExpr('pick:a:b:c'), base)).toThrow(PlaceholderError)
+  })
+})

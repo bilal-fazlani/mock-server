@@ -390,3 +390,14 @@ describe('seeded faker built-in (#15)', () => {
     expect(headerResult.id).not.toBe(bodyResult.id)
   })
 })
+
+describe('pick built-in (#15)', () => {
+  it('picks a stable element for a given seed and preserves type (#15)', () => {
+    const f = () => new Faker({ locale: [en] })
+    const r1 = resolveTemplate('{{pick:1:2:3}}', ctx(), now, undefined, { faker: f(), seedMaterial: 's:e' })
+    const r2 = resolveTemplate('{{pick:1:2:3}}', ctx(), now, undefined, { faker: f(), seedMaterial: 's:e' })
+    expect(r1).toBe(r2)
+    expect(typeof r1).toBe('number')
+    expect([1, 2, 3]).toContain(r1)
+  })
+})

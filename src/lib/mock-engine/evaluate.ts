@@ -225,6 +225,27 @@ const BUILTIN_TRANSFORMS: Record<string, Builtin> = {
       return method(params as (string | number | boolean)[]) as EvalValue
     },
   },
+  // A third *source*: choose among the fixture author's own inline values
+  // rather than a faker-generated one (#15). `literalArgsOnly` and `atLeast(1)`
+  // for the same reasons as `faker` above; unlike `faker`, the args here are
+  // themselves the candidate values, not a method path plus params, so they
+  // pass through untouched — parseArg already typed them (#12), so
+  // "{{pick:1:2:3}}" returns the number 2, not the string "2".
+  //
+  // Shares `faker`'s re-seed-immediately-before-drawing pattern (Model B): the
+  // same faker instance backs both built-ins, so re-seeding right before this
+  // draw is what keeps "{{pick:...}}" reproducible per (seedMaterial, path)
+  // regardless of what else drew from `deps.faker` first.
+  pick: {
+    arity: atLeast(1),
+    literalArgsOnly: true,
+    apply: (args, deps) => {
+      const fn = deps.faker
+      if (!fn) throw new PlaceholderError('pick placeholder needs a faker instance')
+      if (deps.fakerSeed !== undefined) fn.seed(deps.fakerSeed)
+      return fn.helpers.arrayElement(args as EvalValue[])
+    },
+  },
 }
 
 // The only call names evaluate() can dispatch besides user functions.
