@@ -941,13 +941,13 @@ describe('schema validation (mocked path)', () => {
     expect([400]).toContain(res.status)
   })
 
-  it('skips request validation when the scenario is real', async () => {
+  it('never blocks the request when the scenario is real, even if the body violates the schema', async () => {
     const d = deps({
       getProfile: withProfile(
         profile({ profileId: 'c1', endpointScenarios: { schema_checked: 'real' } }),
       ),
     })
-    // amount has the wrong type — the real path must not care
+    // amount has the wrong type — the real path must not block on it
     const res = await routeRequest(post('/schema-checked', { customerId: 'c1', amount: 'lots' }), d)
     expect(res.status).toBe(299)
     expect(d.passthroughCalls).toHaveLength(1)
@@ -989,6 +989,28 @@ describe('schema drift probe (proxy path, warn-only)', () => {
   }
 
   const req = () => post('/schema-checked', { customerId: 'c1' })
+  const okProxied: ProxiedResponse = {
+    status: 299,
+    headers: { 'x-proxied': '1' },
+    bodyBytes: Buffer.from('proxied'),
+  }
+
+  it('records drift when the real request body violates the schema, and forwards it unchanged', async () => {
+    const trace: RouteTrace = {}
+    const res = await routeRequest(
+      post('/schema-checked', { customerId: 'c1', amount: 'lots' }),
+      proxiedDeps(okProxied, trace),
+    )
+    expect(res.status).toBe(299)
+    expect(res.bodyBytes.toString()).toBe('proxied')
+    expect(trace.validation?.request).toBe('drift_warning')
+  })
+
+  it('stays silent for a conforming real request', async () => {
+    const trace: RouteTrace = {}
+    await routeRequest(req(), proxiedDeps(okProxied, trace))
+    expect(trace.validation?.request).toBeUndefined()
+  })
 
   it('records drift when the real JSON response violates the schema, and forwards it unchanged', async () => {
     const trace: RouteTrace = {}

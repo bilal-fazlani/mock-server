@@ -81,7 +81,7 @@ a validation error.
 | Startup | Every scenario fixture's `body` against the response schema matched by its `status`. | Joins the catalog's startup error list — same as a structural or semantic validation error. |
 | Startup | Every body placeholder against `requestBody`: a `{{$.…}}` selector over a field the request schema lets a caller **omit**, with no `default`/`omit` fallback. | Startup error — see [Optional fields must have a fallback](#optional-fields-must-have-a-fallback) below. |
 | Runtime — mocked scenario | The incoming request body against `requestBody`; after placeholder resolution, the generated response body against the status-matched response schema. | Request: `400` with an `error` and a `details` array. Response: `500` with the same shape. |
-| Runtime — `real` passthrough | The proxied response body, when its `content-type` is JSON, against the status-matched response schema. Requests are never validated for `real`. | Never blocks or alters the response — a mismatch is recorded as `drift_warning` in the decision trace and logs at console `warn` level. |
+| Runtime — `real` passthrough | The outgoing request body against `requestBody`; the proxied response body, when its `content-type` is JSON, against the status-matched response schema. | Never blocks or alters the request or response — either side mismatching is recorded as `drift_warning` (`request` and/or `response`) in the decision trace and logs at console `warn` level. |
 
 !!! note "Fixture bodies vs. live request/response bodies"
 

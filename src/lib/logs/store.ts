@@ -29,7 +29,10 @@ export interface LogTraceData {
   resolver?: { slug: string; returned: string }
   captures?: Array<{ namespace: string; key: string }>
   placeholders?: Record<string, string>
-  validation?: { request?: 'ok' | 'failed'; response?: 'ok' | 'failed' | 'drift_warning' }
+  validation?: {
+    request?: 'ok' | 'failed' | 'drift_warning'
+    response?: 'ok' | 'failed' | 'drift_warning'
+  }
   /** Injected response delay in ms, when a fixture declared a `delay`. Folded
    * into the entry's total durationMs; recorded here to distinguish injected
    * latency from real work. */

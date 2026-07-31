@@ -207,7 +207,7 @@ export async function routeRequest(
       ? await captureProfileKeys(system, endpoint, profileId, ctx, deps, trace)
       : null
     if (captureError) return captureError
-    return proxy(system, endpoint, req, deps, trace)
+    return proxy(system, endpoint, req, ctx, deps, trace)
   }
 
   const compiled = deps.schemas?.get(schemaKey(system.slug, endpoint.name))
@@ -586,6 +586,7 @@ async function proxy(
   system: SystemDef,
   endpoint: EndpointDef,
   req: IncomingRequest,
+  ctx: RequestContext,
   deps: RouterDeps,
   trace: RouteTrace,
 ): Promise<RouteResult> {
@@ -600,6 +601,7 @@ async function proxy(
       endpoint: endpoint.name,
     })
   }
+  warnOnRequestSchemaDrift(system, endpoint, ctx.body, deps, trace)
   const targetUrl = `${baseUrl}${req.path}${req.search}`
   const startedAt = Date.now()
   let proxied: ProxiedResponse
@@ -629,7 +631,7 @@ async function proxy(
     status: proxied.status,
     durationMs: Date.now() - startedAt,
   }
-  warnOnSchemaDrift(system, endpoint, proxied, deps, trace)
+  warnOnResponseSchemaDrift(system, endpoint, proxied, deps, trace)
   return { status: proxied.status, headers: proxied.headers, bodyBytes: proxied.bodyBytes }
 }
 
@@ -652,10 +654,28 @@ function errorCode(value: unknown): string | null {
   return null
 }
 
+// Warn-only drift probe: a real request body that violates _schema.json means
+// the caller (or the schema) has drifted from what's documented. Mirrors
+// warnOnResponseSchemaDrift below; never blocks the passthrough request.
+function warnOnRequestSchemaDrift(
+  system: SystemDef,
+  endpoint: EndpointDef,
+  body: unknown,
+  deps: RouterDeps,
+  trace: RouteTrace,
+): void {
+  const compiled = deps.schemas?.get(schemaKey(system.slug, endpoint.name))
+  if (!compiled) return
+  const issues = compiled.validateRequestBody(body)
+  if (issues.length > 0) {
+    setValidation(trace, 'request', 'drift_warning')
+  }
+}
+
 // Warn-only drift probe: a real upstream response that violates _schema.json
 // means the schema (and therefore the mocks validated against it) has drifted
 // from reality. Never blocks or modifies the proxied response.
-function warnOnSchemaDrift(
+function warnOnResponseSchemaDrift(
   system: SystemDef,
   endpoint: EndpointDef,
   proxied: ProxiedResponse,

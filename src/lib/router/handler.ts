@@ -87,6 +87,7 @@ function requestConsoleSeverity(trace: RouteTrace): ConsoleLogLevel {
   if (trace.error?.code === 'no_match') return 'warn'
   if (trace.outcome === 'error') return 'error'
   if (trace.scenarioSource === 'unmocked_policy') return 'warn'
+  if (trace.validation?.request === 'drift_warning') return 'warn'
   if (trace.validation?.response === 'drift_warning') return 'warn'
   return 'info'
 }
@@ -106,6 +107,9 @@ function formatRequestConsoleLine(input: {
   if (trace.outcome) details.push(`outcome=${trace.outcome}`)
   if (trace.delayMs !== undefined) details.push(`delay=${trace.delayMs}ms`)
   if (trace.error) details.push(`error=${trace.error.code}`)
+  if (trace.validation?.request === 'drift_warning') {
+    details.push('validation=request:drift_warning')
+  }
   if (trace.validation?.response === 'drift_warning') {
     details.push('validation=response:drift_warning')
   }
