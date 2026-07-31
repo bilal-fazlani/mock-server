@@ -1,3 +1,4 @@
+import { Faker, en } from '@faker-js/faker'
 import { matchPath, parsePathTemplate } from '../catalog/path-template'
 import { schemaKey, type SchemaRegistry } from '../catalog/schema'
 import {
@@ -272,7 +273,13 @@ export async function routeRequest(
     // the same id (#36). A fresh map each request keeps two requests to one
     // fixture independent — a group name is an author's label, not a seed.
     const uuidGroups = new Map<string, string>()
-    const opts = { fnCtx, functions, uuid: deps.uuid, uuidGroups }
+    // One seeded Faker instance per request, shared the same way `uuidGroups`
+    // is, so the body and header renders below draw from the same generator
+    // (#15). `fnCtx.seed` is already `${profileId ?? 'none'}:${endpoint.name}` —
+    // reused as-is as the seedMaterial half of each placeholder's seed.
+    const faker = new Faker({ locale: [en] })
+    const seedMaterial = fnCtx.seed
+    const opts = { fnCtx, functions, uuid: deps.uuid, uuidGroups, faker, seedMaterial }
     const body = resolveTemplate(fixture.body, ctx, now, placeholders, opts)
     if (compiled) {
       const issues = compiled.validateResponseBody(fixture.status, body)
@@ -294,6 +301,7 @@ export async function routeRequest(
       ...(resolveTemplate(fixture.headers ?? {}, ctx, now, placeholders, {
         ...opts,
         stringOnly: true,
+        pathPrefix: 'headers',
       }) as Record<string, string>),
     }
     trace.placeholders = placeholders

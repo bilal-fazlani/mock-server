@@ -7,6 +7,7 @@ import {
   describeArity,
 } from '../mock-engine/evaluate'
 import { callNodes, parseExpr, ExprParseError, type Expr } from '../mock-engine/expr'
+import { validateFakerCall } from '../mock-engine/faker-methods'
 import { fixtureFilePath, type Fixture } from '../mock-engine/fixtures'
 import { listPlaceholders } from '../mock-engine/template'
 import {
@@ -218,10 +219,12 @@ export function validateCatalog(catalog: Catalog, catalogDir: string): Validatio
             // Built-ins declare an argument-count range (the piped value counts
             // as the first one), so "{{$.x | default}}" is a startup error
             // rather than a 500 on the first request that hits the fixture.
-            // Most are fixed (min === max); `uuid` takes 0 or 1 (#36). Custom
-            // functions are plain JS and take whatever they take.
+            // Most are fixed (min === max); `uuid` takes 0 or 1 (#36). A `null`
+            // max means unbounded — the variadic `faker`/`pick` built-ins
+            // (#15) have no upper bound. Custom functions are plain JS and
+            // take whatever they take.
             const arity = builtinArity(call.name)
-            if (arity && (call.args.length < arity.min || call.args.length > arity.max)) {
+            if (arity && (call.args.length < arity.min || (arity.max !== null && call.args.length > arity.max))) {
               errors.push(
                 `${label}: fixture ${file} placeholder "{{${expr}}}" calls built-in "${call.name}" ` +
                   `with ${call.args.length} argument(s), expected ${describeArity(arity)}`,
@@ -239,6 +242,20 @@ export function validateCatalog(catalog: Catalog, catalogDir: string): Validatio
                   `${label}: fixture ${file} placeholder "{{${expr}}}" passes a non-literal argument to ` +
                     `built-in "${call.name}"; it takes an optional literal group name only, not a selector ` +
                     `or a piped value`,
+                )
+              }
+            }
+            // `faker`'s method path/params get their own checks beyond arity +
+            // literal-args (module allowlist, method existence, and any
+            // FAKER_ARG_SPECS shape) so a bad call fails at load rather than
+            // 500-ing on the first request (#15, Task 6). `pick` needs nothing
+            // beyond the generic checks above — its args are the candidate
+            // values themselves, not a method path.
+            if (call.name === 'faker') {
+              const fakerError = validateFakerCall(call.args)
+              if (fakerError) {
+                errors.push(
+                  `${label}: fixture ${file} placeholder "{{${expr}}}" ${fakerError}`,
                 )
               }
             }

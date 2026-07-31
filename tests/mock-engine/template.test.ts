@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
+import { Faker, en } from '@faker-js/faker'
 import type { RequestContext } from '../../src/lib/catalog/selector'
 import {
+  fnv1a32,
   listPlaceholders,
   PlaceholderError,
   resolveTemplate,
@@ -329,5 +331,73 @@ describe('listPlaceholders', () => {
       d: 12,
     })
     expect(found.sort()).toEqual(['$.x', 'now:iso', 'path:p'])
+  })
+})
+
+describe('fnv1a32 (#15)', () => {
+  it('is deterministic for the same input', () => {
+    expect(fnv1a32('hello')).toBe(fnv1a32('hello'))
+  })
+
+  it('differs for different inputs', () => {
+    expect(fnv1a32('hello')).not.toBe(fnv1a32('world'))
+  })
+
+  it('always returns an unsigned 32-bit integer', () => {
+    const h = fnv1a32('some fairly long string used to derive a seed')
+    expect(Number.isInteger(h)).toBe(true)
+    expect(h).toBeGreaterThanOrEqual(0)
+    expect(h).toBeLessThanOrEqual(0xffffffff)
+  })
+})
+
+describe('seeded faker built-in (#15)', () => {
+  const render = (node: unknown, seedMaterial: string, prefix = 'body') =>
+    resolveTemplate(node, ctx(), now, undefined, {
+      faker: new Faker({ locale: [en] }),
+      seedMaterial,
+      pathPrefix: prefix,
+    })
+
+  it('is reproducible for the same (seedMaterial, path) and varies across callers', () => {
+    const a1 = render({ name: '{{faker:person.fullName}}' }, 'p-1:getUser')
+    const a2 = render({ name: '{{faker:person.fullName}}' }, 'p-1:getUser')
+    const b = render({ name: '{{faker:person.fullName}}' }, 'p-2:getUser')
+    expect(a1).toEqual(a2)
+    expect(a1).not.toEqual(b)
+  })
+
+  it('keeps a value stable when an unrelated placeholder is added elsewhere (Model B)', () => {
+    const before = render({ id: '{{faker:string.uuid}}' }, 's:e') as { id: string }
+    const after = render(
+      { added: '{{faker:person.firstName}}', id: '{{faker:string.uuid}}' },
+      's:e',
+    ) as { id: string }
+    expect(after.id).toBe(before.id)
+  })
+
+  it('derives distinct seeds for array elements and object keys by path', () => {
+    const result = render(
+      { legs: ['{{faker:string.uuid}}', '{{faker:string.uuid}}'] },
+      'p:e',
+    ) as { legs: string[] }
+    expect(result.legs[0]).not.toBe(result.legs[1])
+  })
+
+  it('threads pathPrefix so headers and body seed independently even with the same seedMaterial', () => {
+    const bodyResult = render({ id: '{{faker:string.uuid}}' }, 'p:e', 'body') as { id: string }
+    const headerResult = render({ id: '{{faker:string.uuid}}' }, 'p:e', 'headers') as { id: string }
+    expect(headerResult.id).not.toBe(bodyResult.id)
+  })
+})
+
+describe('pick built-in (#15)', () => {
+  it('picks a stable element for a given seed and preserves type (#15)', () => {
+    const f = () => new Faker({ locale: [en] })
+    const r1 = resolveTemplate('{{pick:1:2:3}}', ctx(), now, undefined, { faker: f(), seedMaterial: 's:e' })
+    const r2 = resolveTemplate('{{pick:1:2:3}}', ctx(), now, undefined, { faker: f(), seedMaterial: 's:e' })
+    expect(r1).toBe(r2)
+    expect(typeof r1).toBe('number')
+    expect([1, 2, 3]).toContain(r1)
   })
 })
