@@ -1,5 +1,15 @@
-import type { Faker } from '@faker-js/faker'
+import { Faker, en } from '@faker-js/faker'
 import type { Expr } from './expr'
+
+/**
+ * A locale-seeded instance used *only* to answer "does this module/method
+ * exist?" at catalog load — never to generate a value (that always goes
+ * through the caller's own `deps.faker`, seeded per-request). Load-time
+ * validation happens once per catalog load, well outside any request path, so
+ * a dedicated instance here is cheap and keeps `validateFakerCall` pure with
+ * respect to its arguments.
+ */
+const VALIDATION_FAKER = new Faker({ locale: [en] })
 
 /**
  * Allowlisted data modules for `{{faker:module.method}}` (#15). Only modules
@@ -141,28 +151,101 @@ export const FAKER_ARG_SPECS: Record<string, FakerArgSpec> = {
 }
 
 /**
- * Splits `path` (`module.method`) and returns a caller bound to `fn`, or null
- * when the module isn't allowlisted, the method doesn't exist, or it isn't a
- * function (guards against `helpers.*` and any non-method property). A
- * zero-arg data method (the common case — `person.firstName`) is called with
- * no arguments; a curated method in `FAKER_ARG_SPECS` goes through its `call`
- * to marshal positional placeholder args into Faker's options object.
+ * Splits `module.method`. Returns null when the path is malformed (no dot, or
+ * a dot at either end).
  */
-export function resolveFakerMethod(fn: Faker, path: string): ((args: (string | number | boolean)[]) => unknown) | null {
+function splitPath(path: string): { moduleName: string; methodName: string } | null {
   const dot = path.indexOf('.')
   if (dot <= 0 || dot === path.length - 1) return null
-  const moduleName = path.slice(0, dot)
-  const methodName = path.slice(dot + 1)
-  if (!EXPOSED_FAKER_MODULES.has(moduleName)) return null
+  return { moduleName: path.slice(0, dot), methodName: path.slice(dot + 1) }
+}
 
+/**
+ * Looks up `moduleName.methodName` on `fn`, returning the function or null
+ * when the module isn't allowlisted, the property doesn't exist, isn't a
+ * function, or — the case this guards against — resolves only via the
+ * prototype chain rather than as the module's *own* property. Faker's
+ * generated modules assign every real data method directly onto the module
+ * instance (an own property), so `toString`, `constructor`, `valueOf`,
+ * `hasOwnProperty`, etc. — inherited from `Object.prototype` and never
+ * overridden — fail the `Object.hasOwn` check here and are treated as
+ * "doesn't exist" rather than a callable method. Without this,
+ * `{{faker:person.toString}}` would return junk and
+ * `{{faker:person.constructor}}` would throw a raw `TypeError` that escapes
+ * `PlaceholderError` wrapping into an unclassified 500.
+ */
+function ownFakerMethod(fn: Faker, moduleName: string, methodName: string): (() => unknown) | null {
+  if (!EXPOSED_FAKER_MODULES.has(moduleName)) return null
   const mod = (fn as unknown as Record<string, unknown>)[moduleName]
   if (!mod || typeof mod !== 'object') return null
+  if (!Object.hasOwn(mod, methodName)) return null
   const method = (mod as Record<string, unknown>)[methodName]
   if (typeof method !== 'function') return null
+  return method as () => unknown
+}
 
+/**
+ * Splits `path` (`module.method`) and returns a caller bound to `fn`, or null
+ * when the module isn't allowlisted, the method doesn't exist, isn't a
+ * function, or is only inherited from `Object.prototype` (see
+ * `ownFakerMethod`). A zero-arg data method (the common case —
+ * `person.firstName`) is called with no arguments; a curated method in
+ * `FAKER_ARG_SPECS` goes through its `call` to marshal positional placeholder
+ * args into Faker's options object.
+ */
+export function resolveFakerMethod(fn: Faker, path: string): ((args: (string | number | boolean)[]) => unknown) | null {
+  const split = splitPath(path)
+  if (!split) return null
+  const { moduleName, methodName } = split
+  const method = ownFakerMethod(fn, moduleName, methodName)
+  if (!method) return null
+
+  const mod = (fn as unknown as Record<string, unknown>)[moduleName]
   const spec = FAKER_ARG_SPECS[path]
   if (spec) {
     return (args) => spec.call(fn, moduleName, methodName, args)
   }
-  return () => (method as () => unknown).call(mod)
+  return () => method.call(mod)
+}
+
+/**
+ * Load-time validation for `{{faker:module.method[:arg...]}}` (Task 6, #15):
+ * checks the method path names an exposed, existing method, and that any
+ * params match its `FAKER_ARG_SPECS` entry (or that there are none, for the
+ * common zero-arg case) — so a bad call fails at catalog load rather than
+ * 500-ing on the first request that hits it.
+ *
+ * A missing or non-literal first argument is *not* flagged here: validate.ts
+ * already runs the generic `atLeast(1)` arity check and `literalArgsOnly`
+ * check for every built-in before this runs, and those already produce a
+ * clearer message ("passes a non-literal argument…") for that case. Checking
+ * again here would either duplicate it or, worse, try to treat a non-literal
+ * `Expr` as a string path.
+ */
+export function validateFakerCall(args: Expr[]): string | null {
+  const first = args[0]
+  if (!first || first.kind !== 'lit' || typeof first.value !== 'string') return null
+  const path = first.value
+
+  const split = splitPath(path)
+  if (!split) return `unknown faker method "${path}"; expected "module.method"`
+  const { moduleName, methodName } = split
+
+  if (!EXPOSED_FAKER_MODULES.has(moduleName)) {
+    return `faker method "${path}" is not exposed (module "${moduleName}" is not in the allowlist)`
+  }
+  if (!ownFakerMethod(VALIDATION_FAKER, moduleName, methodName)) {
+    return `unknown faker method "${path}"`
+  }
+
+  const params = args.slice(1)
+  const spec = FAKER_ARG_SPECS[path]
+  if (!spec) {
+    return params.length > 0 ? `faker method "${path}" takes no arguments` : null
+  }
+  if (params.length !== spec.params) {
+    return `faker method "${path}" expects ${spec.params} argument(s), got ${params.length}`
+  }
+  const err = spec.validate(params)
+  return err ? `faker method "${path}" ${err}` : null
 }

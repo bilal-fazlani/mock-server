@@ -76,4 +76,12 @@ describe('resolveFakerMethod (#15)', () => {
     expect(EXPOSED_FAKER_MODULES.has('image')).toBe(false)
     expect(EXPOSED_FAKER_MODULES.has('person')).toBe(true)
   })
+
+  it('rejects an inherited Object.prototype member masquerading as a method (toString)', () => {
+    expect(resolveFakerMethod(fn(), 'person.toString')).toBeNull()
+  })
+
+  it('rejects an inherited Object.prototype member masquerading as a method (constructor)', () => {
+    expect(resolveFakerMethod(fn(), 'person.constructor')).toBeNull()
+  })
 })

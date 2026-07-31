@@ -7,6 +7,7 @@ import {
   describeArity,
 } from '../mock-engine/evaluate'
 import { callNodes, parseExpr, ExprParseError, type Expr } from '../mock-engine/expr'
+import { validateFakerCall } from '../mock-engine/faker-methods'
 import { fixtureFilePath, type Fixture } from '../mock-engine/fixtures'
 import { listPlaceholders } from '../mock-engine/template'
 import {
@@ -241,6 +242,20 @@ export function validateCatalog(catalog: Catalog, catalogDir: string): Validatio
                   `${label}: fixture ${file} placeholder "{{${expr}}}" passes a non-literal argument to ` +
                     `built-in "${call.name}"; it takes an optional literal group name only, not a selector ` +
                     `or a piped value`,
+                )
+              }
+            }
+            // `faker`'s method path/params get their own checks beyond arity +
+            // literal-args (module allowlist, method existence, and any
+            // FAKER_ARG_SPECS shape) so a bad call fails at load rather than
+            // 500-ing on the first request (#15, Task 6). `pick` needs nothing
+            // beyond the generic checks above — its args are the candidate
+            // values themselves, not a method path.
+            if (call.name === 'faker') {
+              const fakerError = validateFakerCall(call.args)
+              if (fakerError) {
+                errors.push(
+                  `${label}: fixture ${file} placeholder "{{${expr}}}" ${fakerError}`,
                 )
               }
             }
