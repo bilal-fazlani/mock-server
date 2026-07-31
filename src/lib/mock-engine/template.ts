@@ -25,6 +25,12 @@ export interface TemplateOptions {
   stringOnly?: boolean
   /** Generator behind `{{uuid}}`; defaults to `crypto.randomUUID` (#10). */
   uuid?: () => string
+  /**
+   * Per-response memo for grouped `{{uuid:X}}` (#36). Shared across the body
+   * and header resolveTemplate calls of one request so a group named in both
+   * agrees; route-request.ts creates it per request. See EvalDeps.uuidGroups.
+   */
+  uuidGroups?: Map<string, string>
   fnCtx?: FnContext
   functions?: ReadonlyMap<string, CompiledFn>
   timeoutMs?: number

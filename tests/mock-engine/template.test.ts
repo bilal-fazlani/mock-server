@@ -157,10 +157,77 @@ describe('resolveTemplate', () => {
     expect(resolveTemplate('{{uuid}}', ctx(), now)).not.toBe(value)
   })
 
-  it('rejects {{uuid}} used as a transform over a piped value', () => {
-    expect(() => resolveTemplate('{{$.a | uuid}}', ctx({ body: { a: 'x' } }), now)).toThrow(
-      /built-in "uuid" takes 0 argument\(s\), got 1/,
-    )
+  it('makes every {{uuid:group}} sharing a name render one value, keeping others distinct (#36)', () => {
+    let n = 0
+    const uuid = (): string => `uuid-${++n}`
+    const uuidGroups = new Map<string, string>()
+    expect(
+      resolveTemplate(
+        {
+          bookingId: '{{uuid:booking}}',
+          auditId: '{{uuid}}',
+          legs: [
+            { id: '{{uuid}}', bookingId: '{{uuid:booking}}' },
+            { id: '{{uuid}}', bookingId: '{{uuid:booking}}' },
+          ],
+        },
+        ctx(),
+        now,
+        undefined,
+        { uuid, uuidGroups },
+      ),
+    ).toEqual({
+      bookingId: 'uuid-1',
+      auditId: 'uuid-2',
+      legs: [
+        { id: 'uuid-3', bookingId: 'uuid-1' },
+        { id: 'uuid-4', bookingId: 'uuid-1' },
+      ],
+    })
+  })
+
+  it('shares a group across separate body and header renders via one uuidGroups map (#36)', () => {
+    let n = 0
+    const uuid = (): string => `uuid-${++n}`
+    const uuidGroups = new Map<string, string>()
+    const body = resolveTemplate({ bookingId: '{{uuid:booking}}' }, ctx(), now, undefined, {
+      uuid,
+      uuidGroups,
+    })
+    const location = resolveTemplate('/bookings/{{uuid:booking}}', ctx(), now, undefined, {
+      uuid,
+      uuidGroups,
+      stringOnly: true,
+    })
+    expect(body).toEqual({ bookingId: 'uuid-1' })
+    expect(location).toBe('/bookings/uuid-1')
+  })
+
+  it('keys a group by String(value): {{uuid:1}} and {{uuid:\'1\'}} agree; {{uuid:}} is its own group (#36)', () => {
+    let n = 0
+    const uuid = (): string => `uuid-${++n}`
+    const uuidGroups = new Map<string, string>()
+    expect(
+      resolveTemplate(
+        { numeric: '{{uuid:1}}', quoted: "{{uuid:'1'}}", empty: '{{uuid:}}', bare: '{{uuid}}' },
+        ctx(),
+        now,
+        undefined,
+        { uuid, uuidGroups },
+      ),
+    ).toEqual({ numeric: 'uuid-1', quoted: 'uuid-1', empty: 'uuid-2', bare: 'uuid-3' })
+  })
+
+  it('gives each request a fresh group value when the uuidGroups map is not shared (#36)', () => {
+    let n = 0
+    const uuid = (): string => `uuid-${++n}`
+    const render = (): unknown =>
+      resolveTemplate({ id: '{{uuid:booking}}' }, ctx(), now, undefined, {
+        uuid,
+        uuidGroups: new Map<string, string>(),
+      })
+    expect(render()).toEqual({ id: 'uuid-1' })
+    expect(render()).toEqual({ id: 'uuid-2' })
   })
 
   it('stringifies numeric extracted values inside strings', () => {

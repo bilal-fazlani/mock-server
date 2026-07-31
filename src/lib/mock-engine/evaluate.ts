@@ -13,6 +13,16 @@ export interface EvalDeps {
    * request path leaves it unset and gets `crypto.randomUUID`.
    */
   uuid?: () => string
+  /**
+   * Per-response memo for grouped `{{uuid:X}}` (#36): group key → the single
+   * UUID every placeholder sharing that key renders. Created once per request
+   * in route-request.ts and shared across the body and header resolveTemplate
+   * calls, so a group named in a header and in the body agree. Bare `{{uuid}}`
+   * never touches it. When absent (a bare evaluate() call), a grouped `uuid`
+   * falls back to a fresh value — grouping needs the shared map to have any
+   * effect, since each placeholder is a separate evaluate().
+   */
+  uuidGroups?: Map<string, string>
   fnCtx?: FnContext
   functions?: ReadonlyMap<string, CompiledFn>
   timeoutMs?: number
@@ -53,11 +63,38 @@ export type Omit = typeof OMIT
 
 type EvalInternal = EvalValue | Missing | Omit
 
+/**
+ * Inclusive argument-count range (including the piped value), checked at
+ * catalog load. A fixed-arity built-in has `min === max`; the range exists for
+ * built-ins that accept an optional argument — `uuid` takes 0 or 1 (#36) — and
+ * is the general mechanism the variadic generators to come (#14 `random`, #15
+ * `faker`) inherit rather than each special-casing its own count.
+ */
+export interface ArityRange {
+  readonly min: number
+  readonly max: number
+}
+
+/** A built-in that takes a fixed number of arguments. */
+const exact = (n: number): ArityRange => ({ min: n, max: n })
+
+/** Render an arity range for an error message: `1`, or `0-1` for a range. */
+export function describeArity(a: ArityRange): string {
+  return a.min === a.max ? `${a.min}` : `${a.min}-${a.max}`
+}
+
 interface Builtin {
-  /** Total arguments including the piped value — checked at catalog load. */
-  arity: number
+  /** Argument-count range including the piped value — checked at catalog load. */
+  arity: ArityRange
   /** Whether a Missing argument reaches `apply` instead of short-circuiting. */
   absorbsMissing?: boolean
+  /**
+   * When set, every argument must be a *literal* — validate.ts rejects a
+   * selector or a piped value at catalog load (#36 decision 2). `uuid`'s group
+   * name is an opaque literal key; `{{uuid:$.orderId}}` and `{{$.x | uuid}}`
+   * are undesigned and blocked at startup rather than half-working at runtime.
+   */
+  literalArgsOnly?: boolean
   /**
    * `deps` is here for the *source* built-ins — `uuid` and the seeded
    * generators that will follow it (#14, #15) — which produce a value out of
@@ -82,15 +119,15 @@ function asText(name: string, input: EvalInternal): string {
 }
 
 const BUILTIN_TRANSFORMS: Record<string, Builtin> = {
-  upper: { arity: 1, apply: ([input]) => asText('upper', input).toUpperCase() },
-  lower: { arity: 1, apply: ([input]) => asText('lower', input).toLowerCase() },
-  trim: { arity: 1, apply: ([input]) => asText('trim', input).trim() },
+  upper: { arity: exact(1), apply: ([input]) => asText('upper', input).toUpperCase() },
+  lower: { arity: exact(1), apply: ([input]) => asText('lower', input).toLowerCase() },
+  trim: { arity: exact(1), apply: ([input]) => asText('trim', input).trim() },
   // The fallback fires for an absent path *and* for an explicit JSON null —
   // the one place in the pipeline that treats null as absence (#23 keeps it a
   // substitutable value everywhere else). An empty string is a real value and
   // passes through.
   default: {
-    arity: 2,
+    arity: exact(2),
     absorbsMissing: true,
     apply: ([input, fallback]) => (input instanceof Missing || input === null ? fallback : input),
   },
@@ -100,20 +137,42 @@ const BUILTIN_TRANSFORMS: Record<string, Builtin> = {
   // default fills null, omit keeps it, #24). absorbsMissing so it sees the
   // marker directly rather than short-circuiting on it.
   omit: {
-    arity: 1,
+    arity: exact(1),
     absorbsMissing: true,
     apply: ([input]) => (input instanceof Missing ? OMIT : input),
   },
-  // A *source*, not a transform: arity 0 means it takes no piped value, so
-  // "{{$.x | uuid}}" is an arity error at catalog load rather than a 500 on the
-  // first request. Registering it here (instead of as its own AST node, the way
-  // `now` is) is what gives it name validation, that arity check, reservation
-  // against user-function names, and pipe composition — "{{uuid | upper}}" —
-  // with no further wiring. Each occurrence draws its own value: a fixture
-  // returning a list gives every element a distinct id (#10).
+  // A *source*, not a transform: it takes no piped value, so "{{$.x | uuid}}"
+  // (a piped value, 1 arg that is a selector) and "{{uuid:$.orderId}}" (a
+  // selector argument) are catalog errors — the `literalArgsOnly` check in
+  // validate.ts rejects the non-literal at load rather than half-working at
+  // runtime (#36 decision 2). Registering it here (instead of as its own AST
+  // node, the way `now` is) is what gives it name validation, the arity check,
+  // reservation against user-function names, and pipe composition —
+  // "{{uuid | upper}}" — with no further wiring.
+  //
+  // Bare "{{uuid}}" draws a fresh value per occurrence, so a fixture returning
+  // a list gives every element a distinct id (#10). An optional argument names
+  // a *group* (#36): every "{{uuid:X}}" sharing the key `String(X)` renders the
+  // same value within one response, memoised in `deps.uuidGroups` — the map
+  // route-request.ts creates per request and shares across the body and header
+  // renders, so a "Location" header and a body field can carry one id. The name
+  // is an opaque key, not a seed: it decides *which* placeholders agree, not
+  // *what* value they produce.
   uuid: {
-    arity: 0,
-    apply: (_args, deps) => (deps.uuid ?? crypto.randomUUID.bind(crypto))(),
+    arity: { min: 0, max: 1 },
+    literalArgsOnly: true,
+    apply: (args, deps) => {
+      const gen = deps.uuid ?? crypto.randomUUID.bind(crypto)
+      if (args.length === 0) return gen()
+      const key = String(args[0])
+      const groups = deps.uuidGroups
+      if (!groups) return gen()
+      const existing = groups.get(key)
+      if (existing !== undefined) return existing
+      const value = gen()
+      groups.set(key, value)
+      return value
+    },
   },
 }
 
@@ -122,9 +181,18 @@ const BUILTIN_TRANSFORMS: Record<string, Builtin> = {
 // never against RESERVED_NAMES.
 export const CALLABLE_BUILTINS = new Set(Object.keys(BUILTIN_TRANSFORMS))
 
-/** Declared argument count of a built-in, for the load-time arity check. */
-export function builtinArity(name: string): number | undefined {
+/** Declared argument-count range of a built-in, for the load-time arity check. */
+export function builtinArity(name: string): ArityRange | undefined {
   return BUILTIN_TRANSFORMS[name]?.arity
+}
+
+/**
+ * Whether every argument to this built-in must be a literal — `uuid`'s group
+ * name (#36). validate.ts reads this to reject a selector or piped value at
+ * catalog load; unknown/other built-ins return false.
+ */
+export function builtinRequiresLiteralArgs(name: string): boolean {
+  return BUILTIN_TRANSFORMS[name]?.literalArgsOnly ?? false
 }
 
 // Names a user function may never export (Task 6 reads this): the syntactic
@@ -169,9 +237,9 @@ function evalNode(expr: Expr, deps: EvalDeps): EvalInternal {
         // validate.ts rejects a wrong argument count at catalog load, so this
         // is a backstop for callers that bypass the catalog (tests, future
         // non-fixture templating) rather than the primary check.
-        if (args.length !== builtin.arity) {
+        if (args.length < builtin.arity.min || args.length > builtin.arity.max) {
           throw new PlaceholderError(
-            `built-in "${expr.name}" takes ${builtin.arity} argument(s), got ${args.length}`,
+            `built-in "${expr.name}" takes ${describeArity(builtin.arity)} argument(s), got ${args.length}`,
           )
         }
         if (!builtin.absorbsMissing) {

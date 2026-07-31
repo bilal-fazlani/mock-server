@@ -1464,4 +1464,69 @@ describe('uuid end-to-end (#10)', () => {
     expect(json(res)).toEqual({ id: 'uuid-1', children: [{ id: 'uuid-2' }] })
     expect(res.headers['x-request-id']).toBe('uuid-3')
   })
+
+  const groupDir = () =>
+    tmpCatalogDir({
+      'sys/_system.json': { name: 'Id System', baseUrlEnv: 'ID_URL' },
+      'sys/new/_endpoint.json': {
+        displayName: 'New',
+        method: 'POST',
+        path: '/bookings',
+        mockType: 'global',
+      },
+      'sys/new/default.json': {
+        status: 201,
+        headers: { location: '/bookings/{{uuid:booking}}' },
+        body: {
+          bookingId: '{{uuid:booking}}',
+          auditId: '{{uuid}}',
+          legs: [{ bookingId: '{{uuid:booking}}' }],
+        },
+      },
+    })
+
+  it('shares a grouped {{uuid:X}} across the response body and a header, per #36', async () => {
+    const dir = groupDir()
+    const catalog = loadCatalog(dir)
+    let n = 0
+    const res = await routeRequest(
+      post('/bookings', {}),
+      deps({
+        catalog,
+        schemas: buildSchemaRegistry(catalog).schemas,
+        env: {},
+        loadFixture: (s, e, sc) => loadFixture(dir, s, e, sc),
+        uuid: () => `uuid-${++n}`,
+      }),
+    )
+
+    const body = json(res)
+    expect(res.status).toBe(201)
+    // Every `booking` placeholder — header, body field, nested array — is one id;
+    // the bare `auditId` is a distinct draw.
+    expect(body.bookingId).toBe(body.legs[0].bookingId)
+    expect(res.headers.location).toBe(`/bookings/${body.bookingId}`)
+    expect(body.auditId).not.toBe(body.bookingId)
+  })
+
+  it('gives two requests to one fixture different group ids — a group is per-response (#36)', async () => {
+    const dir = groupDir()
+    const catalog = loadCatalog(dir)
+    let n = 0
+    const run = () =>
+      routeRequest(
+        post('/bookings', {}),
+        deps({
+          catalog,
+          schemas: buildSchemaRegistry(catalog).schemas,
+          env: {},
+          loadFixture: (s, e, sc) => loadFixture(dir, s, e, sc),
+          uuid: () => `uuid-${++n}`,
+        }),
+      )
+
+    const first = json(await run())
+    const second = json(await run())
+    expect(first.bookingId).not.toBe(second.bookingId)
+  })
 })

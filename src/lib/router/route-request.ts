@@ -267,7 +267,12 @@ export async function routeRequest(
     const functions = deps.catalog.resolveFunctions
       ? deps.catalog.resolveFunctions(system.slug, endpoint.name)
       : new Map()
-    const opts = { fnCtx, functions, uuid: deps.uuid }
+    // One group map per request, shared by the body and header renders below,
+    // so a grouped `{{uuid:X}}` in a response header and in the body resolve to
+    // the same id (#36). A fresh map each request keeps two requests to one
+    // fixture independent — a group name is an author's label, not a seed.
+    const uuidGroups = new Map<string, string>()
+    const opts = { fnCtx, functions, uuid: deps.uuid, uuidGroups }
     const body = resolveTemplate(fixture.body, ctx, now, placeholders, opts)
     if (compiled) {
       const issues = compiled.validateResponseBody(fixture.status, body)
