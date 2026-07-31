@@ -82,8 +82,8 @@ idea and picking up an existing issue.
    If the phase-0 survey surfaced a parent or a dependency, set it **at creation**:
    add `--parent P`, `--blocked-by B`, and/or `--blocking X` (see "Issue relationships").
 4. **Record the issue number `#N`** — you'll reference it for the rest of the session.
-5. **Add it to `tickets.tldraw`** — see "The ticket board diagram". If you are working in a
-   feature worktree, you cannot do this here; note it and do it on `main` at merge time.
+5. **Add it to `tickets.md`** — a node in the graph plus a row in the *Open tickets* table;
+   see "The ticket board". Do it here, in whatever worktree you are in.
 
 The board auto-adds it and sets `Backlog`. Do nothing else here.
 
@@ -177,55 +177,59 @@ Then post a **summary comment** describing what shipped, and move the card to
 - **8a. Approved** — trigger: the user says merge / push / merge-PR.
   Perform the git action they asked for, then **close the issue**:
   `gh issue close N`. The board auto-sets `Done`. (Do not also edit the Status field —
-  closing is enough.) Then **update `tickets.tldraw` on `main`** — restyle and reposition the
-  node the way the canvas already presents closed tickets, connect it to whatever it
-  unblocked, and re-place any newly-unblocked ticket. Commit it with the merge.
+  closing is enough.) Then **update `tickets.md`** — delete the node and its arrows, move the
+  row from *Open tickets* to *Completed*, and re-point any arrow the closure unblocks.
+  Commit it with the merge.
 - **8b. Changes requested** — trigger: the user asks for changes during review.
   Post a comment capturing the requested changes, move the card back to
   **In Progress**, and return to phase 5.
 
-## The ticket board diagram (`tickets.tldraw`)
+## The ticket board (`tickets.md`)
 
-`tickets.tldraw` at the repo root is a dependency board for this repo's issues. **Every
-change to a ticket's status must be reflected on it** — the ticket and the diagram are
-updated together, never one without the other. Use the `tldraw-offline` skill to edit it.
+`tickets.md` at the repo root is the dependency board for this repo's issues. **Every
+change to a ticket's status must be reflected in it** — the ticket and the board are
+updated together, never one without the other. It is plain Markdown: edit it inline with
+`Edit`, from any worktree, no subagent.
 
-**Edit it only in the main worktree, on `main`** (`/Users/bilal/Projects/mock-server/tickets.tldraw`).
-It is a binary file (a zip wrapping `db.sqlite`), so git cannot merge two versions — if two
-branches both edit it, one side's work is lost. Never edit it from inside a feature worktree;
-finish the branch, merge, then update the diagram on `main`.
+### Its shape
 
-### Read the canvas before you change it
+Three sections, in this order — match what is already there rather than a remembered layout:
 
-The canvas is the spec. Its layout, columns, colours, sizes, and text format are whatever is
-on it right now — they have changed before and will change again. **Always inspect the
-current shapes first and infer the conventions in use**, then make your edit match them. Do
-not carry in a remembered layout, and do not assume a particular column or grouping exists.
+1. A **Mermaid `flowchart LR`** of every **open** issue.
+2. An **Open tickets** table — the same issues with their full titles.
+3. A **Completed** table — every closed issue, most recently closed first.
 
-If the convention is genuinely ambiguous, pick the reading most consistent with the majority
-of existing shapes and say what you inferred.
+Nodes are `I<N>["#N · short label · area"]`, where the area is the `area:` label without its
+prefix. Table rows link the issue number (`[#34](https://github.com/bilal-fazlani/mock-server/issues/34)`)
+and carry the full title, type label, and area — plus the close date, in *Completed*.
 
-### What it encodes
+### What the arrows mean
 
-Dependency readiness, not the project board's lane. `Ready` → `In progress` changes nothing
-here; opening or closing an issue, or a dependency appearing/resolving, does.
+An arrow `A --> B` means **A must land before B**, labelled with why in a couple of words.
+Arrows are **editorial judgement**: GitHub records no native `blocked-by` links for these
+issues, so never reconcile them against `gh issue view --json blockedBy` — it is empty and
+would read as "delete every arrow". **A node with no arrows is independent**, not an
+oversight.
+
+The graph encodes dependency readiness, not the project board's lane. `Ready` →
+`In progress` changes nothing here; opening or closing an issue, or a dependency appearing
+or resolving, does.
 
 ### When to update
 
 Any ticket status or relationship change: issue opened or closed, a blocker resolved, a
-parent/sub-issue or blocked-by link added or removed. Add, move, restyle, or connect nodes
-so the canvas again reflects reality under its own conventions.
+parent/sub-issue or blocked-by link added or removed.
 
-### Arrows are editorial, not derived
+- **Opened** → add the node and the *Open tickets* row; add an arrow only for a real
+  ordering dependency.
+- **Closed** → delete the node and every arrow touching it, move the row to *Completed*
+  with its close date, and re-point any arrow the closure unblocks (if `A --> B --> C` and
+  B closes, `A` and `C` may now stand alone or connect directly — decide which and say so).
+- **Dependency changed** → add, remove, or relabel the arrow.
 
-GitHub records **no** `blocked-by` / `blocking` relationships for these issues — every arrow
-is hand-drawn judgement about what unblocks what. Never reconcile arrows against
-`gh issue view --json blockedBy`; it is empty and will read as "delete every arrow". A node
-with no arrows is not necessarily wrong.
-
-The one thing that *is* checkable against GitHub is **state**: every issue closed on GitHub
-must be presented on the canvas the way the other closed tickets are. Verify with
-`gh issue list --state closed --json number`. This is the failure mode that has actually
+The one thing that is checkable against GitHub is **state**: no issue closed on GitHub may
+still appear in the graph or the *Open tickets* table. Verify with
+`gh issue list --state closed --json number`. That is the failure mode that has actually
 occurred — a closed ticket left looking open.
 
 ## The `Refs #N` rule (do not violate)

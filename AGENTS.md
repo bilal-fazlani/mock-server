@@ -139,49 +139,34 @@ labels.
 - `area: resolver` — dynamic profile resolver & history
 - `area: ui` — dashboard UI
 - `area: build` — Docker / CI / release / packaging
+- `area: observability` — logging, tracing & diagnostics
 
 If a new issue genuinely fits no existing area, create a new `area: <name>` label (color
 `1D76DB`, matching the family) rather than leaving it unlabelled — and mention the new area
 to the user.
 
-## Ticket work also updates the diagram
+## Ticket work also updates `tickets.md`
 
-`tickets.tldraw` at the repo root is a dependency board for this repo's issues, tracked in
-git. **Any ticket status change updates it too** — opening an issue, closing one, resolving
-a blocker, or changing a parent/blocked-by relationship. Updating the ticket without
-updating the diagram leaves it silently wrong; they move together.
+`tickets.md` at the repo root is the dependency board for this repo's issues: a Mermaid
+graph of the open tickets over a table of the closed ones. **Any ticket status change
+updates it too** — opening an issue, closing one, resolving a blocker, or changing a
+parent/blocked-by relationship. Updating the ticket without updating the board leaves it
+silently wrong; they move together.
 
-**Edit it only in the main worktree, on `main`.** It is a binary file (a zip around
-`db.sqlite`) that git cannot merge, so two branches editing it means one side's work is
-lost. From a feature worktree, note the change and apply it on `main` after merging.
+It is plain Markdown, so edit it **inline with `Edit`, in whatever worktree you are in** —
+no subagent, no canvas app, no main-worktree restriction. Every change is a few lines:
 
-The column conventions, node/arrow spec, and colour rules are in the `feature-lifecycle`
-skill under "The ticket board diagram". Use the `tldraw-offline` skill to edit it.
+- **Issue opened** → add a node to the graph and a row to the *Open tickets* table; draw an
+  arrow only if there is a real ordering dependency.
+- **Issue closed** → delete its node and any arrows touching it, move its row from *Open
+  tickets* to *Completed*, and re-point arrows the closure unblocks.
+- **Dependency changed** → add or remove the arrow, and update its label.
 
-### Closing a ticket: delete its node inline, don't spawn an agent
+Commit it with the work it describes; standalone board updates use
+`chore: update tickets board — …`.
 
-**The established convention is that a closed ticket's node is deleted in place** — no
-restyling, no repacking of its neighbours (see the `chore: update ticket diagram — remove
-closed #N` commits for #6, #9, #18, #26). Deletion needs no layout judgement, so do it
-inline. It is two calls and about a tenth of a second:
-
-```bash
-DOC=$(sh "$HOME/skills/tldraw-offline/tq" POST /api/search \
-  '{"code":"return (await api.getDocs({name:\"tickets\"}))[0].id"}' | jq -r .result)
-# find the node by its "#N …" label and delete it (returns "not found" if absent,
-# so run it once with the real number and check the result before committing):
-sh "$HOME/skills/tldraw-offline/tq" POST "/api/doc/$DOC/exec" \
-  'const s = editor.getCurrentPageShapes().find(s => (s.props?.richText?.content?.[0]?.content?.[0]?.text ?? s.props?.text ?? "").startsWith("#6 ")); if (s) editor.deleteShape(s.id); return s?.id ?? "not found"'
-```
-
-Then commit with `chore: update ticket diagram — remove closed #N`.
-
-A round trip to the tldraw server is **~45ms**, and one `exec` can carry arbitrary bulk work
-(tldraw's own guidance: generating 100 shapes is a single exec). So latency is never the
-reason a diagram edit is slow — dispatching the `tldraw-offline` subagent is, because it
-cold-starts without this conversation's context and re-derives the convention from git
-history. **Reserve the subagent for adding, repositioning, or rewiring nodes**, where
-reading the whole canvas and judging the layout actually earns its cost.
+The node/arrow conventions and the row format are in the `feature-lifecycle` skill under
+"The ticket board (`tickets.md`)".
 
 ## Browser preview from a feature worktree runs the wrong code
 
