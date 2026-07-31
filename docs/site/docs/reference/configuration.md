@@ -98,7 +98,7 @@ now-known catalog and reports its own list of errors:
 - Each fixture (`<slug>.json`) is valid JSON with a numeric `status` and a
   `body` key. Fixtures are loaded into memory as part of this pass.
 - Every placeholder inside a fixture parses as a
-  [placeholder expression](../building/fixtures.md#placeholder-expressions):
+  [placeholder expression](../building/templating.md#placeholder-expressions):
   the leading stage is a `now` expression — a named format (`iso`, `epoch`,
   `epochMillis`) or a date/time token pattern such as `YYYY-MM-DD`, optionally
   with a relative offset, e.g. `now+3d:iso` — a valid body/path/query/header selector

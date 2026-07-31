@@ -27,7 +27,7 @@ Fixture responses are `info` even when the fixture's status is non-2xx — the m
 served the selected scenario correctly. `error` covers invalid JSON, unresolved
 selectors, missing mappings, stale scenario pins, template errors
 (`template_error`, plus `function_error` and `function_timeout` for failures
-inside a [custom function](../building/fixtures.md#errors)), missing passthrough
+inside a [custom function](../building/templating.md#errors)), missing passthrough
 base URLs, passthrough failures, and resolver failures (`resolver_missing`,
 `resolver_threw`, `resolver_timeout`, `resolver_bad_return`, and — in
 development — `resolver_compile_error`; see [Code-backed scenario

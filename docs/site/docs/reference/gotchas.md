@@ -120,7 +120,7 @@ curl -s <origin>/customers/customer-123/status
   selector can pull out a boolean, `null`, or a whole object or array subtree.
   Interpolate a placeholder into surrounding text and the value is coerced back to
   a string; header values are always strings. See [Typed
-  substitution](../building/fixtures.md#typed-substitution).
+  substitution](../building/templating.md#typed-substitution).
 - **Run the validator before you ship.** It's the same gate the server applies on
   first request — catching it early beats a hard failure at runtime.
 

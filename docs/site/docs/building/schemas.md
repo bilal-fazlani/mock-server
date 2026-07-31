@@ -108,7 +108,7 @@ When an endpoint has a request schema, a fixture placeholder that reads a body
 field the schema lets a caller **omit** — and supplies no fallback — is a
 **startup error**. The schema says the field is optional; the placeholder makes
 it de-facto required, because a request without it
-[fails with a `500`](fixtures.md#typed-substitution).
+[fails with a `500`](templating.md#typed-substitution).
 
 ```json
 // requestBody schema: "id" required, "middleName" optional
@@ -122,8 +122,8 @@ it de-facto required, because a request without it
 `{{$.id}}` is fine — a request without `id` is already rejected with a `400`
 before templating. `{{$.middleName}}` is flagged, with three ways to resolve it:
 
-- `{{$.middleName | omit}}` — [drop the field](fixtures.md#dropping-a-field-when-its-source-is-absent) when the caller omits it
-- `{{$.middleName | default:'N/A'}}` — [substitute a value](fixtures.md#fallbacks-for-missing-values)
+- `{{$.middleName | omit}}` — [drop the field](templating.md#dropping-a-field-when-its-source-is-absent) when the caller omits it
+- `{{$.middleName | default:'N/A'}}` — [substitute a value](templating.md#fallbacks-for-missing-values)
 - add `middleName` to the schema's `required` — if it was never really optional
 
 The check is deliberately conservative: it flags only a field **provably**

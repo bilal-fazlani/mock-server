@@ -43,7 +43,7 @@ Eight concepts:
 | **Global mock selection** | A shared scenario pick for a profile-less endpoint. Stored once in MongoDB, applies to every caller, and is edited on `/ui/global-mocks`. |
 | **Profile key mapping** | A MongoDB lookup from another request key to a profile ID, such as `event-id / evt-123 → customer-123`. Useful when a later callback has an event ID but no profile ID. |
 | **Scenario** | A named outcome for an endpoint, backed by one file per scenario: either a `<scenario>.json` fixture or a `<scenario>.mjs` resolver. Every endpoint must have a `default` (either backing); the special `real` scenario (proxy to the live upstream) is *implicit on every endpoint* and must never have a file. See [Scenarios](building/scenarios.md) and [Code-backed scenario resolvers](building/dynamic.md). |
-| **Fixture** | The canned JSON response (status + headers + body) backing a fixture-backed scenario, with optional request-driven placeholders. |
+| **Fixture** | The canned JSON response (status + headers + body) backing a fixture-backed scenario, with optional request-driven [placeholders](building/templating.md). |
 | **Resolver** | A pure, synchronous JavaScript function backing a code-backed scenario (`<scenario>.mjs`); it inspects the request and a bounded history and returns which fixture-backed scenario (or `"real"`) should answer this call. See [Code-backed scenario resolvers](building/dynamic.md). |
 
 At request time the engine does this:

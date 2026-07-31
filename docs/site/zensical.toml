@@ -18,6 +18,7 @@ nav = [
     { "Scenarios" = "building/scenarios.md" },
     { "Code-backed resolvers" = "building/dynamic.md" },
     { "Fixtures" = "building/fixtures.md" },
+    { "Placeholders & templating" = "building/templating.md" },
     { "Schemas" = "building/schemas.md" },
   ] },
   { "Driving mocks" = [
