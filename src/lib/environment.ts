@@ -70,6 +70,15 @@ export const APP_ENVIRONMENT: EnvironmentDefinition[] = [
     display: true,
   },
   {
+    name: 'MOCK_LOG_FORMAT',
+    category: 'System',
+    description:
+      'Console log serialization: text one-liners, or one ECS-style JSON object per line for a log aggregator.',
+    defaultValue: 'text',
+    possibleValues: ['text', 'json'],
+    display: true,
+  },
+  {
     name: 'PASSTHROUGH_TIMEOUT_MS',
     category: 'Routing',
     description: 'Timeout for real upstream passthrough requests.',

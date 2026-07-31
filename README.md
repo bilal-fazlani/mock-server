@@ -28,7 +28,7 @@ Built with [Next.js](https://nextjs.org) and MongoDB.
 - **Schema validation** — optional per-endpoint request/response JSON Schema checks.
 - **`real` passthrough** — proxy any endpoint to its configured live upstream.
 - **Request logs** — every request captured with a full decision trace, browsable in
-  the UI.
+  the UI, and summarized on the console as text or ECS-style JSON.
 
 ## Quickstart
 

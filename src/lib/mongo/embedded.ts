@@ -1,4 +1,5 @@
 import type { MongoMemoryServer } from 'mongodb-memory-server'
+import { writeConsoleLog } from '../logs/console'
 
 // A single embedded mongod, booted lazily and shared process-wide. The boot is
 // memoized as a promise so concurrent callers await the same instance rather
@@ -11,8 +12,10 @@ async function bootEmbedded(): Promise<string> {
   // Dynamic import keeps mongodb-memory-server out of the hot path when an
   // external connection string is configured.
   const { MongoMemoryServer } = await import('mongodb-memory-server')
-  console.log(
+  writeConsoleLog(
+    'info',
     '[mock-server] MONGODB_CONNECTION_STRING not set; starting embedded in-memory MongoDB (data is ephemeral)…',
+    { fields: { 'event.action': 'embedded_mongo_start' } },
   )
   server = await MongoMemoryServer.create()
   return server.getUri()

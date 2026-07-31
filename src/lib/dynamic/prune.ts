@@ -1,5 +1,6 @@
 import type { Db } from 'mongodb'
 import type { Catalog } from '../catalog/types'
+import { writeConsoleLog } from '../logs/console'
 import { getRuntime } from '../runtime'
 import { pruneOrphanedDynamicHistory } from './history-store'
 
@@ -25,11 +26,17 @@ export async function pruneOrphanedHistoryOnce(db: Db): Promise<void> {
   try {
     const deleted = await pruneOrphanedDynamicHistory(db, liveResolverScenarios(getRuntime().catalog))
     if (deleted > 0) {
-      console.warn(`resolver history: pruned ${deleted} window(s) for scenarios that are no longer resolver-backed`)
+      writeConsoleLog(
+        'warn',
+        `resolver history: pruned ${deleted} window(s) for scenarios that are no longer resolver-backed`,
+        { fields: { 'event.action': 'resolver_history_pruned', 'mock.prunedWindows': deleted } },
+      )
     }
   } catch (err) {
-    console.warn(
+    writeConsoleLog(
+      'warn',
       `resolver history: orphaned-window sweep skipped: ${err instanceof Error ? err.message : String(err)}`,
+      { fields: { 'event.action': 'resolver_history_prune_skipped' } },
     )
   }
 }

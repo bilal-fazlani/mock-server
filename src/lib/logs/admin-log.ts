@@ -1,4 +1,5 @@
 import type { Db } from 'mongodb'
+import { writeConsoleLog } from './console'
 import { insertLogEntry, newLogId } from './store'
 
 /**
@@ -22,6 +23,10 @@ export async function writeAdminLog(
       trace: { adminAction, ...(adminEndpoint && { adminEndpoint }) },
     })
   } catch (err) {
-    console.warn('[mock-log] failed to write admin log entry:', err)
+    writeConsoleLog(
+      'warn',
+      `[mock-log] failed to write admin log entry: ${err instanceof Error ? err.message : String(err)}`,
+      { fields: { 'event.action': adminAction, 'mock.profileId': profileId } },
+    )
   }
 }

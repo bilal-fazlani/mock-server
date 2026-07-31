@@ -5,6 +5,7 @@ import type { Catalog } from './catalog/types'
 import { validateAppConfig, validateCatalog } from './catalog/validate'
 import {
   parseConsoleLogLevel,
+  parseLogFormat,
   parsePassthroughAsDefault,
   parseRequestLogTtlSeconds,
   parseResolverHistoryLimit,
@@ -12,8 +13,10 @@ import {
   parseUnmockedUsers,
   resolveCatalogDir,
   type ConsoleLogLevel,
+  type LogFormat,
   type UnmockedUsers,
 } from './config'
+import { writeConsoleLog } from './logs/console'
 import { fixtureFilePath, FixtureError, loadFixture, type Fixture } from './mock-engine/fixtures'
 import {
   compileResolver,
@@ -27,6 +30,7 @@ export interface Runtime {
   passthroughAsDefault: boolean
   unmockedUsers: UnmockedUsers
   consoleLogLevel: ConsoleLogLevel
+  logFormat: LogFormat
   timeoutMs: number
   schemas: SchemaRegistry
   resolverHistoryLimit: number
@@ -104,6 +108,7 @@ export function getRuntime(): Runtime {
   const passthroughAsDefault = parsePassthroughAsDefault(process.env.PASSTHROUGH_AS_DEFAULT)
   const unmockedUsers = parseUnmockedUsers(process.env.UNMOCKED_USERS)
   const consoleLogLevel = parseConsoleLogLevel(process.env.MOCK_CONSOLE_LOG_LEVEL)
+  const logFormat = parseLogFormat(process.env.MOCK_LOG_FORMAT)
   const resolverHistoryLimit = parseResolverHistoryLimit(process.env.RESOLVER_HISTORY_LIMIT)
   const resolverHistoryTtlSeconds = parseResolverHistoryTtlSeconds(
     process.env.RESOLVER_HISTORY_TTL_DURATION,
@@ -116,7 +121,11 @@ export function getRuntime(): Runtime {
   const catalogDir = resolveCatalogDir(process.env.CATALOG_PATH)
   const catalog = loadCatalog(catalogDir)
   for (const warning of catalog.warnings ?? []) {
-    console.warn(`catalog warning: ${warning}`)
+    writeConsoleLog('warn', `catalog warning: ${warning}`, {
+      level: consoleLogLevel,
+      format: logFormat,
+      fields: { 'event.action': 'catalog_warning' },
+    })
   }
   const { errors: catalogErrors, fixtures, schemas } = validateCatalog(catalog, catalogDir)
   const configErrors = validateAppConfig(catalog, process.env, passthroughAsDefault)
@@ -136,6 +145,7 @@ export function getRuntime(): Runtime {
     passthroughAsDefault,
     unmockedUsers,
     consoleLogLevel,
+    logFormat,
     timeoutMs: Number(process.env.PASSTHROUGH_TIMEOUT_MS ?? 30000),
     schemas,
     resolverHistoryLimit,

@@ -33,6 +33,7 @@ describe('buildEnvironmentRows', () => {
       PASSTHROUGH_AS_DEFAULT: 'true',
       UNMOCKED_USERS: 'REAL',
       MOCK_CONSOLE_LOG_LEVEL: 'warn',
+      MOCK_LOG_FORMAT: 'json',
       PASSTHROUGH_TIMEOUT_MS: '1000',
       NODE_ENV: 'test',
       HELLO_SYSTEM_URL: 'http://hello.test',
@@ -46,6 +47,7 @@ describe('buildEnvironmentRows', () => {
       'PASSTHROUGH_AS_DEFAULT',
       'UNMOCKED_USERS',
       'MOCK_CONSOLE_LOG_LEVEL',
+      'MOCK_LOG_FORMAT',
       'PASSTHROUGH_TIMEOUT_MS',
       'RESOLVER_HISTORY_LIMIT',
       'RESOLVER_HISTORY_TTL_DURATION',
@@ -82,6 +84,10 @@ describe('buildEnvironmentRows', () => {
       'warn',
       'error',
     ])
+    expect(rows.find((row) => row.name === 'MOCK_LOG_FORMAT')?.possibleValues).toEqual([
+      'text',
+      'json',
+    ])
     expect(rows.find((row) => row.name === 'MONGODB_DB')?.possibleValues).toBeUndefined()
   })
 
@@ -91,6 +97,7 @@ describe('buildEnvironmentRows', () => {
     expect(rows.find((row) => row.name === 'MONGODB_DB')?.category).toBe('System')
     expect(rows.find((row) => row.name === 'MONGODB_CONNECTION_STRING')?.category).toBe('System')
     expect(rows.find((row) => row.name === 'MOCK_CONSOLE_LOG_LEVEL')?.category).toBe('System')
+    expect(rows.find((row) => row.name === 'MOCK_LOG_FORMAT')?.category).toBe('System')
     expect(rows.find((row) => row.name === 'PASSTHROUGH_TIMEOUT_MS')?.category).toBe('Routing')
     expect(rows.find((row) => row.name === 'PASSTHROUGH_AS_DEFAULT')?.category).toBe('Routing')
     expect(rows.find((row) => row.name === 'HELLO_SYSTEM_URL')?.category).toBe('Upstream')

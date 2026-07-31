@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   ConfigError,
   parseConsoleLogLevel,
+  parseLogFormat,
   parseResolverHistoryLimit,
   parsePassthroughAsDefault,
   parseRequestLogTtlSeconds,
@@ -55,6 +56,22 @@ describe('parseConsoleLogLevel', () => {
 
   it('throws ConfigError for an unrecognized value', () => {
     expect(() => parseConsoleLogLevel('debug')).toThrow(ConfigError)
+  })
+})
+
+describe('parseLogFormat', () => {
+  it('defaults to text when unset', () => {
+    expect(parseLogFormat(undefined)).toBe('text')
+  })
+
+  it('accepts text and json case-insensitively', () => {
+    expect(parseLogFormat('text')).toBe('text')
+    expect(parseLogFormat('JSON')).toBe('json')
+    expect(parseLogFormat('Json')).toBe('json')
+  })
+
+  it('throws ConfigError for an unrecognized value', () => {
+    expect(() => parseLogFormat('ecs')).toThrow(ConfigError)
   })
 })
 

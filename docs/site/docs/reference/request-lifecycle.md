@@ -32,7 +32,8 @@ resolver rewrite; the rewrite itself is recorded separately as
 resolvers](../building/dynamic.md).
 
 Three things wrap every logged request, whichever row it exits at: the server may
-print a one-line console summary depending on `MOCK_CONSOLE_LOG_LEVEL`; the
+print a [console summary](../driving/console-logs.md) depending on
+`MOCK_CONSOLE_LOG_LEVEL` and `MOCK_LOG_FORMAT`; the
 response carries an `x-mock-log-id` header naming the
 [request log](../driving/request-logs.md) entry it produced; and after the
 response is sent that entry — request, response, and the decision trace from the
@@ -44,7 +45,8 @@ entirely.
 
 App-wide behavior is governed by a handful of environment variables —
 `PASSTHROUGH_AS_DEFAULT`, `UNMOCKED_USERS`, `PASSTHROUGH_TIMEOUT_MS`,
-`MOCK_CONSOLE_LOG_LEVEL`, and `RESOLVER_HISTORY_LIMIT`. Each one's values and
+`MOCK_CONSOLE_LOG_LEVEL`, `MOCK_LOG_FORMAT`, and `RESOLVER_HISTORY_LIMIT`. Each
+one's values and
 defaults are documented as settings in
 [Configuration](configuration.md#app-configuration); this page
 describes how they steer the flow.

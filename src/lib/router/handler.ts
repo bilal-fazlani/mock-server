@@ -1,4 +1,5 @@
-import type { ConsoleLogLevel } from '../config'
+import type { ConsoleLogLevel, LogFormat } from '../config'
+import { writeConsoleLog } from '../logs/console'
 import { newLogId, type LogEntry, type LogPayload } from '../logs/store'
 import { IncomingRequest, routeRequest, RouterDeps, type RouteTrace } from './route-request'
 
@@ -6,6 +7,7 @@ export interface MockHandlerDeps extends RouterDeps {
   /** Fire-and-forget log sink; a failed write never affects the response. */
   writeLog?: (entry: LogEntry) => Promise<void>
   consoleLogLevel?: ConsoleLogLevel
+  logFormat?: LogFormat
 }
 
 const MAX_LOGGED_BODY_BYTES = 16 * 1024
@@ -31,7 +33,11 @@ export function createMockHandler(deps: MockHandlerDeps) {
     const headers = shouldLog ? { ...result.headers, 'x-mock-log-id': logId } : result.headers
 
     if (shouldLog) {
-      writeRequestConsoleLog(deps.consoleLogLevel ?? 'info', {
+      writeRequestConsoleLog({
+        level: deps.consoleLogLevel ?? 'info',
+        format: deps.logFormat,
+        logId,
+        ts,
         incoming,
         status: result.status,
         durationMs,
@@ -52,9 +58,13 @@ export function createMockHandler(deps: MockHandlerDeps) {
       })
       void deps.writeLog(entry).catch((err) => {
         writeConsoleLog(
-          deps.consoleLogLevel ?? 'info',
           'warn',
           `[mock-log] failed to write log entry: ${err instanceof Error ? err.message : String(err)}`,
+          {
+            level: deps.consoleLogLevel ?? 'info',
+            format: deps.logFormat,
+            fields: { 'mock.logId': logId },
+          },
         )
       })
     }
@@ -70,17 +80,62 @@ function shouldWriteRequestLog(path: string): boolean {
   return !path.startsWith('/_next/')
 }
 
-function writeRequestConsoleLog(
-  configuredLevel: ConsoleLogLevel,
-  input: {
-    incoming: IncomingRequest
-    status: number
-    durationMs: number
-    trace: RouteTrace
-  },
-): void {
-  const severity = requestConsoleSeverity(input.trace)
-  writeConsoleLog(configuredLevel, severity, formatRequestConsoleLine(input))
+interface RequestConsoleLog {
+  level: ConsoleLogLevel
+  format: LogFormat | undefined
+  logId: string
+  ts: Date
+  incoming: IncomingRequest
+  status: number
+  durationMs: number
+  trace: RouteTrace
+}
+
+function writeRequestConsoleLog(input: RequestConsoleLog): void {
+  writeConsoleLog(requestConsoleSeverity(input.trace), formatRequestConsoleLine(input), {
+    level: input.level,
+    format: input.format,
+    ts: input.ts,
+    fields: requestConsoleFields(input),
+  })
+}
+
+/**
+ * The console line's structured form: ECS names for anything a log aggregator
+ * already understands, and a `mock.*` namespace for everything domain-specific
+ * so it cannot collide with other services sharing an index. Two names are
+ * deliberate: the HTTP status is never a top-level `status` (Datadog's remapper
+ * reads that as the log severity), and `event.duration` is in nanoseconds
+ * because that is the unit ECS defines for it — every `mock.*` duration carries
+ * its unit in the name instead.
+ *
+ * Metadata only — bodies and headers stay in Mongo. If that ever changes,
+ * `redactSensitiveHeaders` has to move out of `buildLogEntry` and be shared;
+ * today it guards only the Mongo path.
+ */
+function requestConsoleFields(input: RequestConsoleLog): Record<string, unknown> {
+  const { incoming, status, durationMs, trace } = input
+  return {
+    'http.request.method': incoming.method,
+    'url.path': incoming.path,
+    // ECS stores url.query without the leading "?"; omitted when there is none.
+    'url.query': incoming.search ? incoming.search.slice(1) : undefined,
+    'http.response.status_code': status,
+    'event.duration': durationMs * 1_000_000,
+    'mock.logId': input.logId,
+    'mock.system': trace.system,
+    'mock.endpoint': trace.endpoint,
+    'mock.profileId': trace.profileId,
+    'mock.scenario': trace.scenario,
+    'mock.scenarioSource': trace.scenarioSource,
+    'mock.outcome': trace.outcome,
+    'mock.delayMs': trace.delayMs,
+    'mock.validation.request': trace.validation?.request,
+    'mock.validation.response': trace.validation?.response,
+    'mock.error.code': trace.error?.code,
+    'mock.upstream.status': trace.upstream?.status,
+    'mock.upstream.durationMs': trace.upstream?.durationMs,
+  }
 }
 
 function requestConsoleSeverity(trace: RouteTrace): ConsoleLogLevel {
@@ -115,25 +170,6 @@ function formatRequestConsoleLine(input: {
   }
   const suffix = details.length > 0 ? ` ${details.join(' ')}` : ''
   return `[mock] ${incoming.method} ${incoming.path}${incoming.search} -> ${status} ${durationMs}ms${suffix}`
-}
-
-function writeConsoleLog(
-  configuredLevel: ConsoleLogLevel,
-  severity: ConsoleLogLevel,
-  message: string,
-): void {
-  if (!shouldWriteConsoleLog(configuredLevel, severity)) return
-  if (severity === 'error') console.error(message)
-  else if (severity === 'warn') console.warn(message)
-  else console.info(message)
-}
-
-function shouldWriteConsoleLog(
-  configuredLevel: ConsoleLogLevel,
-  severity: ConsoleLogLevel,
-): boolean {
-  const rank: Record<ConsoleLogLevel, number> = { info: 0, warn: 1, error: 2 }
-  return rank[severity] >= rank[configuredLevel]
 }
 
 function buildLogEntry(input: {

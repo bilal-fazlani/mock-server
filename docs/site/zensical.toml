@@ -24,6 +24,7 @@ nav = [
     { "Runtime-control API" = "driving/api.md" },
     { "Using it in dev & CI" = "driving/dev-and-ci.md" },
     { "Request logs" = "driving/request-logs.md" },
+    { "Console logs" = "driving/console-logs.md" },
   ] },
   { "Reference" = [
     { "Configuration" = "reference/configuration.md" },

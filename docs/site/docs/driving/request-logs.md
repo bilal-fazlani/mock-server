@@ -35,24 +35,11 @@ happens only when the log entry is built. If the opaque token itself is the
 configured profile ID, that value still appears as the resolved profile ID and
 decision-trace value — use synthetic mock tokens rather than real credentials.
 
-The server also prints compact console request lines controlled by
-`MOCK_CONSOLE_LOG_LEVEL` (see [Configuration](../reference/configuration.md#app-configuration)).
-At `info`, each mock request logs method, path, status, duration, system/endpoint,
-profile ID when resolved, scenario, outcome, `delay=<n>ms` when the served fixture
-declared a [response delay](../building/fixtures.md#response-delay), and error code
-when present. Fixture responses are `info` even when their fixture status is
-non-2xx, because the mock served the selected scenario correctly. `warn` is for suspicious-but-served cases
-such as `UNMOCKED_USERS` fallback, schema drift on `real`, failed Mongo
-request-log writes, and `no_match`. `error` is for framework/routing/setup
-failures such as invalid JSON, unresolved selectors, missing mappings, stale
-scenario pins, template errors (`template_error`, plus `function_error` and
-`function_timeout` for failures inside a [custom
-function](../building/fixtures.md#errors)), missing passthrough base URLs,
-passthrough failures, and resolver failures (`resolver_missing`, `resolver_threw`,
-`resolver_timeout`, `resolver_bad_return`, and — in development —
-`resolver_compile_error`; see [Code-backed scenario
-resolvers](../building/dynamic.md#errors)). `/_next/` paths are filtered
-out of console request logs too.
+Alongside this persisted log, the server prints a compact summary of each request
+to stdout — as a human one-liner by default, or as one ECS-style JSON object per
+line for a log aggregator. Which requests are printed, what each severity covers,
+and the full JSON field mapping are documented in
+[Console logs](console-logs.md).
 
 Browse and filter the log at `/ui/logs` (live-updating; filter by profile,
 endpoint, errors, or log ID), or from a profile page's **Recent activity** card.

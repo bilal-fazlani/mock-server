@@ -2,6 +2,7 @@ import path from 'node:path'
 
 export type UnmockedUsers = 'ERROR' | 'DEFAULT_MOCK' | 'REAL'
 export type ConsoleLogLevel = 'info' | 'warn' | 'error'
+export type LogFormat = 'text' | 'json'
 
 // UI label for the implicit "real" scenario — never declared in the catalog,
 // so its display name lives here.
@@ -11,6 +12,7 @@ export class ConfigError extends Error {}
 
 const UNMOCKED_USERS_VALUES: UnmockedUsers[] = ['ERROR', 'DEFAULT_MOCK', 'REAL']
 const CONSOLE_LOG_LEVEL_VALUES: ConsoleLogLevel[] = ['info', 'warn', 'error']
+const LOG_FORMAT_VALUES: LogFormat[] = ['text', 'json']
 
 export function parsePassthroughAsDefault(raw: string | undefined): boolean {
   if (raw === undefined) return false
@@ -42,6 +44,22 @@ export function parseConsoleLogLevel(raw: string | undefined): ConsoleLogLevel {
     )
   }
   return lower as ConsoleLogLevel
+}
+
+// How every console line is serialized: "text" (the human one-liner, default)
+// or "json" (one ECS-style object per line for a log aggregator). Orthogonal to
+// MOCK_CONSOLE_LOG_LEVEL, which decides *whether* a line is written at all.
+// Text stays the default because this ships as an npx binary people run in
+// their own terminal.
+export function parseLogFormat(raw: string | undefined): LogFormat {
+  if (raw === undefined) return 'text'
+  const lower = raw.toLowerCase()
+  if (!LOG_FORMAT_VALUES.includes(lower as LogFormat)) {
+    throw new ConfigError(
+      `MOCK_LOG_FORMAT must be one of ${LOG_FORMAT_VALUES.join(', ')}, got "${raw}"`,
+    )
+  }
+  return lower as LogFormat
 }
 
 export function parseResolverHistoryLimit(raw: string | undefined): number {

@@ -367,3 +367,126 @@ describe('mock handler logging', () => {
     expect(res.status).toBe(200)
   })
 })
+
+describe('mock handler JSON console logging', () => {
+  function parsedLine(call: unknown[]): Record<string, unknown> {
+    return JSON.parse(call[0] as string) as Record<string, unknown>
+  }
+
+  it('emits one ECS-style object per request, with the text line kept as message', async () => {
+    const consoleSpy = spyConsole()
+    const { handle } = handlerWith({
+      consoleLogLevel: 'info',
+      logFormat: 'json',
+      sleep: async () => {},
+      loadFixture: () => ({ status: 200, headers: {}, delay: '400ms', body: { ok: true } }),
+    })
+
+    const res = await handle(
+      new Request('http://localhost:3000/hello?trace=1&x=2', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ customerId: 'c1' }),
+      }),
+      ['hello'],
+    )
+    await settle()
+
+    expect(consoleSpy.info).toHaveBeenCalledTimes(1)
+    const line = parsedLine(consoleSpy.info.mock.calls[0])
+    expect(line).toMatchObject({
+      'log.level': 'info',
+      message: expect.stringMatching(/^\[mock\] POST \/hello\?trace=1&x=2 -> 200 /),
+      'service.name': 'mock-server',
+      'http.request.method': 'POST',
+      'url.path': '/hello',
+      // ECS stores the query without the leading "?"
+      'url.query': 'trace=1&x=2',
+      'http.response.status_code': 200,
+      'mock.logId': res.headers.get('x-mock-log-id'),
+      'mock.system': 'test-system',
+      'mock.endpoint': 'hello',
+      'mock.profileId': 'c1',
+      'mock.scenario': 'default',
+      'mock.scenarioSource': 'implicit',
+      'mock.outcome': 'fixture',
+      'mock.delayMs': 400,
+    })
+    expect(typeof line['service.version']).toBe('string')
+    expect(Date.parse(line['@timestamp'] as string)).not.toBeNaN()
+    // event.duration is nanoseconds per ECS, so it is 1e6 × the ms in `message`.
+    const durationMs = Number(/-> 200 (\d+)ms/.exec(line.message as string)![1])
+    expect(line['event.duration']).toBe(durationMs * 1_000_000)
+    expect(line['mock.error.code']).toBeUndefined()
+    consoleSpy.restore()
+  })
+
+  it('omits url.query entirely when the request has no query string', async () => {
+    const consoleSpy = spyConsole()
+    const { handle } = handlerWith({ consoleLogLevel: 'info', logFormat: 'json' })
+
+    await handle(helloRequest(), ['hello'])
+    await settle()
+
+    const line = parsedLine(consoleSpy.info.mock.calls[0])
+    expect(line).not.toHaveProperty('url.query')
+    consoleSpy.restore()
+  })
+
+  it('routes severity to the matching console method and log.level', async () => {
+    const consoleSpy = spyConsole()
+    const { handle } = handlerWith({ consoleLogLevel: 'warn', logFormat: 'json' })
+
+    await handle(helloRequest(), ['hello'])
+    await handle(new Request('http://localhost:3000/nope?x=1', { method: 'GET' }), ['nope'])
+    await settle()
+
+    expect(consoleSpy.info).not.toHaveBeenCalled()
+    expect(consoleSpy.warn).toHaveBeenCalledTimes(1)
+    expect(parsedLine(consoleSpy.warn.mock.calls[0])).toMatchObject({
+      'log.level': 'warn',
+      'http.request.method': 'GET',
+      'url.path': '/nope',
+      'url.query': 'x=1',
+      'http.response.status_code': 404,
+      'mock.outcome': 'error',
+      'mock.error.code': 'no_match',
+    })
+    consoleSpy.restore()
+  })
+
+  it('emits the failed-log-write warning as JSON too, so the stream has no stray text lines', async () => {
+    const consoleSpy = spyConsole()
+    const { handle } = handlerWith({
+      consoleLogLevel: 'warn',
+      logFormat: 'json',
+      writeLog: async () => {
+        throw new Error('mongo down')
+      },
+    })
+
+    const res = await handle(helloRequest(), ['hello'])
+    await settle()
+
+    expect(consoleSpy.warn).toHaveBeenCalledTimes(1)
+    expect(parsedLine(consoleSpy.warn.mock.calls[0])).toMatchObject({
+      'log.level': 'warn',
+      message: '[mock-log] failed to write log entry: mongo down',
+      'mock.logId': res.headers.get('x-mock-log-id'),
+    })
+    consoleSpy.restore()
+  })
+
+  it('leaves the text format byte-identical when logFormat is unset', async () => {
+    const consoleSpy = spyConsole()
+    const { handle } = handlerWith({ consoleLogLevel: 'info' })
+
+    await handle(helloRequest(), ['hello'])
+    await settle()
+
+    expect(consoleSpy.info.mock.calls[0][0]).toMatch(
+      /^\[mock\] POST \/hello -> 200 \d+ms test-system\/hello profile=c1 scenario=default outcome=fixture$/,
+    )
+    consoleSpy.restore()
+  })
+})

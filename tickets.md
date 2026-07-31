@@ -24,8 +24,7 @@ flowchart LR
   classDef inreview   fill:#fbefff,stroke:#8250df,stroke-width:2px,color:#1f2328
 
   class I2,I10,I14,I15,I17,I35 backlog
-  class I34 inprogress
-  class I28 inreview
+  class I28,I34 inreview
 ```
 
 **Legend** — node colour is the lane on [project board 3](https://github.com/users/bilal-fazlani/projects/3), matching its colours there:
