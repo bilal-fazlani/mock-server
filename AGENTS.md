@@ -186,7 +186,7 @@ own colour on the board** so the two read the same:
 | `Backlog` | `backlog` | green |
 | `Refining` | `refining` | pink |
 | `Ready` | `ready` | blue |
-| `In progress` | `inprogress` | yellow |
+| `In progress` | `inprogress` | yellow + a running dashed outline (animated) |
 | `In review` | `inreview` | purple |
 | `Done` | — | orange — node is deleted; only the tally count changes |
 

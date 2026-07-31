@@ -175,6 +175,21 @@
   /* once Mermaid has rendered, the <pre> holds an <svg> and needs no text styling */
   .diagram pre.mermaid[data-processed="true"] { white-space: normal; }
 
+  /* A running outline on the one lane that means work is happening right now.
+     Mermaid writes fill/stroke/stroke-width inline with !important, which beats
+     any animation — stroke-dashoffset is left alone, so that is what moves. */
+  .diagram g.node.inprogress rect.label-container {
+    stroke-dasharray: 7 4;
+    animation: wip-march 1.4s linear infinite;
+  }
+  @keyframes wip-march {
+    to { stroke-dashoffset: -22; }
+  }
+  /* Without motion the dashes alone still mark the lane. */
+  @media (prefers-reduced-motion: reduce) {
+    .diagram g.node.inprogress rect.label-container { animation: none; }
+  }
+
   footer {
     font-size: 12px;
     color: var(--faint);

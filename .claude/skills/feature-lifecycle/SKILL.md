@@ -233,9 +233,15 @@ board's own lane colours**, so the file and the board read alike — do not inve
 | `Backlog` | `backlog` | green |
 | `Refining` | `refining` | pink |
 | `Ready` | `ready` | blue |
-| `In progress` | `inprogress` | yellow |
+| `In progress` | `inprogress` | yellow, plus a continuously running dashed outline |
 | `In review` | `inreview` | purple |
 | `Done` | — | orange — node deleted, only the tally moves |
+
+`inprogress` is the only lane that moves: a `stroke-dashoffset` animation gives its nodes
+marching-ants borders, so active work is visible without reading a label. It keys off the
+`class` alone — set `inprogress` and the motion follows. (Under
+`prefers-reduced-motion: reduce` the dashes hold still but stay dashed, so the lane is still
+distinguishable.)
 
 Each colour is written **twice** in the file: as a Mermaid `classDef` for the graph nodes,
 and as a `--lane-*-fg` custom property for the tally dots — the latter once per theme block
