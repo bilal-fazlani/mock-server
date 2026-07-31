@@ -225,8 +225,8 @@
       <span class="lane-tally l-refining is-empty"><span class="dot"></span><span class="n">0</span> Refining</span>
       <span class="lane-tally l-ready is-empty"><span class="dot"></span><span class="n">0</span> Ready</span>
       <span class="lane-tally l-progress is-empty"><span class="dot"></span><span class="n">0</span> In progress</span>
-      <span class="lane-tally l-review"><span class="dot"></span><span class="n">1</span> In review</span>
-      <span class="lane-tally l-done"><span class="dot"></span><span class="n">21</span> Done</span>
+      <span class="lane-tally l-review is-empty"><span class="dot"></span><span class="n">0</span> In review</span>
+      <span class="lane-tally l-done"><span class="dot"></span><span class="n">22</span> Done</span>
     </div>
   </header>
 
@@ -238,7 +238,6 @@
     <div class="diagram">
       <pre class="mermaid">
 flowchart LR
-  I36["#36 · uuid groups · templating"]
   I14["#14 · seeded randomness · templating"]
   I15["#15 · faker integration · templating"]
   I2["#2 · reset-history affordance · ui"]
@@ -254,7 +253,6 @@ flowchart LR
   classDef inreview   fill:#fbefff,stroke:#8250df,stroke-width:2px,color:#1f2328
 
   class I2,I14,I15,I17,I35 backlog
-  class I36 inreview
       </pre>
     </div>
   </section>
