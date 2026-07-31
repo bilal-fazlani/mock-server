@@ -299,6 +299,10 @@ resolved, a parent/sub-issue or blocked-by link added or removed.
   alone or connect directly — decide which and say so); decrement its lane's tally and bump
   `Done`.
 - **Dependency changed** → add, remove, or relabel the arrow.
+- **Abandoned** → close with `gh issue close N --reason "not planned"` and archive the card
+  (`archiveProjectV2Item`), then delete the node as for a closure — but **do not bump `Done`**.
+  An archived item leaves the board entirely, so it is counted in no lane; the tallies must
+  keep summing to what `gh project item-list` reports, not to the number of closed issues.
 
 ### Verify before you commit it
 
