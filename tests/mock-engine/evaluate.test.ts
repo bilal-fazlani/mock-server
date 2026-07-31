@@ -1,8 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import { parseExpr } from '../../src/lib/mock-engine/expr'
-import { evaluate, OMIT } from '../../src/lib/mock-engine/evaluate'
+import { describeArity, evaluate, OMIT } from '../../src/lib/mock-engine/evaluate'
 import { compileFunctions } from '../../src/lib/mock-engine/functions'
 import { PlaceholderError, resolveTemplate } from '../../src/lib/mock-engine/template'
+
+describe('describeArity (#15)', () => {
+  it('renders an unbounded arity range as "N+"', () => {
+    expect(describeArity({ min: 1, max: null })).toBe('1+')
+    expect(describeArity({ min: 0, max: 1 })).toBe('0-1')
+    expect(describeArity({ min: 2, max: 2 })).toBe('2')
+  })
+})
 
 const base = {
   ctx: { body: { name: 'bilal' }, pathParams: {}, query: new URLSearchParams(), headers: {} },

@@ -68,18 +68,24 @@ type EvalInternal = EvalValue | Missing | Omit
  * catalog load. A fixed-arity built-in has `min === max`; the range exists for
  * built-ins that accept an optional argument — `uuid` takes 0 or 1 (#36) — and
  * is the general mechanism the variadic generators to come (#14 `random`, #15
- * `faker`) inherit rather than each special-casing its own count.
+ * `faker`) inherit rather than each special-casing its own count. `max: null`
+ * means unbounded — the variadic `faker`/`pick` built-ins (#15) have no upper
+ * bound on argument count.
  */
 export interface ArityRange {
   readonly min: number
-  readonly max: number
+  readonly max: number | null // null = unbounded
 }
 
 /** A built-in that takes a fixed number of arguments. */
 const exact = (n: number): ArityRange => ({ min: n, max: n })
 
-/** Render an arity range for an error message: `1`, or `0-1` for a range. */
+/** A built-in that takes at least `n` arguments, with no upper bound. */
+const atLeast = (n: number): ArityRange => ({ min: n, max: null })
+
+/** Render an arity range for an error message: `1`, `0-1`, or `1+` for unbounded. */
 export function describeArity(a: ArityRange): string {
+  if (a.max === null) return `${a.min}+`
   return a.min === a.max ? `${a.min}` : `${a.min}-${a.max}`
 }
 
@@ -237,7 +243,7 @@ function evalNode(expr: Expr, deps: EvalDeps): EvalInternal {
         // validate.ts rejects a wrong argument count at catalog load, so this
         // is a backstop for callers that bypass the catalog (tests, future
         // non-fixture templating) rather than the primary check.
-        if (args.length < builtin.arity.min || args.length > builtin.arity.max) {
+        if (args.length < builtin.arity.min || (builtin.arity.max !== null && args.length > builtin.arity.max)) {
           throw new PlaceholderError(
             `built-in "${expr.name}" takes ${describeArity(builtin.arity)} argument(s), got ${args.length}`,
           )

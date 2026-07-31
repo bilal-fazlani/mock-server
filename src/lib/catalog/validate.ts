@@ -218,10 +218,12 @@ export function validateCatalog(catalog: Catalog, catalogDir: string): Validatio
             // Built-ins declare an argument-count range (the piped value counts
             // as the first one), so "{{$.x | default}}" is a startup error
             // rather than a 500 on the first request that hits the fixture.
-            // Most are fixed (min === max); `uuid` takes 0 or 1 (#36). Custom
-            // functions are plain JS and take whatever they take.
+            // Most are fixed (min === max); `uuid` takes 0 or 1 (#36). A `null`
+            // max means unbounded — the variadic `faker`/`pick` built-ins
+            // (#15) have no upper bound. Custom functions are plain JS and
+            // take whatever they take.
             const arity = builtinArity(call.name)
-            if (arity && (call.args.length < arity.min || call.args.length > arity.max)) {
+            if (arity && (call.args.length < arity.min || (arity.max !== null && call.args.length > arity.max))) {
               errors.push(
                 `${label}: fixture ${file} placeholder "{{${expr}}}" calls built-in "${call.name}" ` +
                   `with ${call.args.length} argument(s), expected ${describeArity(arity)}`,
