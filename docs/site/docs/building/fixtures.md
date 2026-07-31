@@ -310,7 +310,7 @@ the fixture — not drawn from an unseeded random number generator.
   fixture — even earlier in the body — never changes the value an existing
   placeholder already renders. Each placeholder's seed comes from its own
   position, not from the order values happen to be drawn in.
-- **Position determines the value, not just the call.** Two placeholders with
+- **Position determines the value, not only the call.** Two placeholders with
   the identical call still render independently by where they sit —
   `"legs": ["{{faker:string.uuid}}", "{{faker:string.uuid}}"]` renders two
   distinct ids, and the same call in the response body renders differently than

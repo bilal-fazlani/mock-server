@@ -1592,6 +1592,11 @@ describe('seeded faker/pick end-to-end (#15)', () => {
     expect(secondBody).toEqual(firstBody)
     expect(second.headers['x-lucky-number']).toBe(first.headers['x-lucky-number'])
 
+    // faker actually rendered a value, not the literal placeholder string —
+    // so the equality above can't pass vacuously on an empty render.
+    expect(typeof firstBody.name).toBe('string')
+    expect(firstBody.name.length).toBeGreaterThan(0)
+
     // Bounded numeric args are honored.
     expect(firstBody.age).toBeGreaterThanOrEqual(1)
     expect(firstBody.age).toBeLessThanOrEqual(100)
