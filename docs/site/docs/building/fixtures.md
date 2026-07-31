@@ -228,13 +228,17 @@ A response might render as:
 ```
 
 Only Faker's **data-generating modules** are exposed — the ones that produce a
-value with no side effect. `helpers` (`arrayElement`, `slugify`, …) and `image`
-(network calls / placeholder URLs, not deterministic data) are deliberately
-excluded, along with any of Faker's internal members:
+value with no side effect. These are the modules you can use:
 
 `person`, `internet`, `location`, `commerce`, `company`, `lorem`, `number`,
 `date`, `string`, `color`, `animal`, `music`, `science`, `vehicle`, `word`,
 `phone`, `finance`, `database`, `git`, `food`, `book`, `airline`, `hacker`.
+
+Everything else is deliberately **not** available: the `helpers` utility
+namespace (`arrayElement`, `slugify`, …) — its helpers take arrays, regexes, and
+callbacks a placeholder can't express, and `{{pick:…}}` already covers choosing
+from a list — `image` (network calls and placeholder URLs, not deterministic
+data), and any of Faker's internal members.
 
 Every zero-argument method on an exposed module works out of the box —
 `{{faker:person.firstName}}`, `{{faker:company.name}}`, `{{faker:date.past}}`.
