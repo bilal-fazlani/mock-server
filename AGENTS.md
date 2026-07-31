@@ -149,18 +149,44 @@ to the user.
 
 `tickets.md` at the repo root is the dependency board for this repo's issues: a Mermaid
 graph of the open tickets over a table of the closed ones. **Any ticket status change
-updates it too** — opening an issue, closing one, resolving a blocker, or changing a
-parent/blocked-by relationship. Updating the ticket without updating the board leaves it
-silently wrong; they move together.
+updates it too** — opening an issue, closing one, moving a lane, resolving a blocker, or
+changing a parent/blocked-by relationship. Updating the ticket without updating the board
+leaves it silently wrong; they move together.
 
 It is plain Markdown, so edit it **inline with `Edit`, in whatever worktree you are in** —
 no subagent, no canvas app, no main-worktree restriction. Every change is a few lines:
 
 - **Issue opened** → add a node to the graph and a row to the *Open tickets* table; draw an
   arrow only if there is a real ordering dependency.
-- **Issue closed** → delete its node and any arrows touching it, move its row from *Open
-  tickets* to *Completed*, and re-point arrows the closure unblocks.
+- **Lane moved** → change the node's `class` to match (see below).
+- **Issue closed** → delete its node and its `class` entry and any arrows touching it, move
+  its row from *Open tickets* to *Completed*, and re-point arrows the closure unblocks.
 - **Dependency changed** → add or remove the arrow, and update its label.
+
+### Node colour is the project-board lane, and it moves in real time
+
+The `class` on each node mirrors that issue's lane on project board `3`, **using that lane's
+own colour on the board** so the two read the same:
+
+| Lane | Class | Colour |
+| --- | --- | --- |
+| `Backlog` | `backlog` | green |
+| `Refining` | `refining` | pink |
+| `Ready` | `ready` | blue |
+| `In progress` | `inprogress` | yellow |
+| `In review` | `inreview` | purple |
+| `Done` | — | orange — node is deleted; the row moves to *Completed* |
+
+If a lane's colour is ever changed on the board, re-read it and re-sync the `classDef`s:
+
+```bash
+gh api graphql -f query='query{ user(login:"bilal-fazlani"){ projectV2(number:3){ field(name:"Status"){ ... on ProjectV2SingleSelectField { options { name color } } } } } }'
+```
+
+**Every `gh project item-edit` that moves a card is paired with the `class` edit in the same
+step** — not batched to the end of the feature, not deferred to review. The board and the
+file are never out of sync at a checkpoint the user might look at. The `feature-lifecycle`
+skill names the exact moment each transition fires.
 
 Commit it with the work it describes; standalone board updates use
 `chore: update tickets board — …`.

@@ -16,6 +16,35 @@ flowchart LR
   I10 -- "threading pattern" --> I14
   I14 -- "seed + args" --> I15
   I34 -- "JSON line format" --> I35
+
+  classDef backlog    fill:#dafbe1,stroke:#1a7f37,stroke-width:2px,color:#1f2328
+  classDef refining   fill:#ffeff7,stroke:#bf3989,stroke-width:2px,color:#1f2328
+  classDef ready      fill:#ddf4ff,stroke:#0969da,stroke-width:2px,color:#1f2328
+  classDef inprogress fill:#fff8c5,stroke:#9a6700,stroke-width:2px,color:#1f2328
+  classDef inreview   fill:#fbefff,stroke:#8250df,stroke-width:2px,color:#1f2328
+
+  class I2,I10,I14,I15,I17,I35 backlog
+  class I34 inprogress
+  class I28 inreview
+```
+
+**Legend** — node colour is the lane on [project board 3](https://github.com/users/bilal-fazlani/projects/3), matching its colours there:
+
+```mermaid
+flowchart LR
+  L1["Backlog"]:::backlog
+  L2["Refining"]:::refining
+  L3["Ready"]:::ready
+  L4["In progress"]:::inprogress
+  L5["In review"]:::inreview
+  L6["Done → Completed table"]:::done
+
+  classDef backlog    fill:#dafbe1,stroke:#1a7f37,stroke-width:2px,color:#1f2328
+  classDef refining   fill:#ffeff7,stroke:#bf3989,stroke-width:2px,color:#1f2328
+  classDef ready      fill:#ddf4ff,stroke:#0969da,stroke-width:2px,color:#1f2328
+  classDef inprogress fill:#fff8c5,stroke:#9a6700,stroke-width:2px,color:#1f2328
+  classDef inreview   fill:#fbefff,stroke:#8250df,stroke-width:2px,color:#1f2328
+  classDef done       fill:#fff1e5,stroke:#bc4c00,stroke-width:2px,color:#1f2328
 ```
 
 | # | Title | Type | Area |

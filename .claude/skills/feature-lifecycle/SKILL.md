@@ -90,10 +90,14 @@ The board auto-adds it and sets `Backlog`. Do nothing else here.
 ### 2. Refine — trigger: we begin giving shape to the feature in dialogue
 
 The moment active shaping starts — refining the feature with the user in conversation —
-move the card to **Refining** (see `reference.md` → "Move a card"). This fires for
-**both** entry points: a new-idea ticket just opened in phase 1, and an existing
-`Backlog` ticket picked up in phase 0. Only pull a `Backlog` card into `Refining`; never
-drag a card already at `Ready` or beyond backward.
+move the card to **Refining** (see `reference.md` → "Move a card") **and set the node to
+`refining` (pink) in `tickets.md`, in the same step**. This fires for **both** entry
+points: a new-idea ticket just opened in phase 1, and an existing `Backlog` ticket picked
+up in phase 0. Only pull a `Backlog` card into `Refining`; never drag a card already at
+`Ready` or beyond backward.
+
+Do this **before** the first question you ask about the feature — the pink node is what
+tells the user, at a glance, that this ticket is the one under discussion right now.
 
 The card lives in **Refining** for the whole shaping conversation. While it sits here:
 
@@ -127,11 +131,13 @@ so it carries, in this order:
    - [ ] second task
    ```
 
-Then move the card to **Ready** (see `reference.md` → "Move a card").
+Then move the card to **Ready** (see `reference.md` → "Move a card") and set the node to
+`ready` (blue) in `tickets.md`.
 
 ### 4. Start work — trigger: we begin implementing
 
-Move the card to **In Progress**. Branching is not mandated — direct on main, a branch,
+Move the card to **In Progress** and set the node to `inprogress` (yellow) in `tickets.md` —
+both before the first edit, not after. Branching is not mandated — direct on main, a branch,
 or a worktree, whatever fits.
 
 ### 5. Progress — trigger: each task completes
@@ -169,8 +175,9 @@ visually first: drive the preview, capture a screenshot, and show it to the user
 it in the issue (`gh` can't cleanly upload images anyway); the summary comment may note in
 text that the UI was verified visually.
 
-Then post a **summary comment** describing what shipped, and move the card to
-**In Review**. Hand back to the user for review — do not proceed to close.
+Then post a **summary comment** describing what shipped, move the card to **In Review**, and
+set the node to `inreview` (green) in `tickets.md`. Hand back to the user for review — do
+not proceed to close.
 
 ### 8. Review outcome
 
@@ -182,7 +189,7 @@ Then post a **summary comment** describing what shipped, and move the card to
   Commit it with the merge.
 - **8b. Changes requested** — trigger: the user asks for changes during review.
   Post a comment capturing the requested changes, move the card back to
-  **In Progress**, and return to phase 5.
+  **In Progress**, set the node back to `inprogress` (yellow), and return to phase 5.
 
 ## The ticket board (`tickets.md`)
 
@@ -203,6 +210,34 @@ Nodes are `I<N>["#N · short label · area"]`, where the area is the `area:` lab
 prefix. Table rows link the issue number (`[#34](https://github.com/bilal-fazlani/mock-server/issues/34)`)
 and carry the full title, type label, and area — plus the close date, in *Completed*.
 
+### Node colour is the lane — update it in the same step as the card
+
+Each node carries a `class` naming its lane on project board `3`. The colours are **the
+board's own lane colours**, so the file and the board read alike — do not invent new ones:
+
+| Lane | `class` | Colour |
+| --- | --- | --- |
+| `Backlog` | `backlog` | green |
+| `Refining` | `refining` | pink |
+| `Ready` | `ready` | blue |
+| `In progress` | `inprogress` | yellow |
+| `In review` | `inreview` | purple |
+| `Done` | — | orange — node deleted, row moves to *Completed* |
+
+The `classDef` hex values and a rendered legend live in `tickets.md` itself; the legend's
+`classDef` block is a duplicate of the graph's (each Mermaid block is independent), so a
+colour change edits **both**.
+
+**The lane move and the `class` edit are one action, never two.** Every phase below that
+moves a card says which class to set; do both before moving on to the next thing, so the
+file is correct at every point the user might read it. A card in `Refining` whose node is
+still grey is the same defect as a stale board.
+
+The `class` lines sit at the bottom of the graph, grouped by lane
+(`class I2,I10,I14 backlog`). Moving one issue means deleting its id from one line and
+adding it to another — if a lane ends up with no issues, drop its `class` line but keep the
+`classDef`.
+
 ### What the arrows mean
 
 An arrow `A --> B` means **A must land before B**, labelled with why in a couple of words.
@@ -220,11 +255,13 @@ or resolving, does.
 Any ticket status or relationship change: issue opened or closed, a blocker resolved, a
 parent/sub-issue or blocked-by link added or removed.
 
-- **Opened** → add the node and the *Open tickets* row; add an arrow only for a real
-  ordering dependency.
-- **Closed** → delete the node and every arrow touching it, move the row to *Completed*
-  with its close date, and re-point any arrow the closure unblocks (if `A --> B --> C` and
-  B closes, `A` and `C` may now stand alone or connect directly — decide which and say so).
+- **Opened** → add the node with `class … backlog` and the *Open tickets* row; add an arrow
+  only for a real ordering dependency.
+- **Lane moved** → move the node's id to the new lane's `class` line.
+- **Closed** → delete the node, its `class` entry, and every arrow touching it, move the row
+  to *Completed* with its close date, and re-point any arrow the closure unblocks (if
+  `A --> B --> C` and B closes, `A` and `C` may now stand alone or connect directly — decide
+  which and say so).
 - **Dependency changed** → add, remove, or relabel the arrow.
 
 The one thing that is checkable against GitHub is **state**: no issue closed on GitHub may
