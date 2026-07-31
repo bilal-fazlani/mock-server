@@ -1,8 +1,10 @@
+import type { Faker } from '@faker-js/faker'
 import { Expr } from './expr'
 import { extractValue, RequestContext } from '../catalog/selector'
 import { renderNow } from './now'
 import { PlaceholderError } from './template'
 import { CompiledFn, DEFAULT_FN_TIMEOUT_MS, FnContext, FnValue, FunctionRuntimeError } from './functions'
+import { resolveFakerMethod } from './faker-methods'
 
 export interface EvalDeps {
   ctx: RequestContext
@@ -23,6 +25,24 @@ export interface EvalDeps {
    * effect, since each placeholder is a separate evaluate().
    */
   uuidGroups?: Map<string, string>
+  /**
+   * Shared seeded generator behind `{{faker:module.method}}` (#15). One
+   * instance per request, built in route-request.ts and threaded through both
+   * the body and header `resolveTemplate` calls the same way `uuidGroups` is —
+   * but unlike `uuidGroups` (a memo the built-in reads/writes), this is
+   * re-seeded via `fakerSeed` immediately before every draw, so callers never
+   * observe cross-placeholder draw order.
+   */
+  faker?: Faker
+  /**
+   * The 32-bit seed for *this* placeholder, derived by resolveTemplate from
+   * `fnv1a32(seedMaterial + "|" + path)` (#15). `faker`/`pick` call
+   * `deps.faker.seed(deps.fakerSeed)` immediately before drawing, so the same
+   * (seedMaterial, path) always produces the same value regardless of what
+   * else was rendered first (Model B) — undefined only for a bare evaluate()
+   * call with no seedMaterial (e.g. some direct test calls).
+   */
+  fakerSeed?: number
   fnCtx?: FnContext
   functions?: ReadonlyMap<string, CompiledFn>
   timeoutMs?: number
@@ -178,6 +198,31 @@ const BUILTIN_TRANSFORMS: Record<string, Builtin> = {
       const value = gen()
       groups.set(key, value)
       return value
+    },
+  },
+  // Another *source*, like `uuid`: no piped value, so its first argument is the
+  // `module.method` path and the rest are positional params for the curated
+  // arg specs in faker-methods.ts (#15). `literalArgsOnly` for the same reason
+  // as `uuid` — a selector or piped value as the method path/params is
+  // undesigned and rejected at catalog load rather than half-working at
+  // runtime. `atLeast(1)` because a bare path with no params ("person.firstName")
+  // is the common case, but parameterized methods need more.
+  //
+  // Re-seeds `deps.faker` from `deps.fakerSeed` immediately before drawing
+  // (Model B): determinism comes from re-seeding right before the call, not
+  // from draw order, so a placeholder added elsewhere in the same response
+  // never shifts this one's value.
+  faker: {
+    arity: atLeast(1),
+    literalArgsOnly: true,
+    apply: (args, deps) => {
+      const [path, ...params] = args
+      const fn = deps.faker
+      if (!fn) throw new PlaceholderError('faker placeholder needs a faker instance')
+      if (deps.fakerSeed !== undefined) fn.seed(deps.fakerSeed)
+      const method = resolveFakerMethod(fn, String(path))
+      if (!method) throw new PlaceholderError(`unknown faker method "${String(path)}"`)
+      return method(params as (string | number | boolean)[]) as EvalValue
     },
   },
 }

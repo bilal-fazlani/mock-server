@@ -1,3 +1,4 @@
+import type { Faker } from '@faker-js/faker'
 import { RequestContext } from '../catalog/selector'
 import { ExprParseError, parseExpr } from './expr'
 import { evaluate, EvalValue, OMIT, Omit } from './evaluate'
@@ -31,6 +32,27 @@ export interface TemplateOptions {
    * agrees; route-request.ts creates it per request. See EvalDeps.uuidGroups.
    */
   uuidGroups?: Map<string, string>
+  /**
+   * Shared seeded generator behind `{{faker:module.method}}` (#15). Built once
+   * per request in route-request.ts and passed to both the body and header
+   * resolveTemplate calls, the same way `uuidGroups` is. See EvalDeps.faker.
+   */
+  faker?: Faker
+  /**
+   * Identifies the *caller* of this render — `${profileId ?? 'none'}:${endpoint.name}`
+   * (route-request.ts already computes this as `fnCtx.seed`). Combined with
+   * each placeholder's path by resolveTemplate to derive `EvalDeps.fakerSeed`
+   * (#15). Absent means no path-based seed is computed — a bare evaluate()
+   * call, or a resolveTemplate call that doesn't use `faker`.
+   */
+  seedMaterial?: string
+  /**
+   * Path segment this resolveTemplate call starts from — `'body'` for the
+   * response body render, `'headers'` for the header render (#15), so the two
+   * renders derive independent seeds even given the same seedMaterial and
+   * relative structure. Defaults to `'body'`.
+   */
+  pathPrefix?: string
   fnCtx?: FnContext
   functions?: ReadonlyMap<string, CompiledFn>
   timeoutMs?: number
@@ -38,7 +60,28 @@ export interface TemplateOptions {
 
 const PLACEHOLDER_RE = /\{\{(.+?)\}\}/g
 
-function resolvePlaceholderTyped(expr: string, ctx: RequestContext, now: Date, options?: TemplateOptions): EvalValue | Omit {
+/**
+ * FNV-1a 32-bit hash. Stable across releases (documented) — used only to
+ * derive a deterministic Faker seed from `seedMaterial + "|" + path` (#15), so
+ * "the seed for this string" never depends on anything outside the algorithm
+ * itself changing.
+ */
+export function fnv1a32(s: string): number {
+  let h = 0x811c9dc5
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i)
+    h = Math.imul(h, 0x01000193)
+  }
+  return h >>> 0
+}
+
+function resolvePlaceholderTyped(
+  expr: string,
+  ctx: RequestContext,
+  now: Date,
+  path: string,
+  options?: TemplateOptions,
+): EvalValue | Omit {
   let ast
   try {
     ast = parseExpr(expr)
@@ -49,7 +92,8 @@ function resolvePlaceholderTyped(expr: string, ctx: RequestContext, now: Date, o
     throw err
   }
   try {
-    return evaluate(ast, { ctx, now, ...options })
+    const fakerSeed = options?.seedMaterial !== undefined ? fnv1a32(`${options.seedMaterial}|${path}`) : undefined
+    return evaluate(ast, { ctx, now, ...options, fakerSeed })
   } catch (err) {
     // A user function that threw, timed out, or returned something unusable
     // (see evaluate.ts) surfaces here without knowing which placeholder it
@@ -67,8 +111,14 @@ function resolvePlaceholderTyped(expr: string, ctx: RequestContext, now: Date, o
   }
 }
 
-function resolvePlaceholder(expr: string, ctx: RequestContext, now: Date, options?: TemplateOptions): string {
-  const value = resolvePlaceholderTyped(expr, ctx, now, options)
+function resolvePlaceholder(
+  expr: string,
+  ctx: RequestContext,
+  now: Date,
+  path: string,
+  options?: TemplateOptions,
+): string {
+  const value = resolvePlaceholderTyped(expr, ctx, now, path, options)
   // Reached only for interpolated placeholders (`"hi {{…}}"`), where `omit` has
   // no key to drop. validate.ts already rejects that at startup; this keeps a
   // gap there from emitting "Symbol(omit)" into the response instead of failing.
@@ -90,49 +140,59 @@ export function resolveTemplate(
   resolutions?: Record<string, string>,
   options?: TemplateOptions,
 ): unknown {
-  if (typeof node === 'string') {
-    PLACEHOLDER_RE.lastIndex = 0
-    const first = PLACEHOLDER_RE.exec(node)
-    // exec() on a /g regex advances lastIndex; PLACEHOLDER_RE is module-global
-    // and shared with listPlaceholders, so leaving it set would make a later
-    // matchAll start mid-string and miss placeholders.
-    PLACEHOLDER_RE.lastIndex = 0
-    if (first && first[0] === node) {
-      // A whole-string placeholder is evaluated typed in *both* modes so OMIT
-      // can propagate to the parent container (#24). In stringOnly (headers)
-      // mode a surviving value is then coerced to a string, matching #12's
-      // "headers render as strings" — the only difference from the typed body
-      // path is that final stringification.
-      const value = resolvePlaceholderTyped(first[1], ctx, now, options)
-      if (value === OMIT) {
-        if (resolutions) resolutions[node] = '(omitted)'
-        return OMIT
+  // Inner recursive walk carrying the JSON-path of `node` from the top-level
+  // call, so each placeholder derives a per-(seedMaterial, path) `faker` seed
+  // (#15) — object keys append `.key`, array indices `[i]`, and each
+  // placeholder within a string node appends `#<occurrenceIndexInThatString>`
+  // (0 for a whole-string placeholder). See fnv1a32 / resolvePlaceholderTyped.
+  const walk = (n: unknown, path: string): unknown => {
+    if (typeof n === 'string') {
+      PLACEHOLDER_RE.lastIndex = 0
+      const first = PLACEHOLDER_RE.exec(n)
+      // exec() on a /g regex advances lastIndex; PLACEHOLDER_RE is module-global
+      // and shared with listPlaceholders, so leaving it set would make a later
+      // matchAll start mid-string and miss placeholders.
+      PLACEHOLDER_RE.lastIndex = 0
+      if (first && first[0] === n) {
+        // A whole-string placeholder is evaluated typed in *both* modes so OMIT
+        // can propagate to the parent container (#24). In stringOnly (headers)
+        // mode a surviving value is then coerced to a string, matching #12's
+        // "headers render as strings" — the only difference from the typed body
+        // path is that final stringification.
+        const value = resolvePlaceholderTyped(first[1], ctx, now, `${path}#0`, options)
+        if (value === OMIT) {
+          if (resolutions) resolutions[n] = '(omitted)'
+          return OMIT
+        }
+        const out = options?.stringOnly ? stringifyForTrace(value) : value
+        if (resolutions) resolutions[n] = stringifyForTrace(value)
+        return out
       }
-      const out = options?.stringOnly ? stringifyForTrace(value) : value
-      if (resolutions) resolutions[node] = stringifyForTrace(value)
+      let occurrence = 0
+      return n.replace(PLACEHOLDER_RE, (_, expr: string) => {
+        const value = resolvePlaceholder(expr, ctx, now, `${path}#${occurrence}`, options)
+        occurrence++
+        if (resolutions) resolutions[`{{${expr}}}`] = value
+        return value
+      })
+    }
+    if (Array.isArray(n)) {
+      // OMIT cannot legally appear as an array element — validate.ts rejects
+      // `omit` there at startup — so a filter would be dead code; map straight.
+      return n.map((item, i) => walk(item, `${path}[${i}]`))
+    }
+    if (n !== null && typeof n === 'object') {
+      const out: Record<string, unknown> = {}
+      for (const [k, v] of Object.entries(n)) {
+        const resolved = walk(v, `${path}.${k}`)
+        // An `omit` that fired drops its key from the object (or the headers map).
+        if (resolved !== OMIT) out[k] = resolved
+      }
       return out
     }
-    return node.replace(PLACEHOLDER_RE, (_, expr: string) => {
-      const value = resolvePlaceholder(expr, ctx, now, options)
-      if (resolutions) resolutions[`{{${expr}}}`] = value
-      return value
-    })
+    return n
   }
-  if (Array.isArray(node)) {
-    // OMIT cannot legally appear as an array element — validate.ts rejects
-    // `omit` there at startup — so a filter would be dead code; map straight.
-    return node.map((item) => resolveTemplate(item, ctx, now, resolutions, options))
-  }
-  if (node !== null && typeof node === 'object') {
-    const out: Record<string, unknown> = {}
-    for (const [k, v] of Object.entries(node)) {
-      const resolved = resolveTemplate(v, ctx, now, resolutions, options)
-      // An `omit` that fired drops its key from the object (or the headers map).
-      if (resolved !== OMIT) out[k] = resolved
-    }
-    return out
-  }
-  return node
+  return walk(node, options?.pathPrefix ?? 'body')
 }
 
 export function listPlaceholders(node: unknown): string[] {

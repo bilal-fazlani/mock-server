@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { Faker, en } from '@faker-js/faker'
 import { parseExpr } from '../../src/lib/mock-engine/expr'
 import { describeArity, evaluate, OMIT } from '../../src/lib/mock-engine/evaluate'
 import { compileFunctions } from '../../src/lib/mock-engine/functions'
@@ -286,5 +287,43 @@ describe('evaluate with user functions', () => {
       functions,
     })
     expect(result).toBe('value: {"a":1}')
+  })
+})
+
+describe('faker built-in (#15)', () => {
+  it('dispatches a parameterized method with a numeric result in range', () => {
+    const faker = new Faker({ locale: [en] })
+    const result = evaluate(parseExpr('faker:number.int:1:100'), { ...base, faker, fakerSeed: 42 })
+    expect(typeof result).toBe('number')
+    expect(result as number).toBeGreaterThanOrEqual(1)
+    expect(result as number).toBeLessThanOrEqual(100)
+  })
+
+  it('is reproducible for the same fakerSeed', () => {
+    const a = evaluate(parseExpr('faker:person.fullName'), {
+      ...base,
+      faker: new Faker({ locale: [en] }),
+      fakerSeed: 7,
+    })
+    const b = evaluate(parseExpr('faker:person.fullName'), {
+      ...base,
+      faker: new Faker({ locale: [en] }),
+      fakerSeed: 7,
+    })
+    expect(a).toBe(b)
+  })
+
+  it('throws when no faker instance is injected', () => {
+    expect(() => evaluate(parseExpr('faker:person.firstName'), base)).toThrow(PlaceholderError)
+  })
+
+  it('throws for an unknown faker method', () => {
+    expect(() =>
+      evaluate(parseExpr('faker:person.noSuchThing'), {
+        ...base,
+        faker: new Faker({ locale: [en] }),
+        fakerSeed: 1,
+      }),
+    ).toThrow(PlaceholderError)
   })
 })
