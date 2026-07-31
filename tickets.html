@@ -222,8 +222,8 @@
     <!-- counts are maintained by hand — update them whenever a lane changes -->
     <div class="tally">
       <span class="lane-tally l-backlog"><span class="dot"></span><span class="n">3</span> Backlog</span>
-      <span class="lane-tally l-refining"><span class="dot"></span><span class="n">1</span> Refining</span>
-      <span class="lane-tally l-ready is-empty"><span class="dot"></span><span class="n">0</span> Ready</span>
+      <span class="lane-tally l-refining is-empty"><span class="dot"></span><span class="n">0</span> Refining</span>
+      <span class="lane-tally l-ready"><span class="dot"></span><span class="n">1</span> Ready</span>
       <span class="lane-tally l-progress"><span class="dot"></span><span class="n">1</span> In progress</span>
       <span class="lane-tally l-review is-empty"><span class="dot"></span><span class="n">0</span> In review</span>
       <span class="lane-tally l-done"><span class="dot"></span><span class="n">22</span> Done</span>
@@ -251,7 +251,7 @@ flowchart LR
   classDef inreview   fill:#fbefff,stroke:#8250df,stroke-width:2px,color:#1f2328
 
   class I2,I17,I35 backlog
-  class I37 refining
+  class I37 ready
   class I15 inprogress
       </pre>
     </div>
