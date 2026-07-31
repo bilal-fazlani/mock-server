@@ -1530,3 +1530,77 @@ describe('uuid end-to-end (#10)', () => {
     expect(first.bookingId).not.toBe(second.bookingId)
   })
 })
+
+describe('seeded faker/pick end-to-end (#15)', () => {
+  const tmpDirs: string[] = []
+  afterEach(() => {
+    while (tmpDirs.length) fs.rmSync(tmpDirs.pop()!, { recursive: true, force: true })
+  })
+  function tmpCatalogDir(files: Record<string, unknown>): string {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mock-faker-'))
+    tmpDirs.push(dir)
+    for (const [rel, content] of Object.entries(files)) {
+      const full = path.join(dir, rel)
+      fs.mkdirSync(path.dirname(full), { recursive: true })
+      fs.writeFileSync(full, typeof content === 'string' ? content : JSON.stringify(content))
+    }
+    return dir
+  }
+
+  const fakerDir = () =>
+    tmpCatalogDir({
+      'sys/_system.json': { name: 'Faker System', baseUrlEnv: 'FAKER_URL' },
+      'sys/new/_endpoint.json': {
+        displayName: 'New',
+        method: 'POST',
+        path: '/people',
+        mockType: 'global',
+      },
+      'sys/new/default.json': {
+        status: 201,
+        headers: { 'x-lucky-number': '{{pick:a:b:c}}' },
+        body: {
+          name: '{{faker:person.fullName}}',
+          age: '{{faker:number.int:1:100}}',
+          favorite: '{{pick:a:b:c}}',
+        },
+      },
+    })
+
+  it('renders seeded {{faker:...}} and {{pick:...}} identically across two requests to the same global fixture (#15)', async () => {
+    const dir = fakerDir()
+    const catalog = loadCatalog(dir)
+    const run = () =>
+      routeRequest(
+        post('/people', {}),
+        deps({
+          catalog,
+          schemas: buildSchemaRegistry(catalog).schemas,
+          env: {},
+          loadFixture: (s, e, sc) => loadFixture(dir, s, e, sc),
+        }),
+      )
+
+    const first = await run()
+    const second = await run()
+    const firstBody = json(first)
+    const secondBody = json(second)
+
+    expect(first.status).toBe(201)
+    // Headline behavior: no profile means seedMaterial is `none:<endpoint>`, so two
+    // independent requests to the same fixture draw the same faker/pick values.
+    expect(secondBody).toEqual(firstBody)
+    expect(second.headers['x-lucky-number']).toBe(first.headers['x-lucky-number'])
+
+    // Bounded numeric args are honored.
+    expect(firstBody.age).toBeGreaterThanOrEqual(1)
+    expect(firstBody.age).toBeLessThanOrEqual(100)
+
+    // pick draws from the given options. Body and header renders derive
+    // independent seeds (`pathPrefix` differs — 'body' vs 'headers'), so the
+    // two placeholder calls are not required to agree with each other, only
+    // with themselves across requests (already asserted above).
+    expect(['a', 'b', 'c']).toContain(firstBody.favorite)
+    expect(['a', 'b', 'c']).toContain(first.headers['x-lucky-number'])
+  })
+})
