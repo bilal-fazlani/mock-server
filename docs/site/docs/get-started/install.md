@@ -84,10 +84,11 @@ curl -s -X POST http://localhost:3000/hello/world \
 
 ## Health check
 
-`GET /ui/api/health` returns `200 {"status":"ok","mongo":"up"}` when MongoDB is
-reachable, or `503 {"status":"error","mongo":"down"}` otherwise — useful as a
-readiness probe when scripting startup (see
-[Using it in dev & CI](../driving/dev-and-ci.md)).
+`GET /ui/api/health` returns `200 {"status":"ok","mongo":"up",…}` when MongoDB
+is reachable, or `503 {"status":"error","mongo":"down",…}` otherwise — useful as
+a readiness probe when scripting startup (see
+[Using it in dev & CI](../driving/dev-and-ci.md)). Both bodies also carry the
+running build's `version` and `sha`.
 
 ## Next steps
 

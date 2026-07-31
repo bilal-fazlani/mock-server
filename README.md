@@ -11,25 +11,6 @@ upstream (`real` passthrough).
 
 Built with [Next.js](https://nextjs.org) and MongoDB.
 
-## Features
-
-- **Catalog-as-data** — add endpoints by creating directories and JSON files; the
-  engine loads them at startup.
-- **Profiles & scenarios** — pick, per caller, which scenario each endpoint returns;
-  picks can be ordered sequences served call-by-call.
-- **Profile-ID selectors** — resolve the caller from the request body, path, query,
-  a header, or a Bearer token/JWT claim.
-- **Code-backed resolvers** — back a scenario with a `<scenario>.mjs` file: a pure,
-  synchronous function that reads the request plus a bounded history of what it
-  returned before, and picks which fixture-backed scenario (or `real`) answers this
-  call. Models request-driven branching and multi-call flows like "pending twice,
-  then success" without touching any profile.
-- **Placeholders** — echo request values, timestamps, and generated UUIDs into responses.
-- **Schema validation** — optional per-endpoint request/response JSON Schema checks.
-- **`real` passthrough** — proxy any endpoint to its configured live upstream.
-- **Request logs** — every request captured with a full decision trace, browsable in
-  the UI, and summarized on the console as text or ECS-style JSON.
-
 ## Quickstart
 
 Requirements: **Node.js 22+**. MongoDB is optional — if `MONGODB_CONNECTION_STRING`

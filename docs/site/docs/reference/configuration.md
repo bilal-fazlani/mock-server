@@ -9,7 +9,9 @@ shows how they steer routing.
 | Variable | Values | Meaning |
 | --- | --- | --- |
 | `CATALOG_PATH` | Directory path<br>(default `./catalog`) | Where the catalog tree is loaded from. A relative path resolves against the server's working directory; an absolute path is used as-is. The `npx @bilal-fazlani/mock-server [catalogPath]` CLI argument, when given, overrides this variable. |
+| `PORT` | Port number<br>(default `3000`) | The port the HTTP server listens on. The CLI's `-p` / `--port` flag, when given, overrides this variable. |
 | `MONGODB_CONNECTION_STRING` | Mongo connection URI<br>(optional) | External MongoDB for profiles, global mock selections, profile key mappings, and request logs. If unset, an in-memory MongoDB starts automatically on first use — data is ephemeral and lost on restart. The published Docker image bakes in a `mongod` binary so this embedded fallback works fully offline. |
+| `MONGODB_DB` | Database name<br>(default `mockDB`) | Name of the MongoDB database holding profiles, global mock selections, profile key mappings, and request logs — used whether the connection is an external MongoDB or the embedded in-memory one. |
 | `PASSTHROUGH_AS_DEFAULT` | `false` (default)<br>`true` | Controls what an omitted selection means. `false`: `default` is the implicit scenario, appears first in pickers, and is not stored when selected. `true`: `real` is the implicit scenario, appears first in pickers, and is not stored when selected. Passthrough itself is always allowed. |
 | `UNMOCKED_USERS` | `ERROR` (default)<br>`DEFAULT_MOCK`<br>`REAL` | What happens when a profiled endpoint extracts a profile ID but **no profile exists** for it. `ERROR`: loud `404`. `DEFAULT_MOCK`: serve the endpoint's `default` fixture. `REAL`: proxy to the live upstream — the classic "mock a few curated users, pass everyone else through" setup. |
 | `PASSTHROUGH_TIMEOUT_MS` | Number of milliseconds<br>(default `30000`) | Timeout for `real` upstream requests. A timeout returns `504`. |
@@ -52,9 +54,11 @@ runs until the tree itself is well-formed:
   `_functions.mjs` file — anything else is a stray entry.
 - Every system directory has a `_system.json` that parses as a JSON object with
   non-empty `name` and `baseUrlEnv` strings.
-- Every entry inside a system directory (other than `_system.json` and
-  `_functions.mjs`) is a directory (an endpoint) — anything else
-  is a stray entry.
+- Every entry inside a system directory (other than `_system.json`,
+  `_functions.mjs`, and at most one `_spec.yaml` / `_spec.yml` / `_spec.json`
+  file — see [Schemas](../building/schemas.md#system-level-_spec-file)) is a
+  directory (an endpoint) — anything else is a stray entry. More than one spec
+  file in the same system is an error: keep only one.
 - Every endpoint directory has an `_endpoint.json` that parses as a JSON object
   with non-empty `displayName`, `method`, and `path` strings. If present,
   `mockType` is `profiled` or `global`; `profileIdSelector` is a non-empty string;

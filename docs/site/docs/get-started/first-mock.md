@@ -70,15 +70,19 @@ is a validation error.
 
 ## 3. Validate the catalog
 
+The server validates the whole catalog at startup and refuses to boot on any
+error, listing every problem at once — so when you run via `npx` or Docker,
+restarting the server *is* the check. From a source checkout you can run the
+same checks without restarting, from the repository root:
+
 ```bash
-cd ui
 npm run validate:catalog
 ```
 
-This runs the same checks the server runs at startup — see
-[Validation rules](../reference/configuration.md#validation-rules). Fix anything it
-reports before moving on. A green `Catalog validation passed.` means catalog,
-fixtures, and app config are in sync.
+Either way, fix anything reported before moving on — the full rule list is in
+[Validation rules](../reference/configuration.md#validation-rules). A green
+`Catalog validation passed.` means catalog, fixtures, and app config are in
+sync.
 
 !!! warning "Restart after catalog or fixture changes"
 
