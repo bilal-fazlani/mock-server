@@ -3,7 +3,8 @@
 A JSON HTTP API for **driving a running mock server** — flip scenarios, manage
 profiles, reset sequence progress, and read request logs — without the UI. It
 exists for local development and automated tests (see
-[Using it in dev & CI](dev-and-ci.md)).
+[Using it in dev & CI](dev-and-ci.md)); the human counterpart is
+[the dashboard](ui.md).
 
 !!! warning "Local-dev only"
 

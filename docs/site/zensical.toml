@@ -21,6 +21,7 @@ nav = [
     { "Schemas" = "building/schemas.md" },
   ] },
   { "Driving mocks" = [
+    { "The dashboard" = "driving/ui.md" },
     { "Runtime-control API" = "driving/api.md" },
     { "Using it in dev & CI" = "driving/dev-and-ci.md" },
     { "Request logs" = "driving/request-logs.md" },

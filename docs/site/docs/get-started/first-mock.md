@@ -93,9 +93,9 @@ sync.
 
 ## 4. Choose a scenario for a profile
 
-Open the UI at `/ui`, create or open a profile whose ID matches the value your
-selector will extract (here, a `customerId` like `customer-123`), and pick the
-scenario for **Account Balance**. Save.
+Open [the dashboard](../driving/ui.md) at `/ui`, create or open a profile whose
+ID matches the value your selector will extract (here, a `customerId` like
+`customer-123`), and pick the scenario for **Account Balance**. Save.
 
 Profiles are **deltas**: leaving an endpoint on `default` stores nothing — that
 profile simply follows the catalog. Only picks that differ from `default`

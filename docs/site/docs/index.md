@@ -9,7 +9,7 @@ small JavaScript [resolver](building/dynamic.md) that picks one of your fixtures
 
 This guide covers the mental model below, then splits into **[Building
 mocks](building/endpoints.md)** (authoring the catalog) and **[Driving
-mocks](driving/api.md)** (controlling a running server from the UI or API).
+mocks](driving/ui.md)** (controlling a running server from the UI or API).
 
 ## Running the server
 
@@ -100,6 +100,6 @@ reported at startup.
 - **[Install & run](get-started/install.md)** — npx, Docker, and from-source setup.
 - **[Your first mock endpoint](get-started/first-mock.md)** — add an endpoint in five steps.
 - **[Building mocks](building/endpoints.md)** — every catalog field and feature in detail.
-- **[Driving mocks](driving/api.md)** — control a running server from the UI or the API, and use it in dev & CI.
+- **[Driving mocks](driving/ui.md)** — control a running server from the UI or the API, and use it in dev & CI.
 - **[Request lifecycle](reference/request-lifecycle.md)** — what the engine does for every request.
 - **[Gotchas](reference/gotchas.md)** — rules of thumb and a worked GET example.
