@@ -221,10 +221,10 @@
     <h1>Tickets<span class="repo">bilal-fazlani/mock-server</span></h1>
     <!-- counts are maintained by hand — update them whenever a lane changes -->
     <div class="tally">
-      <span class="lane-tally l-backlog"><span class="dot"></span><span class="n">6</span> Backlog</span>
+      <span class="lane-tally l-backlog"><span class="dot"></span><span class="n">5</span> Backlog</span>
       <span class="lane-tally l-refining is-empty"><span class="dot"></span><span class="n">0</span> Refining</span>
       <span class="lane-tally l-ready is-empty"><span class="dot"></span><span class="n">0</span> Ready</span>
-      <span class="lane-tally l-progress is-empty"><span class="dot"></span><span class="n">0</span> In progress</span>
+      <span class="lane-tally l-progress"><span class="dot"></span><span class="n">1</span> In progress</span>
       <span class="lane-tally l-review"><span class="dot"></span><span class="n">1</span> In review</span>
       <span class="lane-tally l-done"><span class="dot"></span><span class="n">20</span> Done</span>
     </div>
@@ -255,7 +255,8 @@ flowchart LR
   classDef inprogress fill:#fff8c5,stroke:#9a6700,stroke-width:2px,color:#1f2328
   classDef inreview   fill:#fbefff,stroke:#8250df,stroke-width:2px,color:#1f2328
 
-  class I2,I10,I14,I15,I17,I35 backlog
+  class I2,I14,I15,I17,I35 backlog
+  class I10 inprogress
   class I28 inreview
       </pre>
     </div>

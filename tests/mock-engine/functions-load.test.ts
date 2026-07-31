@@ -34,6 +34,13 @@ describe('loadFunctions', () => {
     expect(loaded.resolveTable('sys', 'ep').has('upper')).toBe(false)
   })
 
+  it('reserves the uuid built-in against a user function of the same name', () => {
+    writeFileSync(join(dir, '_functions.mjs'), `export function uuid() { return 'mine' }`)
+    const loaded = loadFunctions(dir)
+    expect(loaded.problems.join('\n')).toMatch(/"uuid" is a reserved name/i)
+    expect(loaded.resolveTable('sys', 'ep').has('uuid')).toBe(false)
+  })
+
   it('reports a compile error once, without double-labeling the path', () => {
     writeFileSync(join(dir, '_functions.mjs'), `export function broken( { return`)
     const loaded = loadFunctions(dir)

@@ -101,6 +101,8 @@ export interface RouterDeps {
   passthrough: (req: PassthroughRequest) => Promise<ProxiedResponse>
   loadFixture: (systemSlug: string, endpointName: string, scenario: string) => Fixture
   now?: () => Date
+  /** Injected `{{uuid}}` generator, like `now`; defaults to `crypto.randomUUID`. */
+  uuid?: () => string
   /** Injected sleep so tests never wait; defaults to a real setTimeout sleep. */
   sleep?: (ms: number) => Promise<void>
   trace?: RouteTrace
@@ -265,7 +267,7 @@ export async function routeRequest(
     const functions = deps.catalog.resolveFunctions
       ? deps.catalog.resolveFunctions(system.slug, endpoint.name)
       : new Map()
-    const opts = { fnCtx, functions }
+    const opts = { fnCtx, functions, uuid: deps.uuid }
     const body = resolveTemplate(fixture.body, ctx, now, placeholders, opts)
     if (compiled) {
       const issues = compiled.validateResponseBody(fixture.status, body)

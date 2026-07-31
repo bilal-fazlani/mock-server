@@ -497,6 +497,18 @@ describe('validateCatalog placeholder function scoping', () => {
     )
   })
 
+  it('accepts bare {{uuid}} in a body and a header', () => {
+    expect(
+      validateCatalogWith({ body: { id: '{{uuid}}' }, headers: { 'x-id': '{{uuid | upper}}' } }),
+    ).toEqual([])
+  })
+
+  it('rejects {{uuid}} piped a value — it is a source, not a transform', () => {
+    expect(validateCatalogWith({ body: { x: '{{$.a | uuid}}' } }).join('\n')).toMatch(
+      /calls built-in "uuid" with 1 argument\(s\), expected 0/,
+    )
+  })
+
   it('accepts a correctly-arited default, including in a header placeholder', () => {
     expect(
       validateCatalogWith({

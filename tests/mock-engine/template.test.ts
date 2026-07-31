@@ -128,6 +128,41 @@ describe('resolveTemplate', () => {
     expect(() => resolveTemplate('{{now+:iso}}', ctx(), now)).toThrow(PlaceholderError)
   })
 
+  it('resolves {{uuid}} from the injected generator', () => {
+    const uuid = (): string => '11111111-2222-4333-8444-555555555555'
+    expect(resolveTemplate('{{uuid}}', ctx(), now, undefined, { uuid })).toBe(
+      '11111111-2222-4333-8444-555555555555',
+    )
+    expect(resolveTemplate('id: {{uuid}}', ctx(), now, undefined, { uuid })).toBe(
+      'id: 11111111-2222-4333-8444-555555555555',
+    )
+    expect(resolveTemplate({ id: '{{uuid | upper}}' }, ctx(), now, undefined, { uuid })).toEqual({
+      id: '11111111-2222-4333-8444-555555555555'.toUpperCase(),
+    })
+  })
+
+  it('draws a fresh {{uuid}} for every occurrence', () => {
+    let n = 0
+    const uuid = (): string => `uuid-${++n}`
+    expect(
+      resolveTemplate({ items: [{ id: '{{uuid}}' }, { id: '{{uuid}}' }] }, ctx(), now, undefined, {
+        uuid,
+      }),
+    ).toEqual({ items: [{ id: 'uuid-1' }, { id: 'uuid-2' }] })
+  })
+
+  it('defaults {{uuid}} to crypto.randomUUID when no generator is injected', () => {
+    const value = resolveTemplate('{{uuid}}', ctx(), now)
+    expect(value).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
+    expect(resolveTemplate('{{uuid}}', ctx(), now)).not.toBe(value)
+  })
+
+  it('rejects {{uuid}} used as a transform over a piped value', () => {
+    expect(() => resolveTemplate('{{$.a | uuid}}', ctx({ body: { a: 'x' } }), now)).toThrow(
+      /built-in "uuid" takes 0 argument\(s\), got 1/,
+    )
+  })
+
   it('stringifies numeric extracted values inside strings', () => {
     const c = ctx({ body: { n: 7 } })
     expect(resolveTemplate('n is {{$.n}}', c, now)).toBe('n is 7')

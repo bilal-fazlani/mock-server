@@ -24,7 +24,7 @@ Built with [Next.js](https://nextjs.org) and MongoDB.
   returned before, and picks which fixture-backed scenario (or `real`) answers this
   call. Models request-driven branching and multi-call flows like "pending twice,
   then success" without touching any profile.
-- **Placeholders** — echo request values and timestamps into responses.
+- **Placeholders** — echo request values, timestamps, and generated UUIDs into responses.
 - **Schema validation** — optional per-endpoint request/response JSON Schema checks.
 - **`real` passthrough** — proxy any endpoint to its configured live upstream.
 - **Request logs** — every request captured with a full decision trace, browsable in

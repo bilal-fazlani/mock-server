@@ -77,6 +77,7 @@ substituted at request time. Two kinds:
 | `{{now:HH:mm:ss}}` | Current wall-clock time via a token pattern (e.g. `10:15:00`) |
 | `{{now+3d:iso}}` | ISO-8601 timestamp offset by `+3` days from request time |
 | `{{now-15m:iso}}` | ISO-8601 timestamp offset by `-15` minutes from request time |
+| `{{uuid}}` | A freshly generated v4 UUID (e.g. `9f1c4e02-7a3b-4d15-9c8e-2f6b0d5a1e77`) |
 | `{{$.path.in.body}}` | A value pulled from the request body |
 | `{{path:name}}` | A path parameter from the URL |
 | `{{query:name}}` | A query-string parameter |
@@ -120,6 +121,40 @@ so you can echo request data straight into the response (e.g.
 `"customerId": "{{$.customerId}}"`). Bearer selectors are deliberately not
 available to placeholders, so an authorization credential cannot be echoed into a
 fixture response.
+
+### Generating an ID
+
+`{{uuid}}` renders a random [version-4 UUID](https://developer.mozilla.org/en-US/docs/Web/API/Crypto/randomUUID),
+which covers the ids a mocked write endpoint has to invent — resource ids,
+idempotency keys, correlation ids:
+
+```json
+{
+  "status": 201,
+  "headers": { "x-request-id": "{{uuid}}" },
+  "body": {
+    "bookingId": "{{uuid}}",
+    "customerId": "{{$.customerId}}",
+    "createdAt": "{{now:iso}}"
+  }
+}
+```
+
+**Every occurrence draws its own value.** A fixture returning a list gives each
+element a distinct id, and the `bookingId` and `x-request-id` above are two
+different UUIDs — there is no way to make two placeholders agree on one value.
+
+The token takes no arguments and no format. It is a *source*, so it can only
+open a placeholder, never follow a `|`: `{{$.name | uuid}}` is a catalog error at
+startup. Piping the result onward works normally, so `{{uuid | upper}}` gives the
+uppercase form.
+
+!!! note "Responses stop being reproducible"
+
+    A fixture containing `{{uuid}}` returns a different body on every request, so
+    a consuming test cannot assert on the generated value — assert its *shape*
+    instead. Where a caller needs a stable value, echo one the request already
+    carries (`{{header:x-request-id}}`, `{{$.id}}`) rather than generating one.
 
 ### Echoing a request header
 
@@ -203,12 +238,14 @@ error at startup, never a runtime surprise.
 | `trim` | the piped value | Strip leading and trailing whitespace |
 | `default` | the piped value, plus a fallback | Substitute the fallback when the piped value is [missing](#fallbacks-for-missing-values) |
 | `omit` | the piped value | [Drop the field](#dropping-a-field-when-its-source-is-absent) when the piped value is absent |
+| `uuid` | none | Generate a [fresh v4 UUID](#generating-an-id) — a source, so it cannot follow a `\|` |
 
 They compose left to right, so `{{$.name | trim | upper}}` trims first and
 uppercases the result.
 
 Every built-in takes a **fixed number of arguments**, counting the piped value as
-the first one. Calling one with the wrong count — `{{$.name | default}}` — is a
+the first one. Calling one with the wrong count — `{{$.name | default}}`, or
+`{{$.name | uuid}}`, which hands a value to a built-in that takes none — is a
 catalog error at startup, not a `500` on the first request that reaches the
 fixture. Custom functions are ordinary JavaScript and take whatever they take.
 

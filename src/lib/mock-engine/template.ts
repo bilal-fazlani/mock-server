@@ -23,6 +23,8 @@ export class PlaceholderError extends Error {
 export interface TemplateOptions {
   /** Headers mode: whole-string placeholders coerce to string too (Task 8). */
   stringOnly?: boolean
+  /** Generator behind `{{uuid}}`; defaults to `crypto.randomUUID` (#10). */
+  uuid?: () => string
   fnCtx?: FnContext
   functions?: ReadonlyMap<string, CompiledFn>
   timeoutMs?: number

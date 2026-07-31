@@ -1412,3 +1412,56 @@ describe('omit end-to-end (#24)', () => {
     expect(String(json(res).error)).toMatch(/schema/i)
   })
 })
+
+describe('uuid end-to-end (#10)', () => {
+  const tmpDirs: string[] = []
+  afterEach(() => {
+    while (tmpDirs.length) fs.rmSync(tmpDirs.pop()!, { recursive: true, force: true })
+  })
+  function tmpCatalogDir(files: Record<string, unknown>): string {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mock-uuid-'))
+    tmpDirs.push(dir)
+    for (const [rel, content] of Object.entries(files)) {
+      const full = path.join(dir, rel)
+      fs.mkdirSync(path.dirname(full), { recursive: true })
+      fs.writeFileSync(full, typeof content === 'string' ? content : JSON.stringify(content))
+    }
+    return dir
+  }
+
+  const idDir = () =>
+    tmpCatalogDir({
+      'sys/_system.json': { name: 'Id System', baseUrlEnv: 'ID_URL' },
+      'sys/new/_endpoint.json': {
+        displayName: 'New',
+        method: 'POST',
+        path: '/things',
+        mockType: 'global',
+      },
+      'sys/new/default.json': {
+        status: 201,
+        headers: { 'x-request-id': '{{uuid}}' },
+        body: { id: '{{uuid}}', children: [{ id: '{{uuid}}' }] },
+      },
+    })
+
+  it('renders {{uuid}} from the injected generator, fresh per occurrence, in body and headers', async () => {
+    const dir = idDir()
+    const catalog = loadCatalog(dir)
+    let n = 0
+    const res = await routeRequest(
+      post('/things', {}),
+      deps({
+        catalog,
+        schemas: buildSchemaRegistry(catalog).schemas,
+        env: {},
+        loadFixture: (s, e, sc) => loadFixture(dir, s, e, sc),
+        uuid: () => `uuid-${++n}`,
+      }),
+    )
+
+    expect(res.status).toBe(201)
+    expect(json(res)).toEqual({ id: 'uuid-1', children: [{ id: 'uuid-2' }] })
+    expect(res.headers['x-request-id']).toBe('uuid-3')
+  })
+})

@@ -98,8 +98,9 @@ now-known catalog and reports its own list of errors:
   the leading stage is a `now` expression — a named format (`iso`, `epoch`,
   `epochMillis`) or a date/time token pattern such as `YYYY-MM-DD`, optionally
   with a relative offset, e.g. `now+3d:iso` — a valid body/path/query/header selector
-  (never Bearer, never a credential header), or a function call; every function name it calls (in pipes or as the
-  source) is a built-in transform or a user function **visible from that
+  (never Bearer, never a credential header), or a function call (a built-in such
+  as `uuid`, or a user function); every function name it calls (in pipes or as the
+  source) is a built-in or a user function **visible from that
   endpoint's scope** (endpoint → system → catalog). An unknown name — a typo, a
   function defined only in another system, or a syntactic form used as a call
   (bare `now`, piped `| now:iso`, `body:$.x`) — is an error. Any `path:`
@@ -107,7 +108,8 @@ now-known catalog and reports its own list of errors:
   param.
 - Every `_functions.mjs` file compiles and evaluates in the
   sandbox. A user function whose name is reserved (`now`, `body`, `path`,
-  `query`, `profileKey`, or any built-in transform), a `default` export (a
+  `query`, `profileKey`, or any built-in — the transforms plus `uuid`), a
+  `default` export (a
   placeholder has no name to call it by), a compile error, or a leftover
   `_functions.ts` file (`.ts` authoring was removed — rename to `.mjs`) are
   all errors. Like a broken resolver, a broken `_functions` file is caught

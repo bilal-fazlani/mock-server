@@ -7,6 +7,12 @@ import { CompiledFn, DEFAULT_FN_TIMEOUT_MS, FnContext, FnValue, FunctionRuntimeE
 export interface EvalDeps {
   ctx: RequestContext
   now: Date
+  /**
+   * Generator behind `{{uuid}}` (#10). Injected the same way `now` is, so a
+   * test can pin the value instead of asserting against a random one; the
+   * request path leaves it unset and gets `crypto.randomUUID`.
+   */
+  uuid?: () => string
   fnCtx?: FnContext
   functions?: ReadonlyMap<string, CompiledFn>
   timeoutMs?: number
@@ -52,7 +58,13 @@ interface Builtin {
   arity: number
   /** Whether a Missing argument reaches `apply` instead of short-circuiting. */
   absorbsMissing?: boolean
-  apply: (args: EvalInternal[]) => EvalInternal
+  /**
+   * `deps` is here for the *source* built-ins — `uuid` and the seeded
+   * generators that will follow it (#14, #15) — which produce a value out of
+   * injected machinery rather than transforming a piped one. The transforms
+   * ignore it.
+   */
+  apply: (args: EvalInternal[], deps: EvalDeps) => EvalInternal
 }
 
 // A string transform takes whatever the pipe carries, so it has to say what it
@@ -91,6 +103,17 @@ const BUILTIN_TRANSFORMS: Record<string, Builtin> = {
     arity: 1,
     absorbsMissing: true,
     apply: ([input]) => (input instanceof Missing ? OMIT : input),
+  },
+  // A *source*, not a transform: arity 0 means it takes no piped value, so
+  // "{{$.x | uuid}}" is an arity error at catalog load rather than a 500 on the
+  // first request. Registering it here (instead of as its own AST node, the way
+  // `now` is) is what gives it name validation, that arity check, reservation
+  // against user-function names, and pipe composition — "{{uuid | upper}}" —
+  // with no further wiring. Each occurrence draws its own value: a fixture
+  // returning a list gives every element a distinct id (#10).
+  uuid: {
+    arity: 0,
+    apply: (_args, deps) => (deps.uuid ?? crypto.randomUUID.bind(crypto))(),
   },
 }
 
@@ -162,7 +185,7 @@ function evalNode(expr: Expr, deps: EvalDeps): EvalInternal {
           // Same shape as SQL: UPPER(NULL) is NULL, COALESCE absorbs it.
           if (args[0] === null) return null
         }
-        return builtin.apply(args)
+        return builtin.apply(args, deps)
       }
       const fn = deps.functions?.get(expr.name)
       if (fn) {
