@@ -21,10 +21,12 @@ A fixture is a JSON file with this shape:
 - `description` is optional free text used as the scenario's label wherever the UI
   lists scenarios (profile form, catalog viewer). If omitted, the UI falls back to
   showing the filename (the scenario key) instead.
-- `summary` is optional free text shown as a secondary line beneath the label on
-  the catalog viewer's endpoint page — room for a sentence of context the short
-  label can't carry. It appears only there (not in the profile form or logs), and
-  an empty string is treated as absent.
+- `summary` is optional free text shown as a secondary line beneath the label —
+  room for a sentence of context the short label can't carry. It appears on the
+  catalog viewer's endpoint page and in the scenario pickers (a chip's hover
+  card, and a sequence step's dropdown — see [The
+  dashboard](../driving/ui.md#profiles-ui)); it still does not appear in logs,
+  and an empty string is treated as absent.
 - `status` is required and must be a number.
 - `delay` is optional; see [Response delay](#response-delay) below.
 - The `body` key must be present (its value can be an object, array, string,

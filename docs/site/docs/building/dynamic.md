@@ -101,10 +101,11 @@ This is the one rule everything else follows from:
   ```
 
 - **Optional `export const summary = '…'`** is shown as a secondary line
-  beneath the label on the catalog viewer's endpoint page — the resolver
-  counterpart of the fixture `summary` field, also read at compile time. It
-  appears only there (not in the picker or logs), and an empty string is
-  treated as absent:
+  beneath the label — the resolver counterpart of the fixture `summary` field,
+  also read at compile time. It appears on the catalog viewer's endpoint page
+  and in the scenario pickers (a chip's hover card, and a sequence step's
+  dropdown — see [The dashboard](../driving/ui.md#profiles-ui)); it still does
+  not appear in logs, and an empty string is treated as absent:
 
   ```js
   export const description = 'Routes by transfer amount'
@@ -300,13 +301,18 @@ endpoint, but no compiled resolver could be produced for it at request time.
 
 On a profile page, a resolver-backed scenario appears as one more entry in an
 endpoint's **Single**-mode scenario picker, alongside fixture-backed scenarios
-and `Passthrough` — tagged with a small `</>` code badge ("Resolved by code at
-request time") so it's visually distinct from a fixture pick, while keeping
+and `Passthrough` — its chip shows a `file-code` icon in place of the
+selection dot, so it's visually distinct from a fixture pick, while keeping
 the same tone rules (`default` green, other slugs amber, `real` red — a
-`default.mjs` *is* still the store-nothing baseline). Selecting it and saving
-means every future call to that endpoint, for that profile, runs the resolver;
-once selected, a **Reset resolver history** button appears. The same badge and
-reset button are available on the **global mocks** form for global endpoints.
+`default.mjs` *is* still the store-nothing baseline; the icon takes that
+tone's color once selected). Hovering, or tabbing to focus, the chip opens a
+card with its `summary` and a "View resolver code →" link, which opens a
+modal with the resolver's syntax-highlighted source and an `Open <endpoint> in
+the catalog` link — see [The dashboard](../driving/ui.md#profiles-ui). Selecting
+it and saving means every future call to that endpoint, for that profile, runs
+the resolver; once selected, a **Reset resolver history** button appears. The
+same icon, hover card, and reset button are available on the **global mocks**
+form for global endpoints.
 
 On the `/ui/catalog` endpoint page, a resolver-backed scenario card shows its
 **JavaScript source**, syntax-highlighted, in place of the JSON body a fixture
