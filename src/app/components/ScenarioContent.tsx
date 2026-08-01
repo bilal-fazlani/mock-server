@@ -16,7 +16,7 @@ export function ScenarioContent({ scenario }: { scenario: ScenarioView }) {
           Resolved at request time by <code>{scenario.key}.mjs</code>
         </p>
         <div
-          className="overflow-x-auto rounded-sm border border-border text-[0.8rem] [&_pre]:p-3"
+          className="code-scroll overflow-x-auto rounded-sm border border-border text-[0.8rem] [&_pre]:inline-block [&_pre]:min-w-full [&_pre]:p-3"
           dangerouslySetInnerHTML={{ __html: scenario.html }}
         />
       </div>
@@ -58,7 +58,7 @@ function FixtureContent({ json, html }: { json: string; html: string }) {
         </div>
       )}
       <div
-        className="overflow-x-auto rounded-sm border border-border text-[0.8rem] [&_pre]:p-3"
+        className="code-scroll overflow-x-auto rounded-sm border border-border text-[0.8rem] [&_pre]:inline-block [&_pre]:min-w-full [&_pre]:p-3"
         dangerouslySetInnerHTML={{ __html: html }}
       />
     </div>

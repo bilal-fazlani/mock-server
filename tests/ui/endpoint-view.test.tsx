@@ -277,7 +277,9 @@ describe('EndpointView', () => {
     expect(html).toContain('<dd class="min-w-0 inline-flex min-h-[28px] items-center bg-[var(--accent-tint)]')
     expect(text).not.toContain('Status 200')
     // the server-highlighted html is injected verbatim into the wrapper div
-    expect(html).toContain('overflow-x-auto rounded-sm border border-border text-[0.8rem] [&amp;_pre]:p-3')
+    expect(html).toContain(
+      'code-scroll overflow-x-auto rounded-sm border border-border text-[0.8rem] [&amp;_pre]:inline-block [&amp;_pre]:min-w-full [&amp;_pre]:p-3',
+    )
     expect(html).toContain(bodyHtml)
   })
 

@@ -188,7 +188,7 @@ export function ScenarioDisclosure({
       </HoverCard>
       {option.kind !== 'passthrough' && (
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent aria-describedby={undefined}>
+          <DialogContent aria-describedby={undefined} className="w-[min(50rem,calc(100vw-2rem))]">
             <ScenarioResponseModalBody
               state={state}
               option={option}
