@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.6.0](https://github.com/bilal-fazlani/mock-server/compare/v0.5.0...v0.6.0) (2026-08-01)
+
+
+### Features
+
+* add a validate subcommand to the CLI ([4ce434e](https://github.com/bilal-fazlani/mock-server/commit/4ce434e29bf9bae9294a171da21ce6ce0fbda373)), closes [#40](https://github.com/bilal-fazlani/mock-server/issues/40)
+* **logs:** add structured JSON console logging via MOCK_LOG_FORMAT ([4729e30](https://github.com/bilal-fazlani/mock-server/commit/4729e307e4a3561a0c29daad9790e52b201ba844)), closes [#34](https://github.com/bilal-fazlani/mock-server/issues/34)
+* **observability:** record the caller's trace ID on request logs ([#41](https://github.com/bilal-fazlani/mock-server/issues/41)) ([09472e0](https://github.com/bilal-fazlani/mock-server/commit/09472e05172404d850316feae9cd4b793cd1fd99)), closes [#35](https://github.com/bilal-fazlani/mock-server/issues/35)
+* **router:** warn on request schema drift during real passthrough ([1d9058d](https://github.com/bilal-fazlani/mock-server/commit/1d9058d0529fea891e0a39cfcd265d724cd22a01))
+* **templating:** {{faker:module.method}} and {{pick:a:b:c}} placeholders ([#38](https://github.com/bilal-fazlani/mock-server/issues/38)) ([2db2e13](https://github.com/bilal-fazlani/mock-server/commit/2db2e1322cbc6685fcfd60f1be156a3c604b9c1b)), closes [#15](https://github.com/bilal-fazlani/mock-server/issues/15)
+* **templating:** {{uuid:X}} named groups so one generated UUID can appear in several places ([1e83066](https://github.com/bilal-fazlani/mock-server/commit/1e830669afac6372ff254354db9bd3971f57e441)), closes [#36](https://github.com/bilal-fazlani/mock-server/issues/36)
+* **templating:** add {{uuid}} placeholder with an injected generator ([0fedaec](https://github.com/bilal-fazlani/mock-server/commit/0fedaecba10fa6281a9d6f82c99c03b6afa4fdd5)), closes [#10](https://github.com/bilal-fazlani/mock-server/issues/10)
+
+
+### Bug Fixes
+
+* **ui:** render new-profile page per request instead of build-time prerender ([7f2440b](https://github.com/bilal-fazlani/mock-server/commit/7f2440bd635d28789fbf876934f754164dcc08df)), closes [#32](https://github.com/bilal-fazlani/mock-server/issues/32)
+
 ## [0.5.0](https://github.com/bilal-fazlani/mock-server/compare/v0.4.0...v0.5.0) (2026-07-22)
 
 
