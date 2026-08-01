@@ -225,8 +225,8 @@
       <span class="lane-tally l-refining is-empty"><span class="dot"></span><span class="n">0</span> Refining</span>
       <span class="lane-tally l-ready"><span class="dot"></span><span class="n">1</span> Ready</span>
       <span class="lane-tally l-progress is-empty"><span class="dot"></span><span class="n">0</span> In progress</span>
-      <span class="lane-tally l-review"><span class="dot"></span><span class="n">1</span> In review</span>
-      <span class="lane-tally l-done"><span class="dot"></span><span class="n">24</span> Done</span>
+      <span class="lane-tally l-review is-empty"><span class="dot"></span><span class="n">0</span> In review</span>
+      <span class="lane-tally l-done"><span class="dot"></span><span class="n">25</span> Done</span>
     </div>
   </header>
 
@@ -242,7 +242,6 @@ flowchart LR
   I17["#17 · fault injection · fault-sim"]
   I35["#35 · traceparent in request logs · observability"]
   I39["#39 · improve log search · ui"]
-  I40["#40 · validate CLI subcommand · build"]
 
   I35 -->|trace id field| I39
 
@@ -254,7 +253,6 @@ flowchart LR
 
   class I2,I17,I39 backlog
   class I35 ready
-  class I40 inreview
       </pre>
     </div>
   </section>
