@@ -61,10 +61,25 @@ describe('GET /ui/api/catalog/[system]/[endpoint]/scenarios/[slug]', () => {
   it('404s for the implicit real scenario', async () => {
     const res = await GET(new Request('http://mock/x'), ctx('test-system', 'hello_world', 'real'))
     expect(res.status).toBe(404)
+    expect(await res.json()).toEqual({ error: 'unknown scenario "real"' })
   })
 
   it('404s for an unknown slug and an unknown endpoint', async () => {
-    expect((await GET(new Request('http://mock/x'), ctx('test-system', 'hello_world', 'ghost'))).status).toBe(404)
-    expect((await GET(new Request('http://mock/x'), ctx('nope', 'hello_world', 'default'))).status).toBe(404)
+    const ghost = await GET(new Request('http://mock/x'), ctx('test-system', 'hello_world', 'ghost'))
+    expect(ghost.status).toBe(404)
+    expect(await ghost.json()).toEqual({ error: 'unknown scenario "ghost"' })
+
+    const unknownEndpoint = await GET(new Request('http://mock/x'), ctx('nope', 'hello_world', 'default'))
+    expect(unknownEndpoint.status).toBe(404)
+    expect(await unknownEndpoint.json()).toEqual({ error: 'unknown endpoint nope/hello_world' })
+  })
+
+  it('404s for a prototype-chain slug like "constructor" instead of leaking it to buildScenarioView', async () => {
+    // Object.hasOwn (not `in`) guards this: plain-object scenario maps inherit
+    // `constructor`/`toString`/etc. from Object.prototype, so `in` would say
+    // these slugs exist even though none was declared in the catalog.
+    const res = await GET(new Request('http://mock/x'), ctx('test-system', 'hello_world', 'constructor'))
+    expect(res.status).toBe(404)
+    expect(await res.json()).toEqual({ error: 'unknown scenario "constructor"' })
   })
 })

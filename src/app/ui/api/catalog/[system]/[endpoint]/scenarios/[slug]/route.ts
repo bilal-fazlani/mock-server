@@ -16,7 +16,7 @@ export async function GET(_request: Request, { params }: Ctx): Promise<Response>
   if (!found) {
     return Response.json({ error: `unknown endpoint ${system}/${endpoint}` }, { status: 404 })
   }
-  if (!(slug in found.endpoint.scenarios)) {
+  if (!Object.hasOwn(found.endpoint.scenarios, slug)) {
     return Response.json({ error: `unknown scenario "${slug}"` }, { status: 404 })
   }
   const view = await buildScenarioView(found.system, found.endpoint, slug, catalogDir)
