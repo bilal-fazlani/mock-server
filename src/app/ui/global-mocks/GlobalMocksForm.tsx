@@ -1,4 +1,5 @@
-import { RotateCcw } from 'lucide-react'
+import Link from 'next/link'
+import { RotateCcw, SquareArrowOutUpRight } from 'lucide-react'
 import type { Catalog, EndpointDef, SystemDef } from '../../../lib/catalog/types'
 import type { GlobalMockScenario } from '../../../lib/profiles/store'
 import {
@@ -99,8 +100,8 @@ export function GlobalMocksForm({
                       unavailable={unavailable}
                       resolverSlugs={endpoint.resolverScenarios}
                     />
-                    {endpoint.resolverScenarios.includes(selected) && (
-                      <div className="mt-2.5 flex">
+                    <div className="mt-2.5 flex min-w-0 flex-wrap items-center gap-2.5">
+                      {endpoint.resolverScenarios.includes(selected) && (
                         <button
                           formAction={resetGlobalDynamicHistoryAction.bind(
                             null,
@@ -112,8 +113,15 @@ export function GlobalMocksForm({
                           <RotateCcw className="size-[13px]" aria-hidden="true" />
                           Reset resolver history
                         </button>
-                      </div>
-                    )}
+                      )}
+                      <Link
+                        href={`/ui/catalog/${system.slug}/${endpoint.name}`}
+                        className="ml-auto inline-flex items-center gap-1.5 text-[0.78rem] text-muted-foreground hover:text-foreground hover:no-underline"
+                      >
+                        <SquareArrowOutUpRight className="size-3" aria-hidden="true" />
+                        View in catalog
+                      </Link>
+                    </div>
                   </div>
                 )
               })}
