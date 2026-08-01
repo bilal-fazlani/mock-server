@@ -1,4 +1,4 @@
-import { FileCode, Globe } from 'lucide-react'
+import { FileCode, Globe, TriangleAlert } from 'lucide-react'
 import type { ScenarioOption } from '../../lib/scenarios'
 import { ScenarioDisclosure } from './ScenarioDisclosure'
 
@@ -95,6 +95,13 @@ export function ScenarioPicker({
             >
               {option.label}
             </span>
+            {option.kind === 'passthrough' && option.url == null && (
+              <TriangleAlert
+                className="size-3.5 flex-none text-destructive"
+                aria-label={`${option.baseUrlEnv} is not set`}
+                role="img"
+              />
+            )}
           </label>
         )
         // Dangling pins have nothing to disclose — no card, no modal.

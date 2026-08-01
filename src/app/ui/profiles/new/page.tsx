@@ -18,6 +18,7 @@ export default function NewProfilePage() {
         catalog={getRuntime().catalog}
         passthroughAsDefault={getRuntime().passthroughAsDefault}
         formId={profileFormId}
+        env={process.env}
       />
     </main>
   )

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { SquareArrowOutUpRight } from 'lucide-react'
+import { SquareArrowOutUpRight, TriangleAlert } from 'lucide-react'
 import type { ScenarioOption } from '../../lib/scenarios'
 import type { ScenarioView } from '../ui/catalog/scenario-view'
 import { ScenarioContent } from './ScenarioContent'
@@ -48,6 +48,20 @@ export function ScenarioHoverCardBody({
           {option.summary}
         </p>
       )}
+      {option.kind === 'passthrough' &&
+        (option.url ? (
+          <p className="m-0 font-mono text-[0.8rem] leading-[1.4] text-secondary-foreground [overflow-wrap:anywhere]">
+            <span className="text-muted-foreground">&rarr;</span> {option.url}
+          </p>
+        ) : (
+          <div className="flex items-start gap-1.5 rounded-md border border-[var(--warning-border)] bg-[var(--warning-bg)] px-2 py-1.5 text-[0.76rem] leading-[1.4] text-[var(--warning-text)]">
+            <TriangleAlert className="mt-0.5 size-3.5 flex-none" aria-hidden="true" />
+            <span>
+              <code className="font-mono text-[0.72rem]">{option.baseUrlEnv}</code> is not set — requests
+              will fail.
+            </span>
+          </div>
+        ))}
       {option.kind !== 'passthrough' && onViewResponse && (
         <button
           type="button"

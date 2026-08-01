@@ -51,6 +51,7 @@ export default async function ProfileDetailPage({
         passthroughAsDefault={runtime.passthroughAsDefault}
         scenarioProgress={progressByEndpoint(profile, progress)}
         formId={profileFormId}
+        env={process.env}
       />
       <RecentActivity
         profileId={profile.profileId}

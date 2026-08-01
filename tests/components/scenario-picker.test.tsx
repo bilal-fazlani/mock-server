@@ -55,6 +55,16 @@ function iconSlotClassForValue(html: string, value: string): string {
   return html.slice(classStart, classEnd)
 }
 
+// One scenario chip's markup: from its radio input to the end of the enclosing
+// <label>, so per-slug assertions can never leak into a neighbouring chip.
+function chipForValue(html: string, value: string): string {
+  const start = html.indexOf(`value="${value}"`)
+  if (start === -1) throw new Error(`scenario chip ${value} not found`)
+  const end = html.indexOf('</label>', start)
+  if (end === -1) throw new Error(`chip ${value} is not closed`)
+  return html.slice(start, end)
+}
+
 // The label-text span is the next `<span class="...">` after the dot span.
 function textSpanClassForValue(html: string, value: string): string {
   const dotClass = dotClassForValue(html, value)
@@ -253,6 +263,43 @@ describe('ScenarioPicker', () => {
     expect(labelClassForValue(html, 'dynamic')).toContain('cursor-not-allowed')
     expect(textSpanClassForValue(html, 'dynamic')).toContain('line-through')
     expect(html).toMatch(/<input type="radio" disabled=""[^>]*checked="" value="dynamic"/)
+  })
+
+  it('shows an inline warning icon on the passthrough chip when its base URL is not set', () => {
+    const html = renderToStaticMarkup(
+      <ScenarioPicker
+        system="hello-system"
+        endpointName="hello_world"
+        endpointDisplayName="Hello World"
+        scenarios={{
+          success: { label: 'Hello success', kind: 'fixture' },
+          real: { label: 'Passthrough', kind: 'passthrough', baseUrlEnv: 'HELLO_SYSTEM_URL', url: null },
+        }}
+        selected="success"
+      />,
+    )
+    expect(chipForValue(html, 'real')).toContain('aria-label="HELLO_SYSTEM_URL is not set"')
+  })
+
+  it('omits the warning icon on the passthrough chip once its base URL resolves', () => {
+    const html = renderToStaticMarkup(
+      <ScenarioPicker
+        system="hello-system"
+        endpointName="hello_world"
+        endpointDisplayName="Hello World"
+        scenarios={{
+          success: { label: 'Hello success', kind: 'fixture' },
+          real: {
+            label: 'Passthrough',
+            kind: 'passthrough',
+            baseUrlEnv: 'HELLO_SYSTEM_URL',
+            url: 'http://localhost:9999',
+          },
+        }}
+        selected="success"
+      />,
+    )
+    expect(chipForValue(html, 'real')).not.toContain('is not set')
   })
 
   it('does not disable scenarios outside the unavailable list', () => {

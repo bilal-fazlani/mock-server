@@ -19,6 +19,7 @@ export function ProfileForm({
   passthroughAsDefault,
   scenarioProgress = {},
   formId = 'profile-form',
+  env = {},
 }: {
   catalog: Catalog
   profile?: MockProfile
@@ -26,6 +27,7 @@ export function ProfileForm({
   /** Calls served per endpoint against the currently saved sequence. */
   scenarioProgress?: Record<string, number>
   formId?: string
+  env?: Record<string, string | undefined>
 }) {
   const stale = profile ? staleScenarios(profile, catalog) : {}
   // Only endpoints that still render a control can be resolved by the user, so
@@ -108,7 +110,7 @@ export function ProfileForm({
                     system={system.slug}
                     endpointName={endpoint.name}
                     endpointDisplayName={endpoint.displayName}
-                    scenarios={scenariosWithPassthrough(endpoint, passthroughAsDefault)}
+                    scenarios={scenariosWithPassthrough(endpoint, passthroughAsDefault, system, env)}
                     selection={selected}
                     fallback={gapFallback}
                     servedCount={scenarioProgress[endpoint.name]}
