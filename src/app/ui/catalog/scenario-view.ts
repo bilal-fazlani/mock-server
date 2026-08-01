@@ -17,6 +17,39 @@ export type ScenarioView = {
   | { kind: 'resolver'; code: string; html: string }
 )
 
+export async function buildScenarioView(
+  system: SystemDef,
+  endpoint: EndpointDef,
+  key: string,
+  catalogDir: string,
+): Promise<ScenarioView> {
+  const meta = endpoint.scenarios[key]
+  const { label, summary } = meta
+  const isDefault = key === 'default'
+  if (endpoint.resolverScenarios.includes(key)) {
+    try {
+      const code = fs.readFileSync(
+        resolverFilePath(catalogDir, system.slug, endpoint.name, key),
+        'utf8',
+      )
+      return { key, label, ...(summary ? { summary } : {}), isDefault, kind: 'resolver' as const, code, html: await highlight(code, 'javascript') }
+    } catch (err) {
+      return { key, label, ...(summary ? { summary } : {}), isDefault, kind: 'error' as const, message: (err as Error).message }
+    }
+  }
+  try {
+    const fixture = loadFixture(catalogDir, system.slug, endpoint.name, key)
+    // `json` is the full fixture (status/headers/body) — kept for the header
+    // status-chip parsing. `html` highlights the body only, matching the
+    // body block the pre-highlighting UI rendered.
+    const json = JSON.stringify(fixture, null, 2)
+    const bodyJson = JSON.stringify(fixture.body, null, 2)
+    return { key, label, ...(summary ? { summary } : {}), isDefault, kind: 'fixture' as const, json, html: await highlight(bodyJson, 'json') }
+  } catch (err) {
+    return { key, label, ...(summary ? { summary } : {}), isDefault, kind: 'error' as const, message: (err as Error).message }
+  }
+}
+
 export async function buildScenarioViews(
   system: SystemDef,
   endpoint: EndpointDef,
@@ -25,32 +58,7 @@ export async function buildScenarioViews(
   passthroughAsDefault: boolean,
 ): Promise<ScenarioView[]> {
   const declared: ScenarioView[] = await Promise.all(
-    Object.entries(endpoint.scenarios).map(async ([key, meta]) => {
-      const { label, summary } = meta
-      const isDefault = key === 'default'
-      if (endpoint.resolverScenarios.includes(key)) {
-        try {
-          const code = fs.readFileSync(
-            resolverFilePath(catalogDir, system.slug, endpoint.name, key),
-            'utf8',
-          )
-          return { key, label, ...(summary ? { summary } : {}), isDefault, kind: 'resolver' as const, code, html: await highlight(code, 'javascript') }
-        } catch (err) {
-          return { key, label, ...(summary ? { summary } : {}), isDefault, kind: 'error' as const, message: (err as Error).message }
-        }
-      }
-      try {
-        const fixture = loadFixture(catalogDir, system.slug, endpoint.name, key)
-        // `json` is the full fixture (status/headers/body) — kept for the header
-        // status-chip parsing. `html` highlights the body only, matching the
-        // body block the pre-highlighting UI rendered.
-        const json = JSON.stringify(fixture, null, 2)
-        const bodyJson = JSON.stringify(fixture.body, null, 2)
-        return { key, label, ...(summary ? { summary } : {}), isDefault, kind: 'fixture' as const, json, html: await highlight(bodyJson, 'json') }
-      } catch (err) {
-        return { key, label, ...(summary ? { summary } : {}), isDefault, kind: 'error' as const, message: (err as Error).message }
-      }
-    }),
+    Object.keys(endpoint.scenarios).map((key) => buildScenarioView(system, endpoint, key, catalogDir)),
   )
 
   // "real" is never declared in the catalog — it's an implicit capability of
