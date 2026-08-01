@@ -1,5 +1,6 @@
 {
   "description": "Frozen",
+  "summary": "Customer exists but the account is frozen — account actions should be blocked.",
   "status": 200,
   "body": {
     "customerId": "{{path:customerId}}",

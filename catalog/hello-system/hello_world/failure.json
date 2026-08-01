@@ -1,5 +1,6 @@
 {
   "description": "Greeting unavailable",
+  "summary": "Greeting service is temporarily down — use this to test 503 handling in callers.",
   "status": 503,
   "body": {
     "status": "failure",

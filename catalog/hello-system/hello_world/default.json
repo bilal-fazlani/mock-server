@@ -1,5 +1,6 @@
 {
   "description": "Greeting",
+  "summary": "Greets the caller by customerId, exercising body templating, date maths, and profile-key labels.",
   "status": 200,
   "body": {
     "customerId": "{{$.customerId}}",

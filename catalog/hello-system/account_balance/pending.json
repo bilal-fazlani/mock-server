@@ -1,5 +1,6 @@
 {
   "description": "Pending",
+  "summary": "Balance check has not settled yet — callers are expected to poll again.",
   "status": 200,
   "body": { "state": "PENDING" }
 }
