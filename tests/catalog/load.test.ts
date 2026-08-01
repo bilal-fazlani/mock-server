@@ -48,8 +48,8 @@ describe('loadCatalog', () => {
     })
     const catalog = loadCatalog(dir)
     expect(catalog.systems[0].endpoints[0].scenarios).toEqual({
-      default: { label: 'default' },
-      failure: { label: 'It failed' },
+      default: { label: 'default', status: 200 },
+      failure: { label: 'It failed', status: 500 },
     })
   })
 
@@ -62,9 +62,29 @@ describe('loadCatalog', () => {
     })
     const ep = loadCatalog(dir).systems[0].endpoints[0]
     expect(ep.scenarios).toEqual({
-      default: { label: 'default' },
-      failure: { label: 'It failed', summary: 'Upstream 500' },
+      default: { label: 'default', status: 200 },
+      failure: { label: 'It failed', summary: 'Upstream 500', status: 500 },
     })
+  })
+
+  it('captures a fixture numeric status into the scenario meta', () => {
+    const dir = tmpCatalogDir({
+      'sys/_system.json': SYSTEM_META,
+      'sys/ep/_endpoint.json': ENDPOINT_META,
+      'sys/ep/frozen.json': { description: 'Frozen', summary: 's', status: 403, body: {} },
+    })
+    const endpoint = loadCatalog(dir).systems[0].endpoints[0]
+    expect(endpoint.scenarios.frozen).toEqual({ label: 'Frozen', summary: 's', status: 403 })
+  })
+
+  it('ignores a non-numeric status', () => {
+    const dir = tmpCatalogDir({
+      'sys/_system.json': SYSTEM_META,
+      'sys/ep/_endpoint.json': ENDPOINT_META,
+      'sys/ep/bad.json': { description: 'Bad', status: '500', body: {} },
+    })
+    const endpoint = loadCatalog(dir).systems[0].endpoints[0]
+    expect(endpoint.scenarios.bad).toEqual({ label: 'Bad' })
   })
 
   it('orders scenarios default-first, then alphabetically', () => {

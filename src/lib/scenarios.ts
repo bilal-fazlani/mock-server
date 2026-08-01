@@ -44,6 +44,7 @@ export function scenariosWithPassthrough(
     declared[slug] = {
       label: meta.label,
       ...(meta.summary ? { summary: meta.summary } : {}),
+      ...(meta.status !== undefined ? { status: meta.status } : {}),
       kind: endpoint.resolverScenarios.includes(slug) ? 'resolver' : 'fixture',
     }
   }

@@ -42,16 +42,16 @@ describe('scenariosWithPassthrough', () => {
 })
 
 describe('scenariosWithPassthrough option shape', () => {
-  it('carries label, kind, and summary per declared scenario', () => {
+  it('carries label, kind, summary, and status per declared scenario', () => {
     const endpoint = ep({
       scenarios: {
-        default: { label: 'Default', summary: 'All good' },
+        default: { label: 'Default', summary: 'All good', status: 200 },
         'by-amount': { label: 'Routes by amount' },
       },
       resolverScenarios: ['by-amount'],
     })
     const options = scenariosWithPassthrough(endpoint, false)
-    expect(options.default).toEqual({ label: 'Default', summary: 'All good', kind: 'fixture' })
+    expect(options.default).toEqual({ label: 'Default', summary: 'All good', status: 200, kind: 'fixture' })
     expect(options['by-amount']).toEqual({ label: 'Routes by amount', kind: 'resolver' })
   })
 
