@@ -1,5 +1,5 @@
 import type { EndpointDef } from './catalog/types'
-import { REAL_LABEL } from './config'
+import { REAL_LABEL, REAL_SUMMARY } from './config'
 
 export const DEFAULT_SCENARIO = 'default'
 export const REAL_SCENARIO = 'real'
@@ -23,18 +23,38 @@ export function isProfiledEndpoint(endpoint: EndpointDef): boolean {
   return !isGlobalEndpoint(endpoint)
 }
 
+export type ScenarioKind = 'fixture' | 'resolver' | 'passthrough'
+
+export interface ScenarioOption {
+  /** Friendly name (ScenarioMeta.label, or the dangling placeholder). */
+  label: string
+  /** ScenarioMeta.summary, or the fixed auto-summary for `real`. */
+  summary?: string
+  /** Fixture HTTP status; absent for resolvers, passthrough, and dangling pins. */
+  status?: number
+  kind: ScenarioKind
+}
+
 export function scenariosWithPassthrough(
   endpoint: EndpointDef,
   passthroughAsDefault: boolean,
-): Record<string, string> {
-  const labels: Record<string, string> = {}
-  for (const [slug, meta] of Object.entries(endpoint.scenarios)) labels[slug] = meta.label
-  const { default: defaultLabel, ...rest } = labels
-  const declared =
-    defaultLabel === undefined ? labels : { [DEFAULT_SCENARIO]: defaultLabel, ...rest }
+): Record<string, ScenarioOption> {
+  const declared: Record<string, ScenarioOption> = {}
+  for (const [slug, meta] of Object.entries(endpoint.scenarios)) {
+    declared[slug] = {
+      label: meta.label,
+      ...(meta.summary ? { summary: meta.summary } : {}),
+      ...(meta.status !== undefined ? { status: meta.status } : {}),
+      kind: endpoint.resolverScenarios.includes(slug) ? 'resolver' : 'fixture',
+    }
+  }
+  const { default: defaultOption, ...rest } = declared
+  const ordered =
+    defaultOption === undefined ? declared : { [DEFAULT_SCENARIO]: defaultOption, ...rest }
+  const real: ScenarioOption = { label: REAL_LABEL, summary: REAL_SUMMARY, kind: 'passthrough' }
   return passthroughAsDefault
-    ? { [REAL_SCENARIO]: REAL_LABEL, ...declared }
-    : { ...declared, [REAL_SCENARIO]: REAL_LABEL }
+    ? { [REAL_SCENARIO]: real, ...ordered }
+    : { ...ordered, [REAL_SCENARIO]: real }
 }
 
 /**
@@ -52,15 +72,15 @@ export function danglingScenarioLabel(slug: string): string {
 }
 
 export function scenarioOptionsWithDangling(
-  offered: Record<string, string>,
+  offered: Record<string, ScenarioOption>,
   selection: string | string[] | undefined,
-): { options: Record<string, string>; unavailable: string[] } {
+): { options: Record<string, ScenarioOption>; unavailable: string[] } {
   const selected = selection === undefined ? [] : Array.isArray(selection) ? selection : [selection]
   const options = { ...offered }
   const unavailable: string[] = []
   for (const slug of selected) {
     if (slug in options || unavailable.includes(slug)) continue
-    options[slug] = danglingScenarioLabel(slug)
+    options[slug] = { label: danglingScenarioLabel(slug), kind: 'fixture' }
     unavailable.push(slug)
   }
   return { options, unavailable }

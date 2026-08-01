@@ -13,6 +13,9 @@ export interface ScenarioMeta {
    * (a resolver's `summary` export or a fixture's `summary`); present only when
    * the scenario declares a non-empty summary. */
   summary?: string
+  /** Fixture HTTP status, when the scenario file declares a numeric `status`.
+   * Absent for resolver-backed scenarios. Feeds the picker hover-card pill. */
+  status?: number
 }
 
 export interface EndpointDef {

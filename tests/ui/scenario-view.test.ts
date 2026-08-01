@@ -4,6 +4,7 @@ import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { EndpointDef, SystemDef } from '../../src/lib/catalog/types'
 import { buildScenarioViews, type ScenarioView } from '../../src/app/ui/catalog/scenario-view'
+import { buildScenarioView } from '../../src/app/ui/catalog/scenario-view'
 
 const fixturesDir = path.join(__dirname, '../testdata/fixtures')
 
@@ -134,5 +135,19 @@ describe('buildScenarioViews - resolver source and syntax highlighting', () => {
     expect(html).not.toContain('description')
     // The full fixture is still available as `json` for the status chip.
     expect((fixture as { json: string }).json).toContain('status')
+  })
+})
+
+describe('buildScenarioView', () => {
+  it('builds a single fixture view with highlighted html', async () => {
+    const view = await buildScenarioView(system, endpoint, 'default', fixturesDir)
+    expect(view).toMatchObject({ key: 'default', label: 'Success', isDefault: true, kind: 'fixture' })
+    if (view.kind === 'fixture') expect(view.html).toContain('shiki')
+  })
+
+  it('reports an error view for a missing fixture file', async () => {
+    const missing: EndpointDef = { ...endpoint, scenarios: { nope: { label: 'Missing' } } }
+    const view = await buildScenarioView(system, missing, 'nope', fixturesDir)
+    expect(view.kind).toBe('error')
   })
 })

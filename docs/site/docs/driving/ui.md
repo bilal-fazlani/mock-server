@@ -28,21 +28,45 @@ than discovered on a `500`.
 A profile's page shows one card per profiled endpoint:
 
 - **Single** mode picks one scenario: any declared fixture-backed scenario, a
-  resolver-backed scenario (tagged with a `</>` code badge — see
-  [Code-backed scenario resolvers](../building/dynamic.md#selecting-a-resolver-backed-scenario)),
-  or `Passthrough` (`real`).
+  resolver-backed scenario — its chip shows a `file-code` icon in place of the
+  selection dot, see [Code-backed scenario
+  resolvers](../building/dynamic.md#selecting-a-resolver-backed-scenario) — or
+  `Passthrough` (`real`), shown with a `globe` icon in the same slot. The icon
+  or dot takes the scenario's tone color once selected.
 - **Sequence** mode turns the pick into an ordered
   [scenario sequence](../building/scenarios.md#scenario-sequences) served
   call-by-call, with live progress ("N calls served", which step is next) and a
-  **Reset progress** button.
+  **Reset progress** button. Each step is a dropdown offering the same
+  scenarios, with the same dot-or-icon slot and tone color on its closed
+  trigger; every open option repeats that slot and shows the scenario's
+  `summary` as a second line beneath its label, and nothing inside the open
+  dropdown is clickable beyond picking an option.
 - Whenever the current selection involves a resolver-backed slug, a **Reset
   resolver history** button clears that endpoint's
   [history windows](../building/dynamic.md#history).
 
+Hovering, or tabbing to focus, a chip or a closed step trigger opens a hover
+card with its label, an HTTP status pill (fixture-backed scenarios only — a
+resolver or `Passthrough` has no status of its own), and its `summary` when
+one is set. A fixture or resolver card adds a "View full response →"
+(resolver: "View resolver code →") link that opens a modal — closed with
+Escape or its close button, without leaving the page — showing the same
+rendered content the [catalog](#catalog-uicatalog) page shows (the response
+body for a fixture, the resolver's source for a resolver), plus an `Open
+<endpoint> in the catalog` link; `Passthrough`'s card shows its fixed summary
+("Forwards the request to the live upstream service.") with no link. Opening
+a step's dropdown closes that step's card.
+
+The card's link is reachable with a pointer; it isn't in the keyboard tab
+order, so on a keyboard or a touch device use the endpoint's **View in
+catalog** link instead, which shows every scenario's summary and rendered
+content in one place.
+
 Profiles store **deltas**: leaving an endpoint on the implicit scenario stores
 nothing. A pick that has gone stale (its scenario file was removed) is shown as
-a disabled `<slug> — unavailable` entry, and the editor blocks saving until a
-valid scenario is chosen. The page also carries a copy-the-profile-ID button, a
+a disabled `<slug> — unavailable` entry with no hover card or modal to
+disclose, and the editor blocks saving until a valid scenario is chosen. The
+page also carries a copy-the-profile-ID button, a
 **Recent activity** card (that profile's slice of the
 [request log](request-logs.md)), and **Delete profile**, which cascades to the
 profile's mappings, sequence progress, resolver history, and logs.
@@ -51,11 +75,12 @@ profile's mappings, sequence progress, resolver history, and logs.
 
 One form listing every `mockType: "global"` endpoint with its scenario picker —
 the shared selection that applies to **every** caller of that endpoint (see
-[Endpoints](../building/endpoints.md)). The same delta rule applies: setting an
-endpoint back to the implicit scenario clears its stored override. Saved
-selections that no longer match the catalog are counted and flagged at the top
-of the form, and resolver-backed picks get the same `</>` badge and **Reset
-resolver history** button as on a profile page.
+[Endpoints](../building/endpoints.md)). The same delta rule, hover cards, and
+response modal from the [Profiles](#profiles-ui) page apply here too: setting
+an endpoint back to the implicit scenario clears its stored override, and
+resolver-backed picks get the same `file-code` icon and **Reset resolver
+history** button as on a profile page. Saved selections that no longer match
+the catalog are counted and flagged at the top of the form.
 
 ## Catalog (`/ui/catalog`)
 

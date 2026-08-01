@@ -93,12 +93,13 @@ export function GlobalMocksForm({
                       </Alert>
                     )}
                     <ScenarioPicker
+                      system={system.slug}
                       endpointName={endpoint.name}
+                      endpointDisplayName={endpoint.displayName}
                       fieldName={`scenario:${system.slug}:${endpoint.name}`}
                       scenarios={options}
                       selected={selected}
                       unavailable={unavailable}
-                      resolverSlugs={endpoint.resolverScenarios}
                     />
                     <div className="mt-2.5 flex min-w-0 flex-wrap items-center gap-2.5">
                       {endpoint.resolverScenarios.includes(selected) && (

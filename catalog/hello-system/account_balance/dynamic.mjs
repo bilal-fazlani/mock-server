@@ -4,6 +4,9 @@
  *   headers: Record<string,string>, body: unknown},
  *   history: string[], profileId: string | null}} ResolverInput */
 
+export const summary =
+  'Simulates settlement: replies Pending for the first two calls, then Settled. Send {"forceFail": true} to get the failure response.'
+
 /** @param {ResolverInput} input */
 export default function pick(input) {
   const body = input.request.body

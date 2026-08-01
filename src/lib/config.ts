@@ -8,6 +8,9 @@ export type LogFormat = 'text' | 'json'
 // so its display name lives here.
 export const REAL_LABEL = 'Passthrough'
 
+/** Auto-summary for the implicit passthrough scenario (it has no catalog file). */
+export const REAL_SUMMARY = 'Forwards the request to the live upstream service.'
+
 export class ConfigError extends Error {}
 
 const UNMOCKED_USERS_VALUES: UnmockedUsers[] = ['ERROR', 'DEFAULT_MOCK', 'REAL']

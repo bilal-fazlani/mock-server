@@ -105,7 +105,9 @@ export function ProfileForm({
                     </Alert>
                   )}
                   <ScenarioConfig
+                    system={system.slug}
                     endpointName={endpoint.name}
+                    endpointDisplayName={endpoint.displayName}
                     scenarios={scenariosWithPassthrough(endpoint, passthroughAsDefault)}
                     selection={selected}
                     fallback={gapFallback}
@@ -116,7 +118,6 @@ export function ProfileForm({
                     resetDynamicAction={
                       profile ? resetDynamicHistoryAction.bind(null, endpoint.name) : undefined
                     }
-                    resolverSlugs={endpoint.resolverScenarios}
                   />
                   <div className="-mt-1 flex justify-end">
                     <Link

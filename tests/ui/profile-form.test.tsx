@@ -36,6 +36,16 @@ function profileIdInput(html: string): string {
   return match[0]
 }
 
+// One scenario chip's markup: from its radio input to the end of the enclosing
+// <label>, so per-slug assertions can never leak into a neighbouring chip.
+function chipForValue(html: string, value: string): string {
+  const start = html.indexOf(`value="${value}"`)
+  if (start === -1) throw new Error(`scenario chip ${value} not found`)
+  const end = html.indexOf('</label>', start)
+  if (end === -1) throw new Error(`chip ${value} is not closed`)
+  return html.slice(start, end)
+}
+
 describe('ProfileForm', () => {
   it('styles profile cards to use more page width and two identity columns', () => {
     const profile = {
@@ -270,7 +280,7 @@ describe('ProfileForm', () => {
     expect(html).not.toContain('/health')
   })
 
-  it('marks resolver-backed scenarios with a code badge and offers Reset resolver history', () => {
+  it('marks resolver-backed scenarios with a code icon and offers Reset resolver history', () => {
     const resolverCatalog: Catalog = {
       systems: [
         {
@@ -294,15 +304,20 @@ describe('ProfileForm', () => {
     const html = renderToStaticMarkup(
       <ProfileForm catalog={resolverCatalog} profile={profile} passthroughAsDefault={false} />,
     )
-    // Exactly one badge — scoped to the single resolver-backed slug, not stamped
+    // Exactly one icon — scoped to the single resolver-backed slug, not stamped
     // on every option (guards against `resolverSlugs.length > 0` / a flipped test).
     const badges = html.match(/aria-label="Resolved by code at request time"/g)
     expect(badges).toHaveLength(1)
-    // The badge sits on the resolver-backed option ("By amount")…
-    expect(html).toMatch(/By amount<\/span><svg[^>]*aria-label="Resolved by code at request time"/)
-    // …and NOT on the fixture-backed options ("Hello success", "Hold").
-    expect(html).not.toMatch(/Hello success<\/span><svg[^>]*aria-label="Resolved by code at request time"/)
-    expect(html).not.toMatch(/Hold<\/span><svg[^>]*aria-label="Resolved by code at request time"/)
+    // The icon fills the slot on the resolver-backed option ("By amount")…
+    const resolverChip = chipForValue(html, 'by-amount')
+    expect(resolverChip).toContain('aria-label="Resolved by code at request time"')
+    expect(resolverChip).toContain('By amount')
+    // …and NOT on the fixture-backed options ("Hello success", "Hold"), which
+    // keep their radio dot.
+    expect(chipForValue(html, 'default')).not.toContain('aria-label="Resolved by code at request time"')
+    expect(chipForValue(html, 'default')).toContain('rounded-full')
+    expect(chipForValue(html, 'hold')).not.toContain('aria-label="Resolved by code at request time"')
+    expect(chipForValue(html, 'hold')).toContain('rounded-full')
     expect(html).toContain('Reset resolver history')
   })
 })

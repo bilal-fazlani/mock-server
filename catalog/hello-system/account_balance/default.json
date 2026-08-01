@@ -1,5 +1,6 @@
 {
   "description": "Settled",
+  "summary": "Balance check completes: the account has settled funds, with a fresh checkedAt timestamp.",
   "status": 200,
   "body": { "state": "SETTLED", "checkedAt": "{{now:iso}}" }
 }

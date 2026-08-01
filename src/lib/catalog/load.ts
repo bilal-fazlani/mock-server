@@ -130,6 +130,7 @@ export function loadCatalog(catalogDir: string): Catalog {
           scenarios[scenario] = {
             label: meta.description ?? scenario,
             ...(meta.summary ? { summary: meta.summary } : {}),
+            ...(meta.status !== null ? { status: meta.status } : {}),
           }
         }
       }
@@ -263,20 +264,25 @@ function optionalCaptureProfileKeys(
 
 // Lenient by design: an unreadable fixture falls back to the filename for the
 // label here and gets reported properly by validateCatalog.
-function parseScenarioFile(file: string): { description: string | null; summary: string | null } {
+function parseScenarioFile(file: string): {
+  description: string | null
+  summary: string | null
+  status: number | null
+} {
   try {
     const parsed: unknown = JSON.parse(fs.readFileSync(file, 'utf8'))
     if (parsed && typeof parsed === 'object') {
-      const obj = parsed as { description?: unknown; summary?: unknown }
+      const obj = parsed as { description?: unknown; summary?: unknown; status?: unknown }
       return {
         description: typeof obj.description === 'string' ? obj.description : null,
         summary: typeof obj.summary === 'string' && obj.summary.length > 0 ? obj.summary : null,
+        status: typeof obj.status === 'number' ? obj.status : null,
       }
     }
   } catch {
     // reported by validateCatalog
   }
-  return { description: null, summary: null }
+  return { description: null, summary: null, status: null }
 }
 
 function orderDefaultFirst(
