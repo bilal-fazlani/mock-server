@@ -100,7 +100,7 @@ a validation error.
 
     An invalid JSON Schema anywhere in `_schema.json` (request or any response)
     fails catalog validation immediately, alongside fixture-body mismatches — run
-    `npm run validate:catalog` after adding or editing one.
+    [`mock-server validate`](validate.md) after adding or editing one.
 
 ### Optional fields must have a fallback
 
@@ -199,5 +199,6 @@ components:
   `baseUrlEnv`, and the spec never creates endpoints on its own (you still author
   each endpoint directory and its scenarios).
 
-Run `npm run validate:catalog` after adding or editing a `_spec` file — it
-reports the same errors as startup and prints any unmatched-endpoint warnings.
+Run [`mock-server validate`](validate.md) after adding or editing a `_spec`
+file — it reports the same errors as startup and prints any unmatched-endpoint
+warnings.

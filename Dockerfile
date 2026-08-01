@@ -89,6 +89,12 @@ RUN groupadd --system --gid 1001 nodejs \
   && useradd --system --uid 1001 --gid nodejs nextjs \
   && chmod 0444 /app/global-bundle.pem
 
+# Subcommand shim on PATH: `mock-server validate` in a derived image's build, or
+# in an ad-hoc `docker run`. The CMD below still starts the server directly, so
+# the default `docker run` path does not depend on it.
+COPY docker/mock-server /usr/local/bin/mock-server
+RUN chmod 0755 /usr/local/bin/mock-server
+
 # Standalone server bundle + assets it does not copy itself.
 COPY --from=build /app/public ./public
 COPY --from=build --chown=nextjs:nodejs /app/.next/standalone ./

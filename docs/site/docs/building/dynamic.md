@@ -280,9 +280,9 @@ endpoint, but no compiled resolver could be produced for it at request time.
   skipped. This is not
   production-only: a resolver that is already broken at boot fails hard in
   development too (the first request to *any* endpoint throws the aggregated
-  startup error, not a scoped `resolver_compile_error`). `npm run
-  validate:catalog` runs the same compilation step, so a broken resolver is
-  caught before deploy.
+  startup error, not a scoped `resolver_compile_error`).
+  [`mock-server validate`](validate.md) runs the same compilation step, so a
+  broken resolver is caught before deploy — without starting a server.
 - **Live edits in development recompile per request.** After a good boot, dev
   mode re-reads and recompiles each resolver on every request that reaches it
   (matching how fixtures are re-read live in dev). So if you edit a resolver

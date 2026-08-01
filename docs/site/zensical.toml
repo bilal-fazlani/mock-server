@@ -20,6 +20,7 @@ nav = [
     { "Fixtures" = "building/fixtures.md" },
     { "Placeholders & templating" = "building/templating.md" },
     { "Schemas" = "building/schemas.md" },
+    { "Validating a catalog" = "building/validate.md" },
   ] },
   { "Driving mocks" = [
     { "The dashboard" = "driving/ui.md" },

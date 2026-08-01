@@ -45,7 +45,8 @@ shows how they steer routing.
 
 ## Validation rules
 
-`npm run validate:catalog` (and the server at startup) run two passes. The first
+[`mock-server validate`](../building/validate.md) (and the server at startup) run
+two passes. The first
 walks the tree looking for **structural** problems; if it finds any, it stops
 there and reports *all of them at once* as a single startup error — nothing else
 runs until the tree itself is well-formed:
@@ -117,16 +118,19 @@ now-known catalog and reports its own list of errors:
   placeholder has no name to call it by), a compile error, or a leftover
   `_functions.ts` file (`.ts` authoring was removed — rename to `.mjs`) are
   all errors. Like a broken resolver, a broken `_functions` file is caught
-  before deploy by `npm run validate:catalog`.
+  before deploy by [`mock-server validate`](../building/validate.md).
 - No two endpoints of the same method have **overlapping** path templates (which
   would make matching ambiguous).
 - If an endpoint has a `_schema.json`, it must compile as valid JSON Schema, and
   every scenario fixture's `body` must match its status-matched response schema —
   see [Schemas](../building/schemas.md).
-- `PASSTHROUGH_AS_DEFAULT=true` → every system's `baseUrlEnv` is set.
+- `PASSTHROUGH_AS_DEFAULT=true` → every system's `baseUrlEnv` is set. This is the
+  one rule that reads the environment rather than the catalog, so it runs at
+  startup and under `npm run validate:catalog`, but **not** under
+  [`mock-server validate`](../building/validate.md#what-it-deliberately-does-not-check).
 - Every scenario resolver (`<slug>.mjs`) compiles and default-exports a
-  function. `npm run validate:catalog` runs this same compilation step, so a
-  broken resolver is caught before deploy — see
+  function. [`mock-server validate`](../building/validate.md) runs this same
+  compilation step, so a broken resolver is caught before deploy — see
   [Code-backed scenario resolvers](../building/dynamic.md#compilation-sandboxing-and-timeouts).
 
 Since scenarios are now just the files present on disk, there's no such thing as

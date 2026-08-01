@@ -1,0 +1,41 @@
+#!/bin/sh
+# Subcommand shim installed on PATH in the runtime image (#40), so the CLI
+# grammar is the same whether the server came from npx or from the image:
+#
+#   docker run --rm -v "$PWD/catalog:/app/catalog:ro" IMAGE mock-server validate
+#   RUN mock-server validate          # in a derived image, gating docker build
+#
+# The default `docker run` behaviour is untouched: the image's CMD still runs
+# `node server.js` directly and never goes through this script.
+set -e
+
+case "${1-}" in
+  ''|serve)
+    # Next's standalone server resolves its own assets relative to cwd.
+    cd /app
+    exec node server.js
+    ;;
+  validate)
+    shift
+    # No `cd`: a relative catalog path — including the ./catalog default —
+    # resolves against the caller's working directory, which for `RUN
+    # mock-server validate` in a derived image is the inherited WORKDIR /app.
+    exec node /app/validate.cjs "$@"
+    ;;
+  -h|--help)
+    cat <<'EOF'
+mock-server — commands available inside the container image
+
+Usage:
+  mock-server [serve]              Start the mock server (the image default).
+  mock-server validate [path]      Check a catalog and exit; 0 clean, 1 on error.
+
+Configuration is by environment variable; see
+https://mock-server.bilal-fazlani.com/reference/configuration/
+EOF
+    ;;
+  *)
+    echo "mock-server: unknown command '$1' (expected: serve, validate)" >&2
+    exit 2
+    ;;
+esac

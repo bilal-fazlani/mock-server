@@ -22,6 +22,9 @@ npx @bilal-fazlani/mock-server ./catalog
 
 # or via Docker
 docker run --rm -p 3000:3000 ghcr.io/bilal-fazlani/mock-server:latest
+
+# check a catalog without starting anything (exit 0 clean, 1 on any error)
+npx @bilal-fazlani/mock-server validate ./catalog
 ```
 
 Mock endpoints answer at the **root** — an endpoint whose catalog `path` is
@@ -47,8 +50,12 @@ npm run build             # production build
 npm start                 # run the production build
 npm test                  # run the test suite (Vitest)
 npm run lint              # lint
-npm run validate:catalog  # validate the catalog the way startup does
+npm run validate:catalog  # validate this repo's catalog the way startup does
 ```
+
+`validate:catalog` is the source-checkout twin of `mock-server validate`: it adds
+the environment-config pass the shipped subcommand omits. See
+[Validating a catalog](docs/site/docs/building/validate.md).
 
 ## Documentation
 

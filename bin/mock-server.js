@@ -5,44 +5,33 @@ const path = require('node:path')
 const fs = require('node:fs')
 const os = require('node:os')
 const { spawn } = require('node:child_process')
-const { parseArgs, HELP } = require('./args')
+const { parseArgs, HELP, VALIDATE_HELP } = require('./args')
 
 const pkgRoot = path.join(__dirname, '..')
 const pkg = require(path.join(pkgRoot, 'package.json'))
+const standaloneDir = path.join(pkgRoot, '.next', 'standalone')
 
-function main() {
-  const opts = parseArgs(process.argv.slice(2))
+// The launcher's cwd differs from the child's (both the server and the
+// validator run inside the standalone dir), so always hand the child an
+// ABSOLUTE catalog path, resolved against the user's real cwd. Shared by both
+// subcommands so their path resolution cannot drift apart.
+// Precedence: positional arg > CATALOG_PATH > ./catalog.
+function resolveCatalogPath(opts) {
+  const raw = opts.catalogPath ?? process.env.CATALOG_PATH ?? 'catalog'
+  return path.resolve(process.cwd(), raw)
+}
 
-  if (opts.help) {
-    process.stdout.write(HELP)
-    return
-  }
-  if (opts.version) {
-    process.stdout.write(`${pkg.version}\n`)
-    return
-  }
+function requireBuildOutput(file) {
+  if (fs.existsSync(file)) return
+  process.stderr.write(
+    `mock-server: build output not found at ${path.relative(pkgRoot, file)}. ` +
+      'This usually means the package was not built before publishing.\n',
+  )
+  process.exit(1)
+}
 
-  // The launcher's cwd differs from the server's (we spawn inside the
-  // standalone dir), so always hand the server an ABSOLUTE catalog path,
-  // resolved against the user's real cwd. Precedence: positional arg > env.
-  const userCwd = process.cwd()
-  const rawCatalog = opts.catalogPath ?? process.env.CATALOG_PATH ?? 'catalog'
-
-  const env = { ...process.env }
-  env.CATALOG_PATH = path.resolve(userCwd, rawCatalog)
-  if (opts.port !== undefined) env.PORT = String(opts.port)
-
-  const standaloneDir = path.join(pkgRoot, '.next', 'standalone')
-  const serverJs = path.join(standaloneDir, 'server.js')
-  if (!fs.existsSync(serverJs)) {
-    process.stderr.write(
-      'mock-server: build output not found at .next/standalone/server.js. ' +
-        'This usually means the package was not built before publishing.\n',
-    )
-    process.exit(1)
-  }
-
-  const child = spawn(process.execPath, [serverJs], {
+function run(entry, args, env) {
+  const child = spawn(process.execPath, [entry, ...args], {
     cwd: standaloneDir,
     stdio: 'inherit',
     env,
@@ -58,6 +47,41 @@ function main() {
     if (signal) process.exit(128 + (os.constants.signals[signal] ?? 0))
     else process.exit(code ?? 0)
   })
+}
+
+function validate(opts) {
+  if (opts.help) {
+    process.stdout.write(VALIDATE_HELP)
+    return
+  }
+  const validateJs = path.join(standaloneDir, 'validate.cjs')
+  requireBuildOutput(validateJs)
+  run(validateJs, [resolveCatalogPath(opts)], { ...process.env })
+}
+
+function serve(opts) {
+  if (opts.help) {
+    process.stdout.write(HELP)
+    return
+  }
+  if (opts.version) {
+    process.stdout.write(`${pkg.version}\n`)
+    return
+  }
+
+  const env = { ...process.env }
+  env.CATALOG_PATH = resolveCatalogPath(opts)
+  if (opts.port !== undefined) env.PORT = String(opts.port)
+
+  const serverJs = path.join(standaloneDir, 'server.js')
+  requireBuildOutput(serverJs)
+  run(serverJs, [], env)
+}
+
+function main() {
+  const opts = parseArgs(process.argv.slice(2))
+  if (opts.command === 'validate') validate(opts)
+  else serve(opts)
 }
 
 main()

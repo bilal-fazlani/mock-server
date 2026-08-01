@@ -12,11 +12,16 @@ upstream URL to `http://localhost:3000`, and pick scenarios in `/ui`. Switch an
 endpoint to the `real` scenario when you want that one call to hit the live
 upstream — handy for migrating off real dependencies one endpoint at a time.
 
+The catalog is read once at startup, so a change to it means a restart. Catch
+mistakes before that restart with
+[`mock-server validate`](../building/validate.md).
+
 ## Continuous integration
 
 In CI the in-memory MongoDB is enough — each run starts clean and ephemeral data
-is exactly what you want. Start the server, wait for `/ui/api/health`, then drive
-it from your tests over the API.
+is exactly what you want. Validate the catalog first so a bad edit fails in a
+second instead of as a mysterious startup crash, then start the server, wait for
+`/ui/api/health`, and drive it from your tests over the API.
 
 ```yaml
 name: test
@@ -30,6 +35,8 @@ jobs:
         with:
           node-version: 22
       - run: npm ci
+      - name: Validate the catalog
+        run: npx @bilal-fazlani/mock-server validate ./catalog
       - name: Start mock server
         run: npx @bilal-fazlani/mock-server ./catalog &
       - name: Wait for health
