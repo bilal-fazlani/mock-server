@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-import { ScenarioConfig } from '../../src/app/ui/profiles/ScenarioConfig'
+import { ScenarioConfig, ScenarioOptionRow } from '../../src/app/ui/profiles/ScenarioConfig'
 import type { ScenarioOption } from '../../src/lib/scenarios'
 
 const scenarios: Record<string, ScenarioOption> = {
@@ -10,19 +10,32 @@ const scenarios: Record<string, ScenarioOption> = {
   real: { label: 'Passthrough', kind: 'passthrough' },
 }
 
-// Each sequence-step trigger is a <button ...class="...">, followed by a dot
-// span and then the label span whose text is the human-readable name. Find
-// the trigger's own class string by locating the label text and walking back
-// to the nearest enclosing trigger button.
-function triggerClassForLabel(html: string, label: string): string {
+// Summaries live on the option, so the dropdown rows and the step hover cards
+// have a second line to show.
+const seqScenarios: Record<string, ScenarioOption> = {
+  default: { label: 'Active', summary: 'Customer is in good standing.', status: 200, kind: 'fixture' },
+  frozen: { label: 'Frozen', summary: 'Account actions blocked.', status: 200, kind: 'fixture' },
+  real: { label: 'Passthrough', summary: 'Forwards the request to the live upstream service.', kind: 'passthrough' },
+}
+
+// Each sequence-step trigger is a <button …>, followed by the slot indicator and
+// then the label span whose text is the human-readable name. Find the trigger's
+// own opening tag by locating the label text and walking back to the nearest
+// enclosing button. Available steps are hover-card triggers, so Radix injects
+// its own attributes (`data-slot`, `data-state`, …) ahead of `type`/`class` —
+// return the whole tag rather than assuming any attribute order.
+function triggerTagForLabel(html: string, label: string): string {
   const labelIndex = html.indexOf(`>${label}<`)
   if (labelIndex === -1) throw new Error(`label ${label} not found`)
-  const marker = '<button type="button" class="'
-  const btnStart = html.lastIndexOf(marker, labelIndex)
-  if (btnStart === -1) throw new Error(`trigger button for ${label} not found`)
-  const classStart = btnStart + marker.length
-  const classEnd = html.indexOf('"', classStart)
-  return html.slice(classStart, classEnd)
+  const start = html.lastIndexOf('<button', labelIndex)
+  if (start === -1) throw new Error(`trigger button for ${label} not found`)
+  return html.slice(start, html.indexOf('>', start) + 1)
+}
+
+function triggerClassForLabel(html: string, label: string): string {
+  const match = triggerTagForLabel(html, label).match(/class="([^"]*)"/)
+  if (!match) throw new Error(`trigger class for ${label} not found`)
+  return match[1]
 }
 
 describe('ScenarioConfig', () => {
@@ -199,5 +212,74 @@ describe('ScenarioConfig', () => {
       />,
     )
     expect(html).toContain('gone — unavailable')
+  })
+
+  it('renders each sequence step trigger as a hover-card trigger', () => {
+    const html = renderToStaticMarkup(
+      <ScenarioConfig
+        system="hello-system"
+        endpointName="customer_status"
+        endpointDisplayName="Customer Status"
+        scenarios={seqScenarios}
+        selection={['frozen', 'default']}
+        fallback="default"
+      />,
+    )
+    // two steps → at least two closed hover-card triggers
+    expect(html.match(/data-state="closed"/g)?.length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('keeps the closed popup out of static markup (options render only when open)', () => {
+    const html = renderToStaticMarkup(
+      <ScenarioConfig
+        system="hello-system"
+        endpointName="customer_status"
+        endpointDisplayName="Customer Status"
+        scenarios={seqScenarios}
+        selection={['frozen']}
+        fallback="default"
+      />,
+    )
+    expect(html).not.toContain('role="listbox"')
+    // summaries therefore appear only via hover cards/popup, not in the base markup
+    expect(html).not.toContain('Customer is in good standing.')
+  })
+
+  it('leaves a dangling step trigger bare while still wrapping available steps', () => {
+    const html = renderToStaticMarkup(
+      <ScenarioConfig
+        system="hello-system"
+        endpointName="hello_world"
+        endpointDisplayName="Hello World"
+        scenarios={scenarios}
+        selection={['default', 'gone']}
+        fallback="default"
+      />,
+    )
+    // The declared step is a hover-card trigger…
+    expect(triggerTagForLabel(html, 'Success')).toContain('data-state="closed"')
+    // …but a dangling pin has no catalog entry — its view route 404s, so the
+    // trigger must stay bare rather than offer a permanently-failing modal.
+    expect(triggerTagForLabel(html, 'gone — unavailable')).not.toContain('data-state')
+    expect(triggerTagForLabel(html, 'gone — unavailable')).not.toContain('hover-card-trigger')
+  })
+})
+
+describe('ScenarioOptionRow', () => {
+  it('renders an option row with label, summary second line, and selection check', () => {
+    const html = renderToStaticMarkup(
+      <ScenarioOptionRow slug="default" option={seqScenarios.default} selected onSelect={() => {}} />,
+    )
+    expect(html).toContain('Active')
+    expect(html).toContain('Customer is in good standing.')
+    expect(html).toContain('role="option"')
+    expect(html).toContain('aria-selected="true"')
+  })
+
+  it('renders the globe icon slot for the passthrough option row', () => {
+    const html = renderToStaticMarkup(
+      <ScenarioOptionRow slug="real" option={seqScenarios.real} selected={false} onSelect={() => {}} />,
+    )
+    expect(html).toContain('aria-label="Forwards to the live upstream"')
   })
 })

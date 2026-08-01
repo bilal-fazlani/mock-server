@@ -1,9 +1,10 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Check, ChevronsUpDown, CodeXml, GripVertical, Plus, Repeat, RotateCcw, X } from 'lucide-react'
+import { Check, ChevronsUpDown, FileCode, Globe, GripVertical, Plus, Repeat, RotateCcw, X } from 'lucide-react'
 import type { ScenarioSelection } from '../../../lib/profiles/store'
 import { scenarioOptionsWithDangling, type ScenarioOption } from '../../../lib/scenarios'
+import { ScenarioDisclosure } from '../../components/ScenarioDisclosure'
 import { ScenarioPicker } from '../../components/ScenarioPicker'
 
 type Mode = 'single' | 'sequence'
@@ -208,8 +209,12 @@ export function ScenarioConfig({
                   {isServed ? <Check className="size-[13px] stroke-[2.6]" aria-hidden="true" /> : index + 1}
                 </span>
                 <ScenarioSelect
+                  system={system}
+                  endpointName={endpointName}
+                  endpointDisplayName={endpointDisplayName}
                   value={step}
                   scenarios={options}
+                  unavailable={unavailable}
                   onChange={(value) => setStep(index, value)}
                   ariaLabel={`Scenario for step ${index + 1}`}
                 />
@@ -306,16 +311,103 @@ const optionSelectedKindClass: Record<Kind, string> = {
   real: 'border-[#d92d20] bg-[rgba(217,45,32,0.12)]',
 }
 
+// The listbox counterpart of the picker's `ScenarioSlot`: resolvers and
+// passthrough spend the radio circle on saying what they *are* — code, or the
+// live upstream — while fixtures keep the dot. Selection is a plain boolean here
+// because there is no hidden radio to hang `peer-checked:` off.
+function SelectSlot({ kind, tone, selected }: { kind: ScenarioOption['kind']; tone: Kind; selected: boolean }) {
+  if (kind === 'fixture') {
+    return (
+      <span
+        aria-hidden="true"
+        className={`size-3.5 flex-none rounded-full bg-card ${selected ? `border-4 ${dotKindClass[tone]}` : 'border-2 border-border'}`}
+      />
+    )
+  }
+  const Icon = kind === 'resolver' ? FileCode : Globe
+  const label = kind === 'resolver' ? 'Resolved by code at request time' : 'Forwards to the live upstream'
+  const color = selected ? iconSelectedKindClass[tone] : 'text-muted-foreground'
+  return (
+    <span className={`inline-flex size-3.5 flex-none items-center justify-center ${color}`}>
+      <Icon className="size-3.5" aria-label={label} role="img" />
+    </span>
+  )
+}
+
+const iconSelectedKindClass: Record<Kind, string> = {
+  default: 'text-[var(--success)]',
+  nonDefault: 'text-[var(--warning-text)]',
+  real: 'text-[#d92d20]',
+}
+
+/**
+ * One row of the step dropdown. Nothing in the popup is interactive beyond
+ * picking the option, so the summary is an always-visible second line rather
+ * than something you have to hover for.
+ */
+export function ScenarioOptionRow({
+  slug,
+  option,
+  selected,
+  onSelect,
+  optionRef,
+}: {
+  slug: string
+  option: ScenarioOption
+  selected: boolean
+  onSelect: () => void
+  optionRef?: React.Ref<HTMLButtonElement>
+}) {
+  return (
+    <button
+      ref={optionRef}
+      type="button"
+      role="option"
+      aria-selected={selected}
+      className={`flex w-full items-start gap-[9px] rounded-md border border-transparent px-[9px] py-1.5 text-left ${
+        selected ? optionSelectedKindClass[scenarioKind(slug)] : 'hover:border-border hover:bg-background'
+      }`}
+      onClick={onSelect}
+    >
+      <span className="mt-[3px] inline-flex">
+        <SelectSlot kind={option.kind} tone={scenarioKind(slug)} selected={selected} />
+      </span>
+      <span className="grid min-w-0 flex-1 gap-0.5">
+        <span className="min-w-0 text-[0.9rem] font-medium leading-[1.3] text-foreground [overflow-wrap:anywhere]">
+          {option.label}
+        </span>
+        {option.summary && (
+          <span className="text-[0.78rem] font-normal leading-[1.4] text-muted-foreground [overflow-wrap:anywhere]">
+            {option.summary}
+          </span>
+        )}
+      </span>
+      {selected && (
+        <Check className="ml-auto mt-[3px] size-3.5 flex-none stroke-[2.6] text-secondary-foreground" aria-hidden="true" />
+      )}
+    </button>
+  )
+}
+
 // Native <select> can't render two-line, color-coded options, so steps use a
 // custom listbox styled like the single-mode scenario cards.
 function ScenarioSelect({
+  system,
+  endpointName,
+  endpointDisplayName,
   value,
   scenarios,
+  unavailable,
   onChange,
   ariaLabel,
 }: {
+  system: string
+  endpointName: string
+  endpointDisplayName: string
   value: string
   scenarios: Record<string, ScenarioOption>
+  /** Saved-but-undeclared slugs — no catalog entry, so nothing to disclose. */
+  unavailable?: string[]
   onChange: (value: string) => void
   ariaLabel: string
 }) {
@@ -351,44 +443,55 @@ function ScenarioSelect({
   }
 
   const label = scenarios[value]?.label ?? value
+  const trigger = (
+    <button
+      ref={triggerRef}
+      type="button"
+      className={`flex w-full min-w-0 items-center gap-[9px] rounded-lg border px-2.5 py-1.5 text-left transition-colors duration-150 ${triggerKindClass[scenarioKind(value)]}`}
+      aria-haspopup="listbox"
+      aria-expanded={open}
+      aria-label={ariaLabel}
+      onClick={() => setOpen(!open)}
+      onKeyDown={(e) => {
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+          e.preventDefault()
+          setOpen(true)
+        }
+      }}
+    >
+      <SelectSlot kind={scenarios[value]?.kind ?? 'fixture'} tone={scenarioKind(value)} selected />
+      <span className="min-w-0 text-[0.9rem] font-medium leading-[1.3] text-foreground [overflow-wrap:anywhere]">
+        {label}
+      </span>
+      <ChevronsUpDown className="ml-auto size-3.5 flex-none text-muted-foreground" aria-hidden="true" />
+    </button>
+  )
   return (
     <div ref={wrapRef} className="relative min-w-0 w-full">
-      <button
-        ref={triggerRef}
-        type="button"
-        className={`flex w-full min-w-0 items-center gap-[9px] rounded-lg border px-2.5 py-1.5 text-left transition-colors duration-150 ${triggerKindClass[scenarioKind(value)]}`}
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        aria-label={ariaLabel}
-        onClick={() => setOpen(!open)}
-        onKeyDown={(e) => {
-          if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-            e.preventDefault()
-            setOpen(true)
-          }
-        }}
-      >
-        <span
-          aria-hidden="true"
-          className={`size-3.5 flex-none rounded-full border-4 bg-card ${dotKindClass[scenarioKind(value)]}`}
-        />
-        <span className="min-w-0 text-[0.9rem] font-medium leading-[1.3] text-foreground [overflow-wrap:anywhere]">
-          {label}
-        </span>
-        {scenarios[value]?.kind === 'resolver' && (
-          <CodeXml
-            className="size-3.5 flex-none text-muted-foreground"
-            aria-label="Resolved by code at request time"
-            role="img"
-          />
-        )}
-        <ChevronsUpDown className="ml-auto size-3.5 flex-none text-muted-foreground" aria-hidden="true" />
-      </button>
+      {/*
+        A dangling step points at a slug the catalog no longer declares, so its
+        view route 404s — wrapping it would offer a "View full response" that can
+        only fail. Leave it bare, exactly as single mode leaves dangling chips.
+      */}
+      {unavailable?.includes(value) ? (
+        trigger
+      ) : (
+        <ScenarioDisclosure
+          system={system}
+          endpointName={endpointName}
+          endpointDisplayName={endpointDisplayName}
+          slug={value}
+          option={scenarios[value] ?? { label: value, kind: 'fixture' }}
+          suppressed={open}
+        >
+          {trigger}
+        </ScenarioDisclosure>
+      )}
       {open && (
         <div
           role="listbox"
           aria-label={ariaLabel}
-          className="absolute top-[calc(100%+6px)] left-0 z-30 flex max-h-80 w-max min-w-full max-w-[340px] flex-col gap-0.5 overflow-y-auto rounded-lg border border-border bg-card p-1.5 shadow-[var(--shadow-card),0_12px_28px_-10px_rgba(0,0,0,0.7)]"
+          className="absolute top-[calc(100%+6px)] left-0 z-30 flex max-h-80 w-max min-w-full max-w-[410px] flex-col gap-0.5 overflow-y-auto rounded-lg border border-border bg-card p-1.5 shadow-[var(--shadow-card),0_12px_28px_-10px_rgba(0,0,0,0.7)]"
           onKeyDown={(e) => {
             if (e.key === 'Escape') {
               e.preventDefault()
@@ -407,42 +510,17 @@ function ScenarioSelect({
           {Object.entries(scenarios).map(([key, option]) => {
             const selected = key === value
             return (
-              <button
+              <ScenarioOptionRow
                 key={key}
-                ref={selected ? selectedRef : undefined}
-                type="button"
-                role="option"
-                aria-selected={selected}
-                className={`flex w-full items-center gap-[9px] rounded-md border border-transparent px-[9px] py-1.5 text-left ${
-                  selected
-                    ? optionSelectedKindClass[scenarioKind(key)]
-                    : 'hover:border-border hover:bg-background'
-                }`}
-                onClick={() => {
+                slug={key}
+                option={option}
+                selected={selected}
+                optionRef={selected ? selectedRef : undefined}
+                onSelect={() => {
                   onChange(key)
                   close(true)
                 }}
-              >
-                <span
-                  aria-hidden="true"
-                  className={`size-3.5 flex-none rounded-full bg-card ${
-                    selected ? `border-4 ${dotKindClass[scenarioKind(key)]}` : 'border-2 border-border'
-                  }`}
-                />
-                <span className="min-w-0 text-[0.9rem] font-medium leading-[1.3] text-foreground [overflow-wrap:anywhere]">
-                  {option.label}
-                </span>
-                {option.kind === 'resolver' && (
-                  <CodeXml
-                    className="size-3.5 flex-none text-muted-foreground"
-                    aria-label="Resolved by code at request time"
-                    role="img"
-                  />
-                )}
-                {selected && (
-                  <Check className="ml-auto size-3.5 flex-none stroke-[2.6] text-secondary-foreground" aria-hidden="true" />
-                )}
-              </button>
+              />
             )
           })}
         </div>
