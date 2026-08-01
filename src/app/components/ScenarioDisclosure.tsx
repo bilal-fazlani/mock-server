@@ -133,6 +133,19 @@ export function ScenarioDisclosure({
   const [view, setView] = useState<ScenarioView | null>(initialView ?? null)
   const [failed, setFailed] = useState(false)
 
+  // Radix only calls `onOpenChange` when the controlled value actually changes.
+  // While suppressed the rendered `open` is already false, so the pointer-leave
+  // that would normally clear `hoverOpen` never reaches us — and the card would
+  // pop back open the moment suppression lifts (hover a step, open the dropdown,
+  // pick an option: the card reappears with the pointer nowhere near it). Drop
+  // the stale intent as suppression turns on, using React's documented
+  // adjust-state-on-prop-change pattern rather than an effect.
+  const [wasSuppressed, setWasSuppressed] = useState(suppressed)
+  if (suppressed !== wasSuppressed) {
+    setWasSuppressed(suppressed)
+    if (suppressed) setHoverOpen(false)
+  }
+
   // Fetch the prepared view the first time the dialog opens (LogRow pattern).
   useEffect(() => {
     if (!dialogOpen || view || failed) return
