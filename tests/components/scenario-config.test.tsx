@@ -1,8 +1,14 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { ScenarioConfig } from '../../src/app/ui/profiles/ScenarioConfig'
+import type { ScenarioOption } from '../../src/lib/scenarios'
 
-const scenarios = { default: 'Success', failure: 'Failure', timeout: 'Timeout', real: 'Passthrough' }
+const scenarios: Record<string, ScenarioOption> = {
+  default: { label: 'Success', kind: 'fixture' },
+  failure: { label: 'Failure', kind: 'fixture' },
+  timeout: { label: 'Timeout', kind: 'fixture' },
+  real: { label: 'Passthrough', kind: 'passthrough' },
+}
 
 // Each sequence-step trigger is a <button ...class="...">, followed by a dot
 // span and then the label span whose text is the human-readable name. Find
@@ -83,7 +89,7 @@ describe('ScenarioConfig', () => {
     const html = renderToStaticMarkup(
       <ScenarioConfig
         endpointName="hello_world"
-        scenarios={{ ...scenarios, mystery_case: 'mystery_case' }}
+        scenarios={{ ...scenarios, mystery_case: { label: 'mystery_case', kind: 'fixture' } }}
         selection={['mystery_case']}
         fallback="default"
       />,

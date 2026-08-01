@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Check, ChevronsUpDown, CodeXml, GripVertical, Plus, Repeat, RotateCcw, X } from 'lucide-react'
 import type { ScenarioSelection } from '../../../lib/profiles/store'
-import { scenarioOptionsWithDangling } from '../../../lib/scenarios'
+import { scenarioOptionsWithDangling, type ScenarioOption } from '../../../lib/scenarios'
 import { ScenarioPicker } from '../../components/ScenarioPicker'
 
 type Mode = 'single' | 'sequence'
@@ -19,10 +19,9 @@ export function ScenarioConfig({
   servedCount,
   resetAction,
   resetDynamicAction,
-  resolverSlugs = [],
 }: {
   endpointName: string
-  scenarios: Record<string, string>
+  scenarios: Record<string, ScenarioOption>
   selection: ScenarioSelection | undefined
   fallback: string
   /** Calls served against the saved sequence, when the endpoint has one. */
@@ -31,8 +30,6 @@ export function ScenarioConfig({
   resetAction?: (formData: FormData) => Promise<void>
   /** Server action for the reset-dynamic-history button; omitted for new profiles. */
   resetDynamicAction?: (formData: FormData) => Promise<void>
-  /** Scenario slugs backed by a resolver (x.ts) rather than a fixture. */
-  resolverSlugs?: string[]
 }) {
   const { options, unavailable } = scenarioOptionsWithDangling(scenarios, selection)
   const savedSteps = Array.isArray(selection) ? selection : null
@@ -71,8 +68,8 @@ export function ScenarioConfig({
   const served = !dirty && servedCount ? servedCount : 0
   const nextIndex = Math.min(served, steps.length - 1)
 
-  const involvesResolver = (mode === 'single' ? [singleValue] : steps).some((s) =>
-    resolverSlugs.includes(s),
+  const involvesResolver = (mode === 'single' ? [singleValue] : steps).some(
+    (s) => options[s]?.kind === 'resolver',
   )
 
   return (
@@ -119,7 +116,6 @@ export function ScenarioConfig({
             scenarios={options}
             selected={singleValue}
             unavailable={unavailable}
-            resolverSlugs={resolverSlugs}
           />
         </div>
       ) : (
@@ -208,7 +204,6 @@ export function ScenarioConfig({
                   scenarios={options}
                   onChange={(value) => setStep(index, value)}
                   ariaLabel={`Scenario for step ${index + 1}`}
-                  resolverSlugs={resolverSlugs}
                 />
                 <span className="inline-flex gap-1">
                   <button
@@ -310,13 +305,11 @@ function ScenarioSelect({
   scenarios,
   onChange,
   ariaLabel,
-  resolverSlugs = [],
 }: {
   value: string
-  scenarios: Record<string, string>
+  scenarios: Record<string, ScenarioOption>
   onChange: (value: string) => void
   ariaLabel: string
-  resolverSlugs?: string[]
 }) {
   const [open, setOpen] = useState(false)
   const wrapRef = useRef<HTMLDivElement>(null)
@@ -349,7 +342,7 @@ function ScenarioSelect({
     options[next].focus()
   }
 
-  const label = scenarios[value] ?? value
+  const label = scenarios[value]?.label ?? value
   return (
     <div ref={wrapRef} className="relative min-w-0 w-full">
       <button
@@ -374,7 +367,7 @@ function ScenarioSelect({
         <span className="min-w-0 text-[0.9rem] font-medium leading-[1.3] text-foreground [overflow-wrap:anywhere]">
           {label}
         </span>
-        {resolverSlugs.includes(value) && (
+        {scenarios[value]?.kind === 'resolver' && (
           <CodeXml
             className="size-3.5 flex-none text-muted-foreground"
             aria-label="Resolved by code at request time"
@@ -403,7 +396,7 @@ function ScenarioSelect({
             }
           }}
         >
-          {Object.entries(scenarios).map(([key, optionLabel]) => {
+          {Object.entries(scenarios).map(([key, option]) => {
             const selected = key === value
             return (
               <button
@@ -429,9 +422,9 @@ function ScenarioSelect({
                   }`}
                 />
                 <span className="min-w-0 text-[0.9rem] font-medium leading-[1.3] text-foreground [overflow-wrap:anywhere]">
-                  {optionLabel}
+                  {option.label}
                 </span>
-                {resolverSlugs.includes(key) && (
+                {option.kind === 'resolver' && (
                   <CodeXml
                     className="size-3.5 flex-none text-muted-foreground"
                     aria-label="Resolved by code at request time"

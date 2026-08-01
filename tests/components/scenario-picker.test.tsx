@@ -1,8 +1,13 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { ScenarioPicker } from '../../src/app/components/ScenarioPicker'
+import type { ScenarioOption } from '../../src/lib/scenarios'
 
-const scenarios = { real: 'Passthrough', success: 'Hello success', failure: 'Hello failure' }
+const scenarios: Record<string, ScenarioOption> = {
+  real: { label: 'Passthrough', kind: 'passthrough' },
+  success: { label: 'Hello success', kind: 'fixture' },
+  failure: { label: 'Hello failure', kind: 'fixture' },
+}
 
 function labelClassForValue(html: string, value: string): string {
   const valueIndex = html.indexOf(`value="${value}"`)
@@ -89,7 +94,11 @@ describe('ScenarioPicker', () => {
     const html = renderToStaticMarkup(
       <ScenarioPicker
         endpointName="hello_world"
-        scenarios={{ default: 'Default success', failure: 'Failure', real: 'Passthrough' }}
+        scenarios={{
+          default: { label: 'Default success', kind: 'fixture' },
+          failure: { label: 'Failure', kind: 'fixture' },
+          real: { label: 'Passthrough', kind: 'passthrough' },
+        }}
         selected="failure"
       />,
     )
@@ -106,7 +115,11 @@ describe('ScenarioPicker', () => {
     const html = renderToStaticMarkup(
       <ScenarioPicker
         endpointName="hello_world"
-        scenarios={{ default: 'Default success', failure: 'Failure', real: 'Passthrough' }}
+        scenarios={{
+          default: { label: 'Default success', kind: 'fixture' },
+          failure: { label: 'Failure', kind: 'fixture' },
+          real: { label: 'Passthrough', kind: 'passthrough' },
+        }}
         selected="failure"
       />,
     )
@@ -129,7 +142,7 @@ describe('ScenarioPicker', () => {
     const html = renderToStaticMarkup(
       <ScenarioPicker
         endpointName="hello_world"
-        scenarios={{ ...scenarios, dynamic: 'dynamic — unavailable' }}
+        scenarios={{ ...scenarios, dynamic: { label: 'dynamic — unavailable', kind: 'fixture' } }}
         selected="dynamic"
         unavailable={['dynamic']}
       />,

@@ -1,4 +1,5 @@
 import { CodeXml } from 'lucide-react'
+import type { ScenarioOption } from '../../lib/scenarios'
 
 type ScenarioTone = 'default' | 'nonDefault' | 'real'
 
@@ -32,19 +33,17 @@ export function ScenarioPicker({
   scenarios,
   selected,
   unavailable,
-  resolverSlugs,
 }: {
   endpointName: string
   fieldName?: string
-  scenarios: Record<string, string>
+  scenarios: Record<string, ScenarioOption>
   selected: string
   unavailable?: string[]
-  resolverSlugs?: string[]
 }) {
   const isUnavailable = (key: string) => unavailable?.includes(key) ?? false
   return (
     <div className="flex flex-wrap gap-2">
-      {Object.entries(scenarios).map(([key, label]) => {
+      {Object.entries(scenarios).map(([key, option]) => {
         const tone = scenarioTone(key)
         const disabled = isUnavailable(key)
         return (
@@ -64,9 +63,9 @@ export function ScenarioPicker({
             <span
               className={`min-w-0 text-[0.9rem] font-medium [overflow-wrap:anywhere]${disabled ? ' line-through' : ''}`}
             >
-              {label}
+              {option.label}
             </span>
-            {resolverSlugs?.includes(key) && (
+            {option.kind === 'resolver' && (
               <CodeXml
                 className="size-3.5 flex-none text-muted-foreground"
                 aria-label="Resolved by code at request time"
