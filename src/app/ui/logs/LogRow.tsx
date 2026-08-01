@@ -300,7 +300,17 @@ function LogDetail({
       )}
 
       <div className="flex items-center justify-between gap-2.5">
-        <code className="font-mono text-[0.72rem] text-muted-foreground">{entry.logId}</code>
+        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
+          <code className="font-mono text-[0.72rem] text-muted-foreground">{entry.logId}</code>
+          {entry.traceId && (
+            <code
+              className="font-mono text-[0.72rem] text-muted-foreground [overflow-wrap:anywhere]"
+              title="Trace ID from the caller's traceparent / x-request-id header"
+            >
+              trace {entry.traceId}
+            </code>
+          )}
+        </div>
         {entry.kind === 'request' && (
           <button
             type="button"

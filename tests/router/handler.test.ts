@@ -74,6 +74,16 @@ function helloRequest(body: unknown = { customerId: 'c1' }): Request {
   })
 }
 
+const TRACE_ID = '0af7651916cd43dd8448eb211c80319c'
+
+function tracedRequest(headers: Record<string, string>): Request {
+  return new Request('http://localhost:3000/hello', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', ...headers },
+    body: JSON.stringify({ customerId: 'c1' }),
+  })
+}
+
 const settle = () => new Promise((r) => setTimeout(r, 0))
 
 function spyConsole() {
@@ -474,6 +484,60 @@ describe('mock handler JSON console logging', () => {
       message: '[mock-log] failed to write log entry: mongo down',
       'mock.logId': res.headers.get('x-mock-log-id'),
     })
+    consoleSpy.restore()
+  })
+
+  it('emits the caller trace ID as ECS trace.id, alongside the sampled flag', async () => {
+    const consoleSpy = spyConsole()
+    const { handle, written } = handlerWith({ consoleLogLevel: 'info', logFormat: 'json' })
+
+    await handle(tracedRequest({ traceparent: `00-${TRACE_ID}-b7ad6b7169203331-01` }), ['hello'])
+    await settle()
+
+    expect(parsedLine(consoleSpy.info.mock.calls[0])).toMatchObject({
+      'trace.id': TRACE_ID,
+      'mock.traceSampled': true,
+    })
+    expect(written[0].traceId).toBe(TRACE_ID)
+    consoleSpy.restore()
+  })
+
+  it('falls back to x-request-id, and reports no sampled flag for it', async () => {
+    const consoleSpy = spyConsole()
+    const { handle, written } = handlerWith({ consoleLogLevel: 'info', logFormat: 'json' })
+
+    await handle(tracedRequest({ 'x-request-id': 'req-42' }), ['hello'])
+    await settle()
+
+    const line = parsedLine(consoleSpy.info.mock.calls[0])
+    expect(line['trace.id']).toBe('req-42')
+    expect(line).not.toHaveProperty('mock.traceSampled')
+    expect(written[0].traceId).toBe('req-42')
+    consoleSpy.restore()
+  })
+
+  it('omits the field entirely when the request carries no trace header', async () => {
+    const consoleSpy = spyConsole()
+    const { handle, written } = handlerWith({ consoleLogLevel: 'info', logFormat: 'json' })
+
+    await handle(helloRequest(), ['hello'])
+    await settle()
+
+    expect(parsedLine(consoleSpy.info.mock.calls[0])).not.toHaveProperty('trace.id')
+    expect(written[0]).not.toHaveProperty('traceId')
+    consoleSpy.restore()
+  })
+
+  it('ignores a malformed traceparent rather than failing the request', async () => {
+    const consoleSpy = spyConsole()
+    const { handle, written } = handlerWith({ consoleLogLevel: 'info', logFormat: 'json' })
+
+    const res = await handle(tracedRequest({ traceparent: 'not-a-traceparent' }), ['hello'])
+    await settle()
+
+    expect(res.status).toBe(200)
+    expect(parsedLine(consoleSpy.info.mock.calls[0])).not.toHaveProperty('trace.id')
+    expect(written[0]).not.toHaveProperty('traceId')
     consoleSpy.restore()
   })
 

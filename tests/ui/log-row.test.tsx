@@ -402,6 +402,20 @@ describe('LogRow', () => {
     expect(html).toContain('truncated')
   })
 
+  it('shows the caller trace ID beside the log ID when the request carried one', () => {
+    const full = entry({ traceId: '0af7651916cd43dd8448eb211c80319c' })
+    const html = renderToStaticMarkup(<LogRow entry={full} defaultExpanded initialDetail={full} />)
+    expect(html).toContain('lg_abc123')
+    expect(html).toContain('trace 0af7651916cd43dd8448eb211c80319c')
+  })
+
+  it('shows no trace ID for an untraced request', () => {
+    const full = entry()
+    const html = renderToStaticMarkup(<LogRow entry={full} defaultExpanded initialDetail={full} />)
+    expect(html).toContain('lg_abc123')
+    expect(html).not.toContain('trace 0af')
+  })
+
   it('shows a loading state when expanded without a seeded detail', () => {
     const html = renderToStaticMarkup(<LogRow entry={entry()} defaultExpanded />)
     expect(html).toContain('px-3.5 py-2.5 text-xs text-muted-foreground')

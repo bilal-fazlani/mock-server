@@ -60,3 +60,17 @@ describe('requestLogs TTL index reconciliation', () => {
     expect(await tsIndexTtl(db)).toBe(100)
   })
 })
+
+describe('requestLogs traceId index', () => {
+  it('is compound with ts and sparse, so untraced entries are not indexed', async () => {
+    await ensureIndexes(db, 100)
+
+    const indexes = await db.collection('requestLogs').indexes()
+    const traceIdIndex = indexes.find(
+      (i) => JSON.stringify(i.key) === JSON.stringify({ traceId: 1, ts: -1 }),
+    )
+
+    expect(traceIdIndex).toBeDefined()
+    expect(traceIdIndex?.sparse).toBe(true)
+  })
+})

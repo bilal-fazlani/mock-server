@@ -1,5 +1,7 @@
 # Request logs
 
+## What is recorded
+
 Every request the mock server receives — *including* ones that match no endpoint
 or fail profile resolution — is written to a request log with its full **decision
 trace**: how the profile was resolved (directly or via a profile key lookup),
@@ -28,6 +30,8 @@ overwriting the selection mechanism would be, and a resolver that returns
 a bare `real` pin. See [Code-backed scenario resolvers](../building/dynamic.md)
 for the resolver contract.
 
+## Header redaction
+
 Persisted request headers preserve their names and values except `Authorization`,
 whose value is always stored as `[REDACTED]` (case-insensitive header match).
 Routing and `real` passthrough still receive the original header; redaction
@@ -35,11 +39,62 @@ happens only when the log entry is built. If the opaque token itself is the
 configured profile ID, that value still appears as the resolved profile ID and
 decision-trace value — use synthetic mock tokens rather than real credentials.
 
+## Distributed trace correlation
+
+When the calling service carries a [W3C Trace
+Context](https://www.w3.org/TR/trace-context/) `traceparent` header, the server
+records the trace ID it names as a top-level `traceId` on the log entry, prints
+it on the [console line](console-logs.md) as `trace.id`, and shows it beside the
+log ID in the `/ui` detail panel. That gives the mock server's own lines a join
+key against every other service's lines for the same request, with no
+cooperation from the caller — search one trace ID in your aggregator and the
+mock server's account of what the fake upstream returned, and why, comes back
+with the rest of the trace.
+
+Two headers are read, in order:
+
+| Header | Value recorded |
+| --- | --- |
+| `traceparent` | The 32-hex trace ID out of `00-<trace-id>-<span-id>-<flags>`. |
+| `x-request-id` | The header value verbatim — the ID a mesh such as Envoy generates even where nothing is W3C-instrumented. |
+
+So `traceId` is always 32 lowercase hex, or it is a caller-supplied request ID.
+
+A malformed value at either level is **ignored**, never reported as an error:
+this is diagnostic metadata and must never affect the response. Ignored are a
+`traceparent` that is not lowercase hex in the shape above, the all-zero trace ID
+and version `ff` (both invalid per the spec), and an `x-request-id` that is
+blank, over 200 characters, or contains control characters. A malformed
+`traceparent` falls through to `x-request-id`. An unknown version prefix with
+extra trailing fields is *accepted* — the spec reserves the right to append them.
+
+**The field is omitted when the request carried no trace header.** No synthetic
+ID is minted: one would join with nothing, and `logId` already answers "identify
+this one request". Admin entries (profile saves, progress resets) never carry a
+trace ID, having no request context.
+
+!!! note
+
+    Nothing needs configuring for the trace to keep flowing *outward*: `real`
+    passthrough already forwards `traceparent` to the upstream API untouched,
+    along with every other non-hop-by-hop request header.
+
+Only the trace ID and its sampled flag are read — the caller's span ID is not
+recorded, and no spans are emitted. This is log correlation, not an
+OpenTelemetry integration. On the console line the sampled flag appears as
+`mock.traceSampled`, which explains the otherwise-puzzling case of a trace ID in
+these logs whose trace never reached your tracing backend. B3 (`x-b3-traceid`)
+and `x-amzn-trace-id` are deliberately not read.
+
+## Console summary
+
 Alongside this persisted log, the server prints a compact summary of each request
 to stdout — as a human one-liner by default, or as one ECS-style JSON object per
 line for a log aggregator. Which requests are printed, what each severity covers,
 and the full JSON field mapping are documented in
 [Console logs](console-logs.md).
+
+## Browsing and retention
 
 Browse and filter the log at `/ui/logs` (live-updating; filter by profile,
 endpoint, errors, or log ID), or from a profile page's **Recent activity** card.

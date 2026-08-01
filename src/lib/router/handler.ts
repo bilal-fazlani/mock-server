@@ -1,6 +1,7 @@
 import type { ConsoleLogLevel, LogFormat } from '../config'
 import { writeConsoleLog } from '../logs/console'
 import { newLogId, type LogEntry, type LogPayload } from '../logs/store'
+import { extractTraceId, type TraceContext } from '../logs/trace-context'
 import { IncomingRequest, routeRequest, RouterDeps, type RouteTrace } from './route-request'
 
 export interface MockHandlerDeps extends RouterDeps {
@@ -31,12 +32,16 @@ export function createMockHandler(deps: MockHandlerDeps) {
     const durationMs = Date.now() - startedAt
     const shouldLog = shouldWriteRequestLog(incoming.path)
     const headers = shouldLog ? { ...result.headers, 'x-mock-log-id': logId } : result.headers
+    // Read at the edge, not threaded through RouteTrace: the caller's trace ID
+    // is known before routing starts and is not a routing decision.
+    const traceContext = shouldLog ? extractTraceId(incoming.headers) : undefined
 
     if (shouldLog) {
       writeRequestConsoleLog({
         level: deps.consoleLogLevel ?? 'info',
         format: deps.logFormat,
         logId,
+        traceContext,
         ts,
         incoming,
         status: result.status,
@@ -48,6 +53,7 @@ export function createMockHandler(deps: MockHandlerDeps) {
     if (deps.writeLog && shouldLog) {
       const entry = buildLogEntry({
         logId,
+        traceId: traceContext?.traceId,
         ts,
         durationMs,
         incoming,
@@ -84,6 +90,7 @@ interface RequestConsoleLog {
   level: ConsoleLogLevel
   format: LogFormat | undefined
   logId: string
+  traceContext: TraceContext | undefined
   ts: Date
   incoming: IncomingRequest
   status: number
@@ -122,7 +129,12 @@ function requestConsoleFields(input: RequestConsoleLog): Record<string, unknown>
     'url.query': incoming.search ? incoming.search.slice(1) : undefined,
     'http.response.status_code': status,
     'event.duration': durationMs * 1_000_000,
+    // The caller's trace ID under the ECS name both Kibana and Datadog already
+    // recognise, so a mock-server line joins the rest of the distributed trace
+    // with no aggregator configuration. Omitted when the request carried none.
+    'trace.id': input.traceContext?.traceId,
     'mock.logId': input.logId,
+    'mock.traceSampled': input.traceContext?.sampled,
     'mock.system': trace.system,
     'mock.endpoint': trace.endpoint,
     'mock.profileId': trace.profileId,
@@ -174,6 +186,7 @@ function formatRequestConsoleLine(input: {
 
 function buildLogEntry(input: {
   logId: string
+  traceId: string | undefined
   ts: Date
   durationMs: number
   incoming: IncomingRequest
@@ -185,6 +198,7 @@ function buildLogEntry(input: {
   const { system, endpoint, profileId, outcome, error, ...traceData } = input.trace
   return {
     logId: input.logId,
+    ...(input.traceId !== undefined && { traceId: input.traceId }),
     ts: input.ts,
     durationMs: input.durationMs,
     kind: 'request',

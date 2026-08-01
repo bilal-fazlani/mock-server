@@ -38,7 +38,10 @@ response carries an `x-mock-log-id` header naming the
 [request log](../driving/request-logs.md) entry it produced; and after the
 response is sent that entry — request, response, and the decision trace from the
 steps above — is written fire-and-forget, so logging can never slow down or fail a
-mock response. Requests whose path begins with `/_next/` skip this wrapper
+mock response. Both the console line and the entry also carry the caller's
+[trace ID](../driving/request-logs.md#distributed-trace-correlation) when the
+request arrived with a `traceparent` or `x-request-id` header; it is read at the
+edge, before routing, and never affects it. Requests whose path begins with `/_next/` skip this wrapper
 entirely.
 
 ## App-level configuration

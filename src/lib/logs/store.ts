@@ -44,6 +44,13 @@ export interface LogTraceData {
 
 export interface LogEntry {
   logId: string
+  /**
+   * The caller's distributed-trace ID, when the request carried one: 32
+   * lowercase hex from `traceparent`, or an `x-request-id` verbatim. Sits beside
+   * `logId` because both are correlation IDs; omitted for untraced requests and
+   * never present on `kind: 'admin'` entries.
+   */
+  traceId?: string
   ts: Date
   durationMs?: number
   kind: 'request' | 'admin'
