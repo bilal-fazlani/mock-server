@@ -1,4 +1,4 @@
-import type { EndpointDef } from './catalog/types'
+import type { EndpointDef, SystemDef } from './catalog/types'
 import { REAL_LABEL, REAL_SUMMARY } from './config'
 
 export const DEFAULT_SCENARIO = 'default'
@@ -33,11 +33,17 @@ export interface ScenarioOption {
   /** Fixture HTTP status; absent for resolvers, passthrough, and dangling pins. */
   status?: number
   kind: ScenarioKind
+  /** Passthrough only: resolved upstream URL, or null when `baseUrlEnv` isn't set. */
+  url?: string | null
+  /** Passthrough only: the env var name backing `url`. */
+  baseUrlEnv?: string
 }
 
 export function scenariosWithPassthrough(
   endpoint: EndpointDef,
   passthroughAsDefault: boolean,
+  system: SystemDef,
+  env: Record<string, string | undefined>,
 ): Record<string, ScenarioOption> {
   const declared: Record<string, ScenarioOption> = {}
   for (const [slug, meta] of Object.entries(endpoint.scenarios)) {
@@ -51,7 +57,13 @@ export function scenariosWithPassthrough(
   const { default: defaultOption, ...rest } = declared
   const ordered =
     defaultOption === undefined ? declared : { [DEFAULT_SCENARIO]: defaultOption, ...rest }
-  const real: ScenarioOption = { label: REAL_LABEL, summary: REAL_SUMMARY, kind: 'passthrough' }
+  const real: ScenarioOption = {
+    label: REAL_LABEL,
+    summary: REAL_SUMMARY,
+    kind: 'passthrough',
+    baseUrlEnv: system.baseUrlEnv,
+    url: env[system.baseUrlEnv] ?? null,
+  }
   return passthroughAsDefault
     ? { [REAL_SCENARIO]: real, ...ordered }
     : { ...ordered, [REAL_SCENARIO]: real }

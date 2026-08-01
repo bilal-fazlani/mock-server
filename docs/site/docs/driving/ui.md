@@ -32,7 +32,9 @@ A profile's page shows one card per profiled endpoint:
   selection dot, see [Code-backed scenario
   resolvers](../building/dynamic.md#selecting-a-resolver-backed-scenario) — or
   `Passthrough` (`real`), shown with a `globe` icon in the same slot. The icon
-  or dot takes the scenario's tone color once selected.
+  or dot takes the scenario's tone color once selected. `Passthrough`'s chip
+  also carries a red warning triangle beside its label whenever the system's
+  `baseUrlEnv` isn't set — regardless of whether it's the current selection.
 - **Sequence** mode turns the pick into an ordered
   [scenario sequence](../building/scenarios.md#scenario-sequences) served
   call-by-call, with live progress ("N calls served", which step is next) and a
@@ -54,8 +56,13 @@ Escape or its close button, without leaving the page — showing the same
 rendered content the [catalog](#catalog-uicatalog) page shows (the response
 body for a fixture, the resolver's source for a resolver), plus an `Open
 <endpoint> in the catalog` link; `Passthrough`'s card shows its fixed summary
-("Forwards the request to the live upstream service.") with no link. Opening
-a step's dropdown closes that step's card.
+("Forwards the request to the live upstream service.") with no link, followed
+by either the resolved upstream URL (`→ http://localhost:9999`) when the
+system's `baseUrlEnv` is set, or a warning naming the unset env var
+(`HELLO_SYSTEM_URL is not set — requests will fail.`) when it isn't — the same
+check behind the chip's warning triangle and the [Environment
+page](#environment-uienvironment)'s Upstream group. Opening a step's dropdown
+closes that step's card.
 
 The card's link is reachable with a pointer; it isn't in the keyboard tab
 order, so on a keyboard or a touch device use the endpoint's **View in

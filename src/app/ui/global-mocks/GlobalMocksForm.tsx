@@ -63,7 +63,7 @@ export function GlobalMocksForm({
               <h2 className="mt-1 text-secondary-foreground">{system.name}</h2>
               {systemEndpoints.map((endpoint) => {
                 const stored = selectionMap.get(key(system.slug, endpoint.name))?.scenario
-                const offered = scenariosWithPassthrough(endpoint, passthroughAsDefault)
+                const offered = scenariosWithPassthrough(endpoint, passthroughAsDefault, system, env)
                 const { options, unavailable } = scenarioOptionsWithDangling(offered, stored)
                 const stale = unavailable.length > 0
                 const selected = stored ?? implicit

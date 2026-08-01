@@ -42,6 +42,36 @@ describe('ScenarioHoverCardBody', () => {
     expect(html).toContain('Forwards the request')
     expect(html).not.toContain('View full response')
   })
+  it('shows the resolved upstream url for passthrough when the base url is set', () => {
+    const html = renderToStaticMarkup(
+      <ScenarioHoverCardBody
+        option={{
+          label: 'Passthrough',
+          summary: 'Forwards the request to the live upstream service.',
+          kind: 'passthrough',
+          baseUrlEnv: 'HELLO_SYSTEM_URL',
+          url: 'http://localhost:9999',
+        }}
+      />,
+    )
+    expect(html).toContain('http://localhost:9999')
+    expect(html).not.toContain('is not set')
+  })
+  it('warns which env var is unset for passthrough when the base url is missing', () => {
+    const html = renderToStaticMarkup(
+      <ScenarioHoverCardBody
+        option={{
+          label: 'Passthrough',
+          summary: 'Forwards the request to the live upstream service.',
+          kind: 'passthrough',
+          baseUrlEnv: 'HELLO_SYSTEM_URL',
+          url: null,
+        }}
+      />,
+    )
+    expect(html).toContain('HELLO_SYSTEM_URL')
+    expect(html).toContain('is not set')
+  })
   it('omits the summary line when the option has none', () => {
     const html = renderToStaticMarkup(<ScenarioHoverCardBody option={{ label: 'Plain', status: 200, kind: 'fixture' }} onViewResponse={() => {}} />)
     expect(html).toContain('HTTP 200 OK')
