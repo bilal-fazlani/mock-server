@@ -61,12 +61,14 @@ terminal.
 filter on scenario, outcome, or profile rather than grepping a formatted string:
 
 ```json
-{"@timestamp":"2026-07-31T16:48:04.417Z","log.level":"info","message":"[mock] POST /invoices?verbose=true -> 200 252ms billing/create-invoice profile=customer-123 scenario=default outcome=fixture delay=250ms","service.name":"mock-server","service.version":"0.5.0","http.request.method":"POST","url.path":"/invoices","url.query":"verbose=true","http.response.status_code":200,"event.duration":252000000,"mock.logId":"lg_b3b1d97a6ab8","mock.system":"billing","mock.endpoint":"create-invoice","mock.profileId":"customer-123","mock.scenario":"default","mock.scenarioSource":"implicit","mock.outcome":"fixture","mock.delayMs":250}
+{"@timestamp":"2026-07-31T16:48:04.417Z","log.level":"info","message":"[mock] POST /invoices?verbose=true -> 200 252ms billing/create-invoice profile=customer-123 scenario=default outcome=fixture delay=250ms","service.name":"mock-server","service.version":"0.5.0","http.request.method":"POST","url.path":"/invoices","url.query":"verbose=true","http.response.status_code":200,"event.duration":252000000,"trace.id":"0af7651916cd43dd8448eb211c80319c","mock.logId":"lg_b3b1d97a6ab8","mock.traceSampled":true,"mock.system":"billing","mock.endpoint":"create-invoice","mock.profileId":"customer-123","mock.scenario":"default","mock.scenarioSource":"implicit","mock.outcome":"fixture","mock.delayMs":250}
 ```
 
 The severity threshold applies exactly as it does in text mode — `json` changes
 the serialization, not what gets logged. The human one-liner is kept verbatim as
-`message`, so a JSON stream is still readable by eye.
+`message`, so a JSON stream is still readable by eye. The `trace.id` and
+`mock.traceSampled` fields above come from the caller's `traceparent` header;
+a request arriving without one simply omits them.
 
 ### Field mapping
 
@@ -88,7 +90,9 @@ an index. **A field is omitted entirely when it does not apply** — absent, nev
 | `url.query` | Query string **without** the leading `?`. Omitted when there is none. |
 | `http.response.status_code` | Response status. |
 | `event.duration` | Total request duration in **nanoseconds** (see below). |
+| `trace.id` | The caller's distributed-trace ID, when the request carried one — see [Distributed trace correlation](request-logs.md#distributed-trace-correlation). |
 | `mock.logId` | The `x-mock-log-id` value for this request. |
+| `mock.traceSampled` | Whether the caller's `traceparent` marked the trace as sampled. Omitted when the ID came from `x-request-id`, which has no such flag. |
 | `mock.system` / `mock.endpoint` | Catalog system slug and endpoint name, once routing matched. |
 | `mock.profileId` | Resolved profile ID, once one resolved. |
 | `mock.scenario` | Served scenario slug — the resolver's return value when the scenario is resolver-backed. |
@@ -117,6 +121,15 @@ Three naming choices are deliberate and worth knowing:
 response returns as `x-mock-log-id`, so a line found in Kibana pastes straight
 into the log-ID filter at `/ui/logs` for the headers and bodies, which the
 console line never carries.
+
+`trace.id` is the bridge in the other direction — from a failing service's log
+line *to* this one. Search the trace ID your caller already logs, and the mock
+server's lines come back alongside every other service's, with
+`mock.scenario` / `mock.scenarioSource` / `mock.outcome` saying what the fake
+upstream returned and why it chose that. Take `mock.logId` from the same line to
+open the full request in `/ui`. Which headers supply it, and what happens when
+one is malformed, is covered in
+[Distributed trace correlation](request-logs.md#distributed-trace-correlation).
 
 ### Lines that are not requests
 

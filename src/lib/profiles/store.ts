@@ -118,6 +118,12 @@ export async function ensureIndexes(
   // sort (slow first load); with it the sort is index-ordered and stops at `limit`.
   // It also backs the keyset (ts, logId) `$or` bounds used by before/since paging.
   await db.collection('requestLogs').createIndex({ ts: -1, logId: -1 })
+  // Compound with `ts` like every other filter index here, so a future trace-ID
+  // filter stays index-ordered under the { ts: -1, logId: -1 } sort instead of
+  // falling into a blocking in-memory sort. Sparse because untraced requests
+  // write no `traceId` at all, so the index skips them rather than carrying a
+  // null per row.
+  await db.collection('requestLogs').createIndex({ traceId: 1, ts: -1 }, { sparse: true })
 }
 
 // Reconcile the requestLogs { ts: 1 } TTL index to `ttlSeconds`. MongoDB rejects

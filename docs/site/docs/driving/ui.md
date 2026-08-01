@@ -77,7 +77,9 @@ top, filterable by profile, endpoint, errors-only, or a specific log ID, with
 each entry expanding to its full decision trace and captured request/response.
 What a log entry records — and how `x-mock-log-id` response headers let a
 failing test jump straight to its own trace — is covered in
-[Request logs](request-logs.md).
+[Request logs](request-logs.md). An expanded entry shows its log ID in the
+detail footer, and beside it the caller's [distributed-trace
+ID](request-logs.md#distributed-trace-correlation) when the request carried one.
 
 ## Environment (`/ui/environment`)
 
