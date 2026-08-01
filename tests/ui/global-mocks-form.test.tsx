@@ -103,3 +103,17 @@ describe('GlobalMocksForm reset dynamic history button', () => {
     expect(html).not.toMatch(/>Expired<\/span><svg[^>]*aria-label="Resolved by code at request time"/)
   })
 })
+
+describe('GlobalMocksForm catalog link', () => {
+  it('links each endpoint card to its catalog page', () => {
+    const html = render([])
+    expect(html).toContain('href="/ui/catalog/hello-system/oauth_token"')
+    expect(html).toContain('View in catalog')
+  })
+
+  it('keeps the link when the reset button also renders', () => {
+    const html = render([selection('dynamic')])
+    expect(html).toContain('Reset resolver history')
+    expect(html).toContain('View in catalog')
+  })
+})
