@@ -51,10 +51,16 @@ resolver or `Passthrough` has no status of its own), and its `summary` when
 one is set. A fixture or resolver card adds a "View full response →"
 (resolver: "View resolver code →") link that opens a modal — closed with
 Escape or its close button, without leaving the page — showing the same
-rendered response the [catalog](#catalog-uicatalog) page shows, plus an `Open
+rendered content the [catalog](#catalog-uicatalog) page shows (the response
+body for a fixture, the resolver's source for a resolver), plus an `Open
 <endpoint> in the catalog` link; `Passthrough`'s card shows its fixed summary
 ("Forwards the request to the live upstream service.") with no link. Opening
 a step's dropdown closes that step's card.
+
+The card's link is reachable with a pointer; it isn't in the keyboard tab
+order, so on a keyboard or a touch device use the endpoint's **View in
+catalog** link instead, which shows every scenario's summary and rendered
+content in one place.
 
 Profiles store **deltas**: leaving an endpoint on the implicit scenario stores
 nothing. A pick that has gone stale (its scenario file was removed) is shown as
