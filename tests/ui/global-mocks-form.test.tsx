@@ -35,6 +35,16 @@ function selection(scenario: string): GlobalMockScenario {
   }
 }
 
+// One scenario chip's markup: from its radio input to the end of the enclosing
+// <label>, so per-slug assertions can never leak into a neighbouring chip.
+function chipForValue(html: string, value: string): string {
+  const start = html.indexOf(`value="${value}"`)
+  if (start === -1) throw new Error(`scenario chip ${value} not found`)
+  const end = html.indexOf('</label>', start)
+  if (end === -1) throw new Error(`chip ${value} is not closed`)
+  return html.slice(start, end)
+}
+
 function render(selections: GlobalMockScenario[]): string {
   return renderToStaticMarkup(
     <GlobalMocksForm
@@ -90,17 +100,22 @@ describe('GlobalMocksForm reset dynamic history button', () => {
     expect(html).toContain('Reset resolver history')
   })
 
-  it('marks resolver-backed scenarios with a code badge, scoped to that slug', () => {
+  it('marks resolver-backed scenarios with a code icon, scoped to that slug', () => {
     const html = render([selection('dynamic')])
-    // Exactly one badge — only the resolver-backed slug ("dynamic") carries it,
+    // Exactly one icon — only the resolver-backed slug ("dynamic") carries it,
     // not every option (guards against a flipped/`length > 0` condition).
     const badges = html.match(/aria-label="Resolved by code at request time"/g)
     expect(badges).toHaveLength(1)
-    // The badge sits on the resolver-backed option ("dynamic")…
-    expect(html).toMatch(/>dynamic<\/span><svg[^>]*aria-label="Resolved by code at request time"/)
-    // …and NOT on the fixture-backed options ("Token", "Expired").
-    expect(html).not.toMatch(/>Token<\/span><svg[^>]*aria-label="Resolved by code at request time"/)
-    expect(html).not.toMatch(/>Expired<\/span><svg[^>]*aria-label="Resolved by code at request time"/)
+    // The icon fills the slot on the resolver-backed option ("dynamic")…
+    const resolverChip = chipForValue(html, 'dynamic')
+    expect(resolverChip).toContain('aria-label="Resolved by code at request time"')
+    expect(resolverChip).toContain('>dynamic<')
+    // …and NOT on the fixture-backed options ("Token", "Expired"), which keep
+    // their radio dot.
+    expect(chipForValue(html, 'default')).not.toContain('aria-label="Resolved by code at request time"')
+    expect(chipForValue(html, 'default')).toContain('rounded-full')
+    expect(chipForValue(html, 'expired')).not.toContain('aria-label="Resolved by code at request time"')
+    expect(chipForValue(html, 'expired')).toContain('rounded-full')
   })
 })
 

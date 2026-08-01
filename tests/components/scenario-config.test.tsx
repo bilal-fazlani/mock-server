@@ -29,7 +29,9 @@ describe('ScenarioConfig', () => {
   it('renders the single-scenario radio picker for a string selection', () => {
     const html = renderToStaticMarkup(
       <ScenarioConfig
+        system="hello-system"
         endpointName="hello_world"
+        endpointDisplayName="Hello World"
         scenarios={scenarios}
         selection="failure"
         fallback="default"
@@ -42,7 +44,9 @@ describe('ScenarioConfig', () => {
   it('renders the single-scenario picker on the fallback when nothing is selected', () => {
     const html = renderToStaticMarkup(
       <ScenarioConfig
+        system="hello-system"
         endpointName="hello_world"
+        endpointDisplayName="Hello World"
         scenarios={scenarios}
         selection={undefined}
         fallback="default"
@@ -54,7 +58,9 @@ describe('ScenarioConfig', () => {
   it('renders sequence mode with one scenario picker per step and a hidden JSON field', () => {
     const html = renderToStaticMarkup(
       <ScenarioConfig
+        system="hello-system"
         endpointName="hello_world"
+        endpointDisplayName="Hello World"
         scenarios={scenarios}
         selection={['timeout', 'failure', 'default']}
         fallback="default"
@@ -70,7 +76,9 @@ describe('ScenarioConfig', () => {
   it('renders step triggers with a one-line label and scenario-kind colors', () => {
     const html = renderToStaticMarkup(
       <ScenarioConfig
+        system="hello-system"
         endpointName="hello_world"
+        endpointDisplayName="Hello World"
         scenarios={scenarios}
         selection={['timeout', 'real', 'default']}
         fallback="default"
@@ -88,7 +96,9 @@ describe('ScenarioConfig', () => {
   it('falls back to the scenario key as the label when no name exists', () => {
     const html = renderToStaticMarkup(
       <ScenarioConfig
+        system="hello-system"
         endpointName="hello_world"
+        endpointDisplayName="Hello World"
         scenarios={{ ...scenarios, mystery_case: { label: 'mystery_case', kind: 'fixture' } }}
         selection={['mystery_case']}
         fallback="default"
@@ -100,7 +110,9 @@ describe('ScenarioConfig', () => {
   it('renders a drag handle per step instead of move buttons', () => {
     const html = renderToStaticMarkup(
       <ScenarioConfig
+        system="hello-system"
         endpointName="hello_world"
+        endpointDisplayName="Hello World"
         scenarios={scenarios}
         selection={['timeout', 'failure', 'default']}
         fallback="default"
@@ -117,7 +129,9 @@ describe('ScenarioConfig', () => {
   it('marks only the last step with a repeat icon, without ordinal text', () => {
     const html = renderToStaticMarkup(
       <ScenarioConfig
+        system="hello-system"
         endpointName="hello_world"
+        endpointDisplayName="Hello World"
         scenarios={scenarios}
         selection={['timeout', 'default']}
         fallback="default"
@@ -131,7 +145,9 @@ describe('ScenarioConfig', () => {
   it('shows served progress and the next step against the saved sequence', () => {
     const html = renderToStaticMarkup(
       <ScenarioConfig
+        system="hello-system"
         endpointName="hello_world"
+        endpointDisplayName="Hello World"
         scenarios={scenarios}
         selection={['timeout', 'failure', 'default']}
         fallback="default"
@@ -145,7 +161,9 @@ describe('ScenarioConfig', () => {
   it('omits progress when no calls were served', () => {
     const html = renderToStaticMarkup(
       <ScenarioConfig
+        system="hello-system"
         endpointName="hello_world"
+        endpointDisplayName="Hello World"
         scenarios={scenarios}
         selection={['timeout', 'default']}
         fallback="default"
@@ -157,7 +175,9 @@ describe('ScenarioConfig', () => {
   it('shows a dangling single selection as a disabled, checked, labeled option', () => {
     const html = renderToStaticMarkup(
       <ScenarioConfig
+        system="hello-system"
         endpointName="hello_world"
+        endpointDisplayName="Hello World"
         scenarios={scenarios}
         selection="ghost"
         fallback="default"
@@ -170,7 +190,9 @@ describe('ScenarioConfig', () => {
   it('shows a dangling sequence step with its unavailable label', () => {
     const html = renderToStaticMarkup(
       <ScenarioConfig
+        system="hello-system"
         endpointName="hello_world"
+        endpointDisplayName="Hello World"
         scenarios={scenarios}
         selection={['default', 'gone']}
         fallback="default"

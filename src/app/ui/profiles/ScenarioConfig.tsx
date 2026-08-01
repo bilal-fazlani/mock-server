@@ -12,7 +12,9 @@ const resetButtonClass =
   'inline-flex items-center gap-1.5 bg-background px-2.5 py-1 text-[0.76rem] text-secondary-foreground hover:border-muted-foreground hover:text-foreground'
 
 export function ScenarioConfig({
+  system,
   endpointName,
+  endpointDisplayName,
   scenarios,
   selection,
   fallback,
@@ -20,7 +22,11 @@ export function ScenarioConfig({
   resetAction,
   resetDynamicAction,
 }: {
+  /** System slug — the disclosure needs it to build catalog URLs. */
+  system: string
   endpointName: string
+  /** Human-readable endpoint name, for the disclosure's catalog link. */
+  endpointDisplayName: string
   scenarios: Record<string, ScenarioOption>
   selection: ScenarioSelection | undefined
   fallback: string
@@ -112,7 +118,9 @@ export function ScenarioConfig({
           }}
         >
           <ScenarioPicker
+            system={system}
             endpointName={endpointName}
+            endpointDisplayName={endpointDisplayName}
             scenarios={options}
             selected={singleValue}
             unavailable={unavailable}

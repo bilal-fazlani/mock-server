@@ -105,7 +105,9 @@ export function ProfileForm({
                     </Alert>
                   )}
                   <ScenarioConfig
+                    system={system.slug}
                     endpointName={endpoint.name}
+                    endpointDisplayName={endpoint.displayName}
                     scenarios={scenariosWithPassthrough(endpoint, passthroughAsDefault)}
                     selection={selected}
                     fallback={gapFallback}

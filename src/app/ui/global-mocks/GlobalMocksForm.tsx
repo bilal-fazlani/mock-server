@@ -93,7 +93,9 @@ export function GlobalMocksForm({
                       </Alert>
                     )}
                     <ScenarioPicker
+                      system={system.slug}
                       endpointName={endpoint.name}
+                      endpointDisplayName={endpoint.displayName}
                       fieldName={`scenario:${system.slug}:${endpoint.name}`}
                       scenarios={options}
                       selected={selected}
