@@ -226,4 +226,24 @@ a:focus-visible {
   color: var(--shiki-dark);
   background-color: var(--shiki-dark-bg);
 }
+
+/* Overlay scrollbars (macOS/trackpad default) auto-hide until you touch
+   them, so a horizontally-scrollable code/JSON preview gives no clue it's
+   cut off. Declaring ::-webkit-scrollbar switches Chrome/Safari to a
+   classic, always-rendered scrollbar; scrollbar-color does the same for
+   Firefox. */
+.code-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.code-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+.code-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.code-scroll::-webkit-scrollbar-thumb {
+  background-color: var(--border);
+  border-radius: 4px;
+}
 }
