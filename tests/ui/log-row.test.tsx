@@ -72,6 +72,28 @@ describe('LogRow', () => {
     expect(html).not.toContain('18:14:03.120')
   })
 
+  it('renders highlighted markup for a body when the detail route supplied it', () => {
+    const full = entry()
+    const html = renderToStaticMarkup(
+      <LogRow
+        entry={full}
+        defaultExpanded
+        initialDetail={full}
+        initialBodyHtml={{ request: '<pre class="shiki"><span>REQ_HIGHLIGHTED</span></pre>' }}
+      />,
+    )
+    expect(html).toContain('REQ_HIGHLIGHTED')
+    expect(html).toContain('class="shiki"')
+  })
+
+  it('falls back to a plain pre for a body with no markup, so nothing is lost', () => {
+    const full = entry()
+    const html = renderToStaticMarkup(<LogRow entry={full} defaultExpanded initialDetail={full} />)
+    // The response body still renders, just uncoloured.
+    expect(html).toContain('&quot;ok&quot;: true')
+    expect(html).not.toContain('class="shiki"')
+  })
+
   it('shows picked → returned when a resolver ran', () => {
     const full = entry({
       trace: {

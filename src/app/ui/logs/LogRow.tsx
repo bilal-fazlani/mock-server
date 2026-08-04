@@ -6,7 +6,7 @@ import { Check, ChevronRight, Copy, Server, UserRound } from 'lucide-react'
 import Link from 'next/link'
 import { MethodBadge } from '../../components/MethodBadge'
 import { formatTimestamp } from '../../../lib/format'
-import type { LogEntryView, LogSummaryView } from './types'
+import type { LogBodyHtml, LogDetailResponse, LogEntryView, LogSummaryView } from './types'
 
 const systemChipClass =
   'inline-flex min-h-6 max-w-[180px] items-center gap-[5px] rounded-full border border-[rgba(var(--accent-rgb),0.35)] bg-card px-2 py-0.5 text-[0.75rem] font-[650] leading-none text-secondary-foreground no-underline hover:border-[rgba(var(--accent-rgb),0.58)] hover:bg-[var(--accent-tint)] hover:text-foreground'
@@ -24,6 +24,7 @@ export function LogRow({
   captureSelectorLabels = {},
   defaultExpanded = false,
   initialDetail,
+  initialBodyHtml,
   timeZone,
 }: {
   entry: LogSummaryView
@@ -32,12 +33,14 @@ export function LogRow({
   captureSelectorLabels?: Record<string, string>
   defaultExpanded?: boolean
   initialDetail?: LogEntryView
+  initialBodyHtml?: LogBodyHtml
   /** Browser zone to render `ts` in. Omitted on the server render, which uses UTC. */
   timeZone?: string
 }) {
   const [expanded, setExpanded] = useState(defaultExpanded)
   const [copied, setCopied] = useState(false)
   const [detail, setDetail] = useState<LogEntryView | null>(initialDetail ?? null)
+  const [bodyHtml, setBodyHtml] = useState<LogBodyHtml>(initialBodyHtml ?? {})
   const [detailError, setDetailError] = useState(false)
 
   // Fetch the full entry (payloads) the first time the row opens.
@@ -46,8 +49,10 @@ export function LogRow({
     let cancelled = false
     fetch(`/ui/api/logs/${encodeURIComponent(entry.logId)}`)
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error('not_found'))))
-      .then((data: { entry: LogEntryView }) => {
-        if (!cancelled) setDetail(data.entry)
+      .then((data: LogDetailResponse) => {
+        if (cancelled) return
+        setDetail(data.entry)
+        setBodyHtml(data.bodyHtml ?? {})
       })
       .catch(() => {
         if (!cancelled) setDetailError(true)
@@ -159,6 +164,7 @@ export function LogRow({
         (detail ? (
           <LogDetail
             entry={detail}
+            bodyHtml={bodyHtml}
             copied={copied}
             setCopied={setCopied}
             captureSelectorLabels={captureSelectorLabels}
@@ -174,11 +180,13 @@ export function LogRow({
 
 function LogDetail({
   entry,
+  bodyHtml = {},
   copied,
   setCopied,
   captureSelectorLabels,
 }: {
   entry: LogEntryView
+  bodyHtml?: LogBodyHtml
   copied: boolean
   setCopied: (v: boolean) => void
   captureSelectorLabels: Record<string, string>
@@ -304,9 +312,16 @@ function LogDetail({
         </dl>
       )}
 
-      {entry.request && <PayloadBlock label="Request" payload={entry.request} />}
+      {entry.request && (
+        <PayloadBlock label="Request" payload={entry.request} html={bodyHtml.request} />
+      )}
       {entry.response && (
-        <PayloadBlock label="Response" payload={entry.response} meta={timing?.value} />
+        <PayloadBlock
+          label="Response"
+          payload={entry.response}
+          meta={timing?.value}
+          html={bodyHtml.response}
+        />
       )}
 
       <div className="flex items-center justify-between gap-2.5">
@@ -496,10 +511,13 @@ function PayloadBlock({
   label,
   payload,
   meta,
+  html,
 }: {
   label: string
   payload: { body: unknown; truncated: boolean; status?: number }
   meta?: string
+  /** Shiki markup from the detail route; absent until it arrives, or for string bodies. */
+  html?: string
 }) {
   if (payload.body === null || payload.body === undefined) return null
   return (
@@ -517,9 +535,16 @@ function PayloadBlock({
           </span>
         )}
       </span>
-      <pre className="m-0 overflow-x-auto rounded-sm border border-border bg-card px-3 py-2.5 font-mono text-[0.76rem] leading-[1.5]">
-        {typeof payload.body === 'string' ? payload.body : JSON.stringify(payload.body, null, 2)}
-      </pre>
+      {html ? (
+        <div
+          className="code-scroll overflow-x-auto rounded-sm border border-border text-[0.76rem] leading-[1.5] [&_pre]:m-0 [&_pre]:inline-block [&_pre]:min-w-full [&_pre]:px-3 [&_pre]:py-2.5"
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
+      ) : (
+        <pre className="m-0 overflow-x-auto rounded-sm border border-border bg-card px-3 py-2.5 font-mono text-[0.76rem] leading-[1.5]">
+          {typeof payload.body === 'string' ? payload.body : JSON.stringify(payload.body, null, 2)}
+        </pre>
+      )}
     </div>
   )
 }

@@ -3,7 +3,7 @@ import type { EndpointDef, SystemDef } from '../../../lib/catalog/types'
 import { REAL_LABEL } from '../../../lib/config'
 import { loadFixture } from '../../../lib/mock-engine/fixtures'
 import { resolverFilePath } from '../../../lib/mock-engine/resolver'
-import { highlight } from './highlight'
+import { highlight } from '../highlight'
 
 export type ScenarioView = {
   key: string

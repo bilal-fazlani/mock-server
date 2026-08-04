@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { highlight } from '../../src/app/ui/catalog/highlight'
+import { highlight } from '../../src/app/ui/highlight'
 
 // Pulls the --shiki-dark colour shiki assigned to the span holding `token`.
 // Shiki keeps a token's leading indentation inside its span, so allow it.

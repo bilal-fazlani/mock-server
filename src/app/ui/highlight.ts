@@ -4,16 +4,16 @@ import { bundledThemes, codeToHtml, type BundledTheme, type ThemeRegistration } 
 // as --shiki-light/--shiki-dark CSS variables; globals.css swaps them on the
 // `.dark` root class set by next-themes (attribute="class" in layout.tsx).
 export async function highlight(code: string, lang: 'json' | 'javascript'): Promise<string> {
-  const [light, dark] = await Promise.all([catalogTheme('github-light'), catalogTheme('github-dark')])
+  const [light, dark] = await Promise.all([themeFor('github-light'), themeFor('github-dark')])
   return codeToHtml(code, { lang, themes: { light, dark }, defaultColor: false })
 }
 
 const themes = new Map<BundledTheme, Promise<ThemeRegistration>>()
 
-function catalogTheme(name: BundledTheme): Promise<ThemeRegistration> {
+function themeFor(name: BundledTheme): Promise<ThemeRegistration> {
   let pending = themes.get(name)
   if (!pending) {
-    pending = loadCatalogTheme(name)
+    pending = loadTheme(name)
     themes.set(name, pending)
   }
   return pending
@@ -27,7 +27,7 @@ function catalogTheme(name: BundledTheme): Promise<ThemeRegistration> {
 // suffix leaves JS alone: its booleans are `constant.language.boolean.*.js`,
 // and the added rule is more specific than the theme's own `constant` rule, so
 // it wins scope resolution.
-async function loadCatalogTheme(name: BundledTheme): Promise<ThemeRegistration> {
+async function loadTheme(name: BundledTheme): Promise<ThemeRegistration> {
   const base = (await bundledThemes[name]()).default
   const tokenColors = base.tokenColors ?? []
   const keyword = tokenColors.find((rule) => rule.scope === 'keyword')?.settings?.foreground
@@ -35,7 +35,7 @@ async function loadCatalogTheme(name: BundledTheme): Promise<ThemeRegistration> 
 
   return {
     ...base,
-    name: `${base.name}-catalog`,
+    name: `${base.name}-mock-server`,
     tokenColors: [...tokenColors, { scope: 'constant.language.json', settings: { foreground: keyword } }],
   }
 }

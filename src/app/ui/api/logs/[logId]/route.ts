@@ -1,5 +1,6 @@
 import { getLogEntry } from '../../../../../lib/logs/store'
 import { getDb } from '../../../../../lib/profiles/store'
+import { buildBodyHtml } from '../../../logs/body-html'
 import { toLogEntryView } from '../../../logs/types'
 
 export const dynamic = 'force-dynamic'
@@ -11,5 +12,7 @@ export async function GET(
   const { logId } = await params
   const entry = await getLogEntry(await getDb(), logId)
   if (!entry) return Response.json({ error: 'not_found' }, { status: 404 })
-  return Response.json({ entry: toLogEntryView(entry) })
+
+  const bodyHtml = await buildBodyHtml(entry.request, entry.response)
+  return Response.json({ entry: toLogEntryView(entry), ...(bodyHtml && { bodyHtml }) })
 }

@@ -33,7 +33,7 @@ namespace; every control route lives under `/ui/api/*`. Error responses are
 | `DELETE /ui/api/profiles/{profileId}` | — | `204` (cascades) | — |
 | `POST /ui/api/profiles/{profileId}/reset` | `{ endpoint? }` | `204` | — |
 | `GET /ui/api/logs` | — (query params below) | `200 { "entries": … }` | — |
-| `GET /ui/api/logs/{logId}` | — | `200` log entry | — |
+| `GET /ui/api/logs/{logId}` | — | `200 { "entry": …, "bodyHtml": … }` | — |
 | `GET /ui/api/health` | — | `200 { status, mongo, version, sha }` | `503` Mongo down (same body shape) |
 
 ## `GET /ui/api/catalog`
@@ -144,5 +144,14 @@ parameters:
 | `limit` | Page size, clamped to 1–200 |
 
 Fetch one full entry (with the decision trace and captured request/response) via
-`GET /ui/api/logs/{logId}`. See [Request logs](request-logs.md) for what a log
-records.
+`GET /ui/api/logs/{logId}`, which answers
+`{ "entry": { … }, "bodyHtml": { … } }`. See [Request logs](request-logs.md) for
+what a log records.
+
+`bodyHtml` is presentation data for the dashboard — syntax-highlighted markup
+for the entry's request and response bodies, keyed `request` and `response`.
+**Scripts should read `entry` and ignore it.** A side is omitted when that body
+is absent or was stored as a raw string rather than structured JSON, and the
+whole field is omitted when neither side qualifies, so treat every level as
+optional. The bodies themselves are unchanged inside `entry` — nothing is only
+available as markup.
