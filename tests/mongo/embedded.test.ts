@@ -35,6 +35,18 @@ describe('resolveMongoUri', () => {
     const [a, b] = await Promise.all([resolveMongoUri(), resolveMongoUri()])
     expect(a).toBe(b)
   })
+
+  // Next compiles the server-component graph and the route-handler graph as
+  // separate bundles and re-evaluates modules on every HMR recompile, so the
+  // memo has to survive a fresh module instance. When it didn't, every copy
+  // booted its own mongod with its own empty dataset and a profile saved in the
+  // UI came back `profile_not_found` from the mock router.
+  it('reuses the same embedded instance from a fresh module instance', async () => {
+    const first = await resolveMongoUri()
+    vi.resetModules()
+    const reimported = await import('../../src/lib/mongo/embedded')
+    expect(await reimported.resolveMongoUri()).toBe(first)
+  })
 })
 
 describe('resolveMongoUri boot failure recovery', () => {
@@ -59,8 +71,9 @@ describe('resolveMongoUri boot failure recovery', () => {
     }))
     vi.resetModules()
 
-    // Re-import the module fresh so it picks up the mocked dependency and has
-    // its own isolated `embeddedPromise`/`server` module state.
+    // Re-import the module fresh so it picks up the mocked dependency. The memo
+    // itself lives on globalThis and so survives the reset — the preceding
+    // afterEach's stopEmbeddedMongo() is what leaves it clear for this boot.
     const isolated = await import('../../src/lib/mongo/embedded')
 
     await expect(isolated.resolveMongoUri()).rejects.toThrow(

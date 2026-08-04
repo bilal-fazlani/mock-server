@@ -77,17 +77,34 @@ export class ProfileKeyMappingConflictError extends Error {
   }
 }
 
-let client: MongoClient | null = null
+// Pinned to globalThis for the same reason as the embedded mongod's URI memo
+// (see mongo/embedded.ts): a module-level `let` is one value per *bundle*, not
+// per process, so the UI's server components and the route handlers would each
+// open their own client. Memoized as a promise so concurrent first callers
+// await one connect() instead of racing to build two clients.
+const globalScope = globalThis as typeof globalThis & {
+  __mockServerMongoClient?: Promise<MongoClient> | null
+}
 
 export async function getDb(): Promise<Db> {
-  if (!client) {
-    const uri = await resolveMongoUri()
-    client = new MongoClient(uri)
-    await client.connect()
-    await ensureIndexes(client.db(dbName()))
-    await pruneOrphanedHistoryOnce(client.db(dbName()))
+  if (!globalScope.__mockServerMongoClient) {
+    globalScope.__mockServerMongoClient = connectClient().catch((err) => {
+      // A failed connect must not poison the singleton — clear it so the next
+      // call retries rather than returning the dead rejection.
+      globalScope.__mockServerMongoClient = null
+      throw err
+    })
   }
-  return client.db(dbName())
+  return (await globalScope.__mockServerMongoClient).db(dbName())
+}
+
+async function connectClient(): Promise<MongoClient> {
+  const uri = await resolveMongoUri()
+  const connected = new MongoClient(uri)
+  await connected.connect()
+  await ensureIndexes(connected.db(dbName()))
+  await pruneOrphanedHistoryOnce(connected.db(dbName()))
+  return connected
 }
 
 function dbName(): string {
