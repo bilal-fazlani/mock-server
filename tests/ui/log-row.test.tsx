@@ -55,6 +55,23 @@ describe('LogRow', () => {
     expect(html).not.toContain('12 ms')
   })
 
+  it('renders the full date and time, not just the time of day', () => {
+    const html = renderToStaticMarkup(<LogRow entry={entry()} />)
+    expect(html).toContain('2026-07-07 09:14:03.120')
+  })
+
+  it('renders the timestamp in the given zone and keeps UTC in the tooltip', () => {
+    const html = renderToStaticMarkup(<LogRow entry={entry()} timeZone="Asia/Tokyo" />)
+    expect(html).toContain('2026-07-07 18:14:03.120')
+    expect(html).toContain('title="2026-07-07 09:14:03.120 UTC"')
+  })
+
+  it('falls back to UTC without a zone, so the server render matches first hydration', () => {
+    const html = renderToStaticMarkup(<LogRow entry={entry()} />)
+    expect(html).toContain('title="2026-07-07 09:14:03.120 UTC"')
+    expect(html).not.toContain('18:14:03.120')
+  })
+
   it('shows picked → returned when a resolver ran', () => {
     const full = entry({
       trace: {

@@ -43,6 +43,19 @@ describe('LogsView filters', () => {
   })
 })
 
+describe('LogsView timezone', () => {
+  it('labels the zone the timestamps are rendered in, starting at UTC on the server', () => {
+    const html = renderToStaticMarkup(
+      <LogsView initialEntries={[summary('lg_1')]} options={options} initialProfile="" />,
+    )
+    expect(html).toContain('data-logs-timezone')
+    expect(html).toContain('Times in UTC')
+    // The server render must be UTC so the first client render matches it; the
+    // browser zone is swapped in after mount by useTimeZone.
+    expect(html).toContain('2026-07-07 09:00:00.000')
+  })
+})
+
 describe('LogsView pagination', () => {
   it('renders a scroll container and an infinite-scroll sentinel when there are entries', () => {
     const html = renderToStaticMarkup(

@@ -15,6 +15,7 @@ import {
 } from './list-state'
 import type { LogSummaryView } from './types'
 import { Button } from '../../components/ui/button'
+import { useTimeZone } from './use-time-zone'
 
 const POLL_INTERVAL_MS = 2000
 const MAX_SUGGESTIONS = 8
@@ -70,6 +71,8 @@ export function LogsView({
   const [browsing, setBrowsing] = useState(false)
   const [atFloor, setAtFloor] = useState(false)
   const [capped, setCapped] = useState(false)
+
+  const zone = useTimeZone()
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
@@ -240,6 +243,9 @@ export function LogsView({
           </label>
         </div>
         <div className="flex items-center gap-2">
+          <span className="text-[0.78rem] text-muted-foreground" data-logs-timezone>
+            Times in {zone.label}
+          </span>
           <label className={filterToggleClass}>
             <input type="checkbox" checked={paused} onChange={(e) => setPaused(e.target.checked)} />
             Pause
@@ -298,6 +304,7 @@ export function LogsView({
               systemLabels={options.systemLabels}
               scenarioLabels={options.scenarioLabels}
               captureSelectorLabels={options.captureSelectorLabels}
+              timeZone={zone.id}
             />
           ))}
           {capped ? (

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { Button } from '../../components/ui/button'
 import { LogRow } from '../logs/LogRow'
+import { useTimeZone } from '../logs/use-time-zone'
 import type { LogEntryView } from '../logs/types'
 
 const POLL_INTERVAL_MS = 2000
@@ -23,6 +24,7 @@ export function RecentActivity({
   captureSelectorLabels?: Record<string, string>
 }) {
   const [entries, setEntries] = useState(initialEntries)
+  const zone = useTimeZone()
   const entriesRef = useRef(entries)
   useEffect(() => {
     entriesRef.current = entries
@@ -54,7 +56,12 @@ export function RecentActivity({
       aria-label="Recent activity"
     >
       <div className="flex items-center justify-between gap-2.5">
-        <h2 className="m-0 text-[0.95rem]">Recent activity</h2>
+        <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+          <h2 className="m-0 text-[0.95rem]">Recent activity</h2>
+          <span className="text-[0.72rem] text-muted-foreground" data-logs-timezone>
+            Times in {zone.label}
+          </span>
+        </div>
         <Button asChild variant="secondary" size="sm">
           <Link href={`/ui/logs?profile=${encodeURIComponent(profileId)}`}>View all logs</Link>
         </Button>
@@ -73,6 +80,7 @@ export function RecentActivity({
               systemLabels={systemLabels}
               scenarioLabels={scenarioLabels}
               captureSelectorLabels={captureSelectorLabels}
+              timeZone={zone.id}
             />
           ))}
         </div>

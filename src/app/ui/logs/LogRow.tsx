@@ -5,6 +5,7 @@ import type { ReactNode } from 'react'
 import { Check, ChevronRight, Copy, Server, UserRound } from 'lucide-react'
 import Link from 'next/link'
 import { MethodBadge } from '../../components/MethodBadge'
+import { formatTimestamp } from '../../../lib/format'
 import type { LogEntryView, LogSummaryView } from './types'
 
 const systemChipClass =
@@ -23,6 +24,7 @@ export function LogRow({
   captureSelectorLabels = {},
   defaultExpanded = false,
   initialDetail,
+  timeZone,
 }: {
   entry: LogSummaryView
   systemLabels?: Record<string, string>
@@ -30,6 +32,8 @@ export function LogRow({
   captureSelectorLabels?: Record<string, string>
   defaultExpanded?: boolean
   initialDetail?: LogEntryView
+  /** Browser zone to render `ts` in. Omitted on the server render, which uses UTC. */
+  timeZone?: string
 }) {
   const [expanded, setExpanded] = useState(defaultExpanded)
   const [copied, setCopied] = useState(false)
@@ -54,7 +58,11 @@ export function LogRow({
   }, [expanded, detail, detailError, entry.logId])
 
   const isError = entry.outcome === 'error'
-  const time = entry.ts.slice(11, 23)
+  const at = new Date(entry.ts)
+  const time = formatTimestamp(at, timeZone)
+  // The UTC value stays reachable on hover so a row can be matched against the
+  // JSON console logs, which emit `@timestamp` in UTC.
+  const timeTitle = `${formatTimestamp(at)} UTC`
   const systemLabel = entry.system ? (systemLabels[entry.system] ?? entry.system) : undefined
   const systemIsFallback = systemLabel === entry.system
   const scenarioLabel = (scenario: string) =>
@@ -76,7 +84,9 @@ export function LogRow({
           className={`size-3.5 flex-none text-muted-foreground transition-transform duration-150 ${expanded ? 'rotate-90' : ''}`}
           aria-hidden="true"
         />
-        <span className="flex-none font-mono text-[0.75rem] text-muted-foreground">{time}</span>
+        <span className="flex-none font-mono text-[0.75rem] text-muted-foreground" title={timeTitle}>
+          {time}
+        </span>
         {entry.kind === 'admin' ? (
           <>
             <span className="rounded-full border border-[rgba(var(--accent-rgb),0.58)] bg-[var(--accent-tint)] px-[9px] py-0.5 text-[0.72rem] font-[650] uppercase text-[var(--accent-strong)]">

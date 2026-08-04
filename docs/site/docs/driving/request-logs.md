@@ -109,3 +109,26 @@ configurable with `REQUEST_LOG_TTL_DURATION` (a duration string like `30m`,
 `24h`, or `7d`; see [Configuration](../reference/configuration.md#app-configuration)).
 They are also deleted with their profile and can be cleared from the UI; request
 and response bodies over 16&nbsp;KB are stored truncated.
+
+## Timestamps
+
+Every row is stamped with the full date and time down to the millisecond —
+`2026-08-04 21:14:30.421` — rendered in **your browser's timezone**. The zone in
+use is named above the list, as `Times in Asia/Kolkata (GMT+5:30)`, so a reading
+is never ambiguous about which clock it is on. The same label sits on a profile
+page's **Recent activity** card.
+
+The date is on the row rather than in a day heading because the retention window
+spans midnight even at its 24-hour default: a time of day alone cannot separate
+today's `21:14` from yesterday's.
+
+Hover a timestamp to read the same instant in **UTC**. That is the value to
+correlate against — [console logs](console-logs.md) print `@timestamp` in UTC,
+and so does every other UTC-keyed aggregator — while the row itself stays on the
+clock you are actually reading it by.
+
+!!! note
+
+    The two surfaces disagree on purpose. A row showing `21:14:30.421` and a
+    console line showing `20:14:30.421Z` are the same request from a `GMT+1`
+    browser, not two requests — the tooltip is what proves it.

@@ -80,7 +80,7 @@ an index. **A field is omitted entirely when it does not apply** — absent, nev
 
 | Field | Value |
 | --- | --- |
-| `@timestamp` | Request time, ISO-8601. |
+| `@timestamp` | Request time, ISO-8601 in **UTC**. The dashboard shows the same instant in the browser's timezone — hover a row there to read its UTC value and match the two. See [Timestamps](request-logs.md#timestamps). |
 | `log.level` | `info`, `warn`, or `error` — the same severity the threshold is compared against. |
 | `message` | The text-format one-liner, kept as the human summary. |
 | `service.name` | Always `mock-server`. |
