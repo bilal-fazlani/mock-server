@@ -57,8 +57,11 @@ describe('ProfileForm', () => {
     const html = renderToStaticMarkup(
       <ProfileForm catalog={catalog} profile={profile} passthroughAsDefault={false} />,
     )
-    // form: max-width 1200px, min-width 0 (so it can shrink inside the page shell)
-    expect(html).toContain('<form id="profile-form" class="grid w-full min-w-0 max-w-[1200px] gap-5"')
+    // The form imposes no width cap of its own: it fills the page shell's
+    // content box, so it lines up with the sticky header above and the Recent
+    // activity card below. A cap here made that card overhang it by 32px.
+    expect(html).toContain('<form id="profile-form" class="grid w-full min-w-0 gap-5"')
+    expect(html).not.toContain('max-w-[1200px]')
     // identity card: two columns, collapsing to one below 700px
     expect(html).toContain(
       'class="grid grid-cols-2 items-start gap-3.5 rounded-lg border border-border bg-card px-5 py-[18px] shadow-sm max-[700px]:grid-cols-1"',

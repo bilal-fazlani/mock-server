@@ -38,7 +38,11 @@ describe('ProfilePageHeader', () => {
     // while its content spans the same max width as the form below it
     expect(html).toContain('sticky top-0 z-30')
     expect(html).toContain('mx-[calc(50%-50vw)]')
-    expect(html).toContain('max-w-[1200px]')
+    // That alignment comes from the content wrapper mirroring the layout
+    // shell's own box — not from a separate cap, which would have to be kept
+    // in step with every sibling on the page by hand.
+    expect(html).toContain('mx-auto w-full max-w-[1280px] px-6')
+    expect(html).not.toContain('max-w-[1200px]')
     // actions (save/delete) are pushed to the end of the header
     expect(html).toContain('ml-auto flex items-center gap-2.5')
     // elevation only appears once the bar is actually stuck

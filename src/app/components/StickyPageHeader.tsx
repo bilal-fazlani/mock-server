@@ -8,15 +8,17 @@ import { cn } from '@/lib/utils'
  * out of the centered layout container with negative margins) while its
  * content stays aligned to the layout grid. Elevation appears only once the
  * bar is actually stuck to the viewport top.
+ *
+ * The content box mirrors the layout shell's own `max-w-[1280px] px-6`, and is
+ * deliberately not overridable: a header that caps itself narrower than the
+ * page body silently misaligns with every card below it.
  */
 export function StickyPageHeader({
   children,
   className,
-  contentClassName,
 }: {
   children: React.ReactNode
   className?: string
-  contentClassName?: string
 }) {
   const barRef = useRef<HTMLDivElement>(null)
   const [stuck, setStuck] = useState(false)
@@ -45,9 +47,7 @@ export function StickyPageHeader({
       )}
     >
       <div className="mx-auto w-full max-w-[1280px] px-6">
-        <div className={cn('flex flex-wrap items-center gap-3.5 py-2.5', contentClassName)}>
-          {children}
-        </div>
+        <div className="flex flex-wrap items-center gap-3.5 py-2.5">{children}</div>
       </div>
     </div>
   )

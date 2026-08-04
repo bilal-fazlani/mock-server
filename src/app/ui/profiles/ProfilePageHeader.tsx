@@ -17,7 +17,7 @@ export function ProfilePageHeader({
 }) {
   return (
     <>
-      <StickyPageHeader contentClassName="max-w-[1200px]">
+      <StickyPageHeader>
         <Button asChild variant="secondary">
           <Link href="/ui">← All profiles</Link>
         </Button>

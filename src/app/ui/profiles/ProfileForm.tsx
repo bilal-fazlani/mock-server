@@ -40,7 +40,7 @@ export function ProfileForm({
   const gapFallback = implicitScenario(passthroughAsDefault)
   return (
     <>
-      <form id={formId} action={saveProfile} className="grid w-full min-w-0 max-w-[1200px] gap-5">
+      <form id={formId} action={saveProfile} className="grid w-full min-w-0 gap-5">
         <section className="grid grid-cols-2 items-start gap-3.5 rounded-lg border border-border bg-card px-5 py-[18px] shadow-sm max-[700px]:grid-cols-1">
           <div className="grid min-w-0 grid-rows-[auto_minmax(1rem,auto)_auto] gap-1 max-[700px]:grid-rows-none">
             <Label className="text-[0.9rem] font-semibold" htmlFor="profileId">
