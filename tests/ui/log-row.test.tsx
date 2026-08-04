@@ -94,6 +94,49 @@ describe('LogRow', () => {
     expect(html).not.toContain('class="shiki"')
   })
 
+  it('links the profile ID when the profile exists', () => {
+    const html = renderToStaticMarkup(<LogRow entry={entry()} />)
+    expect(html).toContain('href="/ui/profiles/customer-123"')
+  })
+
+  it('does not link a profile the unmocked-user policy stood in for', () => {
+    // The link would only ever 404 — nothing was ever stored under this ID.
+    const missing = entry({
+      profileId: 'test1',
+      trace: { scenario: 'default', scenarioSource: 'unmocked_policy' },
+    })
+    const html = renderToStaticMarkup(<LogRow entry={missing} />)
+    expect(html).not.toContain('href="/ui/profiles/test1"')
+    expect(html).toContain('test1')
+    expect(html).toContain('No profile &quot;test1&quot; exists')
+    expect(html).toContain('Profile does not exist')
+  })
+
+  it('does not link a profile the ERROR policy rejected', () => {
+    const rejected = entry({
+      profileId: 'test1',
+      trace: {},
+      error: { code: 'profile_not_found', message: 'profile "test1" not found' },
+    })
+    const html = renderToStaticMarkup(<LogRow entry={rejected} />)
+    expect(html).not.toContain('href="/ui/profiles/test1"')
+  })
+
+  it('marks the resolved profile in the trace, but not the selector that found it', () => {
+    const missing = entry({
+      profileId: 'test1',
+      trace: {
+        scenario: 'default',
+        scenarioSource: 'unmocked_policy',
+        profileResolution: { selector: '$.customerId', value: 'test1', via: 'direct' },
+      },
+    })
+    const html = renderToStaticMarkup(<LogRow entry={missing} defaultExpanded initialDetail={missing} />)
+    // The selector did its job; only the profile it points at is absent.
+    expect(html).toContain('$.customerId')
+    expect(html).toContain('var(--warning-text)')
+  })
+
   it('shows picked → returned when a resolver ran', () => {
     const full = entry({
       trace: {

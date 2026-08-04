@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import { Check, ChevronRight, Copy, Server, UserRound } from 'lucide-react'
+import { Check, ChevronRight, Copy, Server, TriangleAlert, UserRound } from 'lucide-react'
 import Link from 'next/link'
 import { MethodBadge } from '../../components/MethodBadge'
 import { formatTimestamp } from '../../../lib/format'
+import { profileWasMissing } from './profile-presence'
 import type { LogBodyHtml, LogDetailResponse, LogEntryView, LogSummaryView } from './types'
 
 const systemChipClass =
@@ -63,6 +64,7 @@ export function LogRow({
   }, [expanded, detail, detailError, entry.logId])
 
   const isError = entry.outcome === 'error'
+  const profileMissing = profileWasMissing(entry)
   const at = new Date(entry.ts)
   const time = formatTimestamp(at, timeZone)
   // The UTC value stays reachable on hover so a row can be matched against the
@@ -150,13 +152,30 @@ export function LogRow({
         )}
         {entry.profileId && (
           <span className="ml-auto min-w-0">
-            <Link
-              href={`/ui/profiles/${encodeURIComponent(entry.profileId)}`}
-              className="font-mono text-[0.75rem] text-secondary-foreground [overflow-wrap:anywhere] hover:text-foreground"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {entry.profileId}
-            </Link>
+            {profileMissing ? (
+              // No profile to link to — a link here would only ever 404.
+              <span
+                className="inline-flex min-w-0 items-center gap-1.5 font-mono text-[0.75rem] text-muted-foreground [overflow-wrap:anywhere]"
+                title={`No profile "${entry.profileId}" exists — this request was handled by the unmocked-user policy`}
+              >
+                <TriangleAlert
+                  className="size-3 flex-none text-[var(--warning-text)]"
+                  aria-label="Profile does not exist"
+                  role="img"
+                />
+                <span className="min-w-0 line-through decoration-muted-foreground/60">
+                  {entry.profileId}
+                </span>
+              </span>
+            ) : (
+              <Link
+                href={`/ui/profiles/${encodeURIComponent(entry.profileId)}`}
+                className="font-mono text-[0.75rem] text-secondary-foreground [overflow-wrap:anywhere] hover:text-foreground"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {entry.profileId}
+              </Link>
+            )}
           </span>
         )}
       </button>
@@ -246,7 +265,11 @@ function LogDetail({
                     : 'm-0 flex min-w-0 flex-wrap items-center gap-1.5'
                 }
               >
-                <ProfileResolutionValue resolution={trace.profileResolution} profileId={entry.profileId} />
+                <ProfileResolutionValue
+                  resolution={trace.profileResolution}
+                  profileId={entry.profileId}
+                  missing={profileWasMissing(entry)}
+                />
                 {sourceView && <SourceInfo view={sourceView} sequence={trace.sequence} align="end" />}
               </dd>
             </>
@@ -414,22 +437,43 @@ function CapturedKeyPill({
 function ProfileResolutionValue({
   resolution,
   profileId,
+  missing = false,
 }: {
   resolution: NonNullable<LogEntryView['trace']['profileResolution']>
   profileId?: string
+  /** The resolved ID matched no stored profile, so it names nothing. */
+  missing?: boolean
 }) {
+  // The selector resolved fine; it is the profile it points at that is absent.
+  // Marking the final segment (rather than the whole chain) keeps that distinction.
+  const resolvedClass = missing
+    ? 'bg-[var(--warning-bg)] text-[var(--warning-text)]'
+    : 'bg-card text-foreground'
+  const iconClass = missing
+    ? 'bg-[var(--warning-bg)] text-[var(--warning-text)]'
+    : 'bg-[rgba(96,165,250,0.14)] text-[#93c5fd]'
+  const missingTitle = missing ? `No profile "${profileId ?? resolution.value}" exists` : undefined
+
   if (resolution.via === 'direct') {
     return (
-      <span className="inline-flex flex-wrap items-center gap-2 text-[0.85rem]">
+      <span className="inline-flex flex-wrap items-center gap-2 text-[0.85rem]" title={missingTitle}>
         <SelectorPill selector={resolution.selector} />
         <span className="font-[750] text-muted-foreground" aria-hidden="true">
           →
         </span>
         <SegGroup className="min-w-0">
-          <SegIcon className="bg-[rgba(96,165,250,0.14)] text-[#93c5fd]">
-            <UserRound className="size-[13px] flex-none stroke-[2.4]" aria-hidden="true" />
+          <SegIcon className={iconClass}>
+            {missing ? (
+              <TriangleAlert
+                className="size-[13px] flex-none stroke-[2.4]"
+                aria-label="Profile does not exist"
+                role="img"
+              />
+            ) : (
+              <UserRound className="size-[13px] flex-none stroke-[2.4]" aria-hidden="true" />
+            )}
           </SegIcon>
-          <Seg className="bg-card text-foreground">{profileId ?? resolution.value}</Seg>
+          <Seg className={resolvedClass}>{profileId ?? resolution.value}</Seg>
         </SegGroup>
       </span>
     )
@@ -438,7 +482,7 @@ function ProfileResolutionValue({
   const via = resolution.via
   const innerSelector = resolution.selector.slice(`profileKey:${via.namespace}:`.length)
   return (
-    <span className="inline-flex flex-wrap items-center gap-2 text-[0.85rem]">
+    <span className="inline-flex flex-wrap items-center gap-2 text-[0.85rem]" title={missingTitle}>
       <SelectorPill selector={innerSelector} />
       <span className="font-[750] text-muted-foreground" aria-hidden="true">
         →
@@ -451,8 +495,22 @@ function ProfileResolutionValue({
       <span className="font-[750] text-muted-foreground" aria-hidden="true">
         →
       </span>
-      <span className="inline-flex min-h-[26px] items-center gap-1.5 rounded-full border border-[rgba(96,165,250,0.4)] bg-[rgba(96,165,250,0.14)] px-2.5 py-[3px] font-mono text-[0.78rem] font-bold text-[#93c5fd] [overflow-wrap:anywhere]">
-        <UserRound className="size-3 flex-none stroke-[2.4]" aria-hidden="true" />
+      <span
+        className={
+          missing
+            ? 'inline-flex min-h-[26px] items-center gap-1.5 rounded-full border border-[var(--warning-border)] bg-[var(--warning-bg)] px-2.5 py-[3px] font-mono text-[0.78rem] font-bold text-[var(--warning-text)] [overflow-wrap:anywhere]'
+            : 'inline-flex min-h-[26px] items-center gap-1.5 rounded-full border border-[rgba(96,165,250,0.4)] bg-[rgba(96,165,250,0.14)] px-2.5 py-[3px] font-mono text-[0.78rem] font-bold text-[#93c5fd] [overflow-wrap:anywhere]'
+        }
+      >
+        {missing ? (
+          <TriangleAlert
+            className="size-3 flex-none stroke-[2.4]"
+            aria-label="Profile does not exist"
+            role="img"
+          />
+        ) : (
+          <UserRound className="size-3 flex-none stroke-[2.4]" aria-hidden="true" />
+        )}
         {profileId ?? resolution.value}
       </span>
     </span>
