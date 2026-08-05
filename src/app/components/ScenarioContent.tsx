@@ -1,4 +1,43 @@
+import type { ScenarioKind } from '../../lib/scenarios'
 import type { ScenarioView } from '../ui/catalog/scenario-view'
+
+/** Ragged line widths, so the placeholder reads as code rather than as a bar chart. */
+const CODE_LINES = [
+  { width: '38%', indent: '0' },
+  { width: '72%', indent: '1.25rem' },
+  { width: '54%', indent: '1.25rem' },
+  { width: '81%', indent: '1.25rem' },
+  { width: '46%', indent: '1.25rem' },
+  { width: '22%', indent: '0' },
+]
+
+/**
+ * Stands in for {@link ScenarioContent} while the view is still being fetched.
+ *
+ * The server highlights the code with shiki before returning it, which on a
+ * cold grammar load is slow enough to notice, so this deliberately mirrors the
+ * real block — same bordered container, a comparable number of lines — rather
+ * than showing a bare box. That keeps the dialog from jumping as much when the
+ * content lands, and makes the wait legible as "code is coming".
+ */
+export function ScenarioContentSkeleton({ kind }: { kind: ScenarioKind }) {
+  return (
+    <div className="grid gap-2" role="status" aria-label="Loading response">
+      {kind === 'resolver' && <div className="shimmer h-3.5 w-56 max-w-full rounded-[3px]" />}
+      <div className="rounded-sm border border-border p-3">
+        <div className="grid gap-2" aria-hidden="true">
+          {CODE_LINES.map((line, i) => (
+            <div
+              key={i}
+              className="shimmer h-3 rounded-[3px]"
+              style={{ width: line.width, marginLeft: line.indent }}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export function ScenarioContent({ scenario }: { scenario: ScenarioView }) {
   if (scenario.kind === 'passthrough') {

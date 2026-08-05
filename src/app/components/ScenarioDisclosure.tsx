@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { SquareArrowOutUpRight, TriangleAlert } from 'lucide-react'
 import type { ScenarioOption } from '../../lib/scenarios'
 import type { ScenarioView } from '../ui/catalog/scenario-view'
-import { ScenarioContent } from './ScenarioContent'
+import { ScenarioContent, ScenarioContentSkeleton } from './ScenarioContent'
 import { StatusPill } from './StatusPill'
 import { Dialog, DialogContent, DialogTitle } from './ui/dialog'
 import { HoverCard, HoverCardContent, HoverCardTrigger } from './ui/hover-card'
@@ -100,9 +100,7 @@ export function ScenarioResponseModalBody({
       {option.summary && (
         <p className="m-0 text-[0.82rem] leading-[1.4] text-muted-foreground [overflow-wrap:anywhere]">{option.summary}</p>
       )}
-      {state.kind === 'loading' && (
-        <div className="h-24 animate-pulse rounded-md border border-border bg-background" aria-label="Loading response" />
-      )}
+      {state.kind === 'loading' && <ScenarioContentSkeleton kind={option.kind} />}
       {state.kind === 'error' && (
         <p className="m-0 text-[0.85rem] text-[var(--warning-text)]">
           Could not load the response.{' '}

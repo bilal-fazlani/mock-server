@@ -246,4 +246,41 @@ a:focus-visible {
   background-color: var(--border);
   border-radius: 4px;
 }
+
+/* Loading placeholder for content whose size isn't known yet — highlighted
+   code the server is still building. Tailwind's animate-pulse only animates
+   opacity, which is invisible when the placeholder colour is close to the
+   surface behind it (a `bg-background` block on a `bg-card` dialog differs by
+   a few points of luminance in dark mode, so it read as an empty panel). This
+   uses `--border` as the track, which is picked to be visible against both
+   `--card` and `--background` in either theme, and sweeps a highlight across
+   it so the wait is legible as activity rather than as a blank box. */
+@keyframes shimmer-sweep {
+  from {
+    background-position: -150% 0;
+  }
+  to {
+    background-position: 250% 0;
+  }
+}
+.shimmer {
+  background-color: var(--border);
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--foreground) 14%, transparent) 50%,
+    transparent 100%
+  );
+  background-size: 60% 100%;
+  background-repeat: no-repeat;
+  animation: shimmer-sweep 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shimmer {
+    /* The track alone still reads as a placeholder without the sweep. */
+    background-image: none;
+    animation: none;
+  }
+}
 }

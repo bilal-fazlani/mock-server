@@ -125,6 +125,39 @@ describe('ScenarioResponseModalBody', () => {
     expect(html).toContain('Open X in the catalog')
     expect(html).not.toContain('Could not load')
   })
+  it('shimmers rather than showing a block that vanishes into the dialog surface', () => {
+    const html = renderModalBody(
+      <ScenarioResponseModalBody state={{ kind: 'loading' }} option={frozen} catalogHref="/x" endpointDisplayName="X" />,
+    )
+    expect(html).toContain('shimmer')
+    // `bg-background` on a `bg-card` dialog is near-invisible in dark mode, and
+    // animate-pulse only moves opacity — that combination read as an empty panel.
+    expect(html).not.toContain('animate-pulse')
+    expect(html).not.toContain('bg-background')
+  })
+  it('shapes the skeleton like the code block it stands in for', () => {
+    const html = renderModalBody(
+      <ScenarioResponseModalBody state={{ kind: 'loading' }} option={frozen} catalogHref="/x" endpointDisplayName="X" />,
+    )
+    // A bordered container holding several ragged lines, so the dialog does not
+    // jump as far when the highlighted code replaces it.
+    expect(html).toContain('rounded-sm border border-border')
+    expect((html.match(/shimmer/g) ?? []).length).toBeGreaterThan(3)
+  })
+  it('adds the resolver description line only for resolver scenarios', () => {
+    const resolver = { label: 'Dynamic', kind: 'resolver' as const }
+    const resolverHtml = renderModalBody(
+      <ScenarioResponseModalBody state={{ kind: 'loading' }} option={resolver} catalogHref="/x" endpointDisplayName="X" />,
+    )
+    const fixtureHtml = renderModalBody(
+      <ScenarioResponseModalBody state={{ kind: 'loading' }} option={frozen} catalogHref="/x" endpointDisplayName="X" />,
+    )
+    // The real resolver view carries a "Resolved at request time by …" line
+    // above its code; the fixture view does not.
+    expect((resolverHtml.match(/shimmer/g) ?? []).length).toBe(
+      (fixtureHtml.match(/shimmer/g) ?? []).length + 1,
+    )
+  })
 })
 
 describe('ScenarioDisclosure', () => {
