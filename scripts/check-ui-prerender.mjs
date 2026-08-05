@@ -1,11 +1,12 @@
 // Post-build guard: no /ui route may be statically prerendered.
 //
-// Every /ui page renders runtime state (env via getRuntime(), the runtime
-// catalog, MongoDB), so a prerendered one silently serves build-time values in
-// production — /ui/profiles/new shipped that way and ignored runtime
+// Every /ui page and API route serves runtime state (env via getRuntime(), the
+// runtime catalog, MongoDB), so a prerendered one silently serves build-time
+// values in production — /ui/profiles/new shipped that way and ignored runtime
 // PASSTHROUGH_AS_DEFAULT (#32). tests/ui/force-dynamic.test.ts guards the
 // source; this script asserts the same invariant on the actual build output
-// (.next/prerender-manifest.json), which is the ground truth. Run after
+// (.next/prerender-manifest.json), which is the ground truth. It reads routes
+// rather than files, so it covers pages and route handlers alike. Run after
 // `npm run build`.
 import fs from 'node:fs'
 import path from 'node:path'
@@ -25,7 +26,8 @@ if (offending.length > 0) {
     'check-ui-prerender: these /ui routes were statically prerendered at build time,\n' +
       'so they would serve build-time env/catalog instead of runtime state:\n' +
       offending.map((r) => `  - ${r}`).join('\n') +
-      "\nAdd `export const dynamic = 'force-dynamic'` to the offending page.",
+      "\nAdd `export const dynamic = 'force-dynamic'` to the page.tsx or route.ts" +
+      '\nbehind each route above, and remove any `force-static` or `revalidate` export.',
   )
   process.exit(1)
 }
