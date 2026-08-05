@@ -18,7 +18,6 @@ on:
       - 'README.md'
       - 'RELEASE.md'
       - 'CHANGELOG.md'
-      - 'tickets.html'
   push:
     branches: [main]
     paths-ignore:
@@ -29,7 +28,6 @@ on:
       - 'README.md'
       - 'RELEASE.md'
       - 'CHANGELOG.md'
-      - 'tickets.html'
 
 permissions:
   contents: read

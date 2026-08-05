@@ -82,23 +82,20 @@ idea and picking up an existing issue.
    If the phase-0 survey surfaced a parent or a dependency, set it **at creation**:
    add `--parent P`, `--blocked-by B`, and/or `--blocking X` (see "Issue relationships").
 4. **Record the issue number `#N`** — you'll reference it for the rest of the session.
-5. **Add it to `tickets.html`** — a node in the graph, its id on the `backlog` `class` line,
-   and a bumped `Backlog` tally. Do it now, against the **main worktree's** copy — see
-   "The ticket board".
 
 The board auto-adds it and sets `Backlog`. Do nothing else here.
 
 ### 2. Refine — trigger: we begin giving shape to the feature in dialogue
 
 The moment active shaping starts — refining the feature with the user in conversation —
-move the card to **Refining** (see `reference.md` → "Move a card") **and set the node to
-`refining` (pink) in `tickets.html`, in the same step**. This fires for **both** entry
-points: a new-idea ticket just opened in phase 1, and an existing `Backlog` ticket picked
-up in phase 0. Only pull a `Backlog` card into `Refining`; never drag a card already at
-`Ready` or beyond backward.
+move the card to **Refining** (see `reference.md` → "Move a card"). This fires for **both**
+entry points: a new-idea ticket just opened in phase 1, and an existing `Backlog` ticket
+picked up in phase 0. Only pull a `Backlog` card into `Refining`; never drag a card already
+at `Ready` or beyond backward.
 
-Do this **before** the first question you ask about the feature — the pink node is what
-tells the user, at a glance, that this ticket is the one under discussion right now.
+Do this **before** the first question you ask about the feature — the card sitting in
+Refining is what tells the user, at a glance, that this ticket is the one under discussion
+right now.
 
 The card lives in **Refining** for the whole shaping conversation. While it sits here:
 
@@ -132,14 +129,12 @@ so it carries, in this order:
    - [ ] second task
    ```
 
-Then move the card to **Ready** (see `reference.md` → "Move a card") and set the node to
-`ready` (blue) in `tickets.html`.
+Then move the card to **Ready** (see `reference.md` → "Move a card").
 
 ### 4. Start work — trigger: we begin implementing
 
-Move the card to **In Progress** and set the node to `inprogress` (yellow) in `tickets.html` —
-both before the first edit, not after. Branching is not mandated — direct on main, a branch,
-or a worktree, whatever fits.
+Move the card to **In Progress** before the first edit, not after. Branching is not
+mandated — direct on main, a branch, or a worktree, whatever fits.
 
 ### 5. Progress — trigger: each task completes
 
@@ -176,144 +171,22 @@ visually first: drive the preview, capture a screenshot, and show it to the user
 it in the issue (`gh` can't cleanly upload images anyway); the summary comment may note in
 text that the UI was verified visually.
 
-Then post a **summary comment** describing what shipped, move the card to **In Review**, and
-set the node to `inreview` (purple) in `tickets.html`. Hand back to the user for review — do
-not proceed to close.
+Then post a **summary comment** describing what shipped and move the card to **In Review**.
+Hand back to the user for review — do not proceed to close.
 
 ### 8. Review outcome
 
 - **8a. Approved** — trigger: the user says merge / push / merge-PR.
   Perform the git action they asked for, then **close the issue**:
   `gh issue close N`. The board auto-sets `Done`. (Do not also edit the Status field —
-  closing is enough.) Then **update `tickets.html`** — delete the node, its `class` entry and
-  its arrows, re-point any arrow the closure unblocks, and move the count from its lane to
-  `Done`. Commit it on `main` as its own `chore:` commit — if the work was done on a branch,
-  that is a separate commit from the merge, not part of it.
+  closing is enough.)
 - **8b. Changes requested** — trigger: the user asks for changes during review.
   Post a comment capturing the requested changes, move the card back to
-  **In Progress**, set the node back to `inprogress` (yellow), and return to phase 5.
-
-## The ticket board (`tickets.html`)
-
-`tickets.html` at the repo root is the dependency board for this repo's issues. **Every
-change to a ticket's status must be reflected in it** — the ticket and the board are
-updated together, never one without the other. Edit it inline with `Edit`, no subagent.
-
-**Always the main worktree's copy** — `/Users/bilal/Projects/mock-server/tickets.html` — even
-when the ticket is being worked on a branch or in a worktree. A board edit made inside a
-worktree does not reach `main` until the branch merges, which defeats the point of tracking
-lane state live. Commit it there too, without leaving the worktree:
-
-```bash
-git -C /Users/bilal/Projects/mock-server add tickets.html
-git -C /Users/bilal/Projects/mock-server commit -m "chore: update tickets board — ..."
-```
-
-A `PreToolUse` hook blocks `Edit`/`Write` on any other `tickets.html` and tells you the right
-path, so a slip costs one refused tool call rather than a silently stale board. Note that the
-board commit therefore lands on `main` **separately** from the feature branch's commits —
-that is intended, and it is why board updates carry their own `chore:` message rather than
-riding along with the feature.
-
-### Its shape
-
-A single self-contained page — inline `<style>`, no build step, Mermaid pulled from a CDN
-at view time. Two parts carry data:
-
-1. The **lane tally** in the masthead — one `<span class="lane-tally l-…">` per lane,
-   carrying that lane's count.
-2. The **Mermaid `flowchart LR`** inside `<pre class="mermaid">` — every **open** issue.
-
-Nodes are `I<N>["#N · short label · area"]`, where the area is the `area:` label without its
-prefix. Closed issues leave the file entirely; only the `Done` tally records them, and the
-real history stays on GitHub (`gh issue list --state closed`).
-
-**The tally is hand-maintained, and it is what goes stale.** Two counts move on every lane
-transition. Read them off the board rather than incrementing from memory:
-
-```bash
-gh project item-list 3 --owner bilal-fazlani --format json --limit 200 \
-  --jq '[.items[] | select(.content.number != null) | .status] | group_by(.) | map({lane: .[0], n: length})'
-```
-
-A lane at `0` keeps its pill and gains `is-empty`; it is never deleted — the empty lanes are
-what show the pipeline.
-
-### Node colour is the lane — update it in the same step as the card
-
-Each node carries a `class` naming its lane on project board `3`. The colours are **the
-board's own lane colours**, so the file and the board read alike — do not invent new ones:
-
-| Lane | `class` | Colour |
-| --- | --- | --- |
-| `Backlog` | `backlog` | green |
-| `Refining` | `refining` | pink |
-| `Ready` | `ready` | blue |
-| `In progress` | `inprogress` | yellow, plus a continuously running dashed outline |
-| `In review` | `inreview` | purple |
-| `Done` | — | orange — node deleted, only the tally moves |
-
-`inprogress` is the only lane that moves: a `stroke-dashoffset` animation gives its nodes
-marching-ants borders, so active work is visible without reading a label. It keys off the
-`class` alone — set `inprogress` and the motion follows. (Under
-`prefers-reduced-motion: reduce` the dashes hold still but stay dashed, so the lane is still
-distinguishable.)
-
-Each colour is written **twice** in the file: as a Mermaid `classDef` for the graph nodes,
-and as a `--lane-*-fg` custom property for the tally dots — the latter once per theme block
-(`:root` and the `prefers-color-scheme: dark` override). Recolouring a lane edits all of
-them.
-
-**The lane move and the `class` edit are one action, never two.** Every phase below that
-moves a card says which class to set; do both — plus the two tally counts — before moving on
-to the next thing, so the file is correct at every point the user might read it. A card in
-`Refining` whose node is still green is the same defect as a stale board.
-
-The `class` lines sit at the bottom of the graph, grouped by lane
-(`class I2,I10,I14 backlog`). Moving one issue means deleting its id from one line and
-adding it to another — if a lane ends up with no issues, drop its `class` line but keep the
-`classDef`.
-
-### What the arrows mean
-
-An arrow `A --> B` means **A must land before B**, labelled with why in a couple of words.
-Arrows are **editorial judgement**: GitHub records no native `blocked-by` links for these
-issues, so never reconcile them against `gh issue view --json blockedBy` — it is empty and
-would read as "delete every arrow". **A node with no arrows is independent**, not an
-oversight.
-
-The *arrows* encode dependency readiness, not the project board's lane — a lane move
-changes only a node's colour and the tally, never an arrow.
-
-### When to update
-
-Any ticket status or relationship change: issue opened or closed, a lane moved, a blocker
-resolved, a parent/sub-issue or blocked-by link added or removed.
-
-- **Opened** → add the node and its id to `class … backlog`; add an arrow only for a real
-  ordering dependency; bump the `Backlog` tally.
-- **Lane moved** → move the node's id to the new lane's `class` line; adjust both tallies
-  (dropping `is-empty` from the lane that gained one, adding it to a lane that hit `0`).
-- **Closed** → delete the node, its `class` entry, and every arrow touching it; re-point any
-  arrow the closure unblocks (if `A --> B --> C` and B closes, `A` and `C` may now stand
-  alone or connect directly — decide which and say so); decrement its lane's tally and bump
-  `Done`.
-- **Dependency changed** → add, remove, or relabel the arrow.
-- **Abandoned** → close with `gh issue close N --reason "not planned"` and archive the card
-  (`archiveProjectV2Item`), then delete the node as for a closure — but **do not bump `Done`**.
-  An archived item leaves the board entirely, so it is counted in no lane; the tallies must
-  keep summing to what `gh project item-list` reports, not to the number of closed issues.
-
-### Verify before you commit it
-
-The page has no build step and nothing type-checks it, so two things are worth a look:
-
-- **State** — no issue closed on GitHub may still appear in the graph
-  (`gh issue list --state closed --json number`). That is the failure mode that has actually
-  occurred: a closed ticket left looking open.
-- **It still renders** — open `tickets.html` in the browser preview after editing. A stray
-  `<` in a node label or an unclosed tag breaks the page silently, and a Mermaid syntax error
-  leaves the raw source visible where the graph should be.
+  **In Progress**, and return to phase 5.
+- **8c. Abandoned** — trigger: we decide not to do the work after all.
+  Close with `gh issue close N --reason "not planned"` and archive the card
+  (`archiveProjectV2Item`). An archived item leaves the board entirely, so it lands in no
+  lane — it is not `Done`.
 
 ## The `Refs #N` rule (do not violate)
 
@@ -387,5 +260,6 @@ above it. Same voice applies to PR bodies.
 ## Notes
 
 - **Which issue?** Track the current `#N` for the session; if multiple could apply, ask.
-- **No cancelled lane.** Any close → Done, so an abandoned issue lands in Done. Accepted.
+- **No cancelled lane.** Any close → Done, so abandoning takes the extra archive step in
+  phase 8c to keep the work out of the `Done` count.
 - Checklist items are Markdown checkboxes in the issue body — not real GitHub sub-issues.
