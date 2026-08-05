@@ -41,6 +41,10 @@ const SPEC_YAML = [
   'paths:',
   '  /mock:',
   '    post:',
+  '      parameters:',
+  '        - name: limit',
+  '          in: query',
+  '          schema: { type: integer }',
   '      requestBody:',
   '        required: true',
   '        content:',
@@ -95,8 +99,8 @@ function handlerWith(dir: string, globalScenario: string | null) {
   return createMockHandler(deps)
 }
 
-function mockRequest(body: unknown): Request {
-  return new Request('http://localhost:3000/mock', {
+function mockRequest(body: unknown, search = ''): Request {
+  return new Request(`http://localhost:3000/mock${search}`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body),
@@ -118,7 +122,27 @@ describe('spec-backed schema validation end-to-end (system _spec.yaml, real load
 
     expect(res.status).toBe(400)
     const body = (await res.json()) as { error: string }
-    expect(body.error).toMatch(/request body does not match schema/)
+    expect(body.error).toMatch(/request does not match schema/)
+  })
+
+  it('400s when a query parameter violates the spec-declared parameter schema', async () => {
+    const dir = tmpCatalogDir({
+      'sys/_system.json': SYSTEM_META,
+      'sys/_spec.yaml': SPEC_YAML,
+      'sys/mock/_endpoint.json': ENDPOINT_META,
+      'sys/mock/default.json': { status: 200, body: { ok: true } },
+    })
+    const handle = handlerWith(dir, null)
+
+    const res = await handle(mockRequest({ name: 'n' }, '?limit=weeble'), ['mock'])
+    expect(res.status).toBe(400)
+    const body = (await res.json()) as { error: string; details: unknown }
+    expect(body.error).toMatch(/request does not match schema/)
+    expect(JSON.stringify(body.details)).toMatch(/query\/limit/)
+
+    // A coercible value passes straight through to the fixture.
+    const ok = await handle(mockRequest({ name: 'n' }, '?limit=5'), ['mock'])
+    expect(ok.status).toBe(200)
   })
 
   it('500s when the generated response violates the schema resolved from the system _spec', async () => {

@@ -218,12 +218,15 @@ export async function routeRequest(
 
   const compiled = deps.schemas?.get(schemaKey(system.slug, endpoint.name))
   if (compiled) {
-    const issues = compiled.validateRequestBody(ctx.body)
+    const issues = [
+      ...compiled.validateRequestParams(ctx),
+      ...compiled.validateRequestBody(ctx.body),
+    ]
     if (issues.length > 0) {
       setValidation(trace, 'request', 'failed')
-      traceError(trace, 'request_schema_invalid', 'request body does not match schema')
+      traceError(trace, 'request_schema_invalid', 'request does not match schema')
       return jsonResult(400, {
-        error: 'request body does not match schema',
+        error: 'request does not match schema',
         endpoint: endpoint.name,
         details: issues,
       })
@@ -631,7 +634,7 @@ async function proxy(
       endpoint: endpoint.name,
     })
   }
-  warnOnRequestSchemaDrift(system, endpoint, ctx.body, deps, trace)
+  warnOnRequestSchemaDrift(system, endpoint, ctx, deps, trace)
   const targetUrl = `${baseUrl}${req.path}${req.search}`
   const startedAt = Date.now()
   let proxied: ProxiedResponse
@@ -684,19 +687,20 @@ function errorCode(value: unknown): string | null {
   return null
 }
 
-// Warn-only drift probe: a real request body that violates _schema.json means
-// the caller (or the schema) has drifted from what's documented. Mirrors
-// warnOnResponseSchemaDrift below; never blocks the passthrough request.
+// Warn-only drift probe: a real request that violates the schema (parameters
+// or body) means the caller (or the schema) has drifted from what's
+// documented. Mirrors warnOnResponseSchemaDrift below; never blocks the
+// passthrough request.
 function warnOnRequestSchemaDrift(
   system: SystemDef,
   endpoint: EndpointDef,
-  body: unknown,
+  ctx: RequestContext,
   deps: RouterDeps,
   trace: RouteTrace,
 ): void {
   const compiled = deps.schemas?.get(schemaKey(system.slug, endpoint.name))
   if (!compiled) return
-  const issues = compiled.validateRequestBody(body)
+  const issues = [...compiled.validateRequestParams(ctx), ...compiled.validateRequestBody(ctx.body)]
   if (issues.length > 0) {
     setValidation(trace, 'request', 'drift_warning')
   }

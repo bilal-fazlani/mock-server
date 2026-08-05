@@ -58,6 +58,17 @@ export function validateCatalog(catalog: Catalog, catalogDir: string): Validatio
       const declaredParams = new Set(
         template?.segments.flatMap((s) => (s.type === 'param' ? [s.name] : [])) ?? [],
       )
+      const compiledSchema = schemas.get(schemaKey(system.slug, endpoint.name))
+      if (template && compiledSchema) {
+        for (const p of compiledSchema.declaredParams()) {
+          if (p.location === 'path' && !declaredParams.has(p.name)) {
+            errors.push(
+              `${label}: schema declares path parameter "${p.name}" but the endpoint path ` +
+                `"${endpoint.path}" has no {${p.name}} segment`,
+            )
+          }
+        }
+      }
       const fnTable = new Set(catalog.resolveFunctions?.(system.slug, endpoint.name).keys() ?? [])
       const mockType = endpoint.mockType ?? 'profiled'
 

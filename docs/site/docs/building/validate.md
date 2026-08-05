@@ -39,7 +39,8 @@ Everything that is a pure function of the files on disk:
 - The **structural** walk of `catalog/` — systems, endpoints, metadata files,
   stray entries, scenario filenames.
 - The **semantic** pass — path templates, selectors, placeholders, fixture bodies
-  against `_schema.json`, overlapping paths.
+  against `_schema.json`, declared `in: path` parameters against the endpoint's
+  path template, overlapping paths.
 - **Compilation** of every scenario resolver (`<slug>.mjs`) and every
   `_functions.mjs`, in the same sandbox the server uses.
 - `_spec` **unmatched-operation warnings** — operations in a

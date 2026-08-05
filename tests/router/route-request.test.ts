@@ -140,6 +140,10 @@ const CATALOG: Catalog = {
           scenarios: { default: { label: 'Success' }, bad_response: { label: 'Bad response' } },
           resolverScenarios: [],
           schema: {
+            parameters: [
+              { name: 'limit', in: 'query', schema: { type: 'integer', maximum: 100 } },
+              { name: 'x-priority', in: 'header', schema: { type: 'string', enum: ['low', 'high'] } },
+            ],
             requestBody: {
               required: true,
               content: {
@@ -172,6 +176,18 @@ const CATALOG: Catalog = {
                 },
               },
             },
+          },
+        },
+        {
+          name: 'param_gate',
+          displayName: 'Param Gate',
+          method: 'GET',
+          path: '/param-gate',
+          mockType: 'global',
+          scenarios: { default: { label: 'Success' } },
+          resolverScenarios: [],
+          schema: {
+            parameters: [{ name: 'cursor', in: 'query', required: true, schema: { type: 'string' } }],
           },
         },
       ],
@@ -961,7 +977,7 @@ describe('schema validation (mocked path)', () => {
     const res = await routeRequest(post('/schema-checked', { customerId: 'c1', amount: 'lots' }), d)
     expect(res.status).toBe(400)
     const body = json(res)
-    expect(body.error).toMatch(/request body does not match schema/)
+    expect(body.error).toMatch(/request does not match schema/)
     expect(JSON.stringify(body.details)).toMatch(/\/amount/)
     expect(d.passthroughCalls).toHaveLength(0)
   })
@@ -1009,6 +1025,66 @@ describe('schema validation (mocked path)', () => {
     })
     const res = await routeRequest(post('/hello/world', { customerId: 'c1' }), d)
     expect(res.status).toBe(200)
+  })
+
+  it('400s when a query parameter violates the schema, with location-prefixed details', async () => {
+    const d = deps({ getProfile: p() })
+    const res = await routeRequest(
+      { ...post('/schema-checked', { customerId: 'c1' }), search: '?limit=weeble' },
+      d,
+    )
+    expect(res.status).toBe(400)
+    const body = json(res)
+    expect(body.error).toMatch(/request does not match schema/)
+    expect(JSON.stringify(body.details)).toMatch(/query\/limit/)
+  })
+
+  it('coerces string query and header values toward the declared types', async () => {
+    const d = deps({ getProfile: p() })
+    const res = await routeRequest(
+      {
+        ...post('/schema-checked', { customerId: 'c1' }),
+        search: '?limit=42',
+        headers: { 'content-type': 'application/json', 'X-Priority': 'high' },
+      },
+      d,
+    )
+    expect(res.status).toBe(200)
+  })
+
+  it('collects parameter and body issues into one 400', async () => {
+    const d = deps({ getProfile: p() })
+    const res = await routeRequest(
+      { ...post('/schema-checked', { customerId: 'c1', amount: 'lots' }), search: '?limit=500' },
+      d,
+    )
+    expect(res.status).toBe(400)
+    const details = JSON.stringify(json(res).details)
+    expect(details).toMatch(/query\/limit/)
+    expect(details).toMatch(/\/amount/)
+  })
+
+  it('400s on a missing required query parameter before any fixture is loaded', async () => {
+    const res = await routeRequest(get('/param-gate'), deps({}))
+    expect(res.status).toBe(400)
+    expect(JSON.stringify(json(res).details)).toMatch(/query\/cursor/)
+  })
+
+  it('records parameter drift on the real path without blocking', async () => {
+    const trace: RouteTrace = {}
+    const d = deps({
+      getProfile: withProfile(
+        profile({ profileId: 'c1', endpointScenarios: { schema_checked: 'real' } }),
+      ),
+      trace,
+    })
+    const res = await routeRequest(
+      { ...post('/schema-checked', { customerId: 'c1' }), search: '?limit=weeble' },
+      d,
+    )
+    expect(res.status).toBe(299)
+    expect(d.passthroughCalls).toHaveLength(1)
+    expect(trace.validation?.request).toBe('drift_warning')
   })
 })
 

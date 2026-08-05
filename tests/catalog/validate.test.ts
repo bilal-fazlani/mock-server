@@ -812,3 +812,36 @@ describe('validateAppConfig', () => {
     expect(validateAppConfig(cat, { TEST_URL: 'http://x' }, true)).toEqual([])
   })
 })
+
+describe('schema path parameters vs endpoint path', () => {
+  const files = (endpointPath: string): Record<string, unknown> => ({
+    'sys/_system.json': { name: 'Sys', baseUrlEnv: 'TEST_URL' },
+    'sys/ep/_endpoint.json': {
+      displayName: 'Ep',
+      method: 'GET',
+      path: endpointPath,
+      mockType: 'global',
+    },
+    // Declares responses too: a schema-bearing endpoint's fixtures must match
+    // a response status (existing rule, unchanged by this feature).
+    'sys/ep/_schema.json': {
+      parameters: [{ name: 'thingId', in: 'path', required: true, schema: { type: 'string' } }],
+      responses: { '200': { content: { 'application/json': { schema: { type: 'object' } } } } },
+    },
+    'sys/ep/default.json': { status: 200, body: { ok: true } },
+  })
+
+  it('errors when a declared path parameter has no matching {segment}', () => {
+    const dir = tmpCatalogDir(files('/things'))
+    const { errors } = validateCatalog(loadCatalog(dir), dir)
+    expect(errors).toEqual([
+      expect.stringMatching(/path parameter "thingId".*no \{thingId\} segment/),
+    ])
+  })
+
+  it('passes when the path template declares the parameter', () => {
+    const dir = tmpCatalogDir(files('/things/{thingId}'))
+    const { errors } = validateCatalog(loadCatalog(dir), dir)
+    expect(errors).toEqual([])
+  })
+})
