@@ -1,14 +1,15 @@
 import { Badge } from '@/app/components/ui/badge'
 
 /**
- * Badge shown for endpoints that declare a `_schema.json`, i.e. whose request
- * and response bodies are validated against a schema at runtime.
+ * Badge shown for endpoints that carry a schema (`_schema.json` or a system
+ * `_spec` operation), i.e. whose requests — declared parameters and body —
+ * and response bodies are validated at runtime.
  */
 export function SchemaBadge() {
   return (
     <Badge
       variant="schema"
-      title="Request and response bodies are validated against a schema"
+      title="Requests (parameters and body) and response bodies are validated against a schema"
     >
       <svg
         className="h-[13px] w-[13px] shrink-0"
