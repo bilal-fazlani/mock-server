@@ -208,7 +208,7 @@ flowchart TD
     DriftProbe --> RProxy["Return response unchanged"]
 
     IsReal -- No --> RequestSchema{"Request matches schema?<br/>(if one exists)"}
-    RequestSchema -- No --> RRequestSchema["400 - request body does not match schema"]
+    RequestSchema -- No --> RRequestSchema["400 - request does not match schema"]
     RequestSchema -- Yes or no schema --> CaptureMock{"Profiled key capture<br/>configured?"}
     CaptureMock -- Conflict --> RConflict
     CaptureMock -- MissingKey --> RCapSel
@@ -260,7 +260,8 @@ flowchart TD
   response-schema checks, just before the response is returned. It never applies
   to `real` passthrough or error responses, and folds into the request's logged
   duration. See [Response delay](../building/fixtures.md#response-delay).
-- **Mock schemas** are enforced: request failures return 400 and generated
+- **Mock schemas** are enforced: request failures (declared parameters or body)
+  return 400 and generated
   response failures return 500. **Real responses** are only checked for drift when
   they contain parseable JSON; violations are recorded as warnings and the
   upstream response is returned unchanged.

@@ -125,6 +125,10 @@ now-known catalog and reports its own list of errors:
 - If an endpoint has a `_schema.json`, it must compile as valid JSON Schema, and
   every scenario fixture's `body` must match its status-matched response schema —
   see [Schemas](../building/schemas.md).
+- Every `in: path` parameter a schema declares has a matching `{name}` segment in
+  the endpoint's `path`. A declared path parameter with no such segment could
+  never be supplied, so every request would fail — see
+  [Request parameters](../building/schemas.md#request-parameters).
 - `PASSTHROUGH_AS_DEFAULT=true` → every system's `baseUrlEnv` is set. This is the
   one rule that reads the environment rather than the catalog, so it runs at
   startup and under `npm run validate:catalog`, but **not** under

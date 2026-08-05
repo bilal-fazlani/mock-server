@@ -3,9 +3,11 @@
 ## Schema validation
 
 An endpoint directory may optionally contain a `_schema.json`: an **OpenAPI 3.1
-operation object** describing the request and response bodies. Only two paths
+operation object** describing the request and response. Only three subtrees
 inside it are read — everything else in the object is ignored:
 
+- `parameters` — path/query/header inputs, see
+  [Request parameters](#request-parameters)
 - `requestBody.content['application/json'].schema`
 - `responses.<key>.content['application/json'].schema`
 
@@ -80,8 +82,8 @@ a validation error.
 | --- | --- | --- |
 | Startup | Every scenario fixture's `body` against the response schema matched by its `status`. | Joins the catalog's startup error list — same as a structural or semantic validation error. |
 | Startup | Every body placeholder against `requestBody`: a `{{$.…}}` selector over a field the request schema lets a caller **omit**, with no `default`/`omit` fallback. | Startup error — see [Optional fields must have a fallback](#optional-fields-must-have-a-fallback) below. |
-| Runtime — mocked scenario | The incoming request body against `requestBody`; after placeholder resolution, the generated response body against the status-matched response schema. | Request: `400` with an `error` and a `details` array. Response: `500` with the same shape. |
-| Runtime — `real` passthrough | The outgoing request body against `requestBody`; the proxied response body, when its `content-type` is JSON, against the status-matched response schema. | Never blocks or alters the request or response — either side mismatching is recorded as `drift_warning` (`request` and/or `response`) in the decision trace and logs at console `warn` level. |
+| Runtime — mocked scenario | The incoming request — declared parameters (path/query/header) and the body — against `parameters` and `requestBody`; after placeholder resolution, the generated response body against the status-matched response schema. | Request: `400` with an `error` and a single `details` array covering parameter and body issues. Response: `500` with the same shape. |
+| Runtime — `real` passthrough | The outgoing request — declared parameters and body — against `parameters` and `requestBody`; the proxied response body, when its `content-type` is JSON, against the status-matched response schema. | Never blocks or alters the request or response — either side mismatching is recorded as `drift_warning` (`request` and/or `response`) in the decision trace and logs at console `warn` level. |
 
 !!! note "Fixture bodies vs. live request/response bodies"
 
@@ -131,7 +133,64 @@ optional under plain `object`/`required`/`properties` (following `#/$defs/`
 references). Anything it can't decide — a field behind `anyOf`/`allOf`/`if`, an
 array element, a `$ref` it can't resolve — is left alone, so it never blocks a
 valid catalog. `header:`, `path:`, and `query:` selectors are out of scope: the
-request schema describes only the JSON body.
+request schema describes only the JSON body (declared `parameters` are validated
+at runtime, but this startup fallback analysis does not read them yet).
+
+## Request parameters
+
+Alongside the body, an operation may declare OpenAPI **`parameters`** — path,
+query, and header inputs — and they are verified the same way, from either
+schema source (`_schema.json` or a system `_spec` file):
+
+```json
+{
+  "parameters": [
+    { "name": "thingId", "in": "path", "required": true,
+      "schema": { "type": "string" } },
+    { "name": "limit", "in": "query",
+      "schema": { "type": "integer", "maximum": 100 } },
+    { "name": "x-priority", "in": "header",
+      "schema": { "type": "string", "enum": ["low", "high"] } }
+  ]
+}
+```
+
+- **Where they apply.** Mocked scenarios reject a violating request with the
+  same `400` as a body mismatch — parameter and body issues share one
+  `details` array. `real` passthrough never blocks: mismatches are recorded
+  as a `request` `drift_warning`, exactly like body drift. Parameter issue
+  paths are prefixed with the location (`query/limit`, `header/x-priority`,
+  `path/thingId`); body issues keep their plain JSON-pointer paths
+  (`/amount`).
+- **Values are strings on the wire, typed in the schema.** Path, query, and
+  header values arrive as strings and are *coerced* toward the declared type
+  before validation: `?limit=42` satisfies `{ "type": "integer" }`,
+  `?limit=weeble` fails it. A repeated query key (`?tag=a&tag=b`) validates
+  as an array; a single occurrence satisfies either a scalar or an array
+  schema (OpenAPI's default `form` + `explode` serialization). Other
+  serialization styles (`deepObject`, `pipeDelimited`, …) are not
+  interpreted. This coercion is parameters-only — body fields keep strict
+  JSON types.
+- **Required.** `in: path` parameters are always required. Query and header
+  parameters are required only with `"required": true`; a missing optional
+  parameter is simply not validated.
+- **Headers match case-insensitively**, and — per OpenAPI — header
+  parameters named `Accept`, `Content-Type`, or `Authorization` are ignored.
+- **Ignored.** `in: cookie` parameters (the server never parses cookies) and
+  parameters declared with `content` instead of `schema` (only their
+  `required` presence is checked). Undeclared query parameters and headers
+  are never rejected — extras always pass.
+- **Startup cross-check.** A declared `in: path` parameter whose name has no
+  `{name}` segment in the endpoint's `path` is a startup error — it could
+  never be supplied, so every request would fail.
+
+In a system [`_spec` file](#system-level-_spec-file), `parameters` may sit on
+the operation **or on the path item** (shared by all of that path's methods);
+the loader merges them, operation-level entries winning on the same (`name`,
+`in`) pair. `$ref`s inside a parameter's `schema` resolve against
+`#/components/schemas/…` as usual; a `$ref` *in place of* the parameter
+object itself (`#/components/parameters/…`) is a startup error asking you to
+inline it.
 
 ## System-level `_spec` file
 
@@ -144,10 +203,12 @@ and `path` already declared in the endpoint's `_endpoint.json`. Catalog paths
 use the same `{param}` templating as OpenAPI (e.g. `/customers/{customerId}`),
 so they line up directly.
 
-Only the same two subtrees are read from each matched operation —
-`requestBody.content['application/json'].schema` and
-`responses.<key>.content['application/json'].schema` — so a `_spec` operation
-and a standalone `_schema.json` are interchangeable in what they contribute.
+Only the same three subtrees are read from each matched operation —
+`parameters`, `requestBody.content['application/json'].schema`, and
+`responses.<key>.content['application/json'].schema` — plus path-item-level
+`parameters`, which are merged into each matched operation. So a `_spec`
+operation and a standalone `_schema.json` are interchangeable in what they
+contribute.
 
 ```yaml
 # catalog/hello-system/_spec.yaml
@@ -194,8 +255,8 @@ components:
   `#/components/schemas/…` within the same file; the loader inlines them into
   each endpoint's schema. External or remote `$ref`s (other files, URLs) are a
   startup error.
-- **Not read from the spec.** `servers`, `security`, `info`, and path-level
-  `parameters` are ignored — base URLs still come from `_system.json`'s
+- **Not read from the spec.** `servers`, `security`, and `info` are ignored —
+  base URLs still come from `_system.json`'s
   `baseUrlEnv`, and the spec never creates endpoints on its own (you still author
   each endpoint directory and its scenarios).
 
