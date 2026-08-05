@@ -637,6 +637,7 @@ the placeholder shape.
     is the one thing validation can't pre-check.
 
     One slice of it *is* pre-checkable, though: when the endpoint has a
-    [request schema](schemas.md), a placeholder over a body field the schema
-    marks **optional**, with no `default`/`omit`, is caught at startup — see
-    [Optional fields must have a fallback](schemas.md#optional-fields-must-have-a-fallback).
+    [schema](schemas.md), a placeholder over a body field — or a declared
+    query/header parameter — the schema marks **optional**, with no
+    `default`/`omit`, is caught at startup — see
+    [Optional inputs must have a fallback](schemas.md#optional-inputs-must-have-a-fallback).

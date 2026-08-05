@@ -795,6 +795,92 @@ describe('validateCatalog optional-field lint (#27)', () => {
   })
 })
 
+describe('validateCatalog optional-parameter lint (#52)', () => {
+  // Declared parameters spanning both required-ness states in each location,
+  // plus a permissive response schema so only the presence lint is in play.
+  const PARAMS = [
+    { name: 'cursor', in: 'query', required: true, schema: { type: 'string' } },
+    { name: 'limit', in: 'query', schema: { type: 'string' } },
+    { name: 'x-trace', in: 'header', required: true, schema: { type: 'string' } },
+    { name: 'x-priority', in: 'header', schema: { type: 'string' } },
+  ]
+  const op = {
+    parameters: PARAMS,
+    responses: { '200': { content: { 'application/json': { schema: { type: 'object' } } } } },
+  }
+  const run = (body: unknown): string[] => {
+    const dir = tmpCatalogDir({ 'test-system/hello_world/default.json': { status: 200, body } })
+    return validateCatalog(catalog([endpoint({ schema: op })]), dir).errors
+  }
+
+  it('flags an optional query parameter read with no fallback', () => {
+    const out = run({ a: '{{query:limit}}' }).join('\n')
+    expect(out).toMatch(/placeholder "\{\{query:limit\}\}".*query:limit.*lets callers omit/)
+  })
+
+  it('flags an optional header parameter read with no fallback', () => {
+    expect(run({ a: '{{header:x-priority}}' }).join('\n')).toMatch(
+      /header:x-priority.*lets callers omit/,
+    )
+  })
+
+  it('does not flag a parameter declared required', () => {
+    expect(run({ a: '{{query:cursor}}', b: '{{header:x-trace}}' })).toEqual([])
+  })
+
+  it('stays silent on a parameter the schema does not declare', () => {
+    expect(run({ a: '{{query:undeclared}}', b: '{{header:x-undeclared}}' })).toEqual([])
+  })
+
+  it('does not flag when default or omit is in the chain', () => {
+    expect(run({ a: "{{query:limit | default:'10'}}" })).toEqual([])
+    expect(run({ a: '{{query:limit | omit}}' })).toEqual([])
+  })
+
+  it('names all three remedies', () => {
+    const out = run({ a: '{{query:limit}}' }).join('\n')
+    expect(out).toMatch(/\| omit/)
+    expect(out).toMatch(/\| default:/)
+    expect(out).toMatch(/required/)
+  })
+
+  it('flags an optional parameter piped through a transform', () => {
+    // Parameter selectors can only start a chain (they are not valid call
+    // arguments), so the piped form is the shape this lint meets in the wild.
+    expect(run({ a: '{{query:limit | upper}}' }).join('\n')).toMatch(
+      /query:limit.*lets callers omit/,
+    )
+  })
+
+  it('matches header selectors case-insensitively against the declared name', () => {
+    // Selector names lower-case at parse time; declaredParams() lower-cases too.
+    expect(run({ a: '{{header:X-Priority}}' }).join('\n')).toMatch(/lets callers omit/)
+  })
+
+  it('never flags a path parameter — path parameters are always required', () => {
+    const dir = tmpCatalogDir({
+      'test-system/hello_world/default.json': { status: 200, body: { a: '{{path:thingId}}' } },
+    })
+    const withPath = catalog([
+      endpoint({
+        path: '/things/{thingId}',
+        schema: {
+          parameters: [{ name: 'thingId', in: 'path', schema: { type: 'string' } }],
+          responses: { '200': { content: { 'application/json': { schema: { type: 'object' } } } } },
+        },
+      }),
+    ])
+    expect(validateCatalog(withPath, dir).errors).toEqual([])
+  })
+
+  it('stays silent when the endpoint has no schema at all', () => {
+    const dir = tmpCatalogDir({
+      'test-system/hello_world/default.json': { status: 200, body: { a: '{{query:limit}}' } },
+    })
+    expect(validateCatalog(catalog([endpoint()]), dir).errors).toEqual([])
+  })
+})
+
 describe('validateAppConfig', () => {
   const system = { name: 'Test System', slug: 'test-system', baseUrlEnv: 'TEST_URL', endpoints: [endpoint()] }
   const cat: Catalog = { systems: [system] }
