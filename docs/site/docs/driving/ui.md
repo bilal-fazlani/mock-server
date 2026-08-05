@@ -111,7 +111,9 @@ What a log entry records — and how `x-mock-log-id` response headers let a
 failing test jump straight to its own trace — is covered in
 [Request logs](request-logs.md) — including how each row's
 [timestamp](request-logs.md#timestamps) is rendered in your browser's timezone
-and carries UTC on hover. An expanded entry shows its log ID in the
+and carries UTC on hover. A row backed by a schema flags a failed or drifting
+[validation outcome](request-logs.md#schema-validation-outcomes) with a coloured
+badge, and lists the offending paths when expanded. An expanded entry shows its log ID in the
 detail footer, and beside it the caller's [distributed-trace
 ID](request-logs.md#distributed-trace-correlation) when the request carried one.
 

@@ -1,6 +1,6 @@
 import { Faker, en } from '@faker-js/faker'
 import { matchPath, parsePathTemplate } from '../catalog/path-template'
-import { schemaKey, type SchemaRegistry } from '../catalog/schema'
+import { schemaKey, type SchemaIssue, type SchemaRegistry } from '../catalog/schema'
 import {
   extractProfileIdValue,
   extractScalar,
@@ -11,7 +11,7 @@ import {
 import type { Catalog, EndpointDef, SystemDef } from '../catalog/types'
 import type { UnmockedUsers } from '../config'
 import type { DynamicOwnerType } from '../dynamic/history-store'
-import type { LogOutcome, LogTraceData } from '../logs/store'
+import type { LogOutcome, LogTraceData, ValidationResult } from '../logs/store'
 import { DurationError, parseDelayMs } from '../mock-engine/duration'
 import { FixtureError, type Fixture } from '../mock-engine/fixtures'
 import {
@@ -223,7 +223,7 @@ export async function routeRequest(
       ...compiled.validateRequestBody(ctx.body),
     ]
     if (issues.length > 0) {
-      setValidation(trace, 'request', 'failed')
+      setValidation(trace, 'request', 'failed', issues)
       traceError(trace, 'request_schema_invalid', 'request does not match schema')
       return jsonResult(400, {
         error: 'request does not match schema',
@@ -298,7 +298,7 @@ export async function routeRequest(
     if (compiled) {
       const issues = compiled.validateResponseBody(fixture.status, body)
       if (issues.length > 0) {
-        setValidation(trace, 'response', 'failed')
+        setValidation(trace, 'response', 'failed', issues)
         traceError(trace, 'response_schema_invalid', 'generated response does not match schema')
         return jsonResult(500, {
           error: 'generated response does not match schema',
@@ -346,12 +346,28 @@ function traceError(trace: RouteTrace, code: string, message: string): void {
   trace.error = { code, message }
 }
 
+/**
+ * How many validation issues a trace keeps per side. Ajv with `allErrors` can
+ * report one per offending node, so an entirely wrong body would otherwise
+ * write an unbounded array into every log entry; the full count is kept beside
+ * the list so the UI can say how many were dropped.
+ */
+export const MAX_TRACED_VALIDATION_ISSUES = 20
+
 function setValidation(
   trace: RouteTrace,
   side: 'request' | 'response',
-  result: 'ok' | 'failed' | 'drift_warning',
+  result: ValidationResult,
+  issues: SchemaIssue[] = [],
 ): void {
-  trace.validation = { ...trace.validation, [side]: result }
+  const validation: NonNullable<RouteTrace['validation']> = { ...trace.validation, [side]: result }
+  if (issues.length > 0) {
+    validation.issues = {
+      ...validation.issues,
+      [side]: { list: issues.slice(0, MAX_TRACED_VALIDATION_ISSUES), total: issues.length },
+    }
+  }
+  trace.validation = validation
 }
 
 // A sequence advances one step per served call and sticks on its last step;
@@ -634,7 +650,7 @@ async function proxy(
       endpoint: endpoint.name,
     })
   }
-  warnOnRequestSchemaDrift(system, endpoint, ctx, deps, trace)
+  checkRequestSchemaDrift(system, endpoint, ctx, deps, trace)
   const targetUrl = `${baseUrl}${req.path}${req.search}`
   const startedAt = Date.now()
   let proxied: ProxiedResponse
@@ -664,7 +680,7 @@ async function proxy(
     status: proxied.status,
     durationMs: Date.now() - startedAt,
   }
-  warnOnResponseSchemaDrift(system, endpoint, proxied, deps, trace)
+  checkResponseSchemaDrift(system, endpoint, proxied, deps, trace)
   return { status: proxied.status, headers: proxied.headers, bodyBytes: proxied.bodyBytes }
 }
 
@@ -689,9 +705,11 @@ function errorCode(value: unknown): string | null {
 
 // Warn-only drift probe: a real request that violates the schema (parameters
 // or body) means the caller (or the schema) has drifted from what's
-// documented. Mirrors warnOnResponseSchemaDrift below; never blocks the
-// passthrough request.
-function warnOnRequestSchemaDrift(
+// documented. Mirrors checkResponseSchemaDrift below; never blocks the
+// passthrough request. A clean check records `ok` rather than nothing, so
+// "checked and passed" stays distinguishable from "never checked" — the
+// early returns above are the only paths that leave the side unset.
+function checkRequestSchemaDrift(
   system: SystemDef,
   endpoint: EndpointDef,
   ctx: RequestContext,
@@ -701,15 +719,15 @@ function warnOnRequestSchemaDrift(
   const compiled = deps.schemas?.get(schemaKey(system.slug, endpoint.name))
   if (!compiled) return
   const issues = [...compiled.validateRequestParams(ctx), ...compiled.validateRequestBody(ctx.body)]
-  if (issues.length > 0) {
-    setValidation(trace, 'request', 'drift_warning')
-  }
+  setValidation(trace, 'request', issues.length > 0 ? 'drift_warning' : 'ok', issues)
 }
 
 // Warn-only drift probe: a real upstream response that violates _schema.json
 // means the schema (and therefore the mocks validated against it) has drifted
-// from reality. Never blocks or modifies the proxied response.
-function warnOnResponseSchemaDrift(
+// from reality. Never blocks or modifies the proxied response. A non-JSON or
+// unparseable body is left unchecked — no schema was applied, so neither `ok`
+// nor `drift_warning` would be true.
+function checkResponseSchemaDrift(
   system: SystemDef,
   endpoint: EndpointDef,
   proxied: ProxiedResponse,
@@ -727,9 +745,7 @@ function warnOnResponseSchemaDrift(
     return
   }
   const issues = compiled.validateResponseBody(proxied.status, body)
-  if (issues.length > 0) {
-    setValidation(trace, 'response', 'drift_warning')
-  }
+  setValidation(trace, 'response', issues.length > 0 ? 'drift_warning' : 'ok', issues)
 }
 
 function findEndpoint(

@@ -16,6 +16,7 @@ import {
 import type { PassthroughRequest, ProxiedResponse } from '../../src/lib/router/passthrough'
 import {
   IncomingRequest,
+  MAX_TRACED_VALIDATION_ISSUES,
   routeRequest,
   RouterDeps,
   type RouteTrace,
@@ -1064,6 +1065,54 @@ describe('schema validation (mocked path)', () => {
     expect(details).toMatch(/\/amount/)
   })
 
+  it('records the request issues on the trace, not only in the 400 body', async () => {
+    const trace: RouteTrace = {}
+    await routeRequest(
+      { ...post('/schema-checked', { customerId: 'c1', amount: 'lots' }), search: '?limit=500' },
+      deps({ getProfile: p(), trace }),
+    )
+    expect(trace.validation?.request).toBe('failed')
+    expect(trace.validation?.issues?.request?.total).toBe(2)
+    expect(trace.validation?.issues?.request?.list?.map((i) => i.path)).toEqual([
+      'query/limit',
+      '/amount',
+    ])
+  })
+
+  it('records the response issues on the trace, not only in the 500 body', async () => {
+    const trace: RouteTrace = {}
+    await routeRequest(
+      post('/schema-checked', { customerId: 'c1' }),
+      deps({
+        getProfile: withProfile(
+          profile({ profileId: 'c1', endpointScenarios: { schema_checked: 'bad_response' } }),
+        ),
+        trace,
+      }),
+    )
+    expect(trace.validation?.response).toBe('failed')
+    expect(trace.validation?.issues?.response?.list?.[0].path).toBe('/ok')
+  })
+
+  it('caps the traced issue list but keeps the true total', async () => {
+    const trace: RouteTrace = {}
+    // additionalProperties: false, so every extra key is its own issue.
+    const body: Record<string, unknown> = { customerId: 'c1' }
+    for (let i = 0; i < MAX_TRACED_VALIDATION_ISSUES + 5; i += 1) body[`extra${i}`] = i
+    await routeRequest(post('/schema-checked', body), deps({ getProfile: p(), trace }))
+    expect(trace.validation?.issues?.request?.total).toBe(MAX_TRACED_VALIDATION_ISSUES + 5)
+    expect(trace.validation?.issues?.request?.list).toHaveLength(MAX_TRACED_VALIDATION_ISSUES)
+  })
+
+  it('records ok on both sides when a schema-backed mock validates cleanly', async () => {
+    const trace: RouteTrace = {}
+    await routeRequest(
+      post('/schema-checked', { customerId: 'c1', amount: 3 }),
+      deps({ getProfile: p(), trace }),
+    )
+    expect(trace.validation).toEqual({ request: 'ok', response: 'ok' })
+  })
+
   it('400s on a missing required query parameter before any fixture is loaded', async () => {
     const res = await routeRequest(get('/param-gate'), deps({}))
     expect(res.status).toBe(400)
@@ -1118,10 +1167,72 @@ describe('schema drift probe (proxy path, warn-only)', () => {
     expect(trace.validation?.request).toBe('drift_warning')
   })
 
-  it('stays silent for a conforming real request', async () => {
+  it('records ok for a conforming real request, so checked and unchecked stay distinct', async () => {
     const trace: RouteTrace = {}
     await routeRequest(req(), proxiedDeps(okProxied, trace))
-    expect(trace.validation?.request).toBeUndefined()
+    expect(trace.validation?.request).toBe('ok')
+    expect(trace.validation?.issues?.request).toBeUndefined()
+  })
+
+  it('records the drifting request issues, not just the flag', async () => {
+    const trace: RouteTrace = {}
+    await routeRequest(
+      post('/schema-checked', { customerId: 'c1', amount: 'lots' }),
+      proxiedDeps(okProxied, trace),
+    )
+    expect(trace.validation?.issues?.request?.total).toBe(1)
+    expect(trace.validation?.issues?.request?.list).toEqual([
+      { path: '/amount', message: expect.stringContaining('number') },
+    ])
+  })
+
+  it('records the drifting response issues, not just the flag', async () => {
+    const trace: RouteTrace = {}
+    await routeRequest(
+      req(),
+      proxiedDeps(
+        {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+          bodyBytes: Buffer.from(JSON.stringify({ customerId: 'c1', ok: 'yes' })),
+        },
+        trace,
+      ),
+    )
+    expect(trace.validation?.issues?.response?.total).toBe(1)
+    expect(trace.validation?.issues?.response?.list?.[0].path).toBe('/ok')
+  })
+
+  it('records ok for a conforming real response', async () => {
+    const trace: RouteTrace = {}
+    await routeRequest(
+      req(),
+      proxiedDeps(
+        {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+          bodyBytes: Buffer.from(JSON.stringify({ customerId: 'c1', ok: true })),
+        },
+        trace,
+      ),
+    )
+    expect(trace.validation?.response).toBe('ok')
+  })
+
+  it('leaves the response side unset when no schema check could run', async () => {
+    const trace: RouteTrace = {}
+    await routeRequest(
+      req(),
+      proxiedDeps(
+        {
+          status: 200,
+          headers: { 'content-type': 'text/html' },
+          bodyBytes: Buffer.from('<html></html>'),
+        },
+        trace,
+      ),
+    )
+    expect(trace.validation?.response).toBeUndefined()
   })
 
   it('records drift when the real JSON response violates the schema, and forwards it unchanged', async () => {

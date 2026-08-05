@@ -85,6 +85,13 @@ a validation error.
 | Runtime — mocked scenario | The incoming request — declared parameters (path/query/header) and the body — against `parameters` and `requestBody`; after placeholder resolution, the generated response body against the status-matched response schema. | Request: `400` with an `error` and a single `details` array covering parameter and body issues. Response: `500` with the same shape. |
 | Runtime — `real` passthrough | The outgoing request — declared parameters and body — against `parameters` and `requestBody`; the proxied response body, when its `content-type` is JSON, against the status-matched response schema. | Never blocks or alters the request or response — either side mismatching is recorded as `drift_warning` (`request` and/or `response`) in the decision trace and logs at console `warn` level. |
 
+Every runtime check records its outcome per side — `ok`, `failed`, or
+`drift_warning` — plus the issues behind it, in the [request
+log](../driving/request-logs.md#schema-validation-outcomes). That is where you
+read *which* field drifted on a `real` call, and it is the only place a clean
+check is visible at all: a passing request is served exactly as it would be
+without a schema.
+
 !!! note "Fixture bodies vs. live request/response bodies"
 
     At startup, string values in a fixture's `body` that contain a `{{…}}`

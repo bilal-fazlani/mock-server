@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import { Check, ChevronRight, Copy, Server, UserRound } from 'lucide-react'
+import { Check, ChevronRight, Copy, Server, TriangleAlert, UserRound } from 'lucide-react'
 import Link from 'next/link'
 import { MethodBadge } from '../../components/MethodBadge'
 import { formatTimestamp } from '../../../lib/format'
+import type { ValidationIssues, ValidationResult } from '../../../lib/logs/store'
 import { profileWasMissing } from './profile-presence'
 import type { LogBodyHtml, LogDetailResponse, LogEntryView, LogSummaryView } from './types'
 
@@ -147,6 +148,9 @@ export function LogRow({
               </span>
             )}
             {entry.error && <span className={errorCodeClass}>{entry.error.code}</span>}
+            {validationAlerts(entry.trace.validation).map((alert) => (
+              <ValidationAlertBadge key={alert.side} alert={alert} />
+            ))}
             {entry.response && <span className={statusClass(entry.response.status)}>{entry.response.status}</span>}
           </>
         )}
@@ -312,18 +316,30 @@ function LogDetail({
           )}
           {trace.validation && (
             <>
-              <dt className={traceMetaDtClass}>validation</dt>
-              <dd className="m-0 flex min-w-0 flex-wrap items-center gap-1.5">
-                {trace.validation.request && (
-                  <code className="rounded-full border border-border bg-card px-2 py-0.5 text-[0.75rem] text-secondary-foreground [overflow-wrap:anywhere]">
-                    request: {trace.validation.request}
-                  </code>
-                )}
-                {trace.validation.response && (
-                  <code className="rounded-full border border-border bg-card px-2 py-0.5 text-[0.75rem] text-secondary-foreground [overflow-wrap:anywhere]">
-                    response: {trace.validation.response}
-                  </code>
-                )}
+              <dt className={`${traceMetaDtClass} self-start pt-1`}>validation</dt>
+              <dd className="m-0 flex min-w-0 flex-col gap-2">
+                <span className="flex min-w-0 flex-wrap items-center gap-1.5">
+                  {VALIDATION_SIDES.map((side) => {
+                    const result = trace.validation?.[side]
+                    return result ? (
+                      <code key={side} className={validationPillClass(result)}>
+                        {side}: {result}
+                      </code>
+                    ) : null
+                  })}
+                </span>
+                {VALIDATION_SIDES.map((side) => {
+                  const issues = trace.validation?.issues?.[side]
+                  return issues ? (
+                    <ValidationIssueList
+                      key={side}
+                      side={side}
+                      issues={issues}
+                      // Only worth labelling each line when both sides failed.
+                      showSide={bothSidesHaveIssues(trace.validation)}
+                    />
+                  ) : null
+                })}
               </dd>
             </>
           )}
@@ -425,6 +441,112 @@ function CapturedKeyPill({
         <Seg className="bg-card text-foreground">{value}</Seg>
       </SegGroup>
     </span>
+  )
+}
+
+type ValidationTrace = LogEntryView['trace']['validation']
+
+type ValidationSide = 'request' | 'response'
+
+const VALIDATION_SIDES: ValidationSide[] = ['request', 'response']
+
+interface ValidationAlert {
+  side: ValidationSide
+  result: 'failed' | 'drift_warning'
+  issues?: ValidationIssues
+}
+
+/**
+ * The sides worth flagging on a collapsed row: a check that ran and found
+ * something. `ok` and unchecked stay silent — a row that says nothing about
+ * validation is a row with nothing to say.
+ */
+function validationAlerts(validation: ValidationTrace): ValidationAlert[] {
+  return VALIDATION_SIDES.flatMap((side) => {
+    const result = validation?.[side]
+    if (result !== 'failed' && result !== 'drift_warning') return []
+    return [{ side, result, issues: validation?.issues?.[side] }]
+  })
+}
+
+function bothSidesHaveIssues(validation: ValidationTrace): boolean {
+  return !!validation?.issues?.request && !!validation?.issues?.response
+}
+
+function ValidationAlertBadge({ alert }: { alert: ValidationAlert }) {
+  const subject = alert.side === 'request' ? 'Request' : 'Response'
+  const verb =
+    alert.result === 'failed'
+      ? 'does not match the endpoint schema'
+      : 'drifted from the endpoint schema — warning only, the request was not blocked'
+  const total = alert.issues?.total
+  const count = total ? ` — ${total} issue${total === 1 ? '' : 's'}` : ''
+  return (
+    <span className={validationBadgeClass(alert.result)} title={`${subject} ${verb}${count}`}>
+      <TriangleAlert className="size-3 flex-none stroke-[2.4]" aria-hidden="true" />
+      {alert.side === 'request' ? 'req' : 'res'} {alert.result === 'failed' ? 'failed' : 'drift'}
+    </span>
+  )
+}
+
+function ValidationIssueList({
+  side,
+  issues,
+  showSide,
+}: {
+  side: ValidationSide
+  issues: ValidationIssues
+  showSide: boolean
+}) {
+  const list = issues.list ?? []
+  const hidden = issues.total - list.length
+  return (
+    <ul className="m-0 flex min-w-0 list-none flex-col gap-1 p-0">
+      {list.map((issue, i) => (
+        <li
+          key={`${side}:${issue.path}:${issue.message}:${i}`}
+          className="flex min-w-0 flex-wrap items-center gap-2"
+        >
+          {showSide && (
+            <span className="text-[0.68rem] font-bold uppercase tracking-[0.06em] text-muted-foreground">
+              {side}
+            </span>
+          )}
+          <IssuePathPill path={issue.path} />
+          <span className="min-w-0 text-[0.8rem] text-secondary-foreground [overflow-wrap:anywhere]">
+            {issue.message}
+          </span>
+        </li>
+      ))}
+      {hidden > 0 && (
+        <li className="text-[0.75rem] text-muted-foreground">
+          +{hidden} more {hidden === 1 ? 'issue' : 'issues'}
+        </li>
+      )}
+    </ul>
+  )
+}
+
+/**
+ * An issue path is either a body JSON pointer (`/amount`) or a parameter path
+ * prefixed with its location (`query/limit`). The two can never collide — a
+ * pointer always leads with `/` — so the prefix is split out into its own
+ * segment, matching how selectors read elsewhere in the UI.
+ */
+function IssuePathPill({ path }: { path: string }) {
+  const param = /^(path|query|header)\/(.+)$/.exec(path)
+  if (!param) {
+    return (
+      <code className="inline-flex min-h-[26px] items-center rounded-full border border-border bg-card px-2.5 py-[3px] font-mono text-[0.78rem] font-bold text-foreground [overflow-wrap:anywhere]">
+        {path}
+      </code>
+    )
+  }
+  return (
+    <SegGroup className="bg-card">
+      <Seg className="bg-[rgba(var(--accent-rgb),0.12)] text-[var(--accent-strong)]">{param[1]}</Seg>
+      <Seg className="bg-card text-foreground">{param[2]}</Seg>
+    </SegGroup>
   )
 }
 
@@ -606,6 +728,26 @@ function scenarioChipClass(scenario: string): string {
   if (scenario === 'default')
     return `${base} border-[rgba(var(--success-rgb),0.45)] bg-[var(--success-tint)] text-[var(--success)]`
   return `${base} border-[var(--warning-border)] bg-[var(--warning-bg)] text-[var(--warning-text)]`
+}
+
+// Validation shares the status tone convention below: a hard failure reads as
+// an error, a drift warning as a warning, a clean check as a success.
+const failedToneClass = 'border-[#d92d20] bg-[rgba(217,45,32,0.12)] text-[#d92d20]'
+const driftToneClass =
+  'border-[var(--warning-border)] bg-[var(--warning-bg)] text-[var(--warning-text)]'
+
+function validationBadgeClass(result: 'failed' | 'drift_warning'): string {
+  const base =
+    'inline-flex items-center gap-1 rounded-full border px-[7px] py-px font-mono text-[0.72rem] font-[650]'
+  return `${base} ${result === 'failed' ? failedToneClass : driftToneClass}`
+}
+
+function validationPillClass(result: ValidationResult): string {
+  const base =
+    'inline-flex min-h-[26px] items-center rounded-full border px-2.5 py-[3px] text-[0.75rem] font-[650] [overflow-wrap:anywhere]'
+  if (result === 'failed') return `${base} ${failedToneClass}`
+  if (result === 'drift_warning') return `${base} ${driftToneClass}`
+  return `${base} border-[rgba(var(--success-rgb),0.45)] bg-[var(--success-tint)] text-[var(--success)]`
 }
 
 function scenarioLabelKey(system: string, endpoint: string, scenario: string): string {
