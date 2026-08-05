@@ -1,0 +1,12 @@
+{
+  "displayName": "Create Order",
+  "method": "POST",
+  "path": "/orders",
+  "profileIdSelector": "$.customerId",
+  "captureProfileKeys": [
+    {
+      "namespace": "order-id",
+      "keySelector": "$.orderId"
+    }
+  ]
+}

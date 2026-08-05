@@ -1,0 +1,11 @@
+{
+  "description": "Accepted",
+  "summary": "Order is accepted for the caller's customerId and its orderId is captured as a profile key.",
+  "status": 201,
+  "body": {
+    "orderId": "{{$.orderId}}",
+    "customerId": "{{$.customerId}}",
+    "status": "ACCEPTED",
+    "createdAt": "{{now:iso}}"
+  }
+}
