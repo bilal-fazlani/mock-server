@@ -81,7 +81,7 @@ a validation error.
 | When | What's checked | On mismatch |
 | --- | --- | --- |
 | Startup | Every scenario fixture's `body` against the response schema matched by its `status`. | Joins the catalog's startup error list — same as a structural or semantic validation error. |
-| Startup | Every body placeholder against `requestBody`: a `{{$.…}}` selector over a field the request schema lets a caller **omit**, with no `default`/`omit` fallback. | Startup error — see [Optional fields must have a fallback](#optional-fields-must-have-a-fallback) below. |
+| Startup | Every fixture placeholder against the schema: a `{{$.…}}` selector over a body field, or a `{{query:…}}` / `{{header:…}}` selector over a declared parameter, that the schema lets a caller **omit** — with no `default`/`omit` fallback. | Startup error — see [Optional inputs must have a fallback](#optional-inputs-must-have-a-fallback) below. |
 | Runtime — mocked scenario | The incoming request — declared parameters (path/query/header) and the body — against `parameters` and `requestBody`; after placeholder resolution, the generated response body against the status-matched response schema. | Request: `400` with an `error` and a single `details` array covering parameter and body issues. Response: `500` with the same shape. |
 | Runtime — `real` passthrough | The outgoing request — declared parameters and body — against `parameters` and `requestBody`; the proxied response body, when its `content-type` is JSON, against the status-matched response schema. | Never blocks or alters the request or response — either side mismatching is recorded as `drift_warning` (`request` and/or `response`) in the decision trace and logs at console `warn` level. |
 
@@ -104,13 +104,16 @@ a validation error.
     fails catalog validation immediately, alongside fixture-body mismatches — run
     [`mock-server validate`](validate.md) after adding or editing one.
 
-### Optional fields must have a fallback
+### Optional inputs must have a fallback
 
-When an endpoint has a request schema, a fixture placeholder that reads a body
-field the schema lets a caller **omit** — and supplies no fallback — is a
-**startup error**. The schema says the field is optional; the placeholder makes
-it de-facto required, because a request without it
+When an endpoint has a schema, a fixture placeholder that reads an input the
+schema lets a caller **omit** — and supplies no fallback — is a **startup
+error**. The schema says the input is optional; the placeholder makes it
+de-facto required, because a request without it
 [fails with a `500`](templating.md#typed-substitution).
+
+This covers both **body fields** (against `requestBody`) and **declared
+parameters** (against [`parameters`](#request-parameters)).
 
 ```json
 // requestBody schema: "id" required, "middleName" optional
@@ -132,9 +135,29 @@ The check is deliberately conservative: it flags only a field **provably**
 optional under plain `object`/`required`/`properties` (following `#/$defs/`
 references). Anything it can't decide — a field behind `anyOf`/`allOf`/`if`, an
 array element, a `$ref` it can't resolve — is left alone, so it never blocks a
-valid catalog. `header:`, `path:`, and `query:` selectors are out of scope: the
-request schema describes only the JSON body (declared `parameters` are validated
-at runtime, but this startup fallback analysis does not read them yet).
+valid catalog.
+
+#### Parameter selectors
+
+A `query:` or `header:` selector is flagged the same way when it reads a
+parameter the schema declares **optional**:
+
+```json
+// parameters: "cursor" required: true, "limit" declared without required
+{ "next": "{{query:cursor}}", "size": "{{query:limit}}" }
+```
+
+`{{query:cursor}}` is fine — a request without it is already rejected with a
+`400` before templating. `{{query:limit}}` is flagged, with the same three
+remedies: `| omit`, `| default:…`, or mark the parameter `"required": true`.
+
+Two limits keep this as conservative as the body check:
+
+- **A parameter the schema doesn't declare is never flagged.** Schemas with
+  partial parameter coverage are the norm, so only a *provably* optional
+  parameter is an error.
+- **`path:` selectors are never flagged** — `in: path` parameters are always
+  required, so a request can't reach templating without one.
 
 ## Request parameters
 
@@ -173,7 +196,9 @@ schema source (`_schema.json` or a system `_spec` file):
   JSON types.
 - **Required.** `in: path` parameters are always required. Query and header
   parameters are required only with `"required": true`; a missing optional
-  parameter is simply not validated.
+  parameter is simply not validated. A fixture placeholder that reads an
+  optional parameter with no fallback is a startup error — see
+  [Optional inputs must have a fallback](#optional-inputs-must-have-a-fallback).
 - **Headers match case-insensitively**, and — per OpenAPI — header
   parameters named `Accept`, `Content-Type`, or `Authorization` are ignored.
 - **Ignored.** `in: cookie` parameters (the server never parses cookies) and
