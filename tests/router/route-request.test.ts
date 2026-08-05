@@ -251,8 +251,11 @@ function jwt(payload: Record<string, unknown>): string {
   ].join('.')
 }
 
-function json(result: { bodyBytes: Buffer }): Record<string, unknown> {
-  return JSON.parse(result.bodyBytes.toString('utf8'))
+// Fixture bodies have no static shape, so the default is the loose record most
+// assertions want. Pass a type argument at the few sites that read *through* a
+// value (`body.legs[0]`, `body.name.length`) — those are illegal on `unknown`.
+function json<T = Record<string, unknown>>(result: { bodyBytes: Buffer }): T {
+  return JSON.parse(result.bodyBytes.toString('utf8')) as T
 }
 
 const withProfile = (p: MockProfile) => async (id: string) =>
@@ -1500,7 +1503,11 @@ describe('uuid end-to-end (#10)', () => {
       }),
     )
 
-    const body = json(res)
+    const body = json<{
+      bookingId: string
+      auditId: string
+      legs: { bookingId: string }[]
+    }>(res)
     expect(res.status).toBe(201)
     // Every `booking` placeholder — header, body field, nested array — is one id;
     // the bare `auditId` is a distinct draw.
@@ -1581,10 +1588,11 @@ describe('seeded faker/pick end-to-end (#15)', () => {
         }),
       )
 
+    type PersonBody = { name: string; age: number; favorite: string }
     const first = await run()
     const second = await run()
-    const firstBody = json(first)
-    const secondBody = json(second)
+    const firstBody = json<PersonBody>(first)
+    const secondBody = json<PersonBody>(second)
 
     expect(first.status).toBe(201)
     // Headline behavior: no profile means seedMaterial is `none:<endpoint>`, so two
