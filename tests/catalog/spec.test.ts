@@ -202,3 +202,70 @@ describe('resolveEndpointSchema', () => {
     expect(resolveEndpointSchema(spec, 'POST', '/missing', 'sys/ep')).toBeNull()
   })
 })
+
+describe('parameter schemas', () => {
+  it('rewrites refs inside parameter schemas and attaches $defs', () => {
+    const op = {
+      parameters: [{ name: 'limit', in: 'query', schema: { $ref: '#/components/schemas/Limit' } }],
+    }
+    const bundled = bundleOperation(op, { Limit: { type: 'integer' } }, 'sys/ep')
+    const schema = (bundled.parameters as Array<{ schema: Record<string, unknown> }>)[0].schema
+    expect(schema.$ref).toBe('#/$defs/Limit')
+    expect((schema.$defs as Record<string, unknown>).Limit).toEqual({ type: 'integer' })
+  })
+
+  it('compiles through compileEndpointSchema and validates via the ref', () => {
+    const op = {
+      parameters: [
+        { name: 'limit', in: 'query', required: true, schema: { $ref: '#/components/schemas/Limit' } },
+      ],
+    }
+    const compiled = compileEndpointSchema(
+      bundleOperation(op, { Limit: { type: 'integer' } }, 'sys/ep'),
+      'sys/ep',
+    )
+    const input = (search: string) => ({
+      pathParams: {},
+      query: new URLSearchParams(search),
+      headers: {},
+    })
+    expect(compiled.validateRequestParams(input('limit=7'))).toEqual([])
+    expect(compiled.validateRequestParams(input('limit=x')))
+      .toEqual([{ path: 'query/limit', message: expect.stringMatching(/integer/) }])
+  })
+
+  it('throws a targeted error on a $ref in place of a parameter object', () => {
+    const op = { parameters: [{ $ref: '#/components/parameters/Limit' }] }
+    expect(() => bundleOperation(op, {}, 'sys/ep')).toThrow(SpecError)
+    expect(() => bundleOperation(op, {}, 'sys/ep')).toThrow(/parameters/)
+  })
+
+  it('merges path-item parameters under the operation; operation wins on (name, in)', () => {
+    const spec = parseSpec(
+      [
+        'paths:',
+        '  /things/{thingId}:',
+        '    parameters:',
+        '      - name: thingId',
+        '        in: path',
+        '        required: true',
+        '        schema: { type: string }',
+        '      - name: limit',
+        '        in: query',
+        '        schema: { type: integer }',
+        '    get:',
+        '      parameters:',
+        '        - name: limit',
+        '          in: query',
+        '          schema: { type: string }',
+        '      responses: {}',
+      ].join('\n'),
+      'sys/_spec.yaml',
+    )
+    const op = resolveEndpointSchema(spec, 'GET', '/things/{thingId}', 'sys/ep')
+    expect(op?.parameters).toEqual([
+      { name: 'thingId', in: 'path', required: true, schema: { type: 'string' } },
+      { name: 'limit', in: 'query', schema: { type: 'string' } },
+    ])
+  })
+})
