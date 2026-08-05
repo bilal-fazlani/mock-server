@@ -139,6 +139,7 @@ parameters:
 | `profile` | Filter by profile ID |
 | `endpoint` | Filter by endpoint name |
 | `errorsOnly=1` | Only error responses |
+| `validation` | Only entries with a given [schema-validation outcome](request-logs.md#schema-validation-outcomes): `issues` (failed or drifted), `failed`, `drift`, `ok`, or `unchecked`. An unrecognised value is ignored rather than rejected. |
 | `logId` | Match a specific log ID |
 | `since` / `before` | Cursor bounds (log IDs) for paging |
 | `limit` | Page size, clamped to 1–200 |

@@ -7,7 +7,10 @@ import {
   insertLogEntry,
   listLogEntries,
   listLogSummaries,
+  parseValidationFilter,
+  VALIDATION_FILTERS,
   type LogEntry,
+  type ValidationFilter,
 } from '../../src/lib/logs/store'
 import { deleteProfile, ensureIndexes, upsertProfile } from '../../src/lib/profiles/store'
 
@@ -78,6 +81,91 @@ describe('log store', () => {
     expect(await listLogEntries(db, { logIdQuery: 'lg_bbb' })).toHaveLength(2)
     expect(await listLogEntries(db, { logIdQuery: 'LG_BBB333' })).toHaveLength(1)
     expect(await listLogEntries(db, { logIdQuery: 'bbb' })).toHaveLength(0)
+  })
+
+  describe('validation filter', () => {
+    // One entry per distinguishable validation state, so every filter can be
+    // asserted against the same fixed set.
+    async function seedValidationStates(): Promise<void> {
+      const states: Array<[string, LogEntry['trace']['validation']]> = [
+        ['lg_v_reqfail', { request: 'failed', issues: { request: { list: [{ path: '/amount', message: 'must be number' }], total: 1 } } }],
+        ['lg_v_resfail', { response: 'failed' }],
+        ['lg_v_reqdrift', { request: 'drift_warning' }],
+        ['lg_v_resdrift', { request: 'ok', response: 'drift_warning' }],
+        ['lg_v_ok', { request: 'ok', response: 'ok' }],
+        ['lg_v_reqok', { request: 'ok' }],
+        ['lg_v_none', undefined],
+      ]
+      for (const [logId, validation] of states) {
+        await insertLogEntry(
+          db,
+          entry({ logId, trace: { scenario: 'default', ...(validation && { validation }) } }),
+        )
+      }
+    }
+
+    const ids = async (validation: ValidationFilter): Promise<string[]> =>
+      (await listLogEntries(db, { validation })).map((e) => e.logId).sort()
+
+    it('narrows to failures, drift, both, passes, and never-checked', async () => {
+      await seedValidationStates()
+
+      expect(await ids('failed')).toEqual(['lg_v_reqfail', 'lg_v_resfail'])
+      expect(await ids('drift')).toEqual(['lg_v_reqdrift', 'lg_v_resdrift'])
+      expect(await ids('issues')).toEqual([
+        'lg_v_reqdrift',
+        'lg_v_reqfail',
+        'lg_v_resdrift',
+        'lg_v_resfail',
+      ])
+      // `lg_v_resdrift` has request: 'ok' but a drifting response — a problem
+      // anywhere disqualifies it from "ok".
+      expect(await ids('ok')).toEqual(['lg_v_ok', 'lg_v_reqok'])
+      expect(await ids('unchecked')).toEqual(['lg_v_none'])
+    })
+
+    it('composes with the other filters and with a keyset cursor', async () => {
+      await insertLogEntry(
+        db,
+        entry({ logId: 'lg_c1', profileId: 'c1', trace: { validation: { request: 'failed' } } }),
+      )
+      await insertLogEntry(
+        db,
+        entry({ logId: 'lg_c2', profileId: 'c2', trace: { validation: { request: 'failed' } } }),
+      )
+      await insertLogEntry(
+        db,
+        entry({ logId: 'lg_c3', profileId: 'c1', trace: { validation: { request: 'failed' } } }),
+      )
+
+      expect(
+        (await listLogEntries(db, { validation: 'failed', profileId: 'c1' })).map((e) => e.logId),
+      ).toEqual(['lg_c3', 'lg_c1'])
+      // Both the validation clause and the cursor carry an `$or`; neither may
+      // clobber the other.
+      expect(
+        (await listLogEntries(db, { validation: 'failed', beforeId: 'lg_c3' })).map((e) => e.logId),
+      ).toEqual(['lg_c2', 'lg_c1'])
+    })
+
+    it('parses only the known filter names, ignoring anything else', () => {
+      for (const name of VALIDATION_FILTERS) expect(parseValidationFilter(name)).toBe(name)
+      expect(parseValidationFilter('drift_warning')).toBeUndefined()
+      expect(parseValidationFilter('')).toBeUndefined()
+      expect(parseValidationFilter(null)).toBeUndefined()
+    })
+
+    it('drops the issue lists from summaries but keeps the totals', async () => {
+      await seedValidationStates()
+      const [summary] = await listLogSummaries(db, { validation: 'failed', logIdQuery: 'lg_v_reqfail' })
+      expect(summary.trace.validation?.request).toBe('failed')
+      expect(summary.trace.validation?.issues?.request).toEqual({ total: 1 })
+
+      const full = await getLogEntry(db, 'lg_v_reqfail')
+      expect(full?.trace.validation?.issues?.request?.list).toEqual([
+        { path: '/amount', message: 'must be number' },
+      ])
+    })
   })
 
   it('returns only entries newer than the since cursor', async () => {

@@ -99,7 +99,7 @@ an index. **A field is omitted entirely when it does not apply** — absent, nev
 | `mock.scenarioSource` | How that scenario was selected: `pin`, `sequence`, `implicit`, `global`, or `unmocked_policy`. |
 | `mock.outcome` | `fixture`, `passthrough`, or `error`. |
 | `mock.delayMs` | Injected [response delay](../building/fixtures.md#response-delay) in milliseconds, when the fixture declared one. |
-| `mock.validation.request` / `mock.validation.response` | `ok`, `failed`, or `drift_warning`. |
+| `mock.validation.request` / `mock.validation.response` | `ok`, `failed`, or `drift_warning`; omitted for a side no schema check reached. The flag only — the issues behind it stay in the [request log](request-logs.md#schema-validation-outcomes). |
 | `mock.error.code` | Error code, when the request failed. |
 | `mock.upstream.status` / `mock.upstream.durationMs` | Real upstream status and latency, on `real` passthrough. |
 

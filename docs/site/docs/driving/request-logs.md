@@ -30,6 +30,46 @@ overwriting the selection mechanism would be, and a resolver that returns
 a bare `real` pin. See [Code-backed scenario resolvers](../building/dynamic.md)
 for the resolver contract.
 
+## Schema validation outcomes
+
+For an endpoint backed by a schema — a `_schema.json` or a system
+[`_spec`](../building/schemas.md#system-level-_spec-file) — every request
+records what the check concluded, per side, under `trace.validation`:
+
+| State | Means |
+| --- | --- |
+| `ok` | The side was checked and matched the schema. |
+| `failed` | The side did not match, and the request was answered with the corresponding error — `400` for the request, `500` for a generated response. Mocked scenarios only. |
+| `drift_warning` | The side did not match on a `real` passthrough. Nothing was blocked or altered; the caller, or the schema, has drifted from what is documented. |
+| *absent* | No check ran — the endpoint has no schema, or the request never reached that check. A proxied response whose `content-type` is not JSON, or whose body will not parse, also leaves the response side unchecked. |
+
+`ok` is recorded on the `real` path as well as the mocked one, so **"checked and
+passed" is always distinguishable from "never checked"**.
+
+Alongside the flags the trace carries *what* failed: up to **20 issues per
+side** under `trace.validation.issues.<side>`, each a `path` and a `message`,
+with the true `total` beside them when there were more. Paths are either body
+JSON pointers (`/amount`) or location-prefixed [parameter
+paths](../building/schemas.md#request-parameters) (`query/limit`,
+`header/x-priority`).
+
+In `/ui/logs` a collapsed row carries a compact badge — **req failed**, **res
+drift** — whenever either side failed or drifted, so problems stand out while
+scanning a list; a passing or unchecked request stays unbadged. Expanding the
+row colours each side's outcome and lists its issues, so a drifting `real`
+request finally says which field drifted rather than only that something did.
+
+To pull up every entry in one state, filter the log API by outcome —
+`GET /ui/api/logs?validation=drift` and friends, documented under [Request
+logs](api.md#request-logs).
+
+!!! note
+
+    The [console line](console-logs.md) keeps the flags only
+    (`mock.validation.request` / `mock.validation.response`). Issue lists stay
+    with the bodies and headers in the persisted log, where a size budget
+    applies rather than a line-per-request one.
+
 ## Header redaction
 
 Persisted request headers preserve their names and values except `Authorization`,
@@ -97,7 +137,9 @@ and the full JSON field mapping are documented in
 ## Browsing and retention
 
 Browse and filter the log at `/ui/logs` (live-updating; filter by profile,
-endpoint, errors, or log ID), or from a profile page's **Recent activity** card.
+endpoint, errors, or log ID — and by [schema validation
+outcome](#schema-validation-outcomes) through the API), or from a profile page's
+**Recent activity** card.
 New requests stream in at the top; scroll down to load older entries on demand.
 While you are scrolled into history, new arrivals are held behind a **"N new"**
 button instead of jumping the list — click it to return to the live view.

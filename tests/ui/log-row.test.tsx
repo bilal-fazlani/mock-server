@@ -516,3 +516,93 @@ describe('LogRow', () => {
     expect(html).not.toContain('Copy as cURL')
   })
 })
+
+describe('LogRow schema validation', () => {
+  const validated = (validation: LogEntryView['trace']['validation']) =>
+    entry({ trace: { ...entry().trace, validation } })
+
+  it('badges a collapsed row when either side failed or drifted', () => {
+    const html = renderToStaticMarkup(
+      <LogRow
+        entry={validated({
+          request: 'failed',
+          response: 'drift_warning',
+          issues: { request: { list: [{ path: '/amount', message: 'must be number' }], total: 3 } },
+        })}
+      />,
+    )
+    expect(html).toContain('req failed')
+    expect(html).toContain('res drift')
+    // Tone, not just text: failed reads as an error, drift as a warning.
+    expect(html).toContain('border-[#d92d20] bg-[rgba(217,45,32,0.12)] text-[#d92d20]')
+    expect(html).toContain('border-[var(--warning-border)] bg-[var(--warning-bg)] text-[var(--warning-text)]')
+    expect(html).toContain('3 issues')
+  })
+
+  it('leaves a collapsed row unbadged when validation passed or never ran', () => {
+    const passed = renderToStaticMarkup(
+      <LogRow entry={validated({ request: 'ok', response: 'ok' })} />,
+    )
+    expect(passed).not.toContain('req failed')
+    expect(passed).not.toContain('req drift')
+    expect(renderToStaticMarkup(<LogRow entry={validated(undefined)} />)).not.toContain('res drift')
+  })
+
+  it('colours the detail pills by outcome instead of neutral grey', () => {
+    const full = validated({ request: 'ok', response: 'failed' })
+    const html = renderToStaticMarkup(<LogRow entry={full} defaultExpanded initialDetail={full} />)
+    expect(html).toContain('request: ok')
+    expect(html).toContain('response: failed')
+    expect(html).toContain('border-[rgba(var(--success-rgb),0.45)] bg-[var(--success-tint)] text-[var(--success)]')
+    expect(html).not.toContain('rounded-full border border-border bg-card px-2 py-0.5 text-[0.75rem] text-secondary-foreground')
+  })
+
+  it('renders the issues, splitting parameter paths from body pointers', () => {
+    const full = validated({
+      request: 'failed',
+      issues: {
+        request: {
+          list: [
+            { path: 'query/limit', message: 'must be <= 100' },
+            { path: '/amount', message: 'must be number' },
+          ],
+          total: 2,
+        },
+      },
+    })
+    const html = renderToStaticMarkup(<LogRow entry={full} defaultExpanded initialDetail={full} />)
+    expect(html).toContain('must be &lt;= 100')
+    expect(html).toContain('must be number')
+    // A location-prefixed parameter path splits into its own segment; a body
+    // JSON pointer stays whole.
+    expect(html).toContain('>query<')
+    expect(html).toContain('>limit<')
+    expect(html).toContain('>/amount<')
+    expect(html).not.toContain('more issue')
+  })
+
+  it('says how many issues were dropped past the trace cap', () => {
+    const full = validated({
+      response: 'drift_warning',
+      issues: { response: { list: [{ path: '/a', message: 'nope' }], total: 21 } },
+    })
+    const html = renderToStaticMarkup(<LogRow entry={full} defaultExpanded initialDetail={full} />)
+    expect(html).toContain('+20 more issues')
+  })
+
+  it('labels each issue with its side only when both sides have issues', () => {
+    const both = validated({
+      request: 'failed',
+      response: 'drift_warning',
+      issues: {
+        request: { list: [{ path: '/a', message: 'bad request' }], total: 1 },
+        response: { list: [{ path: '/b', message: 'bad response' }], total: 1 },
+      },
+    })
+    const html = renderToStaticMarkup(<LogRow entry={both} defaultExpanded initialDetail={both} />)
+    expect(html).toContain('bad request')
+    expect(html).toContain('bad response')
+    expect(countOccurrences(html, 'tracking-[0.06em] text-muted-foreground">request<')).toBe(1)
+    expect(countOccurrences(html, 'tracking-[0.06em] text-muted-foreground">response<')).toBe(1)
+  })
+})
