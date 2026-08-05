@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import { Check, ChevronRight, Copy, Server, TriangleAlert, UserRound } from 'lucide-react'
+import { Check, ChevronRight, Copy, Server, UserRound } from 'lucide-react'
 import Link from 'next/link'
 import { MethodBadge } from '../../components/MethodBadge'
 import { formatTimestamp } from '../../../lib/format'
@@ -158,11 +158,6 @@ export function LogRow({
                 className="inline-flex min-w-0 items-center gap-1.5 font-mono text-[0.75rem] text-muted-foreground [overflow-wrap:anywhere]"
                 title={`No profile "${entry.profileId}" exists — this request was handled by the unmocked-user policy`}
               >
-                <TriangleAlert
-                  className="size-3 flex-none text-[var(--warning-text)]"
-                  aria-label="Profile does not exist"
-                  role="img"
-                />
                 <span className="min-w-0 line-through decoration-muted-foreground/60">
                   {entry.profileId}
                 </span>
@@ -463,15 +458,7 @@ function ProfileResolutionValue({
         </span>
         <SegGroup className="min-w-0">
           <SegIcon className={iconClass}>
-            {missing ? (
-              <TriangleAlert
-                className="size-[13px] flex-none stroke-[2.4]"
-                aria-label="Profile does not exist"
-                role="img"
-              />
-            ) : (
-              <UserRound className="size-[13px] flex-none stroke-[2.4]" aria-hidden="true" />
-            )}
+            <UserRound className="size-[13px] flex-none stroke-[2.4]" aria-hidden="true" />
           </SegIcon>
           <Seg className={resolvedClass}>{profileId ?? resolution.value}</Seg>
         </SegGroup>
@@ -502,15 +489,7 @@ function ProfileResolutionValue({
             : 'inline-flex min-h-[26px] items-center gap-1.5 rounded-full border border-[rgba(96,165,250,0.4)] bg-[rgba(96,165,250,0.14)] px-2.5 py-[3px] font-mono text-[0.78rem] font-bold text-[#93c5fd] [overflow-wrap:anywhere]'
         }
       >
-        {missing ? (
-          <TriangleAlert
-            className="size-3 flex-none stroke-[2.4]"
-            aria-label="Profile does not exist"
-            role="img"
-          />
-        ) : (
-          <UserRound className="size-3 flex-none stroke-[2.4]" aria-hidden="true" />
-        )}
+        <UserRound className="size-3 flex-none stroke-[2.4]" aria-hidden="true" />
         {profileId ?? resolution.value}
       </span>
     </span>

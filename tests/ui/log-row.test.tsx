@@ -109,7 +109,18 @@ describe('LogRow', () => {
     expect(html).not.toContain('href="/ui/profiles/test1"')
     expect(html).toContain('test1')
     expect(html).toContain('No profile &quot;test1&quot; exists')
-    expect(html).toContain('Profile does not exist')
+  })
+
+  it('marks a missing profile with warning colour and a tooltip, not an alert icon', () => {
+    // A missing profile under DEFAULT_MOCK is the configured outcome, not a
+    // fault, so it reads as a state (colour + tooltip) rather than an alarm.
+    const missing = entry({
+      profileId: 'test1',
+      trace: { scenario: 'default', scenarioSource: 'unmocked_policy' },
+    })
+    const html = renderToStaticMarkup(<LogRow entry={missing} />)
+    expect(html).toContain('No profile &quot;test1&quot; exists')
+    expect(html).not.toContain('lucide-triangle-alert')
   })
 
   it('does not link a profile the ERROR policy rejected', () => {
