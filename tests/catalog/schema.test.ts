@@ -342,3 +342,119 @@ describe('guaranteesPresence (#27)', () => {
     expect(c.guaranteesPresence(['anything'])).toBeUndefined()
   })
 })
+
+const PARAMS_OP = {
+  parameters: [
+    { name: 'thingId', in: 'path', required: true, schema: { type: 'string', pattern: '^t-' } },
+    { name: 'limit', in: 'query', schema: { type: 'integer', maximum: 100 } },
+    { name: 'tag', in: 'query', schema: { type: 'array', items: { type: 'string', minLength: 2 } } },
+    { name: 'cursor', in: 'query', required: true, schema: { type: 'string' } },
+    { name: 'X-Priority', in: 'header', schema: { type: 'string', enum: ['low', 'high'] } },
+    { name: 'Accept', in: 'header', schema: { type: 'string', enum: ['application/xml'] } },
+    { name: 'session', in: 'cookie', schema: { type: 'string' } },
+  ],
+}
+
+function paramsInput(
+  overrides: {
+    pathParams?: Record<string, string>
+    search?: string
+    headers?: Record<string, string>
+  } = {},
+) {
+  return {
+    pathParams: overrides.pathParams ?? { thingId: 't-1' },
+    query: new URLSearchParams(overrides.search ?? '?cursor=abc'),
+    headers: overrides.headers ?? {},
+  }
+}
+
+describe('validateRequestParams', () => {
+  const compiled = compileEndpointSchema(PARAMS_OP, 'sys/ep')
+
+  it('passes when required params are present and typed correctly', () => {
+    expect(compiled.validateRequestParams(paramsInput())).toEqual([])
+  })
+
+  it('coerces string values toward the declared type', () => {
+    expect(compiled.validateRequestParams(paramsInput({ search: '?cursor=abc&limit=42' }))).toEqual([])
+    const issues = compiled.validateRequestParams(paramsInput({ search: '?cursor=abc&limit=weeble' }))
+    expect(issues).toEqual([{ path: 'query/limit', message: expect.stringMatching(/integer/) }])
+  })
+
+  it('applies schema constraints after coercion', () => {
+    const issues = compiled.validateRequestParams(paramsInput({ search: '?cursor=abc&limit=500' }))
+    expect(issues).toEqual([{ path: 'query/limit', message: expect.stringMatching(/100/) }])
+  })
+
+  it('validates repeated query keys as arrays, with item-level issue paths', () => {
+    expect(compiled.validateRequestParams(paramsInput({ search: '?cursor=a&tag=aa&tag=bb' }))).toEqual([])
+    // A single occurrence satisfies the array schema too (form + explode default).
+    expect(compiled.validateRequestParams(paramsInput({ search: '?cursor=a&tag=aa' }))).toEqual([])
+    const issues = compiled.validateRequestParams(paramsInput({ search: '?cursor=a&tag=aa&tag=x' }))
+    expect(issues).toEqual([{ path: 'query/tag/1', message: expect.any(String) }])
+  })
+
+  it('flags a missing required param and skips missing optional ones', () => {
+    const issues = compiled.validateRequestParams(paramsInput({ search: '' }))
+    expect(issues).toEqual([{ path: 'query/cursor', message: 'required query parameter is missing' }])
+  })
+
+  it('treats path params as always required, even without required: true', () => {
+    const c = compileEndpointSchema(
+      { parameters: [{ name: 'id', in: 'path', schema: { type: 'string' } }] },
+      'sys/ep',
+    )
+    expect(c.validateRequestParams({ pathParams: {}, query: new URLSearchParams(), headers: {} }))
+      .toEqual([{ path: 'path/id', message: 'required path parameter is missing' }])
+  })
+
+  it('matches headers case-insensitively', () => {
+    expect(compiled.validateRequestParams(paramsInput({ headers: { 'X-PRIORITY': 'high' } }))).toEqual([])
+    const issues = compiled.validateRequestParams(paramsInput({ headers: { 'x-priority': 'urgent' } }))
+    expect(issues).toEqual([{ path: 'header/x-priority', message: expect.any(String) }])
+  })
+
+  it('ignores cookie params and Accept/Content-Type/Authorization header params', () => {
+    // "Accept" violates its declared enum and "session" is absent — both ignored.
+    expect(compiled.validateRequestParams(paramsInput({ headers: { accept: 'text/html' } }))).toEqual([])
+  })
+
+  it('never rejects undeclared query params or headers', () => {
+    expect(
+      compiled.validateRequestParams(
+        paramsInput({ search: '?cursor=a&undeclared=1', headers: { 'x-extra': 'v' } }),
+      ),
+    ).toEqual([])
+  })
+
+  it('returns [] when the operation declares no parameters', () => {
+    expect(
+      compileEndpointSchema(REQUEST_OP, 'sys/ep').validateRequestParams({
+        pathParams: {},
+        query: new URLSearchParams(),
+        headers: {},
+      }),
+    ).toEqual([])
+  })
+
+  it('exposes declaredParams for startup cross-checks (header names lower-cased)', () => {
+    const declared = compiled.declaredParams()
+    expect(declared).toContainEqual({ location: 'path', name: 'thingId', required: true })
+    expect(declared).toContainEqual({ location: 'query', name: 'limit', required: false })
+    expect(declared).toContainEqual({ location: 'header', name: 'x-priority', required: false })
+    expect(declared.some((p) => p.name === 'session' || p.name === 'accept')).toBe(false)
+  })
+
+  it('rejects malformed parameter entries at compile time', () => {
+    expect(() => compileEndpointSchema({ parameters: 'nope' }, 'sys/ep')).toThrow(SchemaCompileError)
+    expect(() => compileEndpointSchema({ parameters: [{ in: 'query' }] }, 'sys/ep')).toThrow(/name/)
+    expect(() => compileEndpointSchema({ parameters: [{ name: 'x', in: 'body' }] }, 'sys/ep')).toThrow(/"in"/)
+    expect(() =>
+      compileEndpointSchema(
+        { parameters: [{ name: 'x', in: 'query', schema: { type: 'not-a-type' } }] },
+        'sys/ep',
+      ),
+    ).toThrow(/parameters\[0\]/)
+  })
+})
