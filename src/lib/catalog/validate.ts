@@ -59,6 +59,13 @@ export function validateCatalog(catalog: Catalog, catalogDir: string): Validatio
         template?.segments.flatMap((s) => (s.type === 'param' ? [s.name] : [])) ?? [],
       )
       const compiledSchema = schemas.get(schemaKey(system.slug, endpoint.name))
+      // Declared parameters keyed by "<location>:<name>", for the
+      // optional-parameter fallback lint below (#52). Header names are already
+      // lower-cased on both sides — by declaredParams() at compile time and by
+      // the selector parser — so the lookup is case-insensitive for free.
+      const declaredParamsByKey = new Map(
+        (compiledSchema?.declaredParams() ?? []).map((p) => [`${p.location}:${p.name}`, p]),
+      )
       if (template && compiledSchema) {
         for (const p of compiledSchema.declaredParams()) {
           if (p.location === 'path' && !declaredParams.has(p.name)) {
@@ -300,6 +307,29 @@ export function validateCatalog(catalog: Catalog, catalogDir: string): Validatio
                   `returns 500. Add a fallback ("{{${path} | omit}}" or "{{${path} | default:…}}"), ` +
                   `or add the field to the schema's "required".`,
               )
+            }
+            // The same trap, one location over (#52): a selector over a
+            // *parameter* the schema declares optional, with no fallback, 500s
+            // on exactly the requests that omit it. A parameter the schema does
+            // not declare stays silent — partial parameter coverage is the norm,
+            // matching the body lint's conservative stance — and `in: path`
+            // parameters are always required, so this lints query and header in
+            // practice.
+            const source = sel.selector.source
+            if (
+              !hasFallback &&
+              (source === 'query' || source === 'header' || source === 'path')
+            ) {
+              const declared = declaredParamsByKey.get(`${source}:${sel.selector.name}`)
+              if (declared && !declared.required) {
+                const path = `${source}:${sel.selector.name}`
+                errors.push(
+                  `${label}: fixture ${file} placeholder "{{${expr}}}" reads ${path}, which the ` +
+                    `request schema lets callers omit; a request without it returns 500. Add a ` +
+                    `fallback ("{{${path} | omit}}" or "{{${path} | default:…}}"), or mark the ` +
+                    `parameter "required": true in the schema.`,
+                )
+              }
             }
           }
         }
