@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.7.0](https://github.com/bilal-fazlani/mock-server/compare/v0.6.0...v0.7.0) (2026-08-05)
+
+
+### Features
+
+* **ui:** link global mock endpoints to the catalog ([#42](https://github.com/bilal-fazlani/mock-server/issues/42)) ([42b4ff5](https://github.com/bilal-fazlani/mock-server/commit/42b4ff5049389de8a84fc77d4e0efdf6635d5e36))
+* **ui:** scenario summaries and response previews in the pickers ([#48](https://github.com/bilal-fazlani/mock-server/issues/48)) ([22111fd](https://github.com/bilal-fazlani/mock-server/commit/22111fdb0451c61684096bcce3a46928ce333874))
+* **ui:** show the passthrough base url in the scenario chip and popup ([7f2190b](https://github.com/bilal-fazlani/mock-server/commit/7f2190b01d23b140ac24812658fccd7bffb8a434))
+* **ui:** syntax-highlight json bodies in the request log detail panel ([8b269c2](https://github.com/bilal-fazlani/mock-server/commit/8b269c2ebce31a10bb8663dda3ad3035cd3dca7e))
+
+
+### Bug Fixes
+
+* **store:** share one mongo connection across next bundles ([b4f0b97](https://github.com/bilal-fazlani/mock-server/commit/b4f0b97bc872eb292495656c16a2bfd7c5c03179))
+* **ui:** align the profile page header and form to the page width ([47e867b](https://github.com/bilal-fazlani/mock-server/commit/47e867b8d1f79512158221e806caa571e58704c2))
+* **ui:** give json true/false/null the js keyword colour in catalog code blocks ([#43](https://github.com/bilal-fazlani/mock-server/issues/43)) ([8775b3d](https://github.com/bilal-fazlani/mock-server/commit/8775b3d09e6579a5ba99ec46583e0fb1b87488ef))
+* **ui:** make the scenario modal's loading state visible ([b772c9f](https://github.com/bilal-fazlani/mock-server/commit/b772c9f10b251d47ce0a16761d6a8106d281581f))
+* **ui:** show full local date-time on log rows instead of a UTC slice ([b55560c](https://github.com/bilal-fazlani/mock-server/commit/b55560c229750b3ed2be19e48e03fca005898ccb))
+* **ui:** stop linking log profile ids that name no profile ([802b0e6](https://github.com/bilal-fazlani/mock-server/commit/802b0e65eb690c548bde57f4a55b0126ae699d79))
+* **ui:** widen scenario response modal and fix code preview overflow ([12c8ee1](https://github.com/bilal-fazlani/mock-server/commit/12c8ee1f138ad823c29931e17a223ff8c7d5a673))
+* **ui:** widen scenario response modal and fix code preview overflow ([ac84459](https://github.com/bilal-fazlani/mock-server/commit/ac844591053004370603b46ebb991dec465ff493))
+
 ## [0.6.0](https://github.com/bilal-fazlani/mock-server/compare/v0.5.0...v0.6.0) (2026-08-01)
 
 
