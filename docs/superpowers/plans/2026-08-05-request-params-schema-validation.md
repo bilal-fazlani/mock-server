@@ -550,6 +550,7 @@ Wire `validateRequestParams` into both request-side call sites: the mocked path'
 
 **Files:**
 - Modify: `src/lib/router/route-request.ts`
+- Modify: `src/app/components/SchemaBadge.tsx` (tooltip copy only)
 - Test: `tests/router/route-request.test.ts`, `tests/router/spec-schema.e2e.test.ts`
 
 **Interfaces:**
@@ -720,6 +721,22 @@ function warnOnRequestSchemaDrift(
 
 No import changes are needed — `RequestContext` is already imported, and `validateRequestParams` accepts `ctx` structurally.
 
+(d) The schema badge's tooltip says only bodies are validated — now stale. In `src/app/components/SchemaBadge.tsx`, replace the component doc comment and `title`:
+
+```tsx
+/**
+ * Badge shown for endpoints that carry a schema (`_schema.json` or a system
+ * `_spec` operation), i.e. whose requests — declared parameters and body —
+ * and response bodies are validated at runtime.
+ */
+```
+
+```tsx
+      title="Requests (parameters and body) and response bodies are validated against a schema"
+```
+
+The visible badge label ("Schema verified") is what `tests/ui/*.test.tsx` assert — it stays unchanged, so no test edits.
+
 - [ ] **Step 5: Run tests to verify they pass**
 
 Run: `npx vitest run tests/router/route-request.test.ts`
@@ -780,7 +797,7 @@ Expected: PASS across the board (the only behavioral change visible elsewhere is
 
 ```bash
 npm run typecheck && npm run lint
-git add src/lib/router/route-request.ts tests/router/route-request.test.ts tests/router/spec-schema.e2e.test.ts
+git add src/lib/router/route-request.ts src/app/components/SchemaBadge.tsx tests/router/route-request.test.ts tests/router/spec-schema.e2e.test.ts
 git commit -m "feat(router): enforce request parameter schemas at runtime"
 ```
 
