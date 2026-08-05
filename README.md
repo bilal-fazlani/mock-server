@@ -50,6 +50,7 @@ npm run build             # production build
 npm start                 # run the production build
 npm test                  # run the test suite (Vitest)
 npm run lint              # lint
+npm run typecheck         # tsc --noEmit (covers tests/, which next build does not)
 npm run validate:catalog  # validate this repo's catalog the way startup does
 ```
 

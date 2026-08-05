@@ -18,15 +18,22 @@ project-specific, and should be used freely whenever they apply, without asking.
 
 ## Verify before committing — CI does not lint
 
-`.github/workflows/ci.yml` runs `npm test`, `npm run build`, and `npm run check:prerender`
-(no `/ui` route may be statically prerendered — see #32) on a PR. **`npm run lint` is never
-run by CI**, so a lint error merges clean. Run all three yourself before committing:
+`.github/workflows/ci.yml` runs `npm run typecheck`, `npm test`, `npm run build`, and
+`npm run check:prerender` (no `/ui` route may be statically prerendered — see #32) on a PR.
+**`npm run lint` is never run by CI**, so a lint error merges clean. Run all four yourself
+before committing:
 
 ```
+npm run typecheck # tsc --noEmit; the only thing that reads types in tests/ — keep it at zero errors
 npm test          # vitest (includes tests/ui/force-dynamic.test.ts, the source-level twin of check:prerender)
 npm run lint      # eslint — the one CI can't catch for you
 npm run build     # next build; follow with `npm run check:prerender` if /ui pages changed
 ```
+
+`typecheck` is gated in CI as of #47, so it must stay at zero errors — a tolerated baseline
+is what let two errors sit in `tests/router/route-request.test.ts` unnoticed. Vitest strips
+types via esbuild and `next build` typechecks only the app graph, so a type error under
+`tests/` is invisible to both.
 
 After editing anything under `catalog/`, also run `npm run validate:catalog`.
 

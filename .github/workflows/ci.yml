@@ -61,6 +61,14 @@ jobs:
       - name: Install (strict — fails on lockfile drift)
         run: npm ci
 
+      # Vitest transpiles via esbuild (types stripped, never checked) and
+      # `next build` only typechecks the app graph — so nothing else here reads
+      # types in tests/. Without this step a type error there merges clean, and
+      # the errors it hides are usually real: a typo'd property is `unknown`,
+      # and the assertion that reads it passes vacuously (#47).
+      - name: Typecheck
+        run: npm run typecheck
+
       - name: Test
         run: npm test
 

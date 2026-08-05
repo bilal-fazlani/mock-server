@@ -30,6 +30,7 @@
     "build": "next build && node scripts/build-validate.mjs",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "validate:catalog": "tsx scripts/validate-catalog.ts",
     "check:prerender": "node scripts/check-ui-prerender.mjs",
