@@ -220,15 +220,107 @@ describe('profile key mapping store', () => {
     expect(await getProfileKeyMapping(db, 'order-id', 'missing')).toBeNull()
   })
 
-  it('creates mapping indexes without TTL', async () => {
+  it('creates mapping indexes, expiring only on the document-carried expiresAt', async () => {
     const indexes = await db.collection('profileKeyMappings').indexes()
     expect(indexes).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ key: { namespace: 1, key: 1 }, unique: true }),
         expect.objectContaining({ key: { profileId: 1 } }),
+        // expireAfterSeconds is a constant 0: the window lives in the document,
+        // so changing PROFILE_KEY_TTL_DURATION needs no index migration.
+        expect.objectContaining({ key: { expiresAt: 1 }, expireAfterSeconds: 0 }),
       ]),
     )
-    expect(indexes.every((i) => i.expireAfterSeconds === undefined)).toBe(true)
+    const ttlIndexes = indexes.filter((i) => i.expireAfterSeconds !== undefined)
+    expect(ttlIndexes.map((i) => i.key)).toEqual([{ expiresAt: 1 }])
+  })
+})
+
+describe('profile key mapping expiry', () => {
+  const capture = (
+    profileId: string,
+    ephemeralTtlSeconds: number | null,
+    key = 'evt-1',
+  ): Promise<void> =>
+    captureProfileKeyMapping(db, {
+      namespace: 'order-id',
+      key,
+      profileId,
+      capturedBy: { system: 'hello-system', endpoint: 'hello_world' },
+      ephemeralTtlSeconds,
+    })
+
+  const expiresAtOf = async (key = 'evt-1'): Promise<Date | undefined> =>
+    (await getProfileKeyMapping(db, 'order-id', key))?.expiresAt
+
+  it('stamps an expiry on a capture for a profile that does not exist', async () => {
+    const before = Date.now()
+    await capture('ghost-1', 3600)
+
+    const expiresAt = await expiresAtOf()
+    expect(expiresAt).toBeInstanceOf(Date)
+    expect(expiresAt!.getTime()).toBeGreaterThanOrEqual(before + 3600 * 1000)
+    expect(expiresAt!.getTime()).toBeLessThanOrEqual(Date.now() + 3600 * 1000)
+  })
+
+  it('leaves a capture for a real profile with no expiry at all', async () => {
+    await capture('account-123', null)
+    expect(await expiresAtOf()).toBeUndefined()
+  })
+
+  it('slides the expiry forward each time the same owner-less key is recaptured', async () => {
+    await capture('ghost-1', 60)
+    const first = await expiresAtOf()
+
+    await capture('ghost-1', 3600)
+    const second = await expiresAtOf()
+
+    expect(second!.getTime()).toBeGreaterThan(first!.getTime())
+  })
+
+  it('clears the expiry when a later capture finds the profile now exists', async () => {
+    await capture('ghost-1', 60)
+    expect(await expiresAtOf()).toBeInstanceOf(Date)
+
+    await capture('ghost-1', null)
+    expect(await expiresAtOf()).toBeUndefined()
+  })
+
+  it('clears the expiry on every mapping when the profile is created', async () => {
+    await capture('ghost-1', 60, 'evt-1')
+    await capture('ghost-1', 60, 'evt-2')
+    await capture('other-ghost', 60, 'evt-3')
+
+    await upsertProfile(db, { profileId: 'ghost-1', endpointScenarios: {} })
+
+    // Promotion must not depend on another capture ever arriving, or a mapping
+    // captured before the profile existed would expire out from under it.
+    expect(await expiresAtOf('evt-1')).toBeUndefined()
+    expect(await expiresAtOf('evt-2')).toBeUndefined()
+    expect(await expiresAtOf('evt-3')).toBeInstanceOf(Date)
+  })
+
+  it('lets a real profile claim a key whose orphan mapping has expired', async () => {
+    await capture('ghost-1', 60)
+    // Backdate past the expiry: Mongo's TTL monitor sweeps about once a minute,
+    // so an expired row is routinely still present when the next capture lands.
+    await db
+      .collection('profileKeyMappings')
+      .updateOne({ namespace: 'order-id', key: 'evt-1' }, { $set: { expiresAt: new Date(1) } })
+
+    await expect(capture('account-123', null)).resolves.toBeUndefined()
+
+    const mapping = await getProfileKeyMapping(db, 'order-id', 'evt-1')
+    expect(mapping).toMatchObject({ profileId: 'account-123' })
+    expect(mapping?.expiresAt).toBeUndefined()
+  })
+
+  it('still rejects a conflict when the existing mapping has not expired', async () => {
+    await capture('ghost-1', 3600)
+
+    await expect(capture('account-123', null)).rejects.toBeInstanceOf(
+      ProfileKeyMappingConflictError,
+    )
   })
 })
 

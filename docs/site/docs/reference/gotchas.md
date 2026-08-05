@@ -94,6 +94,13 @@ curl -s <origin>/customers/customer-123/status
 - **Profile key mappings are not profile settings.** They are captured from
   traffic and stored separately in MongoDB. Reusing the same external key for a
   different profile is treated as data corruption and returns `409`.
+- **A mapping captured for a caller with *no* profile expires too.** Same shape as
+  the resolver-history rule above, and for a sharper reason: `namespace` + `key` is
+  unique, so a mapping left behind by an unknown caller would hold that key forever
+  and answer a real profile's capture with `409`. It expires after
+  `PROFILE_KEY_TTL_DURATION` (default `1d`) instead. Creating the profile clears the
+  expiry on mappings already captured for its ID. See [Retention for callers with no
+  profile](../building/profiles.md#retention-for-callers-with-no-profile).
 - **Changing what `default` does = editing `default.json`.** The change applies
   anywhere the endpoint resolves to `default` — that's the design, so make it a
   reviewed change.

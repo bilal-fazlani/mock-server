@@ -37,6 +37,13 @@ export interface ProfileKeyMapping {
   }
   createdAt: Date
   modifiedAt: Date
+  /**
+   * Set only on mappings captured for a profile ID with no profile document (an
+   * unmocked caller under UNMOCKED_USERS=DEFAULT_MOCK/REAL). A TTL index reaps
+   * the row at this instant; mappings owned by a real profile omit the field
+   * entirely and never expire.
+   */
+  expiresAt?: Date
 }
 
 export interface ProfileKeyMappingCaptureInput {
@@ -47,6 +54,13 @@ export interface ProfileKeyMappingCaptureInput {
     system: string
     endpoint: string
   }
+  /**
+   * Owner-lifecycle signal, mirroring `appendDynamicHistory`. A number means the
+   * profile does not exist, so the row gets a sliding `expiresAt`. `null` means
+   * the owner is real, and any `expiresAt` left from before the profile existed
+   * is cleared so the mapping becomes permanent.
+   */
+  ephemeralTtlSeconds?: number | null
 }
 
 export interface GlobalMockScenario {
@@ -119,6 +133,12 @@ export async function ensureIndexes(
   await db.collection('mockProfiles').createIndex({ profileId: 1 }, { unique: true })
   await db.collection('profileKeyMappings').createIndex({ namespace: 1, key: 1 }, { unique: true })
   await db.collection('profileKeyMappings').createIndex({ profileId: 1 })
+  // Mappings captured for a profile ID that has no profile document carry an
+  // `expiresAt` and are reaped at that instant; mappings owned by a real profile
+  // omit the field and are never touched. As with dynamicHistory the window lives
+  // in the document, not the index, so expireAfterSeconds is a constant 0 and a
+  // changed PROFILE_KEY_TTL_DURATION needs no index migration.
+  await db.collection('profileKeyMappings').createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 })
   await db.collection('globalMockScenarios').createIndex({ system: 1, endpoint: 1 }, { unique: true })
   await db
     .collection('scenarioProgress')
@@ -245,6 +265,16 @@ export async function upsertProfile(
     },
     { upsert: true },
   )
+  // The profile now exists, so any mapping captured for this ID while it did not
+  // must stop being ephemeral. Clearing the expiry here rather than waiting for
+  // the next capture to do it means a mapping captured before the profile was
+  // created cannot expire out from under it — a gap dynamicHistory still has.
+  await db
+    .collection<ProfileKeyMapping>('profileKeyMappings')
+    .updateMany(
+      { profileId: input.profileId, expiresAt: { $exists: true } },
+      { $unset: { expiresAt: '' } },
+    )
 }
 
 export async function listProfiles(db: Db, limit = 20): Promise<MockProfile[]> {
@@ -344,29 +374,63 @@ export async function getProfileKeyMapping(
     .findOne({ namespace, key }, { projection: { _id: 0 } })
 }
 
+// A row past its `expiresAt` is treated as already gone. Mongo's TTL monitor only
+// sweeps about once a minute, so without this an orphan keeps winning conflicts —
+// and blocking its key for a real profile — for up to a minute after it expired,
+// which is the exact failure this TTL exists to end.
+function mappingExpired(doc: ProfileKeyMapping, now: Date): boolean {
+  return doc.expiresAt !== undefined && doc.expiresAt.getTime() <= now.getTime()
+}
+
 export async function captureProfileKeyMapping(
   db: Db,
   input: ProfileKeyMappingCaptureInput,
 ): Promise<void> {
   const collection = db.collection<ProfileKeyMapping>('profileKeyMappings')
   const now = new Date()
-  const existing = await collection.findOne(
-    { namespace: input.namespace, key: input.key },
-    { projection: { _id: 0 } },
-  )
-  if (existing) {
-    if (existing.profileId !== input.profileId) {
+  const filter = { namespace: input.namespace, key: input.key }
+  const ttlSeconds = input.ephemeralTtlSeconds ?? null
+  // An owner-less capture slides its expiry forward on every touch; a capture
+  // whose profile exists clears any `expiresAt` left from before it existed, so
+  // the mapping stops being ephemeral the moment it acquires a real owner.
+  const expiry =
+    ttlSeconds === null
+      ? { $unset: { expiresAt: '' as const } }
+      : { $set: { expiresAt: new Date(now.getTime() + ttlSeconds * 1000) } }
+
+  const claim = async (previousProfileId: string | undefined): Promise<void> => {
+    await collection.updateOne(filter, {
+      $set: {
+        profileId: input.profileId,
+        capturedBy: input.capturedBy,
+        modifiedAt: now,
+        // Taking over an expired row from a different profile mints a new
+        // mapping, so its lifetime starts now rather than inheriting the
+        // orphan's createdAt.
+        ...(previousProfileId === input.profileId ? {} : { createdAt: now }),
+        ...('$set' in expiry ? expiry.$set : {}),
+      },
+      ...('$unset' in expiry ? { $unset: expiry.$unset } : {}),
+    })
+  }
+
+  // Rejects only a *live* mapping held by someone else; an expired one is
+  // claimable, exactly as if the TTL monitor had already removed it.
+  const rejectIfHeld = (doc: ProfileKeyMapping): void => {
+    if (doc.profileId !== input.profileId && !mappingExpired(doc, now)) {
       throw new ProfileKeyMappingConflictError(
         input.namespace,
         input.key,
-        existing.profileId,
+        doc.profileId,
         input.profileId,
       )
     }
-    await collection.updateOne(
-      { namespace: input.namespace, key: input.key, profileId: input.profileId },
-      { $set: { capturedBy: input.capturedBy, modifiedAt: now } },
-    )
+  }
+
+  const existing = await collection.findOne(filter, { projection: { _id: 0 } })
+  if (existing) {
+    rejectIfHeld(existing)
+    await claim(existing.profileId)
     return
   }
 
@@ -378,26 +442,14 @@ export async function captureProfileKeyMapping(
       capturedBy: input.capturedBy,
       createdAt: now,
       modifiedAt: now,
+      ...(ttlSeconds === null ? {} : { expiresAt: new Date(now.getTime() + ttlSeconds * 1000) }),
     })
   } catch (err) {
     if (!(err instanceof MongoServerError) || err.code !== 11000) throw err
-    const raced = await collection.findOne(
-      { namespace: input.namespace, key: input.key },
-      { projection: { _id: 0 } },
-    )
+    const raced = await collection.findOne(filter, { projection: { _id: 0 } })
     if (!raced) throw err
-    if (raced.profileId !== input.profileId) {
-      throw new ProfileKeyMappingConflictError(
-        input.namespace,
-        input.key,
-        raced.profileId,
-        input.profileId,
-      )
-    }
-    await collection.updateOne(
-      { namespace: input.namespace, key: input.key, profileId: input.profileId },
-      { $set: { capturedBy: input.capturedBy, modifiedAt: now } },
-    )
+    rejectIfHeld(raced)
+    await claim(raced.profileId)
   }
 }
 

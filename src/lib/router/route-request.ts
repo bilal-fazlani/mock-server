@@ -68,7 +68,10 @@ export interface RouterDeps {
   getProfile: (profileId: string) => Promise<MockProfile | null>
   getGlobalMockScenario: (systemSlug: string, endpointName: string) => Promise<string | null>
   getProfileKeyMapping: (namespace: string, key: string) => Promise<ProfileKeyMapping | null>
-  captureProfileKeyMapping: (input: ProfileKeyMappingCaptureInput) => Promise<void>
+  captureProfileKeyMapping: (
+    input: ProfileKeyMappingCaptureInput,
+    ownerless: boolean,
+  ) => Promise<void>
   advanceScenarioProgress: (
     profileId: string,
     endpointName: string,
@@ -207,7 +210,7 @@ export async function routeRequest(
 
   if (scenario === REAL_SCENARIO) {
     const captureError = profileId
-      ? await captureProfileKeys(system, endpoint, profileId, ctx, deps, trace)
+      ? await captureProfileKeys(system, endpoint, profileId, ownerless, ctx, deps, trace)
       : null
     if (captureError) return captureError
     return proxy(system, endpoint, req, ctx, deps, trace)
@@ -229,7 +232,15 @@ export async function routeRequest(
   }
 
   if (profileId) {
-    const captureError = await captureProfileKeys(system, endpoint, profileId, ctx, deps, trace)
+    const captureError = await captureProfileKeys(
+      system,
+      endpoint,
+      profileId,
+      ownerless,
+      ctx,
+      deps,
+      trace,
+    )
     if (captureError) return captureError
   }
 
@@ -549,6 +560,7 @@ async function captureProfileKeys(
   system: SystemDef,
   endpoint: EndpointDef,
   profileId: string,
+  ownerless: boolean,
   ctx: RequestContext,
   deps: RouterDeps,
   trace: RouteTrace,
@@ -569,12 +581,15 @@ async function captureProfileKeys(
       })
     }
     try {
-      await deps.captureProfileKeyMapping({
-        namespace: capture.namespace,
-        key: String(value),
-        profileId,
-        capturedBy: { system: system.slug, endpoint: endpoint.name },
-      })
+      await deps.captureProfileKeyMapping(
+        {
+          namespace: capture.namespace,
+          key: String(value),
+          profileId,
+          capturedBy: { system: system.slug, endpoint: endpoint.name },
+        },
+        ownerless,
+      )
       trace.captures = [...(trace.captures ?? []), { namespace: capture.namespace, key: String(value) }]
     } catch (err) {
       if (err instanceof ProfileKeyMappingConflictError) {

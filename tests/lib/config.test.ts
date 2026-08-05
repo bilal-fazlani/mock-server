@@ -6,6 +6,7 @@ import {
   parseResolverHistoryLimit,
   parsePassthroughAsDefault,
   parseRequestLogTtlSeconds,
+  parseProfileKeyTtlSeconds,
   parseResolverHistoryTtlSeconds,
   parseUnmockedUsers,
 } from '../../src/lib/config'
@@ -139,5 +140,31 @@ describe('parseResolverHistoryTtlSeconds', () => {
 
   it('names itself in the error message, not the request-log var', () => {
     expect(() => parseResolverHistoryTtlSeconds('7w')).toThrow(/RESOLVER_HISTORY_TTL_DURATION/)
+  })
+})
+
+describe('parseProfileKeyTtlSeconds', () => {
+  it('defaults to 1 day (86400s) when unset or empty', () => {
+    expect(parseProfileKeyTtlSeconds(undefined)).toBe(86400)
+    expect(parseProfileKeyTtlSeconds('')).toBe(86400)
+  })
+
+  it('parses each supported unit into seconds', () => {
+    expect(parseProfileKeyTtlSeconds('45s')).toBe(45)
+    expect(parseProfileKeyTtlSeconds('30m')).toBe(1800)
+    expect(parseProfileKeyTtlSeconds('24h')).toBe(86400)
+    expect(parseProfileKeyTtlSeconds('7d')).toBe(604800)
+  })
+
+  it('rejects zero, missing unit, unsupported unit, and malformed values', () => {
+    expect(() => parseProfileKeyTtlSeconds('0h')).toThrow(ConfigError)
+    expect(() => parseProfileKeyTtlSeconds('100')).toThrow(ConfigError)
+    expect(() => parseProfileKeyTtlSeconds('7w')).toThrow(ConfigError)
+    expect(() => parseProfileKeyTtlSeconds('1d12h')).toThrow(ConfigError)
+    expect(() => parseProfileKeyTtlSeconds('1.5h')).toThrow(ConfigError)
+  })
+
+  it('names itself in the error message, not a sibling TTL var', () => {
+    expect(() => parseProfileKeyTtlSeconds('7w')).toThrow(/PROFILE_KEY_TTL_DURATION/)
   })
 })

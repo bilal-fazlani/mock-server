@@ -112,6 +112,17 @@ export function parseResolverHistoryTtlSeconds(raw: string | undefined): number 
   return parseTtlSeconds('RESOLVER_HISTORY_TTL_DURATION', raw, 86400)
 }
 
+// Parse PROFILE_KEY_TTL_DURATION into seconds. The sibling of the resolver-history
+// window, for the other artefact an owner-less caller leaves behind: a profile-key
+// mapping captured for a profile ID that has no profile document. Those rows are
+// minted from arbitrary caller input and no owner deletion ever reaches them, and
+// because (namespace, key) is uniquely indexed a stale one *blocks* that key for a
+// real profile with a 409. Mappings owned by a real profile carry no expiry and are
+// kept indefinitely; see src/lib/profiles/store.ts.
+export function parseProfileKeyTtlSeconds(raw: string | undefined): number {
+  return parseTtlSeconds('PROFILE_KEY_TTL_DURATION', raw, 86400)
+}
+
 // Resolve the catalog directory from CATALOG_PATH. A relative value is
 // resolved against the current working directory; an absolute value is used
 // as-is. Defaults to ./catalog. The npx launcher always passes an absolute

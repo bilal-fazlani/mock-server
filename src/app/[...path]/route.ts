@@ -25,7 +25,11 @@ async function handle(
       (await getGlobalMockScenario(await getDb(), system, endpoint))?.scenario ?? null,
     getProfileKeyMapping: async (namespace, key) =>
       getProfileKeyMapping(await getDb(), namespace, key),
-    captureProfileKeyMapping: async (input) => captureProfileKeyMapping(await getDb(), input),
+    captureProfileKeyMapping: async (input, ownerless) =>
+      captureProfileKeyMapping(await getDb(), {
+        ...input,
+        ephemeralTtlSeconds: ownerless ? rt.profileKeyTtlSeconds : null,
+      }),
     advanceScenarioProgress: async (profileId, endpointName, steps) =>
       advanceScenarioProgress(await getDb(), profileId, endpointName, steps),
     getDynamicHistory: async (ownerType, ownerKey, endpointName, scenario) =>

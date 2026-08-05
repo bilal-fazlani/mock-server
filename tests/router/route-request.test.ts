@@ -665,6 +665,39 @@ describe('profile key mappings', () => {
     ])
   })
 
+  it('marks a capture owner-less when the profile does not exist', async () => {
+    // The TTL that bounds these rows keys off this flag; without it an unmocked
+    // caller's mapping is permanent and blocks its key for a real profile (#49).
+    const ownerlessFlags: boolean[] = []
+    const d = deps({
+      unmockedUsers: 'DEFAULT_MOCK',
+      getProfile: async () => null,
+      captureProfileKeyMapping: async (_input: ProfileKeyMappingCaptureInput, ownerless: boolean) => {
+        ownerlessFlags.push(ownerless)
+      },
+    } as Partial<RouterDeps>)
+
+    const res = await routeRequest(post('/capture-assessment', { customerId: 'ghost', eventID: 'evt-1' }), d)
+
+    expect(res.status).toBe(200)
+    expect(ownerlessFlags).toEqual([true])
+  })
+
+  it('marks a capture owned when the profile exists', async () => {
+    const ownerlessFlags: boolean[] = []
+    const d = deps({
+      getProfile: withProfile(profile({ profileId: 'c1', endpointScenarios: {} })),
+      captureProfileKeyMapping: async (_input: ProfileKeyMappingCaptureInput, ownerless: boolean) => {
+        ownerlessFlags.push(ownerless)
+      },
+    } as Partial<RouterDeps>)
+
+    const res = await routeRequest(post('/capture-assessment', { customerId: 'c1', eventID: 'evt-1' }), d)
+
+    expect(res.status).toBe(200)
+    expect(ownerlessFlags).toEqual([false])
+  })
+
   it('treats a non-scalar capture key value as unresolved (400)', async () => {
     const captures: ProfileKeyMappingCaptureInput[] = []
     const d = deps({

@@ -101,6 +101,14 @@ export const APP_ENVIRONMENT: EnvironmentDefinition[] = [
     display: true,
   },
   {
+    name: 'PROFILE_KEY_TTL_DURATION',
+    category: 'Routing',
+    description:
+      'How long a captured profile-key mapping survives when it was captured for a profile that does not exist. Mappings owned by a real profile never expire.',
+    defaultValue: '1d',
+    display: true,
+  },
+  {
     name: 'REQUEST_LOG_TTL_DURATION',
     category: 'System',
     description: 'How long request logs are retained before MongoDB expires them.',

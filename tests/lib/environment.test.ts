@@ -51,6 +51,7 @@ describe('buildEnvironmentRows', () => {
       'PASSTHROUGH_TIMEOUT_MS',
       'RESOLVER_HISTORY_LIMIT',
       'RESOLVER_HISTORY_TTL_DURATION',
+      'PROFILE_KEY_TTL_DURATION',
       'REQUEST_LOG_TTL_DURATION',
       'HELLO_SYSTEM_URL',
       'ORDERS_URL',
@@ -122,10 +123,15 @@ describe('buildEnvironmentRows', () => {
     expect(row?.value).toBe('(default: 10)')
   })
 
-  it('surfaces both retention windows with their 1d defaults', () => {
+  it('surfaces all three retention windows with their 1d defaults', () => {
     const rows = buildEnvironmentRows({ systems: [] }, { REQUEST_LOG_TTL_DURATION: '7d' })
 
     expect(rows.find((r) => r.name === 'RESOLVER_HISTORY_TTL_DURATION')).toMatchObject({
+      value: '(default: 1d)',
+      status: 'default',
+      category: 'Routing',
+    })
+    expect(rows.find((r) => r.name === 'PROFILE_KEY_TTL_DURATION')).toMatchObject({
       value: '(default: 1d)',
       status: 'default',
       category: 'Routing',

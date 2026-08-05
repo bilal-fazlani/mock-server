@@ -127,7 +127,7 @@ The nested selector after `profileKey:<namespace>:` uses the reusable direct
 selector grammar: body, path, query, or header. Bearer selectors are
 profile-ID-only and cannot be nested here. Namespaces must match `[a-z0-9][a-z0-9_-]*`. The mapping is
 stored in MongoDB in `profileKeyMappings` with `namespace`, `key`, `profileId`,
-`capturedBy`, `createdAt`, and `modifiedAt`. There is no TTL index.
+`capturedBy`, `createdAt`, and `modifiedAt`.
 
 !!! warning "Conflicts are loud"
 
@@ -135,3 +135,24 @@ stored in MongoDB in `profileKeyMappings` with `namespace`, `key`, `profileId`,
     Capturing the same namespace/key for a different profile returns
     `409 profile_key_mapping_conflict`. A later `profileKey` request whose key has
     never been captured returns `404 profile_key_mapping_not_found`.
+
+### Retention for callers with no profile
+
+Capturing happens whether or not the resolved profile ID names a real profile.
+Under `UNMOCKED_USERS=DEFAULT_MOCK` or `REAL`, an unknown caller still completes
+the early request, so its keys are still captured — otherwise the later callback
+would `404` and those policies would silently not apply to `profileKey` endpoints.
+
+A mapping captured for an ID with no profile expires after
+`PROFILE_KEY_TTL_DURATION` (default `1d`), and the clock restarts each time that
+key is captured again. A mapping owned by a real profile carries no expiry and is
+kept until you delete the profile.
+
+This matters more than storage: `namespace` + `key` is unique, so a mapping left
+by a throwaway caller would otherwise hold that key forever and answer a real
+profile's capture with `409`. Load-testing with random IDs leaves nothing
+permanent behind.
+
+If the profile is created later, its mappings stop being temporary at that moment
+— creating the profile clears the expiry on every mapping already captured for
+its ID, so nothing expires out from under a profile that now exists.
