@@ -107,6 +107,22 @@ of the job, not just editing the text inside it.
 Purely internal changes (refactors with no behavior change, test-only edits, styling with no
 functional effect) don't need doc updates.
 
+## A `/ui/api/*` change updates the OpenAPI spec in the same commit
+
+`src/lib/control-api/openapi.json` is the published contract for the runtime-control API,
+served at `GET /ui/api/openapi.json`. **Any change to a `/ui/api/*` surface — a new route, a
+new or renamed field, a changed status code, a new query parameter, a widened enum — must
+update that document in the same commit.** Nothing generates it from the handlers.
+
+`tests/ui/openapi.test.ts` only holds the *route and method* lists in step (it walks
+`src/app/ui/api/**`), so a new route fails loudly but a stale field or status code merges
+clean. Field-level accuracy is on you and on review.
+
+Bump `info.version` with the change — minor for anything additive, which is what the
+[stability policy](docs/site/docs/driving/api.md#stability--machine-readable-spec) promises
+callers. It versions the contract and is deliberately independent of `package.json`;
+`GET /ui/api/health` is what reports the build.
+
 ## A new env var lands in four places, not one
 
 Adding a config variable means adding it **everywhere it is surfaced**, in the same commit:

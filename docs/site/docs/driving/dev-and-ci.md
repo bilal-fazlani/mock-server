@@ -82,7 +82,9 @@ Use a **profile** (as above) for a profiled endpoint, or
 `PUT /ui/api/global-mocks/{system}/{endpoint}` for a global one. Reset
 [sequence](../building/scenarios.md#scenario-sequences) progress between tests
 with `POST /ui/api/profiles/{id}/reset`. Full route details are in the
-[Runtime-control API](api.md) reference.
+[Runtime-control API](api.md) reference, which also publishes an
+[OpenAPI document](api.md#stability-machine-readable-spec) you can generate a
+client from instead of hand-writing curl.
 
 ## Ephemeral vs persistent data
 

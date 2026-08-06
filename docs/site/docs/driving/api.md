@@ -18,14 +18,48 @@ exists for local development and automated tests (see
 Mock endpoints are served at the root (`/…`), so the control API cannot live
 there without colliding with a mocked route. `/ui` is the reserved admin
 namespace; every control route lives under `/ui/api/*`. Error responses are
-`{ "error": "<message>" }`.
+`{ "error": "<message>" }` — except `GET /ui/api/health`, whose `503` keeps the
+health body shape and adds an `error` field to it.
+
+## Stability & machine-readable spec
+
+The whole contract is published as an OpenAPI 3.1 document, served by the running
+server:
+
+```bash
+curl -s http://localhost:3000/ui/api/openapi.json
+```
+
+Point a client generator or a request-validating proxy at it instead of
+hand-writing calls. It covers every route below, plus the ones the dashboard
+uses internally, and it carries its own `info.version` — the version of the
+*contract*, not of the build. The build is what `GET /ui/api/health` reports as
+`version` and `sha`.
+
+The API **evolves additively**. New routes, new optional request fields, new
+response fields, and new members of an existing enum arrive in ordinary
+releases, so **ignore fields you don't recognise** — a client that rejects
+unknown properties breaks on an upgrade that broke nothing. Existing fields are
+not removed or retyped, and the status code for an existing outcome does not
+change, without a major bump of `info.version`.
+
+Two things sit outside that promise:
+
+- **Error message text.** Only the `{ "error": "<message>" }` envelope is
+  stable. The wording is for humans and changes freely, so match on the status
+  code.
+- **Presentation fields** — the log detail's `bodyHtml`, and the `html` carried
+  by a scenario view (the spec's dashboard-internal
+  `GET /ui/api/catalog/{system}/{endpoint}/scenarios/{slug}`). They exist for
+  the dashboard, and everything they show is also available structurally in the
+  same response.
 
 ## Endpoints
 
 | Method & path | Request body | Success | Errors |
 |---|---|---|---|
 | `GET /ui/api/catalog` | — | `200` catalog projection | — |
-| `GET /ui/api/global-mocks` | — | `200 { "scenarios": … }` | — |
+| `GET /ui/api/global-mocks` | — | `200 { "scenarios": [ … ] }` | — |
 | `PUT /ui/api/global-mocks/{system}/{endpoint}` | `{ "scenario": "<key>" }` | `200 { system, endpoint, scenario }` | `404` unknown endpoint · `400` not a global mock / scenario missing / not declared / bad JSON |
 | `DELETE /ui/api/global-mocks/{system}/{endpoint}` | — | `204` (idempotent) | `404` unknown endpoint |
 | `GET /ui/api/profiles/{profileId}` | — | `200` profile | `404 { "error": "not_found" }` |
@@ -34,7 +68,7 @@ namespace; every control route lives under `/ui/api/*`. Error responses are
 | `POST /ui/api/profiles/{profileId}/reset` | `{ endpoint? }` | `204` | — |
 | `GET /ui/api/logs` | — (query params below) | `200 { "entries": … }` | — |
 | `GET /ui/api/logs/{logId}` | — | `200 { "entry": …, "bodyHtml": … }` | — |
-| `GET /ui/api/health` | — | `200 { status, mongo, version, sha }` | `503` Mongo down (same body shape) |
+| `GET /ui/api/health` | — | `200 { status, mongo, version, sha }` | `503` Mongo down (same fields, plus `error`) |
 
 ## `GET /ui/api/catalog`
 
@@ -73,8 +107,10 @@ implicit and never appears in either list. `mockType` is `"profiled"` or
 
 ## `GET /ui/api/global-mocks` · `PUT` · `DELETE`
 
-`GET /ui/api/global-mocks` returns the current overrides as
-`{ "scenarios": { … } }`.
+`GET /ui/api/global-mocks` returns the overrides in force as
+`{ "scenarios": [ … ] }` — one `{ system, endpoint, scenario, createdAt,
+modifiedAt }` record per endpoint that has one, most recently changed first.
+Endpoints sitting on their implicit default are absent.
 
 `PUT /ui/api/global-mocks/{system}/{endpoint}` sets a global scenario. Body:
 

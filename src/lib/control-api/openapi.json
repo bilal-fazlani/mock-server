@@ -1,0 +1,1123 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Mock Server runtime-control API",
+    "version": "1.0.0",
+    "summary": "Drive a running mock server — flip scenarios, manage profiles, reset sequence progress, and read request logs.",
+    "description": "The JSON HTTP API behind the mock server's dashboard, served under `/ui/api/*`.\n\nMock endpoints answer at the root (`/…`), so the control API cannot live there without colliding with a mocked route; `/ui` is the reserved admin namespace.\n\n**Local-dev only.** The API is unauthenticated (matching the dashboard) and gives no isolation guarantees — global mocks are a single shared switch that parallel callers can clobber. Use profiles for per-caller isolation. It does not author mocks; you create endpoints and fixtures by writing catalog files.\n\n**Versioning.** `info.version` is this contract's own version, independent of the server build (which `GET /ui/api/health` reports as `version` and `sha`). The contract evolves additively: new routes, new optional request fields, new response fields, and new enum members can appear in any release, so ignore fields you do not recognise. Error bodies are `{ \"error\": string }` — the envelope is stable, the message text is not.",
+    "license": {
+      "name": "MIT",
+      "identifier": "MIT"
+    }
+  },
+  "externalDocs": {
+    "description": "Runtime-control API guide",
+    "url": "https://mock-server.bilal-fazlani.com/driving/api/"
+  },
+  "servers": [
+    {
+      "url": "/",
+      "description": "The running mock server, which serves this document at /ui/api/openapi.json."
+    }
+  ],
+  "security": [],
+  "tags": [
+    {
+      "name": "Catalog",
+      "description": "Read-only discovery of the systems, endpoints, and scenarios the server loaded at startup."
+    },
+    {
+      "name": "Global mocks",
+      "description": "The single shared scenario switch used by `mockType: \"global\"` endpoints."
+    },
+    {
+      "name": "Profiles",
+      "description": "Per-caller scenario selections, keyed by a business ID such as `customer-123`."
+    },
+    {
+      "name": "Logs",
+      "description": "What the server recorded for each handled request."
+    },
+    {
+      "name": "Operations",
+      "description": "Health and the machine-readable contract."
+    }
+  ],
+  "paths": {
+    "/ui/api/openapi.json": {
+      "get": {
+        "operationId": "getOpenApiDocument",
+        "tags": ["Operations"],
+        "summary": "Fetch this OpenAPI document",
+        "description": "Returns the checked-in contract for every `/ui/api/*` route, as served by this build.",
+        "responses": {
+          "200": {
+            "description": "The OpenAPI 3.1 document.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "An OpenAPI 3.1 document."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ui/api/catalog": {
+      "get": {
+        "operationId": "getCatalog",
+        "tags": ["Catalog"],
+        "summary": "List systems, endpoints, and declared scenarios",
+        "description": "Read-only projection of the loaded catalog: systems → endpoints → declared scenarios. Carries no fixture bodies.",
+        "responses": {
+          "200": {
+            "description": "The catalog projection.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Catalog" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ui/api/catalog/{system}/{endpoint}/scenarios/{slug}": {
+      "get": {
+        "operationId": "getScenarioView",
+        "tags": ["Catalog"],
+        "summary": "Render one declared scenario",
+        "description": "Backs the dashboard's scenario-preview modal: it returns the fixture body or resolver source for a single declared scenario, already syntax-highlighted. The implicit `real` passthrough has no file and is not declared, so it answers `404` here.\n\nThe `html` fields are presentation data for the dashboard. Scripts should read `json` or `code`.",
+        "parameters": [
+          { "$ref": "#/components/parameters/SystemSlug" },
+          { "$ref": "#/components/parameters/EndpointName" },
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "description": "A scenario key declared on the endpoint.",
+            "schema": { "type": "string" },
+            "example": "card_declined"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The rendered scenario.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "view": { "$ref": "#/components/schemas/ScenarioView" }
+                  },
+                  "required": ["view"]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such system/endpoint, or the endpoint declares no such scenario.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ui/api/global-mocks": {
+      "get": {
+        "operationId": "listGlobalMocks",
+        "tags": ["Global mocks"],
+        "summary": "List the global scenario overrides in force",
+        "description": "Returns one record per endpoint with a global override set, most recently changed first. Endpoints left on their implicit default are absent.",
+        "responses": {
+          "200": {
+            "description": "The overrides in force.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "scenarios": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/GlobalMockScenario" }
+                    }
+                  },
+                  "required": ["scenarios"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ui/api/global-mocks/{system}/{endpoint}": {
+      "put": {
+        "operationId": "setGlobalMock",
+        "tags": ["Global mocks"],
+        "summary": "Set the global scenario for an endpoint",
+        "description": "The endpoint must be `mockType: \"global\"`, and the scenario must be selectable on it — any declared scenario (fixture- or resolver-backed) or the implicit `real` passthrough.\n\nThe endpoint is resolved before the body is read, so an unknown system/endpoint answers `404` even when the body is malformed.",
+        "parameters": [
+          { "$ref": "#/components/parameters/SystemSlug" },
+          { "$ref": "#/components/parameters/EndpointName" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/GlobalMockSelectionRequest" },
+              "example": { "scenario": "failure" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The selection now in force.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/GlobalMockSelection" }
+              }
+            }
+          },
+          "400": {
+            "description": "The endpoint is not a global mock, the body is not valid JSON, `scenario` is missing or empty, or the scenario is not declared on the endpoint.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "404": {
+            "description": "No such system/endpoint.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "clearGlobalMock",
+        "tags": ["Global mocks"],
+        "summary": "Clear an endpoint's global scenario",
+        "description": "Reverts the endpoint to its implicit default and drops the endpoint's resolver history. Idempotent — clearing an override that was never set still answers `204`.",
+        "parameters": [
+          { "$ref": "#/components/parameters/SystemSlug" },
+          { "$ref": "#/components/parameters/EndpointName" }
+        ],
+        "responses": {
+          "204": { "description": "The override is gone." },
+          "404": {
+            "description": "No such system/endpoint.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ui/api/profiles/{profileId}": {
+      "get": {
+        "operationId": "getProfile",
+        "tags": ["Profiles"],
+        "summary": "Fetch a profile",
+        "parameters": [{ "$ref": "#/components/parameters/ProfileId" }],
+        "responses": {
+          "200": {
+            "description": "The stored profile.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MockProfile" }
+              }
+            }
+          },
+          "404": {
+            "description": "No profile with that ID. The body is `{ \"error\": \"not_found\" }`.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" },
+                "example": { "error": "not_found" }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "upsertProfile",
+        "tags": ["Profiles"],
+        "summary": "Create or replace a profile",
+        "description": "`endpointScenarios` is replaced wholesale, so omitting it — or sending `{}` — clears every selection on the profile. Each key is validated against the catalog, and the write is all-or-nothing: one unknown endpoint name or undeclared scenario rejects the whole request.\n\nSelections are normalised on the way in: a selection equal to the implicit scenario is dropped, a one-step sequence collapses to a plain string, and an empty sequence is dropped. The response is the stored profile, exactly as `GET` would return it.\n\nA successful write also records a `profile_saved` admin entry in the request log.",
+        "parameters": [{ "$ref": "#/components/parameters/ProfileId" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ProfileUpsertRequest" },
+              "example": {
+                "displayName": "agent-run-42",
+                "endpointScenarios": {
+                  "charge": "card_declined",
+                  "refund": ["pending", "settled"]
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The stored profile.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MockProfile" }
+              }
+            }
+          },
+          "400": {
+            "description": "The body is not valid JSON, `endpointScenarios` is not an object, an endpoint name is unknown, a selection is neither a string nor an array of strings, or a scenario is not declared on its endpoint.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteProfile",
+        "tags": ["Profiles"],
+        "summary": "Delete a profile and everything keyed to it",
+        "description": "Cascades to the profile's key mappings, sequence progress, resolver history, and request logs. Idempotent — deleting a profile that does not exist still answers `204`.",
+        "parameters": [{ "$ref": "#/components/parameters/ProfileId" }],
+        "responses": {
+          "204": { "description": "The profile and its dependent data are gone." }
+        }
+      }
+    },
+    "/ui/api/profiles/{profileId}/reset": {
+      "post": {
+        "operationId": "resetProfileProgress",
+        "tags": ["Profiles"],
+        "summary": "Reset scenario-sequence progress",
+        "description": "Clears sequence progress and resolver history so the next call starts from the first step. With an `endpoint`, only that endpoint resets; with no body — or a malformed one — the whole profile resets. Always answers `204`, and records a `progress_reset` admin entry in the request log.",
+        "parameters": [{ "$ref": "#/components/parameters/ProfileId" }],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ProfileResetRequest" },
+              "example": { "endpoint": "charge" }
+            }
+          }
+        },
+        "responses": {
+          "204": { "description": "Progress is reset." }
+        }
+      }
+    },
+    "/ui/api/logs": {
+      "get": {
+        "operationId": "listLogs",
+        "tags": ["Logs"],
+        "summary": "List request-log summaries",
+        "description": "Newest first, ordered by timestamp then log ID. Summaries omit the captured request and response bodies — fetch one entry by ID for those. Every filter is optional and they combine with AND.",
+        "parameters": [
+          {
+            "name": "profile",
+            "in": "query",
+            "required": false,
+            "description": "Keep only entries for this profile ID.",
+            "schema": { "type": "string" },
+            "example": "customer-123"
+          },
+          {
+            "name": "endpoint",
+            "in": "query",
+            "required": false,
+            "description": "Keep only entries for this endpoint name.",
+            "schema": { "type": "string" },
+            "example": "charge"
+          },
+          {
+            "name": "errorsOnly",
+            "in": "query",
+            "required": false,
+            "description": "Send `1` to keep only entries whose outcome is `error`. Any other value is ignored.",
+            "schema": { "type": "string", "enum": ["1"] }
+          },
+          {
+            "name": "validation",
+            "in": "query",
+            "required": false,
+            "description": "Keep only entries whose schema check landed in this state on either side of the exchange. `issues` is the union of `failed` and `drift`; `ok` means something was checked and nothing was wrong; `unchecked` means no check ran. An unrecognised value is ignored rather than rejected, so a bad filter never fails the request.",
+            "schema": { "$ref": "#/components/schemas/ValidationFilter" }
+          },
+          {
+            "name": "logId",
+            "in": "query",
+            "required": false,
+            "description": "Case-insensitive prefix match on the log ID — paste an `x-mock-log-id` response header straight in.",
+            "schema": { "type": "string" },
+            "example": "lg_4f2a"
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "required": false,
+            "description": "Keyset cursor: keep only entries newer than this log ID. An unknown ID is ignored.",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "required": false,
+            "description": "Keyset cursor: keep only entries older than this log ID. Takes precedence over `since` if both are sent; an unknown ID yields an empty page.",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Page size, clamped to 1–200. A missing or unparseable value falls back to 100.",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 200, "default": 100 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The matching summaries, newest first.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "entries": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/LogSummary" }
+                    }
+                  },
+                  "required": ["entries"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ui/api/logs/{logId}": {
+      "get": {
+        "operationId": "getLogEntry",
+        "tags": ["Logs"],
+        "summary": "Fetch one full log entry",
+        "description": "Returns the decision trace plus the captured request and response.\n\n`bodyHtml` is presentation data for the dashboard — syntax-highlighted markup for the same bodies. Scripts should read `entry` and ignore it. A side is omitted when that body is absent or was stored as a raw string rather than structured JSON, and the whole field is omitted when neither side qualifies, so treat every level as optional. Nothing is available only as markup.",
+        "parameters": [
+          {
+            "name": "logId",
+            "in": "path",
+            "required": true,
+            "description": "The full log ID, as carried by the `x-mock-log-id` response header.",
+            "schema": { "type": "string" },
+            "example": "lg_4f2a91c0b7de"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The entry, and the dashboard's markup for its bodies.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/LogDetail" }
+              }
+            }
+          },
+          "404": {
+            "description": "No entry with that ID — it may have aged out of the log's TTL window. The body is `{ \"error\": \"not_found\" }`.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" },
+                "example": { "error": "not_found" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ui/api/health": {
+      "get": {
+        "operationId": "getHealth",
+        "tags": ["Operations"],
+        "summary": "Check liveness and MongoDB connectivity",
+        "description": "Pings MongoDB with a 3-second bound, so an unreachable database answers promptly instead of hanging on the driver's 30-second server-selection timeout. Both outcomes also report the running build, which makes this the endpoint to poll when waiting for the server to come up in CI.",
+        "responses": {
+          "200": {
+            "description": "The server is up and MongoDB answered the ping.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HealthOk" }
+              }
+            }
+          },
+          "503": {
+            "description": "MongoDB did not answer within the check's window. Carries the same fields as `200`, plus `error`.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HealthUnavailable" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "SystemSlug": {
+        "name": "system",
+        "in": "path",
+        "required": true,
+        "description": "A system slug, as returned by `GET /ui/api/catalog`.",
+        "schema": { "type": "string" },
+        "example": "hello-system"
+      },
+      "EndpointName": {
+        "name": "endpoint",
+        "in": "path",
+        "required": true,
+        "description": "An endpoint name within the system, as returned by `GET /ui/api/catalog`.",
+        "schema": { "type": "string" },
+        "example": "account_balance"
+      },
+      "ProfileId": {
+        "name": "profileId",
+        "in": "path",
+        "required": true,
+        "description": "The caller's business ID, such as a customer or account number. Profiles are created on first write — there is no separate registration step.",
+        "schema": { "type": "string" },
+        "example": "customer-123"
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "title": "Error",
+        "description": "The body of every non-2xx JSON response. The envelope is stable; the message text is human-readable and may change between releases, so do not match on it.",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Why the request failed."
+          }
+        },
+        "required": ["error"]
+      },
+      "Catalog": {
+        "type": "object",
+        "title": "Catalog",
+        "description": "The catalog the server loaded at startup. It is read once, so it only changes across restarts.",
+        "properties": {
+          "systems": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/CatalogSystem" }
+          }
+        },
+        "required": ["systems"]
+      },
+      "CatalogSystem": {
+        "type": "object",
+        "title": "CatalogSystem",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "description": "URL-safe system identifier, taken from the directory name under `catalog/`. Use it in the `{system}` path segments."
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name for the system."
+          },
+          "baseUrlEnv": {
+            "type": "string",
+            "description": "Name of the environment variable holding the real upstream base URL that the `real` passthrough scenario proxies to."
+          },
+          "endpoints": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/CatalogEndpoint" }
+          }
+        },
+        "required": ["slug", "name", "baseUrlEnv", "endpoints"]
+      },
+      "CatalogEndpoint": {
+        "type": "object",
+        "title": "CatalogEndpoint",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Endpoint identifier, unique across the whole catalog. This is the key a profile's `endpointScenarios` maps, and the `{endpoint}` path segment."
+          },
+          "displayName": {
+            "type": "string",
+            "description": "Display name for the endpoint."
+          },
+          "method": {
+            "type": "string",
+            "description": "HTTP method the mocked endpoint answers.",
+            "examples": ["POST"]
+          },
+          "path": {
+            "type": "string",
+            "description": "Path the mocked endpoint is served at, relative to the server root.",
+            "examples": ["/accounts/balance"]
+          },
+          "mockType": {
+            "type": "string",
+            "enum": ["profiled", "global"],
+            "description": "Where the served scenario comes from: `profiled` reads the caller's profile, `global` reads the single shared switch. Always present — an endpoint that omits it in the catalog is projected as `profiled`."
+          },
+          "resolverScenarios": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "The subset of `scenarios` keys backed by a `<slug>.mjs` resolver rather than a `<slug>.json` fixture. Always present, and empty when the endpoint has none."
+          },
+          "scenarios": {
+            "type": "object",
+            "additionalProperties": { "type": "string" },
+            "description": "Every declared scenario as slug → label, fixture- and resolver-backed alike. The `real` passthrough is implicit on every endpoint and never appears here.",
+            "examples": [
+              {
+                "default": "Balance available",
+                "failure": "Upstream error",
+                "dynamic": "Decided per call"
+              }
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "displayName",
+          "method",
+          "path",
+          "mockType",
+          "resolverScenarios",
+          "scenarios"
+        ]
+      },
+      "ScenarioView": {
+        "title": "ScenarioView",
+        "description": "One declared scenario, rendered for display. The variant is chosen by `kind`: a fixture-backed scenario carries its file, a resolver-backed one carries its source, and either becomes `error` when the file cannot be read or parsed.",
+        "allOf": [
+          {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string",
+                "description": "The scenario slug."
+              },
+              "label": {
+                "type": "string",
+                "description": "Friendly name — the fixture's or resolver's description, falling back to the slug."
+              },
+              "summary": {
+                "type": "string",
+                "description": "Secondary line, present only when the scenario declares a non-empty summary."
+              },
+              "isDefault": {
+                "type": "boolean",
+                "description": "True for the scenario whose slug is `default`."
+              }
+            },
+            "required": ["key", "label", "isDefault"]
+          },
+          {
+            "oneOf": [
+              { "$ref": "#/components/schemas/ScenarioViewFixture" },
+              { "$ref": "#/components/schemas/ScenarioViewResolver" },
+              { "$ref": "#/components/schemas/ScenarioViewError" }
+            ]
+          }
+        ]
+      },
+      "ScenarioViewFixture": {
+        "type": "object",
+        "title": "ScenarioViewFixture",
+        "properties": {
+          "kind": { "const": "fixture" },
+          "json": {
+            "type": "string",
+            "description": "The whole fixture file — status, headers, and body — as pretty-printed JSON."
+          },
+          "html": {
+            "type": "string",
+            "description": "Syntax-highlighted markup for the fixture body. Presentation data; read `json` instead."
+          }
+        },
+        "required": ["kind", "json", "html"]
+      },
+      "ScenarioViewResolver": {
+        "type": "object",
+        "title": "ScenarioViewResolver",
+        "properties": {
+          "kind": { "const": "resolver" },
+          "code": {
+            "type": "string",
+            "description": "The resolver's `<slug>.mjs` source."
+          },
+          "html": {
+            "type": "string",
+            "description": "Syntax-highlighted markup for `code`. Presentation data; read `code` instead."
+          }
+        },
+        "required": ["kind", "code", "html"]
+      },
+      "ScenarioViewError": {
+        "type": "object",
+        "title": "ScenarioViewError",
+        "description": "The scenario is declared, but its file could not be read or parsed.",
+        "properties": {
+          "kind": { "const": "error" },
+          "message": {
+            "type": "string",
+            "description": "What went wrong while reading the scenario's file."
+          }
+        },
+        "required": ["kind", "message"]
+      },
+      "GlobalMockScenario": {
+        "type": "object",
+        "title": "GlobalMockScenario",
+        "description": "A stored global override, with the timestamps the server keeps for it.",
+        "properties": {
+          "system": { "type": "string" },
+          "endpoint": { "type": "string" },
+          "scenario": {
+            "type": "string",
+            "description": "The scenario key in force: a declared scenario, or `real` for passthrough."
+          },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "modifiedAt": { "type": "string", "format": "date-time" }
+        },
+        "required": ["system", "endpoint", "scenario", "createdAt", "modifiedAt"]
+      },
+      "GlobalMockSelection": {
+        "type": "object",
+        "title": "GlobalMockSelection",
+        "description": "The selection a successful `PUT` put in force. Timestamps are not echoed — read them back with `GET /ui/api/global-mocks`.",
+        "properties": {
+          "system": { "type": "string" },
+          "endpoint": { "type": "string" },
+          "scenario": { "type": "string" }
+        },
+        "required": ["system", "endpoint", "scenario"]
+      },
+      "GlobalMockSelectionRequest": {
+        "type": "object",
+        "title": "GlobalMockSelectionRequest",
+        "properties": {
+          "scenario": {
+            "type": "string",
+            "minLength": 1,
+            "description": "A scenario declared on the endpoint, or `real` for passthrough."
+          }
+        },
+        "required": ["scenario"]
+      },
+      "ScenarioSelection": {
+        "title": "ScenarioSelection",
+        "description": "What a profile serves for one endpoint: a single scenario key, or an ordered sequence served call-by-call that sticks on its last step once exhausted.",
+        "oneOf": [
+          { "type": "string" },
+          { "type": "array", "items": { "type": "string" } }
+        ],
+        "examples": ["card_declined", ["pending", "settled"]]
+      },
+      "MockProfile": {
+        "type": "object",
+        "title": "MockProfile",
+        "properties": {
+          "profileId": {
+            "type": "string",
+            "description": "The caller's business ID."
+          },
+          "displayName": {
+            "type": "string",
+            "description": "Friendly label, present only once one has been set."
+          },
+          "endpointScenarios": {
+            "type": "object",
+            "additionalProperties": { "$ref": "#/components/schemas/ScenarioSelection" },
+            "description": "Endpoint name → selection, holding only endpoints this profile pins. Endpoints left on the implicit scenario are absent, so an empty object means the profile pins nothing."
+          },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "modifiedAt": { "type": "string", "format": "date-time" }
+        },
+        "required": ["profileId", "endpointScenarios", "createdAt", "modifiedAt"]
+      },
+      "ProfileUpsertRequest": {
+        "type": "object",
+        "title": "ProfileUpsertRequest",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "description": "Friendly label. A blank string, or a value that is not a string, is ignored and leaves any stored name unchanged."
+          },
+          "endpointScenarios": {
+            "type": "object",
+            "additionalProperties": { "$ref": "#/components/schemas/ScenarioSelection" },
+            "description": "Endpoint name → selection. Replaces the stored map wholesale; omit it, or send `{}`, to clear every selection."
+          }
+        }
+      },
+      "ProfileResetRequest": {
+        "type": "object",
+        "title": "ProfileResetRequest",
+        "properties": {
+          "endpoint": {
+            "type": "string",
+            "description": "Reset only this endpoint's progress. Omit it — or omit the body entirely — to reset the whole profile."
+          }
+        }
+      },
+      "HealthOk": {
+        "type": "object",
+        "title": "HealthOk",
+        "properties": {
+          "status": { "const": "ok" },
+          "mongo": { "const": "up" },
+          "version": {
+            "type": "string",
+            "description": "The running build's package version, or `0.0.0-dev` for a build that was not stamped."
+          },
+          "sha": {
+            "type": "string",
+            "description": "The running build's full git SHA, or `unknown` for a build that was not stamped."
+          }
+        },
+        "required": ["status", "mongo", "version", "sha"]
+      },
+      "HealthUnavailable": {
+        "type": "object",
+        "title": "HealthUnavailable",
+        "properties": {
+          "status": { "const": "error" },
+          "mongo": { "const": "down" },
+          "error": {
+            "type": "string",
+            "description": "Why the ping failed — a driver message, or a timeout notice when the check outran its 3-second bound. Unlike every other failure on this API, this body is not the `Error` envelope."
+          },
+          "version": { "type": "string" },
+          "sha": { "type": "string" }
+        },
+        "required": ["status", "mongo", "error", "version", "sha"]
+      },
+      "ValidationFilter": {
+        "type": "string",
+        "title": "ValidationFilter",
+        "enum": ["issues", "failed", "drift", "ok", "unchecked"],
+        "description": "Schema-validation states a log listing can be narrowed to."
+      },
+      "ValidationResult": {
+        "type": "string",
+        "title": "ValidationResult",
+        "enum": ["ok", "failed", "drift_warning"],
+        "description": "A schema check's outcome for one side of the exchange. The field is absent when that side was never checked — no schema, or the request never reached the check — which is a distinct state from `ok`."
+      },
+      "SchemaIssue": {
+        "type": "object",
+        "title": "SchemaIssue",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Where the problem is. A body issue is a JSON pointer into that body, or `/` for the body itself. A parameter issue is `<location>/<name>` — `query/limit`, `header/x-tenant` — with a JSON pointer appended when the failure is inside a structured parameter value.",
+            "examples": ["/items/0/amount", "query/limit"]
+          },
+          "message": {
+            "type": "string",
+            "description": "What the schema expected there."
+          }
+        },
+        "required": ["path", "message"]
+      },
+      "ValidationIssues": {
+        "type": "object",
+        "title": "ValidationIssues",
+        "description": "What failed on one side of the exchange. Bounded so a pathological body cannot inflate the entry.",
+        "properties": {
+          "list": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/SchemaIssue" },
+            "description": "The first few issues. Carried by the single-entry fetch; projected away in list summaries, which keep only `total`."
+          },
+          "total": {
+            "type": "integer",
+            "description": "How many issues there were in all, including any beyond `list`."
+          }
+        },
+        "required": ["total"]
+      },
+      "LogTrace": {
+        "type": "object",
+        "title": "LogTrace",
+        "description": "How the server decided what to serve. Every field is optional: an entry carries only the steps its request actually took, and an admin entry carries only the admin fields.",
+        "properties": {
+          "profileResolution": {
+            "type": "object",
+            "description": "How the caller's profile ID was found.",
+            "properties": {
+              "selector": {
+                "type": "string",
+                "description": "The selector expression that produced the ID."
+              },
+              "value": {
+                "type": "string",
+                "description": "The resolved profile ID."
+              },
+              "via": {
+                "description": "`direct` when the selector read the ID out of the request; otherwise the captured key mapping it was looked up through.",
+                "oneOf": [
+                  { "const": "direct" },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "namespace": { "type": "string" },
+                      "key": { "type": "string" }
+                    },
+                    "required": ["namespace", "key"]
+                  }
+                ]
+              }
+            },
+            "required": ["selector", "value", "via"]
+          },
+          "scenario": {
+            "type": "string",
+            "description": "The scenario key that was served."
+          },
+          "scenarioSource": {
+            "type": "string",
+            "enum": ["pin", "sequence", "implicit", "global", "unmocked_policy"],
+            "description": "Why that scenario was chosen."
+          },
+          "sequence": {
+            "type": "object",
+            "description": "Position within a scenario sequence, when one was in play.",
+            "properties": {
+              "step": { "type": "integer", "description": "1-based step served." },
+              "of": { "type": "integer", "description": "How many steps the sequence has." },
+              "served": {
+                "type": "integer",
+                "description": "How many calls the sequence has served in total — it keeps counting past the last step."
+              }
+            },
+            "required": ["step", "of", "served"]
+          },
+          "resolver": {
+            "type": "object",
+            "description": "Present when a resolver-backed scenario ran.",
+            "properties": {
+              "slug": { "type": "string", "description": "The resolver scenario that ran." },
+              "returned": { "type": "string", "description": "The scenario it decided to serve." }
+            },
+            "required": ["slug", "returned"]
+          },
+          "captures": {
+            "type": "array",
+            "description": "Profile-key mappings this request captured.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "namespace": { "type": "string" },
+                "key": { "type": "string" }
+              },
+              "required": ["namespace", "key"]
+            }
+          },
+          "placeholders": {
+            "type": "object",
+            "additionalProperties": { "type": "string" },
+            "description": "Placeholder expression → the value it rendered to."
+          },
+          "validation": {
+            "type": "object",
+            "description": "Schema-check outcomes. Absent entirely when no check ran on either side.",
+            "properties": {
+              "request": { "$ref": "#/components/schemas/ValidationResult" },
+              "response": { "$ref": "#/components/schemas/ValidationResult" },
+              "issues": {
+                "type": "object",
+                "description": "What went wrong, per side, for a side that is `failed` or `drift_warning`. A sibling of the flags rather than a shape wrapped around them, so entries written before this field existed still read cleanly.",
+                "properties": {
+                  "request": { "$ref": "#/components/schemas/ValidationIssues" },
+                  "response": { "$ref": "#/components/schemas/ValidationIssues" }
+                }
+              }
+            }
+          },
+          "delayMs": {
+            "type": "integer",
+            "description": "Injected response delay, when a fixture declared one. Already folded into the entry's `durationMs`; recorded here so injected latency is distinguishable from real work."
+          },
+          "upstream": {
+            "type": "object",
+            "description": "Present when the request was proxied to the real upstream.",
+            "properties": {
+              "url": { "type": "string" },
+              "status": { "type": "integer" },
+              "durationMs": { "type": "integer" }
+            },
+            "required": ["url", "status", "durationMs"]
+          },
+          "adminAction": {
+            "type": "string",
+            "enum": ["profile_saved", "progress_reset"],
+            "description": "Set on `kind: \"admin\"` entries only: which control action was taken."
+          },
+          "adminEndpoint": {
+            "type": "string",
+            "description": "Set on `kind: \"admin\"` entries only: the endpoint a `progress_reset` was scoped to, absent for a whole-profile reset."
+          }
+        }
+      },
+      "LogPayload": {
+        "type": "object",
+        "title": "LogPayload",
+        "properties": {
+          "headers": {
+            "type": "object",
+            "additionalProperties": { "type": "string" },
+            "description": "Lowercased header names → values. An `authorization` header is stored as `[REDACTED]`."
+          },
+          "body": {
+            "description": "The captured body: parsed JSON when the payload parsed as JSON, the raw text when it did not, and `null` when there was no body. Any JSON type, `null` included."
+          },
+          "truncated": {
+            "type": "boolean",
+            "description": "True when the body was cut to the capture limit, leaving `body` a raw string."
+          }
+        },
+        "required": ["headers", "body", "truncated"]
+      },
+      "LogResponsePayload": {
+        "title": "LogResponsePayload",
+        "allOf": [
+          { "$ref": "#/components/schemas/LogPayload" },
+          {
+            "type": "object",
+            "properties": {
+              "status": { "type": "integer", "description": "The status the server answered with." }
+            },
+            "required": ["status"]
+          }
+        ]
+      },
+      "LogEntryCommon": {
+        "type": "object",
+        "title": "LogEntryCommon",
+        "description": "The fields a full entry and a list summary share.",
+        "properties": {
+          "logId": {
+            "type": "string",
+            "description": "This entry's ID, also returned to the caller as the `x-mock-log-id` response header.",
+            "examples": ["lg_4f2a91c0b7de"]
+          },
+          "traceId": {
+            "type": "string",
+            "description": "The caller's distributed-trace ID, when the request carried one: 32 lowercase hex from `traceparent`, or an `x-request-id` verbatim. Absent for untraced requests, and never present on admin entries."
+          },
+          "ts": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the entry was recorded."
+          },
+          "durationMs": {
+            "type": "integer",
+            "description": "How long the request took end to end, including any injected delay. Absent on admin entries."
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["request", "admin"],
+            "description": "`request` for a handled mock call; `admin` for a control action taken through this API or the dashboard."
+          },
+          "profileId": {
+            "type": "string",
+            "description": "The profile the call resolved to, when it resolved to one."
+          },
+          "system": { "type": "string", "description": "The matched system slug." },
+          "endpoint": { "type": "string", "description": "The matched endpoint name." },
+          "method": { "type": "string", "description": "The incoming HTTP method. Absent on admin entries." },
+          "path": { "type": "string", "description": "The incoming path. Absent on admin entries." },
+          "query": {
+            "type": "string",
+            "description": "The incoming query string including its leading `?`, or an empty string when there was none. Absent on admin entries."
+          },
+          "outcome": {
+            "type": "string",
+            "enum": ["fixture", "passthrough", "error"],
+            "description": "How the call was answered."
+          },
+          "error": {
+            "type": "object",
+            "description": "Present when the call failed.",
+            "properties": {
+              "code": { "type": "string" },
+              "message": { "type": "string" }
+            },
+            "required": ["code", "message"]
+          },
+          "trace": { "$ref": "#/components/schemas/LogTrace" }
+        },
+        "required": ["logId", "ts", "kind", "trace"]
+      },
+      "LogEntry": {
+        "title": "LogEntry",
+        "description": "One recorded request, with everything the server captured for it.",
+        "allOf": [
+          { "$ref": "#/components/schemas/LogEntryCommon" },
+          {
+            "type": "object",
+            "properties": {
+              "request": { "$ref": "#/components/schemas/LogPayload" },
+              "response": { "$ref": "#/components/schemas/LogResponsePayload" }
+            }
+          }
+        ]
+      },
+      "LogSummary": {
+        "title": "LogSummary",
+        "description": "A list row: a `LogEntry` without the captured payloads. The response keeps its status only, and each `trace.validation.issues` side keeps `total` without `list` — fetch the entry by ID for the rest.",
+        "allOf": [
+          { "$ref": "#/components/schemas/LogEntryCommon" },
+          {
+            "type": "object",
+            "properties": {
+              "response": {
+                "type": "object",
+                "properties": {
+                  "status": { "type": "integer" }
+                },
+                "required": ["status"]
+              }
+            }
+          }
+        ]
+      },
+      "LogBodyHtml": {
+        "type": "object",
+        "title": "LogBodyHtml",
+        "description": "Syntax-highlighted markup for the entry's bodies, built for the dashboard. A side is absent when that body is missing, or was stored as a raw string rather than structured JSON.",
+        "properties": {
+          "request": { "type": "string" },
+          "response": { "type": "string" }
+        }
+      },
+      "LogDetail": {
+        "type": "object",
+        "title": "LogDetail",
+        "properties": {
+          "entry": { "$ref": "#/components/schemas/LogEntry" },
+          "bodyHtml": { "$ref": "#/components/schemas/LogBodyHtml" }
+        },
+        "required": ["entry"]
+      }
+    }
+  }
+}
