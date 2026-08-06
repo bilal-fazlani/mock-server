@@ -198,8 +198,9 @@ malformed JSON), the whole profile resets. Always `204`.
 
 ## Request logs
 
-`GET /ui/api/logs` returns log summaries as `{ "entries": [ … ] }`. Query
-parameters:
+`GET /ui/api/logs` returns log entries as `{ "entries": [ … ] }` — each a
+`LogSummary` by default, or a full `LogEntry` (captured request and response
+bodies included) when the request sets `include=full`. Query parameters:
 
 | Param | Meaning |
 |---|---|
@@ -207,12 +208,14 @@ parameters:
 | `endpoint` | Filter by endpoint name |
 | `errorsOnly=1` | Only error responses |
 | `validation` | Only entries with a given [schema-validation outcome](request-logs.md#schema-validation-outcomes): `issues` (failed or drifted), `failed`, `drift`, `ok`, or `unchecked`. An unrecognised value is ignored rather than rejected. |
-| `logId` | Match a specific log ID |
+| `logId` | Match a specific log ID (case-insensitive prefix) |
+| `traceId` | Match a specific [trace ID](request-logs.md#distributed-trace-correlation) (exact match) |
 | `since` / `before` | Cursor bounds (log IDs) for paging |
 | `limit` | Page size, clamped to 1–200 |
+| `include=full` | Return the full entry — captured request and response bodies included — instead of the summary projection. Any other value is ignored. |
 
-Fetch one full entry (with the decision trace and captured request/response) via
-`GET /ui/api/logs/{logId}`, which answers
+Fetch one full entry by ID (with the decision trace and captured
+request/response) via `GET /ui/api/logs/{logId}`, which answers
 `{ "entry": { … }, "bodyHtml": { … } }`. See [Request logs](request-logs.md) for
 what a log records.
 

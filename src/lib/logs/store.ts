@@ -116,6 +116,8 @@ export interface ListLogsOptions {
   validation?: ValidationFilter
   /** Case-insensitive prefix match on logId (paste from x-mock-log-id). */
   logIdQuery?: string
+  /** Exact match against the stored `LogEntry.traceId` (see trace-context.ts). */
+  traceId?: string
   sinceId?: string
   beforeId?: string
   limit?: number
@@ -190,6 +192,9 @@ async function buildLogFilter(
   if (options.logIdQuery) {
     filter.logId = { $regex: `^${escapeRegex(options.logIdQuery)}`, $options: 'i' }
   }
+  // Exact match, unlike logId's prefix search: traceId is copied verbatim from
+  // an inbound header (or is 32 hex from traceparent), never typed by hand.
+  if (options.traceId) filter.traceId = options.traceId
   // Keyset cursors respect the { ts: -1, logId: -1 } sort so entries sharing a
   // millisecond are never skipped. `before` (older) takes precedence over
   // `since` (newer) if both are somehow supplied; the UI only sends one.

@@ -10,6 +10,7 @@ import {
   parseValidationFilter,
   VALIDATION_FILTERS,
   type LogEntry,
+  type ListLogsOptions,
   type ValidationFilter,
 } from '../../src/lib/logs/store'
 import { deleteProfile, ensureIndexes, upsertProfile } from '../../src/lib/profiles/store'
@@ -81,6 +82,59 @@ describe('log store', () => {
     expect(await listLogEntries(db, { logIdQuery: 'lg_bbb' })).toHaveLength(2)
     expect(await listLogEntries(db, { logIdQuery: 'LG_BBB333' })).toHaveLength(1)
     expect(await listLogEntries(db, { logIdQuery: 'bbb' })).toHaveLength(0)
+  })
+
+  describe('traceId filter', () => {
+    const TRACE_ID = '0af7651916cd43dd8448eb211c80319c'
+    const idsFor = async (traceId: string): Promise<string[]> =>
+      (await listLogEntries(db, { traceId })).map((e) => e.logId)
+
+    it('matches only the entry carrying that exact traceId', async () => {
+      await insertLogEntry(db, entry({ logId: 'lg_tr1', traceId: TRACE_ID }))
+      await insertLogEntry(db, entry({ logId: 'lg_tr2', traceId: 'req-42' }))
+      await insertLogEntry(db, entry({ logId: 'lg_tr3' })) // no trace header on this one
+
+      expect(await idsFor(TRACE_ID)).toEqual(['lg_tr1'])
+      expect(await idsFor('req-42')).toEqual(['lg_tr2'])
+    })
+
+    it('matches nothing for a traceId no entry carries', async () => {
+      await insertLogEntry(db, entry({ traceId: TRACE_ID }))
+      expect(await idsFor('does-not-exist')).toHaveLength(0)
+    })
+
+    it('is an exact match, not a prefix — unlike logIdQuery', async () => {
+      await insertLogEntry(db, entry({ traceId: TRACE_ID }))
+      expect(await idsFor('0af765')).toHaveLength(0)
+    })
+
+    it('composes with the profile filter as an AND, not either alone', async () => {
+      // Three rows so neither filter alone would land on the same answer as
+      // the pair: (A) matches both, (B) shares A's profile but not its trace,
+      // (C) shares A's trace but not its profile.
+      await insertLogEntry(
+        db,
+        entry({ logId: 'lg_trc_a', profileId: 'c1', traceId: 'shared-trace' }),
+      )
+      await insertLogEntry(
+        db,
+        entry({ logId: 'lg_trc_b', profileId: 'c1', traceId: 'other-trace' }),
+      )
+      await insertLogEntry(
+        db,
+        entry({ logId: 'lg_trc_c', profileId: 'c2', traceId: 'shared-trace' }),
+      )
+
+      const ids = async (options: ListLogsOptions): Promise<string[]> =>
+        (await listLogEntries(db, options)).map((e) => e.logId).sort()
+
+      // Either filter alone pulls in the row the other would have excluded —
+      // proving the composed query is narrower than each half, not just
+      // reproducing whichever filter happens to be more selective.
+      expect(await ids({ profileId: 'c1' })).toEqual(['lg_trc_a', 'lg_trc_b'])
+      expect(await ids({ traceId: 'shared-trace' })).toEqual(['lg_trc_a', 'lg_trc_c'])
+      expect(await ids({ profileId: 'c1', traceId: 'shared-trace' })).toEqual(['lg_trc_a'])
+    })
   })
 
   describe('validation filter', () => {

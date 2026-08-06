@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Mock Server runtime-control API",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "summary": "Drive a running mock server — flip scenarios, manage profiles, reset sequence progress, and read request logs.",
     "description": "The JSON HTTP API behind the mock server's dashboard, served under `/ui/api/*`.\n\nMock endpoints answer at the root (`/…`), so the control API cannot live there without colliding with a mocked route; `/ui` is the reserved admin namespace.\n\n**Local-dev only.** The API is unauthenticated (matching the dashboard) and gives no isolation guarantees — global mocks are a single shared switch that parallel callers can clobber. Use profiles for per-caller isolation. It does not author mocks; you create endpoints and fixtures by writing catalog files.\n\n**Versioning.** `info.version` is this contract's own version, independent of the server build (which `GET /ui/api/health` reports as `version` and `sha`). The contract evolves additively: new routes, new optional request fields, new response fields, and new enum members can appear in any release, so ignore fields you do not recognise. Error bodies are `{ \"error\": string }` — the envelope is stable, the message text is not.",
     "license": {
@@ -325,7 +325,7 @@
         "operationId": "listLogs",
         "tags": ["Logs"],
         "summary": "List request-log summaries",
-        "description": "Newest first, ordered by timestamp then log ID. Summaries omit the captured request and response bodies — fetch one entry by ID for those. Every filter is optional and they combine with AND.",
+        "description": "Newest first, ordered by timestamp then log ID. Summaries omit the captured request and response bodies by default — fetch one entry by ID for those, or send `include=full` to get them inline on every row instead. Every filter is optional and they combine with AND.",
         "parameters": [
           {
             "name": "profile",
@@ -366,6 +366,14 @@
             "example": "lg_4f2a"
           },
           {
+            "name": "traceId",
+            "in": "query",
+            "required": false,
+            "description": "Keep only entries with this exact distributed-trace ID (32 lowercase hex from `traceparent`, or an `x-request-id` verbatim — see `LogEntryCommon.traceId`). Exact match, unlike `logId`'s prefix search.",
+            "schema": { "type": "string" },
+            "example": "0af7651916cd43dd8448eb211c80319c"
+          },
+          {
             "name": "since",
             "in": "query",
             "required": false,
@@ -385,11 +393,18 @@
             "required": false,
             "description": "Page size, clamped to 1–200. A missing or unparseable value falls back to 100.",
             "schema": { "type": "integer", "minimum": 1, "maximum": 200, "default": 100 }
+          },
+          {
+            "name": "include",
+            "in": "query",
+            "required": false,
+            "description": "Send `full` to return each entry's full payload — the captured request and response bodies included — instead of the lighter summary projection. Any other value is ignored.",
+            "schema": { "type": "string", "enum": ["full"] }
           }
         ],
         "responses": {
           "200": {
-            "description": "The matching summaries, newest first.",
+            "description": "The matching entries, newest first. Each is a `LogSummary` by default, or a full `LogEntry` when the request set `include=full`.",
             "content": {
               "application/json": {
                 "schema": {
@@ -397,7 +412,13 @@
                   "properties": {
                     "entries": {
                       "type": "array",
-                      "items": { "$ref": "#/components/schemas/LogSummary" }
+                      "items": {
+                        "anyOf": [
+                          { "$ref": "#/components/schemas/LogSummary" },
+                          { "$ref": "#/components/schemas/LogEntry" }
+                        ]
+                      },
+                      "description": "`LogSummary` by default; `LogEntry` (carrying `request`/`response` payloads) when the request set `include=full`. Every entry in a given response shares the same shape. `anyOf` rather than `oneOf`: `LogSummary` places no constraint on `request`, so a full `LogEntry` also validates against it."
                     }
                   },
                   "required": ["entries"]

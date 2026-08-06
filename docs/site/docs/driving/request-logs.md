@@ -91,6 +91,10 @@ cooperation from the caller — search one trace ID in your aggregator and the
 mock server's account of what the fake upstream returned, and why, comes back
 with the rest of the trace.
 
+Pull up every entry for one trace with `GET /ui/api/logs?traceId=<id>` (exact
+match, unlike the log-ID filter's prefix search), documented under [Request
+logs](api.md#request-logs).
+
 Two headers are read, in order:
 
 | Header | Value recorded |
