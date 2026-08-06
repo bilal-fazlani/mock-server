@@ -63,6 +63,7 @@ describe('GET /ui/api/profiles/{id}', () => {
     getProfileMock.mockResolvedValue(null)
     const res = await route.GET(new Request('http://x'), params('missing'))
     expect(res.status).toBe(404)
+    expect(await res.json()).toEqual({ error: 'not_found', code: 'profile_not_found' })
   })
 })
 
@@ -94,6 +95,7 @@ describe('PUT /ui/api/profiles/{id}', () => {
       params('c1'),
     )
     expect(res.status).toBe(400)
+    expect((await res.json()).code).toBe('invalid_scenario_selection')
     expect(upsertProfileMock).not.toHaveBeenCalled()
   })
 
@@ -103,11 +105,13 @@ describe('PUT /ui/api/profiles/{id}', () => {
       params('c1'),
     )
     expect(res.status).toBe(400)
+    expect((await res.json()).code).toBe('invalid_scenario_selection')
   })
 
   it('400s on malformed JSON', async () => {
     const res = await route.PUT(new Request('http://x', { method: 'PUT', body: '{bad' }), params('c1'))
     expect(res.status).toBe(400)
+    expect((await res.json()).code).toBe('invalid_json')
   })
 
   it('treats a missing endpointScenarios as empty', async () => {

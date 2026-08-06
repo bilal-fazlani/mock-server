@@ -1,4 +1,5 @@
 import { findEndpointBySlug } from '../../../../../../lib/catalog/find'
+import { errorResponse } from '../../../../../../lib/control-api/errors'
 import {
   clearGlobalMockScenario,
   getDb,
@@ -15,27 +16,24 @@ export async function PUT(request: Request, { params }: Ctx): Promise<Response> 
   const { system, endpoint } = await params
   const found = findEndpointBySlug(getRuntime().catalog, system, endpoint)
   if (!found) {
-    return Response.json({ error: `unknown endpoint ${system}/${endpoint}` }, { status: 404 })
+    return errorResponse(`unknown endpoint ${system}/${endpoint}`, 'unknown_endpoint', 404)
   }
   if (!isGlobalEndpoint(found.endpoint)) {
-    return Response.json(
-      { error: `endpoint "${endpoint}" is not a global mock` },
-      { status: 400 },
-    )
+    return errorResponse(`endpoint "${endpoint}" is not a global mock`, 'endpoint_not_global', 400)
   }
 
   let body: unknown
   try {
     body = await request.json()
   } catch {
-    return Response.json({ error: 'request body is not valid JSON' }, { status: 400 })
+    return errorResponse('request body is not valid JSON', 'invalid_json', 400)
   }
   const scenario = (body as { scenario?: unknown } | null)?.scenario
   if (typeof scenario !== 'string' || scenario === '') {
-    return Response.json({ error: 'scenario is required' }, { status: 400 })
+    return errorResponse('scenario is required', 'scenario_required', 400)
   }
   if (!isScenarioDeclared(found.endpoint, scenario)) {
-    return Response.json({ error: `scenario "${scenario}" is not declared` }, { status: 400 })
+    return errorResponse(`scenario "${scenario}" is not declared`, 'scenario_not_declared', 400)
   }
 
   await upsertGlobalMockScenario(await getDb(), { system, endpoint, scenario })
@@ -46,7 +44,7 @@ export async function DELETE(_request: Request, { params }: Ctx): Promise<Respon
   const { system, endpoint } = await params
   const found = findEndpointBySlug(getRuntime().catalog, system, endpoint)
   if (!found) {
-    return Response.json({ error: `unknown endpoint ${system}/${endpoint}` }, { status: 404 })
+    return errorResponse(`unknown endpoint ${system}/${endpoint}`, 'unknown_endpoint', 404)
   }
   await clearGlobalMockScenario(await getDb(), system, endpoint)
   return new Response(null, { status: 204 })

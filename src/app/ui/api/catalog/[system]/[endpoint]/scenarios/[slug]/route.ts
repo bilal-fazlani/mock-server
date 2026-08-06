@@ -1,4 +1,5 @@
 import { findEndpointBySlug } from '../../../../../../../../lib/catalog/find'
+import { errorResponse } from '../../../../../../../../lib/control-api/errors'
 import { getRuntime } from '../../../../../../../../lib/runtime'
 import { buildScenarioView } from '../../../../../../catalog/scenario-view'
 
@@ -14,10 +15,10 @@ export async function GET(_request: Request, { params }: Ctx): Promise<Response>
   const { catalog, catalogDir } = getRuntime()
   const found = findEndpointBySlug(catalog, system, endpoint)
   if (!found) {
-    return Response.json({ error: `unknown endpoint ${system}/${endpoint}` }, { status: 404 })
+    return errorResponse(`unknown endpoint ${system}/${endpoint}`, 'unknown_endpoint', 404)
   }
   if (!Object.hasOwn(found.endpoint.scenarios, slug)) {
-    return Response.json({ error: `unknown scenario "${slug}"` }, { status: 404 })
+    return errorResponse(`unknown scenario "${slug}"`, 'unknown_scenario', 404)
   }
   const view = await buildScenarioView(found.system, found.endpoint, slug, catalogDir)
   return Response.json({ view })

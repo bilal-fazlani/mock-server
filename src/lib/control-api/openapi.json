@@ -2,9 +2,9 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Mock Server runtime-control API",
-    "version": "1.2.0",
+    "version": "1.3.0",
     "summary": "Drive a running mock server — flip scenarios, manage profiles, reset sequence progress, and read request logs.",
-    "description": "The JSON HTTP API behind the mock server's dashboard, served under `/ui/api/*`.\n\nMock endpoints answer at the root (`/…`), so the control API cannot live there without colliding with a mocked route; `/ui` is the reserved admin namespace.\n\n**Local-dev only.** The API is unauthenticated (matching the dashboard) and gives no isolation guarantees — global mocks are a single shared switch that parallel callers can clobber. Use profiles for per-caller isolation. It does not author mocks; you create endpoints and fixtures by writing catalog files.\n\n**Versioning.** `info.version` is this contract's own version, independent of the server build (which `GET /ui/api/health` reports as `version` and `sha`). The contract evolves additively: new routes, new optional request fields, new response fields, and new enum members can appear in any release, so ignore fields you do not recognise. Error bodies are `{ \"error\": string }` — the envelope is stable, the message text is not.",
+    "description": "The JSON HTTP API behind the mock server's dashboard, served under `/ui/api/*`.\n\nMock endpoints answer at the root (`/…`), so the control API cannot live there without colliding with a mocked route; `/ui` is the reserved admin namespace.\n\n**Local-dev only.** The API is unauthenticated (matching the dashboard) and gives no isolation guarantees — global mocks are a single shared switch that parallel callers can clobber. Use profiles for per-caller isolation. It does not author mocks; you create endpoints and fixtures by writing catalog files.\n\n**Versioning.** `info.version` is this contract's own version, independent of the server build (which `GET /ui/api/health` reports as `version` and `sha`). The contract evolves additively: new routes, new optional request fields, new response fields, and new enum members can appear in any release, so ignore fields you do not recognise. Error bodies are `{ \"error\": string, \"code\": string }` — the envelope is stable and `code` is safe to match on; the `error` message text is not.",
     "license": {
       "name": "MIT",
       "identifier": "MIT"
@@ -117,7 +117,7 @@
             }
           },
           "404": {
-            "description": "No such system/endpoint, or the endpoint declares no such scenario.",
+            "description": "No such system/endpoint (`code: \"unknown_endpoint\"`), or the endpoint declares no such scenario (`code: \"unknown_scenario\"`).",
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/Error" }
@@ -183,7 +183,7 @@
             }
           },
           "400": {
-            "description": "The endpoint is not a global mock, the body is not valid JSON, `scenario` is missing or empty, or the scenario is not declared on the endpoint.",
+            "description": "The endpoint is not a global mock (`code: \"endpoint_not_global\"`), the body is not valid JSON (`invalid_json`), `scenario` is missing or empty (`scenario_required`), or the scenario is not declared on the endpoint (`scenario_not_declared`).",
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/Error" }
@@ -191,7 +191,7 @@
             }
           },
           "404": {
-            "description": "No such system/endpoint.",
+            "description": "No such system/endpoint. `code` is `\"unknown_endpoint\"`.",
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/Error" }
@@ -212,7 +212,7 @@
         "responses": {
           "204": { "description": "The override is gone." },
           "404": {
-            "description": "No such system/endpoint.",
+            "description": "No such system/endpoint. `code` is `\"unknown_endpoint\"`.",
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/Error" }
@@ -238,11 +238,11 @@
             }
           },
           "404": {
-            "description": "No profile with that ID. The body is `{ \"error\": \"not_found\" }`.",
+            "description": "No profile with that ID. `code` is `\"profile_not_found\"`.",
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/Error" },
-                "example": { "error": "not_found" }
+                "example": { "error": "not_found", "code": "profile_not_found" }
               }
             }
           }
@@ -279,7 +279,7 @@
             }
           },
           "400": {
-            "description": "The body is not valid JSON, `endpointScenarios` is not an object, an endpoint name is unknown, a selection is neither a string nor an array of strings, or a scenario is not declared on its endpoint.",
+            "description": "The body is not valid JSON (`code: \"invalid_json\"`); or `endpointScenarios` is not an object, an endpoint name is unknown, a selection is neither a string nor an array of strings, or a scenario is not declared on its endpoint (`code: \"invalid_scenario_selection\"` for all four — see `error` for which one).",
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/Error" }
@@ -455,11 +455,11 @@
             }
           },
           "404": {
-            "description": "No entry with that ID — it may have aged out of the log's TTL window. The body is `{ \"error\": \"not_found\" }`.",
+            "description": "No entry with that ID — it may have aged out of the log's TTL window. `code` is `\"log_not_found\"`.",
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/Error" },
-                "example": { "error": "not_found" }
+                "example": { "error": "not_found", "code": "log_not_found" }
               }
             }
           }
@@ -524,14 +524,18 @@
       "Error": {
         "type": "object",
         "title": "Error",
-        "description": "The body of every non-2xx JSON response. The envelope is stable; the message text is human-readable and may change between releases, so do not match on it.",
+        "description": "The body of every non-2xx JSON response except `GET /ui/api/health`'s `503` (see `HealthUnavailable`). The envelope is stable and both fields are always present; `error` is human-readable and may change wording between releases, so match on `code`, not on `error`.",
         "properties": {
           "error": {
             "type": "string",
-            "description": "Why the request failed."
+            "description": "Why the request failed, for humans. Wording may change between releases."
+          },
+          "code": {
+            "type": "string",
+            "description": "Stable, machine-readable identifier for the failure. Safe to match on. The current values are `invalid_json`, `unknown_endpoint`, `unknown_scenario`, `endpoint_not_global`, `scenario_required`, `scenario_not_declared`, `invalid_scenario_selection`, `profile_not_found`, and `log_not_found` — see the response description on the operation that returned this body for which ones apply there. Not modelled as an enum: new values can be added in additive releases, so treat one you don't recognise as a generic failure rather than rejecting the response."
           }
         },
-        "required": ["error"]
+        "required": ["error", "code"]
       },
       "Catalog": {
         "type": "object",

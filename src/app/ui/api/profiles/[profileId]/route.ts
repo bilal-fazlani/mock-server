@@ -1,3 +1,4 @@
+import { errorResponse } from '../../../../../lib/control-api/errors'
 import { writeAdminLog } from '../../../../../lib/logs/admin-log'
 import {
   InvalidScenarioSelectionError,
@@ -14,7 +15,7 @@ type Ctx = { params: Promise<{ profileId: string }> }
 export async function GET(_request: Request, { params }: Ctx): Promise<Response> {
   const { profileId } = await params
   const profile = await getProfile(await getDb(), profileId)
-  if (!profile) return Response.json({ error: 'not_found' }, { status: 404 })
+  if (!profile) return errorResponse('not_found', 'profile_not_found', 404)
   return Response.json(profile)
 }
 
@@ -25,7 +26,7 @@ export async function PUT(request: Request, { params }: Ctx): Promise<Response> 
   try {
     body = await request.json()
   } catch {
-    return Response.json({ error: 'request body is not valid JSON' }, { status: 400 })
+    return errorResponse('request body is not valid JSON', 'invalid_json', 400)
   }
   const raw = body as { displayName?: unknown; endpointScenarios?: unknown } | null
 
@@ -41,7 +42,7 @@ export async function PUT(request: Request, { params }: Ctx): Promise<Response> 
     )
   } catch (err) {
     if (err instanceof InvalidScenarioSelectionError) {
-      return Response.json({ error: err.message }, { status: 400 })
+      return errorResponse(err.message, 'invalid_scenario_selection', 400)
     }
     throw err
   }

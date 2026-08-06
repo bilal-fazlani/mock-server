@@ -18,8 +18,10 @@ exists for local development and automated tests (see
 Mock endpoints are served at the root (`/…`), so the control API cannot live
 there without colliding with a mocked route. `/ui` is the reserved admin
 namespace; every control route lives under `/ui/api/*`. Error responses are
-`{ "error": "<message>" }` — except `GET /ui/api/health`, whose `503` keeps the
-health body shape and adds an `error` field to it.
+`{ "error": "<message>", "code": "<code>" }` — `error` is wording for humans,
+`code` is a stable identifier for scripts (see [Error codes](#error-codes)) —
+except `GET /ui/api/health`, whose `503` keeps the health body shape and adds a
+bare `error` field to it, with no `code`.
 
 ## Stability & machine-readable spec
 
@@ -45,14 +47,34 @@ change, without a major bump of `info.version`.
 
 Two things sit outside that promise:
 
-- **Error message text.** Only the `{ "error": "<message>" }` envelope is
-  stable. The wording is for humans and changes freely, so match on the status
-  code.
+- **Error message text.** The `{ "error": "<message>", "code": "<code>" }`
+  envelope is stable, and so is `code` — match on it. `error` is wording for
+  humans and changes freely between releases.
 - **Presentation fields** — the log detail's `bodyHtml`, and the `html` carried
   by a scenario view (the spec's dashboard-internal
   `GET /ui/api/catalog/{system}/{endpoint}/scenarios/{slug}`). They exist for
   the dashboard, and everything they show is also available structurally in the
   same response.
+
+### Error codes
+
+Every non-2xx `/ui/api/*` response carries one of these codes, except
+`GET /ui/api/health`'s `503`, which has no `code` (see
+[Why `/ui/api`](#why-uiapi)). A code not in this table may still appear in an
+additive release — ignore ones you don't recognise rather than rejecting the
+response.
+
+| Code | Status | Route(s) | When |
+|---|---|---|---|
+| `invalid_json` | `400` | `PUT /ui/api/global-mocks/{system}/{endpoint}`<br>`PUT /ui/api/profiles/{profileId}` | The request body doesn't parse as JSON. |
+| `unknown_endpoint` | `404` | `GET /ui/api/catalog/{system}/{endpoint}/scenarios/{slug}`<br>`PUT`/`DELETE /ui/api/global-mocks/{system}/{endpoint}` | No such `system`/`endpoint`. |
+| `unknown_scenario` | `404` | `GET /ui/api/catalog/{system}/{endpoint}/scenarios/{slug}` | `slug` isn't a scenario declared on the endpoint. |
+| `endpoint_not_global` | `400` | `PUT /ui/api/global-mocks/{system}/{endpoint}` | The endpoint's `mockType` isn't `"global"`. |
+| `scenario_required` | `400` | `PUT /ui/api/global-mocks/{system}/{endpoint}` | `scenario` is missing, empty, or not a string. |
+| `scenario_not_declared` | `400` | `PUT /ui/api/global-mocks/{system}/{endpoint}` | `scenario` isn't declared on the endpoint, and isn't `real`. |
+| `invalid_scenario_selection` | `400` | `PUT /ui/api/profiles/{profileId}` | `endpointScenarios` is malformed: not an object, an unknown endpoint name, a selection that's neither a string nor a string array, or a scenario not declared on its endpoint. `error` says which. |
+| `profile_not_found` | `404` | `GET /ui/api/profiles/{profileId}` | No profile with that ID. |
+| `log_not_found` | `404` | `GET /ui/api/logs/{logId}` | No log entry with that ID. |
 
 ## Endpoints
 
@@ -60,15 +82,15 @@ Two things sit outside that promise:
 |---|---|---|---|
 | `GET /ui/api/catalog` | — | `200` catalog projection | — |
 | `GET /ui/api/global-mocks` | — | `200 { "scenarios": [ … ] }` | — |
-| `PUT /ui/api/global-mocks/{system}/{endpoint}` | `{ "scenario": "<key>" }` | `200 { system, endpoint, scenario }` | `404` unknown endpoint · `400` not a global mock / scenario missing / not declared / bad JSON |
-| `DELETE /ui/api/global-mocks/{system}/{endpoint}` | — | `204` (idempotent) | `404` unknown endpoint |
-| `GET /ui/api/profiles/{profileId}` | — | `200` profile | `404 { "error": "not_found" }` |
-| `PUT /ui/api/profiles/{profileId}` | `{ displayName?, endpointScenarios }` | `200` stored profile | `400` undeclared scenario / unknown endpoint / bad JSON |
+| `PUT /ui/api/global-mocks/{system}/{endpoint}` | `{ "scenario": "<key>" }` | `200 { system, endpoint, scenario }` | `404 unknown_endpoint` · `400 endpoint_not_global` / `scenario_required` / `scenario_not_declared` / `invalid_json` |
+| `DELETE /ui/api/global-mocks/{system}/{endpoint}` | — | `204` (idempotent) | `404 unknown_endpoint` |
+| `GET /ui/api/profiles/{profileId}` | — | `200` profile | `404 profile_not_found` |
+| `PUT /ui/api/profiles/{profileId}` | `{ displayName?, endpointScenarios }` | `200` stored profile | `400 invalid_scenario_selection` / `invalid_json` |
 | `DELETE /ui/api/profiles/{profileId}` | — | `204` (cascades) | — |
 | `POST /ui/api/profiles/{profileId}/reset` | `{ endpoint? }` | `204` | — |
 | `GET /ui/api/logs` | — (query params below) | `200 { "entries": … }` | — |
-| `GET /ui/api/logs/{logId}` | — | `200 { "entry": …, "bodyHtml": … }` | — |
-| `GET /ui/api/health` | — | `200 { status, mongo, version, sha }` | `503` Mongo down (same fields, plus `error`) |
+| `GET /ui/api/logs/{logId}` | — | `200 { "entry": …, "bodyHtml": … }` | `404 log_not_found` |
+| `GET /ui/api/health` | — | `200 { status, mongo, version, sha }` | `503` Mongo down (same fields, plus `error`, no `code`) |
 
 ## `GET /ui/api/catalog`
 
@@ -159,7 +181,8 @@ and is idempotent — clearing an unset override still returns `204`.
 
 ## `GET /ui/api/profiles/{profileId}` · `PUT` · `DELETE`
 
-`GET` returns the stored profile, or `404 { "error": "not_found" }`.
+`GET` returns the stored profile, or
+`404 { "error": "not_found", "code": "profile_not_found" }`.
 
 `PUT` upserts a profile:
 
@@ -216,8 +239,10 @@ bodies included) when the request sets `include=full`. Query parameters:
 
 Fetch one full entry by ID (with the decision trace and captured
 request/response) via `GET /ui/api/logs/{logId}`, which answers
-`{ "entry": { … }, "bodyHtml": { … } }`. See [Request logs](request-logs.md) for
-what a log records.
+`{ "entry": { … }, "bodyHtml": { … } }`, or
+`404 { "error": "not_found", "code": "log_not_found" }` if no entry has that ID
+— it may have aged out of the log's TTL window. See
+[Request logs](request-logs.md) for what a log records.
 
 `bodyHtml` is presentation data for the dashboard — syntax-highlighted markup
 for the entry's request and response bodies, keyed `request` and `response`.

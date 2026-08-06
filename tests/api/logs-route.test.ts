@@ -3,6 +3,7 @@ import type { LogEntry, LogSummary } from '../../src/lib/logs/store'
 
 const listLogSummariesMock = vi.fn()
 const listLogEntriesMock = vi.fn()
+const getLogEntryMock = vi.fn()
 
 vi.mock('../../src/lib/logs/store', async () => {
   // `parseValidationFilter` is a real pure export the route also calls on
@@ -13,13 +14,15 @@ vi.mock('../../src/lib/logs/store', async () => {
     ...actual,
     listLogSummaries: (...a: unknown[]) => listLogSummariesMock(...a),
     listLogEntries: (...a: unknown[]) => listLogEntriesMock(...a),
+    getLogEntry: (...a: unknown[]) => getLogEntryMock(...a),
   }
 })
 vi.mock('../../src/lib/profiles/store', () => ({
   getDb: vi.fn(async () => ({})),
 }))
 
-const { GET } = await import('../../src/app/ui/api/logs/route')
+const listRoute = await import('../../src/app/ui/api/logs/route')
+const entryRoute = await import('../../src/app/ui/api/logs/[logId]/route')
 
 const TS = new Date('2026-07-07T09:00:00.000Z')
 
@@ -48,14 +51,17 @@ function fullEntry(overrides: Partial<LogEntry> = {}): LogEntry {
   }
 }
 
+const params = (logId: string) => ({ params: Promise.resolve({ logId }) })
+
 beforeEach(() => {
   listLogSummariesMock.mockReset().mockResolvedValue([summary()])
   listLogEntriesMock.mockReset().mockResolvedValue([fullEntry()])
+  getLogEntryMock.mockReset()
 })
 
 describe('GET /ui/api/logs', () => {
   it('defaults to the summary projection', async () => {
-    const res = await GET(new Request('http://x/ui/api/logs'))
+    const res = await listRoute.GET(new Request('http://x/ui/api/logs'))
     expect(res.status).toBe(200)
     const body = await res.json()
 
@@ -65,8 +71,19 @@ describe('GET /ui/api/logs', () => {
     expect('request' in body.entries[0]).toBe(false)
   })
 
+  it('returns summaries mapped to their view shape', async () => {
+    listLogSummariesMock.mockResolvedValue([
+      { logId: 'lg_2', ts: TS, kind: 'request', outcome: 'fixture', trace: {} },
+    ])
+    const res = await listRoute.GET(new Request('http://x/ui/api/logs'))
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({
+      entries: [{ logId: 'lg_2', ts: TS.toISOString(), kind: 'request', outcome: 'fixture', trace: {} }],
+    })
+  })
+
   it('carries full request/response payloads when include=full', async () => {
-    const res = await GET(new Request('http://x/ui/api/logs?include=full'))
+    const res = await listRoute.GET(new Request('http://x/ui/api/logs?include=full'))
     expect(res.status).toBe(200)
     const body = await res.json()
 
@@ -88,7 +105,7 @@ describe('GET /ui/api/logs', () => {
   })
 
   it('ignores an unrecognised include value and keeps the summary projection', async () => {
-    const res = await GET(new Request('http://x/ui/api/logs?include=everything'))
+    const res = await listRoute.GET(new Request('http://x/ui/api/logs?include=everything'))
     expect(res.status).toBe(200)
     const body = await res.json()
 
@@ -98,7 +115,7 @@ describe('GET /ui/api/logs', () => {
   })
 
   it('passes traceId through as an exact-match option', async () => {
-    await GET(new Request('http://x/ui/api/logs?traceId=0af7651916cd43dd8448eb211c80319c'))
+    await listRoute.GET(new Request('http://x/ui/api/logs?traceId=0af7651916cd43dd8448eb211c80319c'))
 
     expect(listLogSummariesMock).toHaveBeenCalledWith(
       expect.anything(),
@@ -107,7 +124,7 @@ describe('GET /ui/api/logs', () => {
   })
 
   it('wires traceId through on the include=full path too', async () => {
-    await GET(
+    await listRoute.GET(
       new Request(
         'http://x/ui/api/logs?include=full&traceId=0af7651916cd43dd8448eb211c80319c',
       ),
@@ -117,5 +134,24 @@ describe('GET /ui/api/logs', () => {
       expect.anything(),
       expect.objectContaining({ traceId: '0af7651916cd43dd8448eb211c80319c' }),
     )
+  })
+})
+
+describe('GET /ui/api/logs/{logId}', () => {
+  it('returns the entry', async () => {
+    getLogEntryMock.mockResolvedValue(fullEntry())
+    const res = await entryRoute.GET(new Request('http://x'), params('lg_1'))
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.entry).toEqual({ ...fullEntry(), ts: TS.toISOString() })
+  })
+
+  // The detail route had no test coverage at all before this change added
+  // the `code` field to its 404.
+  it('404s with a stable code when no entry has that ID', async () => {
+    getLogEntryMock.mockResolvedValue(null)
+    const res = await entryRoute.GET(new Request('http://x'), params('lg_ghost'))
+    expect(res.status).toBe(404)
+    expect(await res.json()).toEqual({ error: 'not_found', code: 'log_not_found' })
   })
 })

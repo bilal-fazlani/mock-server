@@ -105,6 +105,7 @@ describe('PUT /ui/api/global-mocks/{system}/{endpoint}', () => {
   it('404s for an unknown endpoint', async () => {
     const res = await detailRoute.PUT(putReq({ scenario: 'expired' }), params('hello-system', 'ghost'))
     expect(res.status).toBe(404)
+    expect((await res.json()).code).toBe('unknown_endpoint')
     expect(upsertGlobalMockScenarioMock).not.toHaveBeenCalled()
   })
 
@@ -114,12 +115,14 @@ describe('PUT /ui/api/global-mocks/{system}/{endpoint}', () => {
       params('hello-system', 'profiled_endpoint'),
     )
     expect(res.status).toBe(400)
+    expect((await res.json()).code).toBe('endpoint_not_global')
     expect(upsertGlobalMockScenarioMock).not.toHaveBeenCalled()
   })
 
   it('400s for an undeclared scenario', async () => {
     const res = await detailRoute.PUT(putReq({ scenario: 'nope' }), params('hello-system', 'oauth_token'))
     expect(res.status).toBe(400)
+    expect((await res.json()).code).toBe('scenario_not_declared')
   })
 
   it('sets "dynamic" on a resolver-backed global endpoint', async () => {
@@ -147,12 +150,14 @@ describe('PUT /ui/api/global-mocks/{system}/{endpoint}', () => {
   it('400s for a missing scenario field', async () => {
     const res = await detailRoute.PUT(putReq({}), params('hello-system', 'oauth_token'))
     expect(res.status).toBe(400)
+    expect((await res.json()).code).toBe('scenario_required')
   })
 
   it('400s for malformed JSON', async () => {
     const bad = new Request('http://x', { method: 'PUT', body: '{not json' })
     const res = await detailRoute.PUT(bad, params('hello-system', 'oauth_token'))
     expect(res.status).toBe(400)
+    expect((await res.json()).code).toBe('invalid_json')
   })
 })
 
@@ -166,6 +171,7 @@ describe('DELETE /ui/api/global-mocks/{system}/{endpoint}', () => {
   it('404s for an unknown endpoint', async () => {
     const res = await detailRoute.DELETE(new Request('http://x', { method: 'DELETE' }), params('hello-system', 'ghost'))
     expect(res.status).toBe(404)
+    expect((await res.json()).code).toBe('unknown_endpoint')
     expect(clearGlobalMockScenarioMock).not.toHaveBeenCalled()
   })
 })
