@@ -223,6 +223,27 @@ describe('loadCatalog', () => {
     })
   })
 
+  it('keeps a declared-but-empty captureProfileKeys distinct from the key being absent', () => {
+    const dir = tmpCatalogDir({
+      'sys/_system.json': SYSTEM_META,
+      'sys/ep-empty/_endpoint.json': { ...ENDPOINT_META, captureProfileKeys: [] },
+      'sys/ep-empty/default.json': FIXTURE,
+      'sys/ep-absent/_endpoint.json': ENDPOINT_META,
+      'sys/ep-absent/default.json': FIXTURE,
+    })
+    const endpoints = loadCatalog(dir).systems[0].endpoints
+    const declaredEmpty = endpoints.find((e) => e.name === 'ep-empty')!
+    const keyAbsent = endpoints.find((e) => e.name === 'ep-absent')!
+
+    // An explicit `"captureProfileKeys": []` in _endpoint.json parses to a present,
+    // empty array — a future `.length > 0` check on this line would collapse it
+    // into "absent" without this test noticing anything else changed.
+    expect(declaredEmpty).toHaveProperty('captureProfileKeys')
+    expect(declaredEmpty.captureProfileKeys).toEqual([])
+
+    expect(keyAbsent).not.toHaveProperty('captureProfileKeys')
+  })
+
   it('throws when a system _spec.yaml is not valid YAML', () => {
     const dir = tmpCatalogDir({
       'sys/_system.json': SYSTEM_META,

@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Mock Server runtime-control API",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "summary": "Drive a running mock server — flip scenarios, manage profiles, reset sequence progress, and read request logs.",
     "description": "The JSON HTTP API behind the mock server's dashboard, served under `/ui/api/*`.\n\nMock endpoints answer at the root (`/…`), so the control API cannot live there without colliding with a mocked route; `/ui` is the reserved admin namespace.\n\n**Local-dev only.** The API is unauthenticated (matching the dashboard) and gives no isolation guarantees — global mocks are a single shared switch that parallel callers can clobber. Use profiles for per-caller isolation. It does not author mocks; you create endpoints and fixtures by writing catalog files.\n\n**Versioning.** `info.version` is this contract's own version, independent of the server build (which `GET /ui/api/health` reports as `version` and `sha`). The contract evolves additively: new routes, new optional request fields, new response fields, and new enum members can appear in any release, so ignore fields you do not recognise. Error bodies are `{ \"error\": string }` — the envelope is stable, the message text is not.",
     "license": {
@@ -573,6 +573,30 @@
             "type": "string",
             "enum": ["profiled", "global"],
             "description": "Where the served scenario comes from: `profiled` reads the caller's profile, `global` reads the single shared switch. Always present — an endpoint that omits it in the catalog is projected as `profiled`."
+          },
+          "profileIdSelector": {
+            "type": "string",
+            "description": "How the engine resolves this endpoint's caller into a profile ID. Present on every `profiled` endpoint (the catalog fails to load without one) and absent on every `global` endpoint (the catalog fails to load if one is declared there) — so this field and `mockType` always agree. Exposed exactly as authored, so a client can show or replicate it verbatim: `$.<path>` reads parsed JSON body (`$.customer.customerId`, `$.items[0].id`), `path:<name>` a path parameter, `query:<name>` a query-string parameter, `header:<name>` a request header (matched case-insensitively), `bearer` the raw `Authorization: Bearer` credential, `bearer:<claim>` a top-level claim decoded from that credential as a JWT, and `profileKey:<namespace>:<selector>` resolves a key captured by an earlier request's `captureProfileKeys` instead of reading the ID directly.",
+            "examples": ["$.customer.customerId", "header:x-customer-id", "bearer:sub", "profileKey:order-id:$.orderId"]
+          },
+          "captureProfileKeys": {
+            "type": "array",
+            "description": "Extra request keys this endpoint captures and links to its resolved profile ID, on top of resolving that ID itself — so a later, unrelated request can be routed to the same profile via `profileIdSelector: \"profileKey:<namespace>:<selector>\"`. Only a profiled endpoint whose own `profileIdSelector` resolves the ID directly (not itself a `profileKey:…` lookup) may declare captures. Present only when the endpoint's catalog definition includes this field; omitted, not an empty array, when the field itself is absent.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "namespace": {
+                  "type": "string",
+                  "description": "The captured mapping's namespace, matching `[a-z0-9][a-z0-9_-]*`. A later endpoint reads it back via `profileKey:<namespace>:<selector>`."
+                },
+                "keySelector": {
+                  "type": "string",
+                  "description": "Where in this request the value to capture is read from. Uses the same direct-selector grammar as `profileIdSelector` (`$.…`, `path:`, `query:`, `header:`) except `bearer`, which is profile-ID-only.",
+                  "examples": ["$.orderId"]
+                }
+              },
+              "required": ["namespace", "keySelector"]
+            }
           },
           "resolverScenarios": {
             "type": "array",

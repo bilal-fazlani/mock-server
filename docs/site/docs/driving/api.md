@@ -91,6 +91,17 @@ bodies.**
           "mockType": "global",
           "resolverScenarios": ["dynamic"],
           "scenarios": { "default": "Balance available", "failure": "…", "pending": "…", "dynamic": "dynamic" }
+        },
+        {
+          "name": "create_order",
+          "displayName": "Create Order",
+          "method": "POST",
+          "path": "/orders",
+          "mockType": "profiled",
+          "profileIdSelector": "$.customerId",
+          "captureProfileKeys": [{ "namespace": "order-id", "keySelector": "$.orderId" }],
+          "resolverScenarios": [],
+          "scenarios": { "default": "Accepted" }
         }
       ]
     }
@@ -104,6 +115,26 @@ bodies.**
 scenario resolvers](../building/dynamic.md). The `real` passthrough is always
 implicit and never appears in either list. `mockType` is `"profiled"` or
 `"global"`.
+
+`profileIdSelector` and `captureProfileKeys` mirror the endpoint's catalog
+definition verbatim — see [Profile-ID extraction](../building/profiles.md#profile-id-extraction-selectors)
+and [Profile key mappings](../building/profiles.md#profile-key-mappings) for
+the selector grammar and capture semantics. Both are additive and optional:
+
+- `profileIdSelector` is present on every `profiled` endpoint (the catalog
+  fails to load without one) and absent on every `global` endpoint (the
+  catalog fails to load if one is declared there) — it always agrees with
+  `mockType`.
+- `captureProfileKeys` presence tracks whether the catalog definition includes
+  the key at all, not whether it lists any captures — an endpoint that
+  declares an explicit empty array projects as `captureProfileKeys: []`;
+  omitted, not an empty array, when the field itself is absent. It can appear
+  only alongside a `profileIdSelector` that resolves the ID directly rather
+  than through `profileKey:<namespace>:…`.
+
+Above, `account_balance` has neither field (`global`); `create_order` declares
+both, matching `catalog/hello-system/create_order/_endpoint.json` in this
+repo's demo catalog.
 
 ## `GET /ui/api/global-mocks` · `PUT` · `DELETE`
 

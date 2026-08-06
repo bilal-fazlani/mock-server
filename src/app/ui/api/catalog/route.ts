@@ -20,6 +20,15 @@ function toCatalogView(catalog: Catalog) {
         method: endpoint.method,
         path: endpoint.path,
         mockType: endpoint.mockType ?? 'profiled',
+        // Both are catalog-authored and optional: present only on endpoints whose
+        // _endpoint.json declares them, omitted (not null) otherwise — mirrors
+        // EndpointDef exactly, no reformatting of the selector strings.
+        ...(endpoint.profileIdSelector !== undefined && {
+          profileIdSelector: endpoint.profileIdSelector,
+        }),
+        ...(endpoint.captureProfileKeys !== undefined && {
+          captureProfileKeys: endpoint.captureProfileKeys,
+        }),
         resolverScenarios: endpoint.resolverScenarios,
         // The runtime-control API contract exposes scenarios as slug → label
         // strings; the internal `summary` is surfaced only in the catalog UI.
