@@ -4,9 +4,8 @@ A working integration test, from nothing, in four steps. The result is a real
 HTTP call to a real mock server started by the test run — no stub, no
 `@MockBean`, no recorded fixture in the test source.
 
-You need **JUnit Jupiter** and a **Docker daemon** the test run can reach — and
-Java: **17** for today's 1.x release, rising to **21 (LTS) or newer** once SDK
-**2.0.0** ships. (Without Docker, [attach to a server you started
+You need **JUnit Jupiter**, **Java 21 (LTS) or newer**, and a **Docker daemon**
+the test run can reach. (Without Docker, [attach to a server you started
 yourself](junit.md#attach-mode-an-already-running-server) instead — everything
 below is otherwise unchanged.)
 
@@ -18,7 +17,7 @@ runtime-control client, and `junit-jupiter-api` with it.
 ```kotlin
 // build.gradle.kts
 dependencies {
-    testImplementation("com.bilal-fazlani:mock-server-junit:0.1.0")
+    testImplementation("com.bilal-fazlani:mock-server-junit:2.0.0")
 
     // No versions needed: mock-server-junit exposes the JUnit BOM transitively.
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
@@ -31,7 +30,7 @@ dependencies {
 <dependency>
   <groupId>com.bilal-fazlani</groupId>
   <artifactId>mock-server-junit</artifactId>
-  <version>0.1.0</version>
+  <version>2.0.0</version>
   <scope>test</scope>
 </dependency>
 ```

@@ -87,7 +87,7 @@ modes, the escape hatch, and its one honest limitation.
 ## The four modules
 
 All four are published to Maven Central as
-`com.bilal-fazlani:<artifact>:0.1.0`, sharing one version. Each depends on the one
+`com.bilal-fazlani:<artifact>:2.0.0`, sharing one version. Each depends on the one
 above it, so a test suite declares exactly one — the highest it needs.
 
 | Artifact | What it adds | Depends on |
@@ -102,7 +102,7 @@ above it, so a test suite declares exactly one — the highest it needs.
 | Requirement | Version |
 | --- | --- |
 | Mock server | **0.7.0 or newer** — the SDK targets the runtime-control contract as of that release, and uses newer contract features only where the server's [additive evolution rules](../driving/api.md#stability-machine-readable-spec) make an older server degrade rather than break. |
-| Java | **21 (LTS) or newer**, from SDK **2.0.0** (unreleased) — the current 1.x line runs on **Java 17**. |
+| Java | **21 (LTS) or newer**, from SDK **2.0.0** — the earlier 1.x line runs on **Java 17**. |
 | JUnit | Jupiter 6.x (the SDK brings `junit-jupiter-api` with it) |
 | Spring Boot | 4.x, for `mock-server-spring-boot-test` only |
 | Docker | Required for container mode; not required when [attaching](junit.md#attach-mode-an-already-running-server) to a server that is already running |
