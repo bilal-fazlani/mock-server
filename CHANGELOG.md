@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.8.0](https://github.com/bilal-fazlani/mock-server/compare/v0.7.0...v0.8.0) (2026-08-07)
+
+
+### Features
+
+* **catalog:** compile and validate OpenAPI request parameters ([#54](https://github.com/bilal-fazlani/mock-server/issues/54)) ([fa00665](https://github.com/bilal-fazlani/mock-server/commit/fa006652da4f9f41ada7ab0f5ed88a7b60c153d8))
+* **catalog:** lint placeholders reading optional request parameters ([#55](https://github.com/bilal-fazlani/mock-server/issues/55)) ([310d760](https://github.com/bilal-fazlani/mock-server/commit/310d760a6785ff96d6d306a0b4d8f9f8390e59b1))
+* **control-api:** add machine-readable codes to admin error responses ([e9d0114](https://github.com/bilal-fazlani/mock-server/commit/e9d0114009909eddddc5fe206678aa6804b25978)), closes [#62](https://github.com/bilal-fazlani/mock-server/issues/62)
+* **control-api:** expose profile-id selectors and capture namespaces in the catalog projection ([1349fb8](https://github.com/bilal-fazlani/mock-server/commit/1349fb89721c023775dc396e9eca5d43e779edda)), closes [#64](https://github.com/bilal-fazlani/mock-server/issues/64)
+* **control-api:** publish an openapi spec for the runtime-control api ([71d3126](https://github.com/bilal-fazlani/mock-server/commit/71d312635398821608c601e4e5790ff5f0bfce81)), closes [#61](https://github.com/bilal-fazlani/mock-server/issues/61)
+* expire profile-key mappings captured for a profile that does not exist ([837b3bd](https://github.com/bilal-fazlani/mock-server/commit/837b3bd8351b410c2df7baa585ce651e24151393)), closes [#49](https://github.com/bilal-fazlani/mock-server/issues/49)
+* **observability:** add include=full and traceid filter to the logs api ([a6fdd9c](https://github.com/bilal-fazlani/mock-server/commit/a6fdd9c33a5171996dd28013c2cb6b955cd3e274)), closes [#63](https://github.com/bilal-fazlani/mock-server/issues/63)
+* **ui:** surface schema validation outcomes and issues in the logs view ([#56](https://github.com/bilal-fazlani/mock-server/issues/56)) ([54435b2](https://github.com/bilal-fazlani/mock-server/commit/54435b27e28bf93b519acc35d7afc8556d787142))
+
+
+### Bug Fixes
+
+* **ui:** drop the alert icon for a profile that does not exist ([c1c3e41](https://github.com/bilal-fazlani/mock-server/commit/c1c3e41f8a38284dfa41c43d4d1fd8a0605df789))
+
 ## [0.7.0](https://github.com/bilal-fazlani/mock-server/compare/v0.6.0...v0.7.0) (2026-08-05)
 
 
