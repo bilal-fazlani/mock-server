@@ -4,7 +4,8 @@ A JSON HTTP API for **driving a running mock server** — flip scenarios, manage
 profiles, reset sequence progress, and read request logs — without the UI. It
 exists for local development and automated tests (see
 [Using it in dev & CI](dev-and-ci.md)); the human counterpart is
-[the dashboard](ui.md).
+[the dashboard](ui.md). On the JVM you rarely call it by hand — the
+[Java SDK](../sdk/index.md) is a packaged consumer of everything below.
 
 !!! warning "Local-dev only"
 
@@ -33,10 +34,12 @@ curl -s http://localhost:3000/ui/api/openapi.json
 ```
 
 Point a client generator or a request-validating proxy at it instead of
-hand-writing calls. It covers every route below, plus the ones the dashboard
-uses internally, and it carries its own `info.version` — the version of the
-*contract*, not of the build. The build is what `GET /ui/api/health` reports as
-`version` and `sha`.
+hand-writing calls — or, on the JVM, use the hand-written one in the
+[Java SDK](../sdk/testcontainers-client.md#the-runtime-control-client), which
+tracks this contract and ignores what it does not recognise. It covers every
+route below, plus the ones the dashboard uses internally, and it carries its own
+`info.version` — the version of the *contract*, not of the build. The build is
+what `GET /ui/api/health` reports as `version` and `sha`.
 
 The API **evolves additively**. New routes, new optional request fields, new
 response fields, and new members of an existing enum arrive in ordinary

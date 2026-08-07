@@ -29,6 +29,13 @@ nav = [
     { "Request logs" = "driving/request-logs.md" },
     { "Console logs" = "driving/console-logs.md" },
   ] },
+  { "Testing SDKs" = [
+    { "Overview" = "sdk/index.md" },
+    { "Java quick start" = "sdk/java-quickstart.md" },
+    { "JUnit 5 guide" = "sdk/junit.md" },
+    { "Spring Boot guide" = "sdk/spring-boot.md" },
+    { "Testcontainers & the client" = "sdk/testcontainers-client.md" },
+  ] },
   { "Reference" = [
     { "Configuration" = "reference/configuration.md" },
     { "Request lifecycle" = "reference/request-lifecycle.md" },

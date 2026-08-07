@@ -5,6 +5,29 @@ your app's upstream base URL (the value your app reads for a system, e.g. what
 would otherwise be `HELLO_SYSTEM_URL`) at the running mock server, then choose
 scenarios in the UI or over the [Runtime-control API](api.md).
 
+## On the JVM, use the SDK
+
+For JVM tests there is a packaged path that replaces most of this page. The
+[Java SDK](../sdk/index.md) starts the server as a container from the test run,
+gives each test a profile of its own, deletes it afterwards, and fails a test
+whose traffic broke the endpoint's schema — so there is no server to start in CI,
+no health loop to write, and no curl:
+
+```java
+@Test
+void surfacesADeclinedCard(MockProfile profile) {
+    profile.endpoint("payments", "charge").serves("card_declined");
+
+    ChargeResult result = new PaymentsClient(mock.baseUrl()).charge(profile.id(), new BigDecimal("42.50"));
+
+    assertEquals(ChargeResult.Outcome.DECLINED, result.outcome());
+    profile.verify(endpoint("charge").called(once()));
+}
+```
+
+The rest of this page is the language-agnostic flow — what to follow from
+anything else.
+
 ## Local development
 
 Run the server (`npx @bilal-fazlani/mock-server ./catalog`), set your app's

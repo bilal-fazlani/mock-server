@@ -9,6 +9,11 @@ scenario has to be *decided* rather than pinned, back it with a small JavaScript
 resolver instead of a fixture. Any endpoint can also proxy through to a real
 upstream (`real` passthrough).
 
+For JVM integration tests there is a **[Java SDK](docs/site/docs/sdk/index.md)** —
+JUnit 5 and Spring Boot modules that start the server from the test run, give each
+test its own profile, verify the traffic, and fail a test whose requests or
+responses broke the endpoint's schema.
+
 Built with [Next.js](https://nextjs.org) and MongoDB.
 
 ## Quickstart
@@ -63,8 +68,9 @@ the environment-config pass the shipped subcommand omits. See
 The full guide lives under [`docs/site/`](docs/site/) (built with
 [Zensical](https://zensical.org)) and is the canonical source for install, Docker,
 CI, configuration, and every framework feature. It's organized into **Building
-mocks** (authoring the catalog) and **Driving mocks** (controlling a running
-server from the UI or the runtime-control API). Run it locally:
+mocks** (authoring the catalog), **Driving mocks** (controlling a running server
+from the UI or the runtime-control API), and **Testing SDKs** (the Java SDK for
+JUnit and Spring Boot). Run it locally:
 
 ```bash
 cd docs/site
