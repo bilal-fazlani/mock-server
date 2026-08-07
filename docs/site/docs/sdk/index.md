@@ -102,7 +102,7 @@ above it, so a test suite declares exactly one — the highest it needs.
 | Requirement | Version |
 | --- | --- |
 | Mock server | **0.7.0 or newer** — the SDK targets the runtime-control contract as of that release, and uses newer contract features only where the server's [additive evolution rules](../driving/api.md#stability-machine-readable-spec) make an older server degrade rather than break. |
-| Java | 17 or newer |
+| Java | **21 (LTS) or newer**, from SDK **2.0.0** (unreleased) — the current 1.x line runs on **Java 17**. |
 | JUnit | Jupiter 6.x (the SDK brings `junit-jupiter-api` with it) |
 | Spring Boot | 4.x, for `mock-server-spring-boot-test` only |
 | Docker | Required for container mode; not required when [attaching](junit.md#attach-mode-an-already-running-server) to a server that is already running |
@@ -114,6 +114,14 @@ above it, so a test suite declares exactly one — the highest it needs.
     `MockProfile.bearerToken()` mints are unsigned by construction and are not
     credentials. Point these tests at a throwaway container or a developer's own
     server, never at anything shared and long-lived.
+
+!!! note "Safe with virtual threads, from 2.0.0"
+
+    From SDK 2.0.0, no `MockServerClient` call holds a monitor across its HTTP
+    I/O, so a virtual thread calling it does not pin its carrier thread on JDK
+    21–23 — safe under Spring Boot's `spring.threads.virtual.enabled=true` or
+    JUnit's parallel test execution. `MockServerClient` also implements
+    `AutoCloseable` as of 2.0.0.
 
 ## Where to go next
 

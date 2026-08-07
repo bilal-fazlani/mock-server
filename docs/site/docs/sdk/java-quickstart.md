@@ -4,8 +4,9 @@ A working integration test, from nothing, in four steps. The result is a real
 HTTP call to a real mock server started by the test run — no stub, no
 `@MockBean`, no recorded fixture in the test source.
 
-You need **Java 17 or newer**, **JUnit Jupiter**, and a **Docker daemon** the test
-run can reach. (Without Docker, [attach to a server you started
+You need **JUnit Jupiter** and a **Docker daemon** the test run can reach — and
+Java: **17** for today's 1.x release, rising to **21 (LTS) or newer** once SDK
+**2.0.0** ships. (Without Docker, [attach to a server you started
 yourself](junit.md#attach-mode-an-already-running-server) instead — everything
 below is otherwise unchanged.)
 
