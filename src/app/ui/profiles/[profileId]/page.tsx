@@ -1,10 +1,10 @@
 import { notFound } from 'next/navigation'
 import { formatUtc } from '../../../../lib/format'
-import { listLogEntries } from '../../../../lib/logs/store'
+import { listLogSummaries } from '../../../../lib/logs/store'
 import { getDb, getProfile, getScenarioProgress } from '../../../../lib/profiles/store'
 import type { MockProfile, ScenarioProgress } from '../../../../lib/profiles/store'
 import { getRuntime } from '../../../../lib/runtime'
-import { toLogEntryView } from '../../logs/types'
+import { toLogSummaryView } from '../../logs/types'
 import { ProfileForm } from '../ProfileForm'
 import { ProfilePageHeader } from '../ProfilePageHeader'
 import { RecentActivity } from '../RecentActivity'
@@ -25,7 +25,9 @@ export default async function ProfileDetailPage({
   if (!profile) notFound()
   const [progress, recentLogs] = await Promise.all([
     getScenarioProgress(db, profile.profileId),
-    listLogEntries(db, { profileId: profile.profileId, limit: 10 }),
+    // Summaries, matching what the component's poll receives — the rows never
+    // read payloads, and an expanded row fetches its own full entry.
+    listLogSummaries(db, { profileId: profile.profileId, limit: 10 }),
   ])
   const captureSelectorLabels = Object.fromEntries(
     runtime.catalog.systems.flatMap((s) =>
@@ -55,7 +57,7 @@ export default async function ProfileDetailPage({
       />
       <RecentActivity
         profileId={profile.profileId}
-        initialEntries={recentLogs.map(toLogEntryView)}
+        initialEntries={recentLogs.map(toLogSummaryView)}
         systemLabels={Object.fromEntries(runtime.catalog.systems.map((s) => [s.slug, s.name]))}
         scenarioLabels={Object.fromEntries(
           runtime.catalog.systems.flatMap((s) =>

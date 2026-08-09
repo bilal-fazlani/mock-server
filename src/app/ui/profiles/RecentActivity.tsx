@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { Button } from '../../components/ui/button'
 import { LogRow } from '../logs/LogRow'
 import { useTimeZone } from '../logs/use-time-zone'
-import type { LogEntryView } from '../logs/types'
+import type { LogSummaryView } from '../logs/types'
 
 const POLL_INTERVAL_MS = 2000
 const LIMIT = 10
@@ -18,7 +18,7 @@ export function RecentActivity({
   captureSelectorLabels,
 }: {
   profileId: string
-  initialEntries: LogEntryView[]
+  initialEntries: LogSummaryView[]
   systemLabels?: Record<string, string>
   scenarioLabels?: Record<string, string>
   captureSelectorLabels?: Record<string, string>
@@ -35,9 +35,12 @@ export function RecentActivity({
       const newest = entriesRef.current[0]?.logId
       const params = new URLSearchParams({ profile: profileId, limit: String(LIMIT) })
       if (newest) params.set('since', newest)
+      // No `include=full`, so the endpoint answers with the summary projection:
+      // no request payload, response reduced to `{ status }`. That is all a
+      // collapsed LogRow reads — it fetches the full entry itself on expand.
       fetch(`/ui/api/logs?${params}`)
         .then((res) => res.json())
-        .then((data: { entries: LogEntryView[] }) => {
+        .then((data: { entries: LogSummaryView[] }) => {
           if (data.entries.length === 0) return
           setEntries((current) => {
             const known = new Set(current.map((e) => e.logId))
