@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.9.0](https://github.com/bilal-fazlani/mock-server/compare/v0.8.1...v0.9.0) (2026-08-10)
+
+
+### Features
+
+* **logs:** await matching entries with minCount and waitMs ([70d563b](https://github.com/bilal-fazlani/mock-server/commit/70d563bae3425458d4ec6c5e33e439c617ed5658)), closes [#65](https://github.com/bilal-fazlani/mock-server/issues/65)
+* upgrade the embedded mongodb to 8.2.6 ([cbae68e](https://github.com/bilal-fazlani/mock-server/commit/cbae68ec9ce71e5666687cb16011714d5d9ca11e))
+
+
+### Bug Fixes
+
+* **ui:** reveal "Reset resolver history" on select for global mocks ([edd79c5](https://github.com/bilal-fazlani/mock-server/commit/edd79c580c362fe590b296c752c3823db310b525)), closes [#2](https://github.com/bilal-fazlani/mock-server/issues/2)
+
 ## [0.8.1](https://github.com/bilal-fazlani/mock-server/compare/v0.8.0...v0.8.1) (2026-08-10)
 
 
