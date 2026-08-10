@@ -47,25 +47,38 @@ ENV MONGOMS_SYSTEM_BINARY=/usr/bin/mongod
 # Install MongoDB server so the embedded in-memory fallback has a real mongod
 # to launch. Both arches are pinned to MONGODB_VERSION: amd64 installs that exact
 # version from MongoDB's official Debian apt repo, matching upstream packaging.
+# Note the apt series and the signing key are deliberately mismatched: packages
+# come from the bookworm/mongodb-org/8.2 series, but the key is server-8.0.asc,
+# because MongoDB publishes no server-8.2.asc at all (pgp.mongodb.com answers
+# 404) and signs the whole 8.x line with the one 8.0 key -- verified: the 8.2
+# InRelease signature and server-8.0.asc share fingerprint
+# 4B0752C1BCA238C0B4EE14DC41DE058A4E7DCA05.
 # That repo does not publish arm64 .deb packages at all
-# (verified against the 6.0/7.0/8.0 bookworm/mongodb-org binary-arm64 package
+# (verified against the 6.0/7.0/8.0/8.2 bookworm/mongodb-org binary-arm64 package
 # indexes: only mongodb-mongosh* and CLI tools are listed, never
 # mongodb-org-server) -- MongoDB only ships arm64 server builds for Ubuntu, so
 # arm64 installs the official Ubuntu 22.04 tarball's mongod binary directly
 # (pinned by version + sha256); it runs unmodified on Debian bookworm's newer
 # glibc (verified: `mongod --version` succeeds under node:22-bookworm-slim).
 ARG TARGETARCH
-ARG MONGODB_VERSION=7.0.37
-ARG MONGODB_ARM64_SHA256=769d083ba0185ce3bfda9c6b7fb3cf46a8cda24bf1b99c7a8254c114f0845d61
+ARG MONGODB_VERSION=8.2.6
+ARG MONGODB_ARM64_SHA256=69544c933633f5078c6a1e006ff49f4174dfdc048f8f7e36ec408a1c0c75de9e
+# Keep mongodb-memory-server's requested version equal to the binary actually
+# baked in. Without it the library falls back to its own DEFAULT_VERSION and
+# warns "Possible version conflict" on every boot, comparing a default nobody
+# chose against this pin. Deriving it from the ARG also keeps the version check
+# armed as a tripwire: if the installed mongod ever drifts from MONGODB_VERSION,
+# the warning comes back, which is exactly when it is worth seeing.
+ENV MONGOMS_VERSION=${MONGODB_VERSION}
 RUN set -eu; \
   apt-get update \
   && apt-get install -y --no-install-recommends gnupg curl ca-certificates tini \
   && if [ "${TARGETARCH}" = "amd64" ]; then \
-       curl -fsSL https://pgp.mongodb.com/server-7.0.asc -o /tmp/mongodb-server-7.0.asc \
-       && gpg -o /usr/share/keyrings/mongodb-server-7.0.gpg --dearmor /tmp/mongodb-server-7.0.asc \
-       && rm -f /tmp/mongodb-server-7.0.asc \
-       && echo "deb [ signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] http://repo.mongodb.org/apt/debian bookworm/mongodb-org/7.0 main" \
-         > /etc/apt/sources.list.d/mongodb-org-7.0.list \
+       curl -fsSL https://pgp.mongodb.com/server-8.0.asc -o /tmp/mongodb-server-8.0.asc \
+       && gpg -o /usr/share/keyrings/mongodb-server-8.0.gpg --dearmor /tmp/mongodb-server-8.0.asc \
+       && rm -f /tmp/mongodb-server-8.0.asc \
+       && echo "deb [ signed-by=/usr/share/keyrings/mongodb-server-8.0.gpg ] http://repo.mongodb.org/apt/debian bookworm/mongodb-org/8.2 main" \
+         > /etc/apt/sources.list.d/mongodb-org-8.2.list \
        && apt-get update \
        && apt-get install -y --no-install-recommends "mongodb-org-server=${MONGODB_VERSION}"; \
      elif [ "${TARGETARCH}" = "arm64" ]; then \
