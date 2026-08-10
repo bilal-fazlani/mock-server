@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.8.1](https://github.com/bilal-fazlani/mock-server/compare/v0.8.0...v0.8.1) (2026-08-10)
+
+
+### Bug Fixes
+
+* **server:** serve requests that ask to upgrade to an unsupported protocol ([44e0bd4](https://github.com/bilal-fazlani/mock-server/commit/44e0bd4a07dbb3ef4f21daafc1a9625134971eed)), closes [#72](https://github.com/bilal-fazlani/mock-server/issues/72)
+* **ui:** type the profile recent-activity feed as log summaries ([3093422](https://github.com/bilal-fazlani/mock-server/commit/3093422998d394f368432754416d146194239a9e)), closes [#67](https://github.com/bilal-fazlani/mock-server/issues/67)
+
 ## [0.8.0](https://github.com/bilal-fazlani/mock-server/compare/v0.7.0...v0.8.0) (2026-08-07)
 
 
