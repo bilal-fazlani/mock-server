@@ -82,11 +82,11 @@ type (Features, Bug Fixes, …). To adjust wording before shipping, **edit the r
 Both publish workflows also support `workflow_dispatch`. Re-run against the tag ref:
 
 ```bash
-gh workflow run publish-npm.yml   --ref v1.4.0
-gh workflow run publish-image.yml --ref v1.4.0
+gh workflow run publish-npm.yml   --ref vX.Y.Z
+gh workflow run publish-image.yml --ref vX.Y.Z
 ```
 
-npm rejects re-publishing an existing version — to redo a broken `1.4.0` you must release a new
+npm rejects re-publishing an existing version — to redo a broken `X.Y.Z` you must release a new
 version. (You can also always cut a release the fully-manual way by tagging and publishing a
 GitHub Release yourself; the publish workflows key off `release: published` either way.)
 
@@ -96,7 +96,7 @@ GitHub Release yourself; the publish workflows key off `release: published` eith
 npm view @bilal-fazlani/mock-server version
 npx @bilal-fazlani/mock-server ./catalog                       # boots on embedded Mongo, no deps
 
-docker run --rm -p 3000:3000 ghcr.io/bilal-fazlani/mock-server:1.4.0
+docker run --rm -p 3000:3000 ghcr.io/bilal-fazlani/mock-server:X.Y.Z
 curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3000/ui
 ```
 
