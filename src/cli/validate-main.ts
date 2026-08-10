@@ -1,5 +1,5 @@
 // Entry point for the bundle that `mock-server validate` runs (#40). Bundled by
-// scripts/build-validate.mjs into .next/standalone/validate.cjs, which is what
+// scripts/build-standalone-entries.mjs into .next/standalone/validate.cjs, which is what
 // both the npm launcher and the Docker shim execute — so this file must stay
 // free of any Next.js import, and must not touch MongoDB.
 //

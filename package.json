@@ -27,7 +27,7 @@
   ],
   "scripts": {
     "dev": "next dev",
-    "build": "next build && node scripts/build-validate.mjs",
+    "build": "next build && node scripts/build-standalone-entries.mjs",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",

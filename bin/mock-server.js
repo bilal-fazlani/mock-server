@@ -73,9 +73,14 @@ function serve(opts) {
   env.CATALOG_PATH = resolveCatalogPath(opts)
   if (opts.port !== undefined) env.PORT = String(opts.port)
 
-  const serverJs = path.join(standaloneDir, 'server.js')
-  requireBuildOutput(serverJs)
-  run(serverJs, [], env)
+  // serve.cjs, not Next's server.js: it installs the unsupported-upgrade guard
+  // (#72) before loading server.js. See src/server/serve-main.ts. Both are
+  // checked so a package missing either half still says so plainly, rather than
+  // failing as a MODULE_NOT_FOUND out of the entry point.
+  const serveCjs = path.join(standaloneDir, 'serve.cjs')
+  requireBuildOutput(path.join(standaloneDir, 'server.js'))
+  requireBuildOutput(serveCjs)
+  run(serveCjs, [], env)
 }
 
 function main() {

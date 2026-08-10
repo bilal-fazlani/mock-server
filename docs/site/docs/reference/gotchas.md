@@ -130,10 +130,19 @@ curl -s <origin>/customers/customer-123/status
   substitution](../building/templating.md#typed-substitution).
 - **Run the validator before you ship.** It's the same gate the server applies on
   first request — catching it early beats a hard failure at runtime.
+- **The server speaks HTTP/1.1, and ignores requests to switch protocol.** A client
+  that opens with the cleartext HTTP/2 handshake — `Upgrade: h2c`, which
+  `java.net.http.HttpClient` sends by default on an `http://` URL — gets an ordinary
+  HTTP/1.1 response rather than a refusal, and stays on HTTP/1.1 for that connection.
+  There is nothing to configure and no reason to pin a client's protocol version for
+  the mock's sake; earlier versions dropped those connections, so a pin added as a
+  workaround can go. See [Things that bite](../sdk/spring-boot.md#things-that-bite) in
+  the Spring Boot guide.
 
 !!! note "Source of truth"
 
     `src/lib/catalog/*` (schema, selectors, path templates, validation),
     `src/lib/mock-engine/*` (fixtures, placeholders),
-    `src/lib/dynamic/*` (resolver history windows), and
-    `src/lib/router/route-request.ts` (request lifecycle, resolver invocation).
+    `src/lib/dynamic/*` (resolver history windows),
+    `src/lib/router/route-request.ts` (request lifecycle, resolver invocation), and
+    `src/server/ignore-unsupported-upgrades.ts` (protocol-upgrade handling).

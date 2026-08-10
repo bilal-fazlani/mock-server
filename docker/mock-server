@@ -6,14 +6,14 @@
 #   RUN mock-server validate          # in a derived image, gating docker build
 #
 # The default `docker run` behaviour is untouched: the image's CMD still runs
-# `node server.js` directly and never goes through this script.
+# `node serve.cjs` directly and never goes through this script.
 set -e
 
 case "${1-}" in
   ''|serve)
     # Next's standalone server resolves its own assets relative to cwd.
     cd /app
-    exec node server.js
+    exec node serve.cjs
     ;;
   validate)
     shift

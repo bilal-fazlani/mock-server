@@ -188,3 +188,13 @@ applies, the JSON number-scale one especially: a shipping cost written `12.95` i
 a fixture is fine, but one written `12.50` arrives as `12.5`, and
 `assertEquals(new BigDecimal("12.50"), receipt.shippingCost())` fails on scale
 alone. Compare with `compareTo`.
+
+**Your application's own HTTP client needs no protocol pin.** With no other HTTP
+client library on the classpath, Spring Boot builds `RestClient` on
+`JdkClientHttpRequestFactory`, and `java.net.http.HttpClient` defaults to
+`Version.HTTP_2` — which on a cleartext `http://` URL means every new connection
+opens with the h2c upgrade handshake. The mock server
+[ignores the upgrade](../reference/gotchas.md) and answers
+over HTTP/1.1, so the code under test stays exactly as it ships to production: no
+`requestFactory` override, no `Version.HTTP_1_1` builder. Against a real upstream
+over TLS the version is negotiated by ALPN and HTTP/2 is used as normal.
