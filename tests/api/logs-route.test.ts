@@ -21,6 +21,18 @@ vi.mock('../../src/lib/profiles/store', () => ({
   getDb: vi.fn(async () => ({})),
 }))
 
+// The wait itself is exercised against real Mongo in tests/logs/long-poll.test.ts;
+// here only its wiring into the route matters, so the loop is stubbed out and
+// `parseLogWait` — a pure function the route calls on every request — stays live.
+const awaitLogCountMock = vi.fn()
+vi.mock('../../src/lib/logs/long-poll', async () => {
+  const actual =
+    await vi.importActual<typeof import('../../src/lib/logs/long-poll')>(
+      '../../src/lib/logs/long-poll',
+    )
+  return { ...actual, awaitLogCount: (...a: unknown[]) => awaitLogCountMock(...a) }
+})
+
 const listRoute = await import('../../src/app/ui/api/logs/route')
 const entryRoute = await import('../../src/app/ui/api/logs/[logId]/route')
 
@@ -57,6 +69,7 @@ beforeEach(() => {
   listLogSummariesMock.mockReset().mockResolvedValue([summary()])
   listLogEntriesMock.mockReset().mockResolvedValue([fullEntry()])
   getLogEntryMock.mockReset()
+  awaitLogCountMock.mockReset().mockResolvedValue(true)
 })
 
 describe('GET /ui/api/logs', () => {
@@ -134,6 +147,76 @@ describe('GET /ui/api/logs', () => {
       expect.anything(),
       expect.objectContaining({ traceId: '0af7651916cd43dd8448eb211c80319c' }),
     )
+  })
+})
+
+describe('GET /ui/api/logs long-poll', () => {
+  it('does not wait, and reports no `matched`, on an ordinary listing', async () => {
+    const res = await listRoute.GET(new Request('http://x/ui/api/logs?profile=c1'))
+
+    expect(awaitLogCountMock).not.toHaveBeenCalled()
+    expect(await res.json()).toEqual({ entries: [{ ...summary(), ts: TS.toISOString() }] })
+  })
+
+  it('waits for the threshold and reports that it was reached', async () => {
+    const res = await listRoute.GET(
+      new Request('http://x/ui/api/logs?endpoint=charge&minCount=3&waitMs=5000'),
+    )
+    const body = await res.json()
+
+    expect(awaitLogCountMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ endpoint: 'charge' }),
+      { minCount: 3, waitMs: 5000 },
+      expect.anything(),
+    )
+    expect(body.matched).toBe(true)
+    expect(body.entries).toHaveLength(1)
+  })
+
+  it('reports matched=false when the window ran out, still returning what matched', async () => {
+    awaitLogCountMock.mockResolvedValue(false)
+    const res = await listRoute.GET(new Request('http://x/ui/api/logs?minCount=9&waitMs=50'))
+    const body = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(body.matched).toBe(false)
+    expect(body.entries).toEqual([{ ...summary(), ts: TS.toISOString() }])
+  })
+
+  it('treats waitMs alone as a long-poll for a single new entry', async () => {
+    await listRoute.GET(new Request('http://x/ui/api/logs?since=lg_1&waitMs=2500'))
+
+    expect(awaitLogCountMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ sinceId: 'lg_1' }),
+      { minCount: 1, waitMs: 2500 },
+      expect.anything(),
+    )
+  })
+
+  it('waits before listing, so the page reflects the entries it waited for', async () => {
+    const order: string[] = []
+    awaitLogCountMock.mockImplementation(async () => {
+      order.push('wait')
+      return true
+    })
+    listLogSummariesMock.mockImplementation(async () => {
+      order.push('list')
+      return [summary()]
+    })
+
+    await listRoute.GET(new Request('http://x/ui/api/logs?minCount=2'))
+
+    expect(order).toEqual(['wait', 'list'])
+  })
+
+  it('waits on the include=full path too', async () => {
+    const res = await listRoute.GET(new Request('http://x/ui/api/logs?include=full&minCount=2'))
+
+    expect(awaitLogCountMock).toHaveBeenCalledTimes(1)
+    expect(listLogEntriesMock).toHaveBeenCalledTimes(1)
+    expect((await res.json()).matched).toBe(true)
   })
 })
 

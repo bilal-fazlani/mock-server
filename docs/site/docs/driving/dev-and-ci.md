@@ -97,6 +97,10 @@ curl -sf -X PUT http://localhost:3000/ui/api/profiles/customer-123 \
 # 3. Assert your code actually called the endpoint
 curl -sf 'http://localhost:3000/ui/api/logs?profile=customer-123&endpoint=charge'
 
+# 3b. If the call happens asynchronously, wait for it instead of sleeping:
+#     this answers as soon as the entry lands, or after 5s with "matched": false
+curl -sf 'http://localhost:3000/ui/api/logs?profile=customer-123&endpoint=charge&minCount=1&waitMs=5000'
+
 # 4. Clean up
 curl -sf -X DELETE http://localhost:3000/ui/api/profiles/customer-123
 ```
@@ -104,7 +108,10 @@ curl -sf -X DELETE http://localhost:3000/ui/api/profiles/customer-123
 Use a **profile** (as above) for a profiled endpoint, or
 `PUT /ui/api/global-mocks/{system}/{endpoint}` for a global one. Reset
 [sequence](../building/scenarios.md#scenario-sequences) progress between tests
-with `POST /ui/api/profiles/{id}/reset`. Full route details are in the
+with `POST /ui/api/profiles/{id}/reset`. Prefer the bounded wait in step 3b to a
+`sleep` whenever the call under test is asynchronous — it returns the moment the
+call lands, and [Awaiting calls](api.md#awaiting-calls) covers its rules. Full
+route details are in the
 [Runtime-control API](api.md) reference, which also publishes an
 [OpenAPI document](api.md#stability-machine-readable-spec) you can generate a
 client from instead of hand-writing curl.

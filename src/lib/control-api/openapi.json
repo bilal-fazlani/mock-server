@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Mock Server runtime-control API",
-    "version": "1.3.0",
+    "version": "1.4.0",
     "summary": "Drive a running mock server — flip scenarios, manage profiles, reset sequence progress, and read request logs.",
     "description": "The JSON HTTP API behind the mock server's dashboard, served under `/ui/api/*`.\n\nMock endpoints answer at the root (`/…`), so the control API cannot live there without colliding with a mocked route; `/ui` is the reserved admin namespace.\n\n**Local-dev only.** The API is unauthenticated (matching the dashboard) and gives no isolation guarantees — global mocks are a single shared switch that parallel callers can clobber. Use profiles for per-caller isolation. It does not author mocks; you create endpoints and fixtures by writing catalog files.\n\n**Versioning.** `info.version` is this contract's own version, independent of the server build (which `GET /ui/api/health` reports as `version` and `sha`). The contract evolves additively: new routes, new optional request fields, new response fields, and new enum members can appear in any release, so ignore fields you do not recognise. Error bodies are `{ \"error\": string, \"code\": string }` — the envelope is stable and `code` is safe to match on; the `error` message text is not.",
     "license": {
@@ -325,7 +325,7 @@
         "operationId": "listLogs",
         "tags": ["Logs"],
         "summary": "List request-log summaries",
-        "description": "Newest first, ordered by timestamp then log ID. Summaries omit the captured request and response bodies by default — fetch one entry by ID for those, or send `include=full` to get them inline on every row instead. Every filter is optional and they combine with AND.",
+        "description": "Newest first, ordered by timestamp then log ID. Summaries omit the captured request and response bodies by default — fetch one entry by ID for those, or send `include=full` to get them inline on every row instead. Every filter is optional and they combine with AND.\n\nSending `minCount` or `waitMs` turns the call into a bounded wait: the request is held open until that many entries match, then answers with `matched` saying whether the threshold was reached. It is meant for awaiting calls in tests without a client-side polling loop.",
         "parameters": [
           {
             "name": "profile",
@@ -400,6 +400,22 @@
             "required": false,
             "description": "Send `full` to return each entry's full payload — the captured request and response bodies included — instead of the lighter summary projection. Any other value is ignored.",
             "schema": { "type": "string", "enum": ["full"] }
+          },
+          {
+            "name": "minCount",
+            "in": "query",
+            "required": false,
+            "description": "Hold the request open until at least this many entries match the filters, then answer. Pair it with `since` to count only entries newer than a cursor — that is how you await \"this endpoint has been called N more times\" in one request instead of a polling loop. Sending it without `waitMs` waits the default window; values below 1, and unparseable ones, are treated as 1. The threshold is counted over all matching entries, so it is independent of `limit` — read `matched` rather than `entries.length` to learn whether it was reached.",
+            "schema": { "type": "integer", "minimum": 1, "default": 1 },
+            "example": 3
+          },
+          {
+            "name": "waitMs",
+            "in": "query",
+            "required": false,
+            "description": "How long to wait for `minCount`, in milliseconds, clamped to 0–60000. Sending it without `minCount` waits for a single matching entry. Unparseable values fall back to 10000, the default applied when `minCount` is sent alone. The request answers as soon as the threshold is reached, and always by the deadline; `0` checks once and returns. A `before` page never waits — its match count cannot grow.",
+            "schema": { "type": "integer", "minimum": 0, "maximum": 60000, "default": 10000 },
+            "example": 5000
           }
         ],
         "responses": {
@@ -419,6 +435,10 @@
                         ]
                       },
                       "description": "`LogSummary` by default; `LogEntry` (carrying `request`/`response` payloads) when the request set `include=full`. Every entry in a given response shares the same shape. `anyOf` rather than `oneOf`: `LogSummary` places no constraint on `request`, so a full `LogEntry` also validates against it."
+                    },
+                    "matched": {
+                      "type": "boolean",
+                      "description": "Whether the `minCount` threshold was reached before `waitMs` ran out. Present only when the request asked to wait (it sent `minCount` or `waitMs`); absent on an ordinary listing. `false` still carries whatever matched, so a timed-out wait is a normal `200` with a partial page, not an error."
                     }
                   },
                   "required": ["entries"]

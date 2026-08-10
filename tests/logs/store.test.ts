@@ -3,6 +3,7 @@ import { MongoMemoryServer } from 'mongodb-memory-server'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import {
   clearLogs,
+  countLogEntries,
   getLogEntry,
   insertLogEntry,
   listLogEntries,
@@ -82,6 +83,36 @@ describe('log store', () => {
     expect(await listLogEntries(db, { logIdQuery: 'lg_bbb' })).toHaveLength(2)
     expect(await listLogEntries(db, { logIdQuery: 'LG_BBB333' })).toHaveLength(1)
     expect(await listLogEntries(db, { logIdQuery: 'bbb' })).toHaveLength(0)
+  })
+
+  describe('countLogEntries', () => {
+    it('narrows by the same filters as a listing', async () => {
+      await insertLogEntry(db, entry({ profileId: 'c1', endpoint: 'ep_a' }))
+      await insertLogEntry(db, entry({ profileId: 'c2', endpoint: 'ep_b' }))
+      await insertLogEntry(db, entry({ profileId: 'c2', endpoint: 'ep_b' }))
+
+      expect(await countLogEntries(db, {}, 10)).toBe(3)
+      expect(await countLogEntries(db, { profileId: 'c2' }, 10)).toBe(2)
+      expect(await countLogEntries(db, { profileId: 'c2', endpoint: 'ep_a' }, 10)).toBe(0)
+    })
+
+    it('counts only entries past a since cursor', async () => {
+      const first = entry()
+      await insertLogEntry(db, first)
+      await insertLogEntry(db, entry())
+      await insertLogEntry(db, entry())
+
+      expect(await countLogEntries(db, { sinceId: first.logId }, 10)).toBe(2)
+    })
+
+    it('stops at the cap rather than counting the whole match', async () => {
+      for (let i = 0; i < 5; i += 1) await insertLogEntry(db, entry())
+
+      expect(await countLogEntries(db, {}, 2)).toBe(2)
+      // A cap below 1 would make `countDocuments` count everything, which would
+      // silently answer "threshold reached" for any non-empty log.
+      expect(await countLogEntries(db, {}, 0)).toBe(1)
+    })
   })
 
   describe('traceId filter', () => {

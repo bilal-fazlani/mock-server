@@ -1,3 +1,4 @@
+import { awaitLogCount, parseLogWait } from '../../../../lib/logs/long-poll'
 import { listLogEntries, listLogSummaries, parseValidationFilter } from '../../../../lib/logs/store'
 import { getDb } from '../../../../lib/profiles/store'
 import { toLogEntryView, toLogSummaryView } from '../../logs/types'
@@ -25,6 +26,10 @@ export async function GET(request: Request): Promise<Response> {
       ? Math.min(Math.max(requestedLimit, 1), MAX_LIMIT)
       : undefined,
   }
+  // `minCount`/`waitMs` hold the request open until the filtered count reaches
+  // the threshold — one bounded wait in place of a caller's polling loop.
+  const wait = parseLogWait(params.get('minCount'), params.get('waitMs'))
+  const matched = wait ? await awaitLogCount(db, options, wait, request.signal) : undefined
   // Only the literal `full` opts into full payloads (request/response bodies
   // included); any other value — or an absent param — keeps the lighter
   // summary projection the live-polling list defaults to. Same lenient-param
@@ -33,5 +38,7 @@ export async function GET(request: Request): Promise<Response> {
     params.get('include') === 'full'
       ? (await listLogEntries(db, options)).map(toLogEntryView)
       : (await listLogSummaries(db, options)).map(toLogSummaryView)
-  return Response.json({ entries })
+  // `matched` is absent unless a wait was asked for, so an ordinary listing's
+  // body is exactly what it was before this parameter existed.
+  return Response.json(matched === undefined ? { entries } : { entries, matched })
 }

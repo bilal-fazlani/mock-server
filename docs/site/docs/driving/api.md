@@ -226,7 +226,9 @@ malformed JSON), the whole profile resets. Always `204`.
 
 `GET /ui/api/logs` returns log entries as `{ "entries": [ … ] }` — each a
 `LogSummary` by default, or a full `LogEntry` (captured request and response
-bodies included) when the request sets `include=full`. Query parameters:
+bodies included) when the request sets `include=full`. It can also
+[wait for entries to arrive](#awaiting-calls), in which case the body carries a
+`matched` flag alongside them. Query parameters:
 
 | Param | Meaning |
 |---|---|
@@ -239,6 +241,49 @@ bodies included) when the request sets `include=full`. Query parameters:
 | `since` / `before` | Cursor bounds (log IDs) for paging |
 | `limit` | Page size, clamped to 1–200 |
 | `include=full` | Return the full entry — captured request and response bodies included — instead of the summary projection. Any other value is ignored. |
+| `minCount` | Wait until this many entries match before answering — see [Awaiting calls](#awaiting-calls). Defaults to `1` |
+| `waitMs` | How long to wait for `minCount`, in milliseconds, clamped to 0–60000. Defaults to `10000` |
+
+### Awaiting calls
+
+A test that fires an async flow — a background poller, a queue consumer — has to
+wait for the call to land before it can assert on it. Sending `minCount` or
+`waitMs` holds the request open until enough entries match, so one call replaces
+a client-side polling loop:
+
+```bash
+# Answer as soon as "charge" has been called 3 times, giving up after 5s
+curl -sf 'http://localhost:3000/ui/api/logs?profile=customer-123&endpoint=charge&minCount=3&waitMs=5000'
+```
+
+```json
+{ "entries": [ … ], "matched": true }
+```
+
+`matched` says whether the threshold was reached before the deadline. It is
+present only when you asked to wait, and a timeout is a normal `200` carrying
+whatever did match — check `matched`, not the HTTP status. Read it rather than
+counting `entries`: the threshold counts every matching entry, while the page
+you get back is still capped by `limit`.
+
+The rules:
+
+- **Every filter applies as it normally does.** Combine the wait with `profile`,
+  `endpoint`, `validation`, and the rest to await something specific.
+- **Pair it with `since`** — a cursor from the previous read — to count only
+  entries newer than that point, which is how you await "*N more* calls" rather
+  than "*N* calls in total".
+- **Either parameter turns the wait on**, and each defaults the other:
+  `waitMs=5000` alone waits for a single new entry, `minCount=3` alone waits the
+  default 10s. Values that don't parse fall back to those defaults rather than
+  failing the request.
+- **The answer comes as soon as the threshold holds**, so a condition that is
+  already true costs nothing extra. `waitMs=0` checks once and returns.
+- **`before` never waits.** It pages backwards from a cursor, and no new entry
+  can appear behind one.
+
+The `since` cursor remains the alternative when you'd rather not hold a
+connection open: read, remember the newest log ID, and poll it yourself.
 
 Fetch one full entry by ID (with the decision trace and captured
 request/response) via `GET /ui/api/logs/{logId}`, which answers

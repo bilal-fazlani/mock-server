@@ -242,6 +242,25 @@ export async function listLogSummaries(db: Db, options: ListLogsOptions): Promis
     .toArray()
 }
 
+/**
+ * How many entries match `options`, counted no further than `cap`. Built from
+ * the same `buildLogFilter` as the listing paths, so every filter — including
+ * the keyset cursors — narrows the count exactly as it narrows a page.
+ *
+ * The bound is the point: this runs on a tick while `GET /ui/api/logs` waits
+ * for a threshold, where "has it reached `cap` yet" is the whole question and
+ * the true total beyond it is wasted work.
+ */
+export async function countLogEntries(
+  db: Db,
+  options: ListLogsOptions,
+  cap: number,
+): Promise<number> {
+  const collection = db.collection<LogEntry>('requestLogs')
+  const filter = await buildLogFilter(collection, options)
+  return collection.countDocuments(filter, { limit: Math.max(cap, 1) })
+}
+
 export async function getLogEntry(db: Db, logId: string): Promise<LogEntry | null> {
   return db.collection<LogEntry>('requestLogs').findOne({ logId }, { projection: { _id: 0 } })
 }
