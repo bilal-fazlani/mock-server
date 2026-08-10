@@ -38,8 +38,13 @@ dependencies {
 ## 2. Give the server a catalog
 
 The test does not describe responses — it selects scenarios the catalog declares.
-So the catalog comes first. Put it wherever the test run can see it;
-`src/test/resources/catalog` is the convention.
+So the catalog comes first. Put it anywhere on disk — `withCatalog` takes a
+**filesystem path, not a classpath resource**, and bind-mounts the directory into
+the container. `src/test/resources/catalog` is the convention, and a relative
+path like that one resolves against the test run's working directory, which
+Gradle and Maven both default to the module directory. See [what it resolves
+against](junit.md#what-withcatalog-resolves-against) for the cases where that
+matters.
 
 ```text
 src/test/resources/catalog/
@@ -160,6 +165,10 @@ URL. Nothing in it knows it is being pointed at a mock.
 `./gradlew test`, or `mvn test`. The first run pulls
 `ghcr.io/bilal-fazlani/mock-server:latest` and takes as long as the pull;
 afterwards the container starts in a second or two, once for the whole class.
+
+Before this suite runs in CI, [pin that
+tag](junit.md#registering-the-extension) — `latest` moves, and a suite that
+passed yesterday can fail today for reasons unconnected to the change under test.
 
 ## What each line does
 

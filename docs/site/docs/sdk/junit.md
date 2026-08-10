@@ -5,6 +5,36 @@
 and cleans up afterwards. Start from the [Java quick start](java-quickstart.md) if
 you have not run a test yet.
 
+## Add the dependency
+
+```kotlin
+// build.gradle.kts
+dependencies {
+    testImplementation("com.bilal-fazlani:mock-server-junit:2.0.0")
+
+    // No versions needed: mock-server-junit exposes the JUnit BOM transitively.
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+}
+```
+
+```xml
+<!-- pom.xml -->
+<dependency>
+  <groupId>com.bilal-fazlani</groupId>
+  <artifactId>mock-server-junit</artifactId>
+  <version>2.0.0</version>
+  <scope>test</scope>
+</dependency>
+```
+
+One artifact: it brings `MockServerContainer`, the runtime-control client, and
+`junit-jupiter-api` with it. On Spring Boot, declare
+[`mock-server-spring-boot-test`](spring-boot.md#add-the-dependency) instead —
+`@MockServerTest` lives there, not here, and it adds everything on this page. See
+[the versions the SDK pins](index.md#the-versions-the-sdk-pins) for what comes
+along.
+
 ## Registering the extension
 
 Register `MockServer` in a **`static` field**. An instance field would give every
@@ -23,8 +53,8 @@ pays for the start.
 
 | Builder call | Default | Purpose & rules |
 | --- | --- | --- |
-| `withCatalog(String \| Path)` | *(none)* | The catalog directory to serve, bind-mounted read-only. With no catalog, the container serves whatever its image was built with. |
-| `withImage(String \| DockerImageName)` | `ghcr.io/bilal-fazlani/mock-server:latest` | The image to run. Parsed as a **whole reference** — `withImage("0.9.2")` looks for a repository named `0.9.2`. For a tag, use `MockServerContainer.DEFAULT_IMAGE_NAME.withTag("0.9.2")`. |
+| `withCatalog(String \| Path)` | *(none)* | The catalog directory to serve, bind-mounted read-only. A **filesystem path, not a classpath resource** — see [what the path means](#what-withcatalog-resolves-against). With no catalog, the container serves whatever its image was built with. |
+| `withImage(String \| DockerImageName)` | `ghcr.io/bilal-fazlani/mock-server:latest` | The image to run. Parsed as a **whole reference** — `withImage("0.8.0")` looks for a repository named `0.8.0`. For a tag, use `MockServerContainer.DEFAULT_IMAGE_NAME.withTag("0.8.0")`. |
 | `withStartupTimeout(Duration)` | 2 minutes | How long to wait for `GET /ui/api/health` to answer `200`. |
 | `configure(Consumer<MockServerContainer>)` | no-op | Anything else the container — or `GenericContainer` beneath it — can do: environment variables, networks, log consumers, reuse. Applied before the container starts, and additive across calls. |
 | `schemaCheck(SchemaCheck.Mode)` | `FAILED` | The suite-wide [end-of-test schema check](#the-end-of-test-schema-check). |
@@ -38,6 +68,43 @@ MockServer.container()
         .configure(container -> container.withEnv("UNMOCKED_USERS", "DEFAULT_MOCK"))
         .build();
 ```
+
+!!! note "Pin the image tag in CI"
+
+    The default tag is `latest`, so a suite that passed yesterday can fail today
+    against a server that changed underneath it, for reasons unconnected to the
+    change under test. Pin the version the suite is verified against:
+
+    ```java
+    MockServer.container()
+            .withImage(MockServerContainer.DEFAULT_IMAGE_NAME.withTag("0.8.0"))
+            .withCatalog("src/test/resources/catalog")
+            .build();
+    ```
+
+    The SDK needs server **0.7.0 or newer** — see
+    [Compatibility](index.md#compatibility).
+
+### What `withCatalog` resolves against
+
+`"src/test/resources/catalog"` is a **filesystem path, not a classpath
+resource**, despite reading like one. The directory is bind-mounted into the
+container read-only, and a bind mount needs a real directory on the host — so
+packaging the catalog into a test-jar, or referencing it from a dependency,
+cannot work. Two things follow:
+
+- **A relative path resolves against the test run's working directory.** Gradle
+  and Maven both default that to the module directory, including in a
+  multi-module build invoked from the root, which is why the string above works
+  unchanged. A build that overrides it — Gradle's `test { workingDir = … }`,
+  Surefire's `workingDirectory` — moves what the path means.
+- **A path that is not an existing directory fails at the `withCatalog` call**,
+  with an `IllegalArgumentException` naming it. It is not a wrong-directory
+  mystery discovered when the container starts.
+
+Pass a `Path` for the same thing more explicitly, and the
+[file permissions caveat](testcontainers-client.md#the-container) applies to
+either overload.
 
 !!! warning "One `MockServer` per test class"
 

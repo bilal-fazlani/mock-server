@@ -5,6 +5,37 @@ the application under test is already pointed at it — no
 `@DynamicPropertySource` method, no URL passed to a constructor, nothing to keep
 in step.
 
+## Add the dependency
+
+```kotlin
+// build.gradle.kts
+dependencies {
+    testImplementation("com.bilal-fazlani:mock-server-spring-boot-test:2.0.0")
+
+    // No versions needed: the JUnit BOM arrives transitively.
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+}
+```
+
+```xml
+<!-- pom.xml -->
+<dependency>
+  <groupId>com.bilal-fazlani</groupId>
+  <artifactId>mock-server-spring-boot-test</artifactId>
+  <version>2.0.0</version>
+  <scope>test</scope>
+</dependency>
+```
+
+This is the artifact, not the `mock-server-junit` the [quick
+start](java-quickstart.md#1-add-the-dependency) declares: `@MockServerTest` lives
+here and nowhere else. It brings the JUnit DSL, `MockServerContainer`, and the
+runtime-control client with it, so declaring both is unnecessary. The Spring
+artifacts it compiles against are pinned to **Spring Boot 4.1.0** — see [the
+versions the SDK pins](index.md#the-versions-the-sdk-pins), which also covers
+what happens when your application's own Boot version differs.
+
 ```java
 @SpringBootTest
 @MockServerTest
@@ -51,6 +82,30 @@ start](java-quickstart.md#3-write-the-test), plus
 The container is a plain `static` field. Nothing in the test starts or stops it:
 the connection-details bean starts it the first time the application context asks
 for its address, and Testcontainers' resource reaper removes it when the run ends.
+
+`withCatalog` takes a **filesystem path, not a classpath resource** — the
+directory is bind-mounted into the container, and a relative path resolves
+against the test run's working directory. See [what it resolves
+against](junit.md#what-withcatalog-resolves-against).
+
+!!! note "Pin the image tag in CI"
+
+    `new MockServerContainer()` runs the `latest` tag, so a suite that passed
+    yesterday can fail today against a server that changed underneath it, for
+    reasons unconnected to the change under test. Pin the version the suite is
+    verified against:
+
+    ```java
+    @ServiceConnection
+    static final MockServerContainer MOCK_SERVER =
+            new MockServerContainer(MockServerContainer.DEFAULT_IMAGE_NAME.withTag("0.8.0"))
+                    .withCatalog("src/test/resources/catalog");
+    ```
+
+    The constructor argument is a **whole image reference**, so
+    `new MockServerContainer("0.8.0")` looks for a repository named `0.8.0`.
+    Compose the tag onto `DEFAULT_IMAGE_NAME` as above. The SDK needs server
+    **0.7.0 or newer** — see [Compatibility](index.md#compatibility).
 
 Everything the [JUnit 5 guide](junit.md) documents — `serves`, `servesSequence`,
 `verify`, `await`, `@SchemaCheck`, `@UsesGlobalMocks` — works unchanged inside

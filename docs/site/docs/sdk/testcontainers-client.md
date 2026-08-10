@@ -12,6 +12,32 @@ Two of the four modules carry no test framework at all. Reach for them when the
 Inside a JUnit suite, `mock.client()` and `profile.client()` hand you the same
 client the DSL is driving. Nothing here needs a second one.
 
+## Add the dependency
+
+Declare one of the two, not both — `mock-server-testcontainers` brings
+`mock-server-client` with it. Take the client alone when the server is already
+running and nothing needs to start a container.
+
+```kotlin
+// build.gradle.kts — one of these, not both
+testImplementation("com.bilal-fazlani:mock-server-testcontainers:2.0.0")  // container + client
+testImplementation("com.bilal-fazlani:mock-server-client:2.0.0")          // client alone
+```
+
+```xml
+<!-- pom.xml — swap the artifactId for mock-server-client to take the client alone -->
+<dependency>
+  <groupId>com.bilal-fazlani</groupId>
+  <artifactId>mock-server-testcontainers</artifactId>
+  <version>2.0.0</version>
+  <scope>test</scope>
+</dependency>
+```
+
+Neither carries a test framework, so your own runner's dependencies are yours to
+declare. See [the versions the SDK pins](index.md#the-versions-the-sdk-pins) —
+the Jackson floor there is the one that bites.
+
 ## The container
 
 `MockServerContainer` is a Testcontainers `GenericContainer`. Every inherited
@@ -36,7 +62,7 @@ server.stop();
 | --- | --- |
 | `new MockServerContainer()` | Runs `ghcr.io/bilal-fazlani/mock-server:latest`. |
 | `new MockServerContainer(String \| DockerImageName)` | Runs an explicit image. Parsed as a **whole reference**, not a bare tag. An image that is not `DEFAULT_IMAGE_NAME` must declare compatibility with `asCompatibleSubstituteFor`, for a private mirror or a fork. |
-| `withCatalog(String \| Path)` | Bind-mounts the directory read-only and points `CATALOG_PATH` at it. Throws if the path is not a directory. |
+| `withCatalog(String \| Path)` | Bind-mounts the directory read-only and points `CATALOG_PATH` at it. A **filesystem path, not a classpath resource**: a relative one resolves against the JVM's working directory, which Gradle and Maven both default to the module directory. Throws `IllegalArgumentException` at this call — not at `start()` — if the path is not an existing directory. |
 | `withStartupTimeout(Duration)` | Inherited. How long to wait for health; `DEFAULT_STARTUP_TIMEOUT` is 2 minutes. |
 | `baseUrl()` | `http://host:mappedPort` — no trailing slash, no path. |
 | `client()` | A `MockServerClient` bound to `baseUrl()`, created on first call and cached with its catalog. |
@@ -45,12 +71,17 @@ server.stop();
 port opens before its MongoDB connection is established, so a listening socket
 alone does not mean a mocked call can be served yet.
 
-To pin a version, combine the default name with a tag rather than reaching for a
-static helper:
+The default tag is `latest`, so pin the version in CI: a suite that passed
+yesterday can otherwise fail today against a server that changed underneath it,
+for reasons unconnected to the change under test. Combine the default name with a
+tag rather than reaching for a static helper:
 
 ```java
-new MockServerContainer(MockServerContainer.DEFAULT_IMAGE_NAME.withTag("0.9.2"));
+new MockServerContainer(MockServerContainer.DEFAULT_IMAGE_NAME.withTag("0.8.0"));
 ```
+
+The SDK needs server **0.7.0 or newer** — see
+[Compatibility](index.md#compatibility).
 
 !!! warning "The catalog must be world-readable"
 

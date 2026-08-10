@@ -104,8 +104,40 @@ above it, so a test suite declares exactly one — the highest it needs.
 | Mock server | **0.7.0 or newer** — the SDK targets the runtime-control contract as of that release, and uses newer contract features only where the server's [additive evolution rules](../driving/api.md#stability-machine-readable-spec) make an older server degrade rather than break. |
 | Java | **21 (LTS) or newer**, from SDK **2.0.0** — the earlier 1.x line runs on **Java 17**. |
 | JUnit | Jupiter 6.x (the SDK brings `junit-jupiter-api` with it) |
-| Spring Boot | 4.x, for `mock-server-spring-boot-test` only |
+| Spring Boot | **4.1.0**, for `mock-server-spring-boot-test` only — the exact release the module is compiled and tested against, not a range across 4.x |
 | Docker | Required for container mode; not required when [attaching](junit.md#attach-mode-an-already-running-server) to a server that is already running |
+
+### The versions the SDK pins
+
+Every third-party version is pinned in the build and declared in the published
+POMs. Read this as what 2.0.0 is compiled and tested against — not as a supported
+range:
+
+| Dependency | Pinned in 2.0.0 | Arrives through |
+| --- | --- | --- |
+| `org.springframework.boot:spring-boot`, `-test`, `-autoconfigure`, `-testcontainers` | **4.1.0** | `mock-server-spring-boot-test` |
+| `org.springframework:spring-context`, `spring-test` | **7.0.8** — the Framework release `spring-boot-dependencies:4.1.0` manages | `mock-server-spring-boot-test` |
+| `org.junit:junit-bom` | **6.1.2** | `mock-server-junit` |
+| `org.testcontainers:testcontainers` | **2.0.5** | `mock-server-testcontainers` |
+| `com.fasterxml.jackson.core:jackson-databind` | **2.22.1**, with a declared floor of **2.16.0** | `mock-server-client` |
+
+Each of these is an `api` dependency, so it lands on your own test compile
+classpath too, and its version is one you can see and override. Two consequences
+worth knowing:
+
+- **Your application's Spring Boot version wins.** Under
+  `spring-boot-starter-parent` or the Spring dependency-management plugin, your
+  build's own pin overrides the one this module brings, so what the SDK actually
+  runs against is *your* Boot version. On anything other than 4.1.0 it is
+  untested rather than known-broken — 4.0 and 4.1 differ in the module layout of
+  the auto-configurations, which is exactly the surface
+  `mock-server-spring-boot-test` attaches to.
+- **The Jackson floor is real.** `CatalogEndpoint.scenarios()` deserializes into a
+  `SequencedMap`, which jackson-databind cannot do before 2.16.0. A build that
+  forces an older 2.x fails at the first catalog fetch.
+
+Pin the server image too — see [the note on the JUnit
+guide](junit.md#registering-the-extension).
 
 !!! warning "Local-dev only"
 
