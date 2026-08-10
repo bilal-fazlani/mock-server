@@ -31,17 +31,18 @@ they can never drift apart.
 
 - [x] **`NPM_TOKEN` secret** — npm automation token with publish rights for `@bilal-fazlani/*`.
       Used by `publish-npm.yml`. *(done)*
-- [ ] **`RELEASE_PLEASE_TOKEN` secret** — **required for automation to publish anything.**
+- [x] **`RELEASE_PLEASE_TOKEN` secret** — **required for automation to publish anything.**
       A Release created with the default `GITHUB_TOKEN` does **not** trigger other workflows
       (GitHub blocks `GITHUB_TOKEN`-initiated events from starting new runs), so the publish
-      workflows would never fire. Give release-please a token that *can* trigger them:
-    - Simplest: a **fine-grained Personal Access Token** scoped to this repo with
-      **Contents: read & write** and **Pull requests: read & write**, saved as the repo secret
-      `RELEASE_PLEASE_TOKEN`. (Set a calendar reminder for its expiry.)
-    - Zero-maintenance alternative: a **GitHub App** token via `actions/create-github-app-token`
-      (no expiry) — more setup, swap it into `release-please.yml` if you prefer.
-- [ ] **ghcr visibility** — after the first image publish, make the package public in the repo's
-      Packages settings if you want anonymous `docker pull`.
+      workflows would never fire. release-please therefore runs with a token that *can* trigger
+      them. *(done — a fine-grained PAT scoped to this repo with **Contents: read & write** and
+      **Pull requests: read & write**, added 2026-08-06.)*
+    - It **expires.** When publishes stop firing, check this before anything else — the
+      Troubleshooting section below describes exactly that failure.
+    - Zero-maintenance alternative, if renewing it gets old: a **GitHub App** token via
+      `actions/create-github-app-token` (no expiry), swapped into `release-please.yml`.
+- [x] **ghcr visibility** — the image package is public, so anonymous `docker pull` works with no
+      login. *(done — verified with an anonymous pull.)*
 
 ## Versioning (all automatic, from commit types)
 

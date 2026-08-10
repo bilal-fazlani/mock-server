@@ -21,6 +21,11 @@
   "engines": {
     "node": ">=22"
   },
+  "config": {
+    "mongodbMemoryServer": {
+      "version": "8.2.6"
+    }
+  },
   "files": [
     ".next/standalone",
     "bin"
