@@ -1,16 +1,18 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Check, ChevronsUpDown, FileCode, Globe, GripVertical, Plus, Repeat, RotateCcw, X } from 'lucide-react'
+import { Check, ChevronsUpDown, FileCode, Globe, GripVertical, Plus, Repeat, X } from 'lucide-react'
 import type { ScenarioSelection } from '../../../lib/profiles/store'
-import { scenarioOptionsWithDangling, type ScenarioOption } from '../../../lib/scenarios'
+import {
+  involvesResolver,
+  scenarioOptionsWithDangling,
+  type ScenarioOption,
+} from '../../../lib/scenarios'
+import { ResetButton } from '../../components/ResetButton'
 import { ScenarioDisclosure } from '../../components/ScenarioDisclosure'
 import { ScenarioPicker } from '../../components/ScenarioPicker'
 
 type Mode = 'single' | 'sequence'
-
-const resetButtonClass =
-  'inline-flex items-center gap-1.5 bg-background px-2.5 py-1 text-[0.76rem] text-secondary-foreground hover:border-muted-foreground hover:text-foreground'
 
 export function ScenarioConfig({
   system,
@@ -75,9 +77,7 @@ export function ScenarioConfig({
   const served = !dirty && servedCount ? servedCount : 0
   const nextIndex = Math.min(served, steps.length - 1)
 
-  const involvesResolver = (mode === 'single' ? [singleValue] : steps).some(
-    (s) => options[s]?.kind === 'resolver',
-  )
+  const showResolverReset = involvesResolver(options, mode === 'single' ? singleValue : steps)
 
   return (
     <div className="grid min-w-0 gap-2.5">
@@ -256,12 +256,7 @@ export function ScenarioConfig({
             {served > 0 && (
               <span className="ml-auto inline-flex items-center gap-2.5 text-[0.78rem] text-muted-foreground">
                 {served} {served === 1 ? 'call' : 'calls'} served
-                {resetAction && (
-                  <button formAction={resetAction} className={resetButtonClass}>
-                    <RotateCcw className="size-[13px]" aria-hidden="true" />
-                    Reset progress
-                  </button>
-                )}
+                {resetAction && <ResetButton formAction={resetAction}>Reset progress</ResetButton>}
               </span>
             )}
             {dirty && savedSteps !== null && (servedCount ?? 0) > 0 && (
@@ -273,12 +268,9 @@ export function ScenarioConfig({
           <input type="hidden" name={`scenarioSequence:${endpointName}`} value={JSON.stringify(steps)} />
         </div>
       )}
-      {involvesResolver && resetDynamicAction && (
+      {showResolverReset && resetDynamicAction && (
         <div className="flex w-full flex-wrap items-center gap-2.5">
-          <button formAction={resetDynamicAction} className={resetButtonClass}>
-            <RotateCcw className="size-[13px]" aria-hidden="true" />
-            Reset resolver history
-          </button>
+          <ResetButton formAction={resetDynamicAction}>Reset resolver history</ResetButton>
         </div>
       )}
     </div>

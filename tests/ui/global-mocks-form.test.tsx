@@ -57,6 +57,10 @@ function render(selections: GlobalMockScenario[]): string {
 }
 
 describe('GlobalMocksForm reset dynamic history button', () => {
+  // These cover the first paint, where the picked scenario is still the
+  // effective one (stored ?? implicit). Picking a different scenario re-gates
+  // the button live inside GlobalScenarioConfig; the rule it applies is
+  // `involvesResolver`, unit-tested in tests/lib/scenarios.test.ts.
   it('shows the reset button when the saved selection is resolver-backed', () => {
     expect(render([selection('dynamic')])).toContain('Reset resolver history')
   })
@@ -116,6 +120,15 @@ describe('GlobalMocksForm reset dynamic history button', () => {
     expect(chipForValue(html, 'default')).toContain('rounded-full')
     expect(chipForValue(html, 'expired')).not.toContain('aria-label="Resolved by code at request time"')
     expect(chipForValue(html, 'expired')).toContain('rounded-full')
+  })
+})
+
+describe('GlobalMocksForm scenario field name', () => {
+  it('keeps the endpoint-scoped radio name saveGlobalMocks reads', () => {
+    // The picker is rendered through a client island now; losing the field name
+    // would silently stop the form saving that endpoint at all.
+    const html = render([])
+    expect(html).toContain('name="scenario:hello-system:oauth_token"')
   })
 })
 

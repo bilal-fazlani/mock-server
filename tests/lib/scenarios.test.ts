@@ -3,6 +3,7 @@ import type { EndpointDef, SystemDef } from '../../src/lib/catalog/types'
 import { REAL_SUMMARY } from '../../src/lib/config'
 import {
   danglingScenarioLabel,
+  involvesResolver,
   isScenarioDeclared,
   scenarioOptionsWithDangling,
   scenariosWithPassthrough,
@@ -98,6 +99,36 @@ describe('isScenarioDeclared', () => {
   it('accepts a resolver-backed slug like any other declared scenario', () => {
     const endpoint = ep({ scenarios: { default: { label: 'Default' }, 'by-amount': { label: 'Routes' } }, resolverScenarios: ['by-amount'] })
     expect(isScenarioDeclared(endpoint, 'by-amount')).toBe(true)
+  })
+})
+
+describe('involvesResolver', () => {
+  const options: Record<string, ScenarioOption> = {
+    default: { label: 'Default', kind: 'fixture' },
+    'by-amount': { label: 'By amount', kind: 'resolver' },
+    real: { label: 'Passthrough', kind: 'passthrough' },
+  }
+
+  it('is true for a resolver-backed single selection', () => {
+    expect(involvesResolver(options, 'by-amount')).toBe(true)
+  })
+
+  it('is false for fixture and passthrough selections', () => {
+    expect(involvesResolver(options, 'default')).toBe(false)
+    expect(involvesResolver(options, 'real')).toBe(false)
+  })
+
+  it('is true when any step of a sequence is resolver-backed', () => {
+    expect(involvesResolver(options, ['default', 'by-amount', 'real'])).toBe(true)
+  })
+
+  it('is false for a sequence of fixtures', () => {
+    expect(involvesResolver(options, ['default', 'default'])).toBe(false)
+  })
+
+  it('is false for an unknown slug — a dangling pin resolves nothing', () => {
+    expect(involvesResolver(options, 'gone')).toBe(false)
+    expect(involvesResolver(options, [])).toBe(false)
   })
 })
 

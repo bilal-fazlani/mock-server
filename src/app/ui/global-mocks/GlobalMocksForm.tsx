@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { RotateCcw, SquareArrowOutUpRight } from 'lucide-react'
+import { SquareArrowOutUpRight } from 'lucide-react'
 import type { Catalog, EndpointDef, SystemDef } from '../../../lib/catalog/types'
 import type { GlobalMockScenario } from '../../../lib/profiles/store'
 import {
@@ -11,7 +11,7 @@ import {
 import { Alert } from '../../components/Alert'
 import { Button } from '../../components/ui/button'
 import { MethodBadge } from '../../components/MethodBadge'
-import { ScenarioPicker } from '../../components/ScenarioPicker'
+import { GlobalScenarioConfig } from './GlobalScenarioConfig'
 import { resetGlobalDynamicHistoryAction, saveGlobalMocks } from './actions'
 
 function key(system: string, endpoint: string): string {
@@ -92,7 +92,7 @@ export function GlobalMocksForm({
                         endpoint will return 500 until the base URL is configured.
                       </Alert>
                     )}
-                    <ScenarioPicker
+                    <GlobalScenarioConfig
                       system={system.slug}
                       endpointName={endpoint.name}
                       endpointDisplayName={endpoint.displayName}
@@ -100,21 +100,12 @@ export function GlobalMocksForm({
                       scenarios={options}
                       selected={selected}
                       unavailable={unavailable}
-                    />
-                    <div className="mt-2.5 flex min-w-0 flex-wrap items-center gap-2.5">
-                      {endpoint.resolverScenarios.includes(selected) && (
-                        <button
-                          formAction={resetGlobalDynamicHistoryAction.bind(
-                            null,
-                            system.slug,
-                            endpoint.name,
-                          )}
-                          className="inline-flex items-center gap-1.5 bg-background px-2.5 py-1 text-[0.76rem] text-secondary-foreground hover:border-muted-foreground hover:text-foreground"
-                        >
-                          <RotateCcw className="size-[13px]" aria-hidden="true" />
-                          Reset resolver history
-                        </button>
+                      resetDynamicAction={resetGlobalDynamicHistoryAction.bind(
+                        null,
+                        system.slug,
+                        endpoint.name,
                       )}
+                    >
                       <Link
                         href={`/ui/catalog/${system.slug}/${endpoint.name}`}
                         className="ml-auto inline-flex items-center gap-1.5 text-[0.78rem] text-muted-foreground hover:text-foreground hover:no-underline"
@@ -122,7 +113,7 @@ export function GlobalMocksForm({
                         <SquareArrowOutUpRight className="size-3" aria-hidden="true" />
                         View in catalog
                       </Link>
-                    </div>
+                    </GlobalScenarioConfig>
                   </div>
                 )
               })}

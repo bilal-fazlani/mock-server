@@ -79,6 +79,20 @@ export function isScenarioDeclared(endpoint: EndpointDef, scenario: string): boo
   return scenario === REAL_SCENARIO || scenario in endpoint.scenarios
 }
 
+/**
+ * Does this selection put a resolver in play? Both scenario forms gate the
+ * "Reset resolver history" button on the *picked* value — a single scenario on
+ * global mocks, a single scenario or any step of a sequence on a profile — so
+ * the rule itself lives here rather than in each surface.
+ */
+export function involvesResolver(
+  options: Record<string, ScenarioOption>,
+  selection: string | string[],
+): boolean {
+  const picked = Array.isArray(selection) ? selection : [selection]
+  return picked.some((slug) => options[slug]?.kind === 'resolver')
+}
+
 export function danglingScenarioLabel(slug: string): string {
   return `${slug} — unavailable`
 }
