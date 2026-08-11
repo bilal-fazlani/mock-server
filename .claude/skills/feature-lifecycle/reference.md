@@ -10,6 +10,20 @@ Throughout, replace `N` with the issue number and the lane name with the target 
 case-insensitively):** `Backlog`, `Refining`, `Ready`, `In progress`, `In review`, `Done`
 — note the lowercase `p`/`r` in "In progress" / "In review".
 
+## Add an issue to the board by hand
+
+Auto-add is wired for `mock-server` only — GitHub's free plan allows one source repo, and
+a second needs Enterprise. An issue filed anywhere else never reaches the board, and
+nothing reports that. So after creating one, add it and confirm the lane:
+
+```fish
+gh project item-add 3 --owner bilal-fazlani --url (gh issue view N --repo OWNER/REPO --json url --jq '.url')
+```
+
+Verified behaviour: the added card lands in `Backlog` on its own, so no follow-up
+`item-edit` is normally needed — but check, and set the lane explicitly if it arrives with
+none. Re-adding an issue already on the board is harmless.
+
 ## Move a card to a lane
 
 Moving a card = editing the `Status` single-select on the **project item** (not the
@@ -21,15 +35,20 @@ set field_id (gh project field-list 3 --owner bilal-fazlani --format json \
                 --jq '.fields[] | select(.name=="Status") | .id')
 set opt_id   (gh project field-list 3 --owner bilal-fazlani --format json \
                 --jq '.fields[] | select(.name=="Status") | .options[] | select(.name|ascii_downcase=="in progress") | .id')
-set item_id  (gh project item-list 3 --owner bilal-fazlani --format json --limit 200 \
-                --jq '.items[] | select(.content.number==N) | .id')
+set item_id  (gh project item-list 3 --owner bilal-fazlani --format json --limit 300 \
+                --jq '.items[] | select(.content.number==N and .content.repository=="bilal-fazlani/mock-server") | .id')
 
 gh project item-edit --project-id $proj_id --id $item_id \
   --field-id $field_id --single-select-option-id $opt_id
 ```
 
 Notes:
-- `--limit 200` on `item-list` guards against the board paginating the item out of the
+- **Always filter on `.content.repository` too.** The board carries cards from more than
+  one repo and their numbers collide — there is a `#36` in both `mock-server` and
+  `mock-server-java-client`. Matching on `.content.number` alone returns two IDs, and
+  `item-edit` then either errors or edits the wrong card. Swap the repo in the filter when
+  working another one.
+- `--limit 300` on `item-list` guards against the board paginating the item out of the
   first page; raise it if the board grows large.
 - `.content.number` is the issue number on each project item.
 - If `item_id` comes back empty, the automation that adds the issue to the board may not
@@ -90,6 +109,6 @@ gh issue close N
 ## Verifying a lane after a move
 
 ```fish
-gh project item-list 3 --owner bilal-fazlani --format json --limit 200 \
-  --jq '.items[] | select(.content.number==N) | .status'
+gh project item-list 3 --owner bilal-fazlani --format json --limit 300 \
+  --jq '.items[] | select(.content.number==N and .content.repository=="bilal-fazlani/mock-server") | .status'
 ```

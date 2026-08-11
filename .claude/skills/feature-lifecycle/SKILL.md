@@ -33,9 +33,19 @@ Do **not** run this yourself — it is an auth change the user performs.
 - Lanes, in order (exact GitHub casing): `Backlog` → `Refining` → `Ready` →
   `In progress` → `In review` → `Done`. `reference.md` matches option names
   case-insensitively.
-- **Automations already handle:** issue created → added to board + set `Backlog`;
-  issue closed ⇄ status `Done` (bidirectional). So: never manually add-to-project or
-  set Backlog, and to finish just **close the issue** (Done follows automatically).
+- **The board spans several repos.** `mock-server` and `mock-server-java-client` both
+  put cards on it, and their issue numbers collide — there is a `#36` in each. So
+  **every lookup must filter on repository as well as number**; `reference.md`'s recipes
+  do. Selecting on `.content.number` alone can silently return two items and move the
+  wrong card.
+- **Automations handle, for `mock-server` only:** issue created → added to board + set
+  `Backlog`; issue closed ⇄ status `Done` (bidirectional). For that repo, never manually
+  add-to-project or set Backlog, and to finish just **close the issue** (Done follows).
+- **Every other repo's issues land nowhere and must be added by hand.** GitHub's free
+  plan allows auto-add from a single repository; wiring a second needs Enterprise, which
+  this account does not have. So after `gh issue create` in any repo but `mock-server`,
+  run `gh project item-add` (see `reference.md` → "Add an issue to the board by hand")
+  and confirm the lane. A card that never arrives is invisible, and nothing errors.
 - **`Refining` and `Ready` are manual moves** (no automation) — the procedure below
   drives them: into `Refining` when shaping starts, into `Ready` once shaping is done
   and the card is populated.
@@ -82,8 +92,12 @@ idea and picking up an existing issue.
    If the phase-0 survey surfaced a parent or a dependency, set it **at creation**:
    add `--parent P`, `--blocked-by B`, and/or `--blocking X` (see "Issue relationships").
 4. **Record the issue number `#N`** — you'll reference it for the rest of the session.
+5. **Confirm it reached the board**, and add it if it did not (see `reference.md` →
+   "Add an issue to the board by hand"). Only `mock-server` auto-adds; an issue filed in
+   any other repo silently never appears. This costs one command and is the difference
+   between a tracked ticket and an invisible one.
 
-The board auto-adds it and sets `Backlog`. Do nothing else here.
+For `mock-server`, the board auto-adds and sets `Backlog`, so step 5 is just the check.
 
 ### 2. Refine — trigger: we begin giving shape to the feature in dialogue
 
