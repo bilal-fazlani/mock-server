@@ -5,3 +5,7 @@
 /.venv/
 
 .cache
+
+# Python bytecode from build_llms.py and its tests. (.pytest_cache/ ignores
+# itself via a .gitignore pytest writes inside it.)
+__pycache__/

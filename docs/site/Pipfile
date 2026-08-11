@@ -8,8 +8,14 @@ name = "pypi"
 # alpha (0.0.x) and may ship breaking changes, so keep this pinned and bump
 # deliberately.
 zensical = "==0.0.52"
+# Front matter parsing for build_llms.py. Unpinned — Pipfile.lock holds the
+# exact version, and the API used here (safe_load) is stable.
+pyyaml = "*"
 
 [dev-packages]
+# Tests for build_llms.py. Dev-only on purpose: Netlify runs a plain
+# `pipenv install`, so this never reaches the deploy.
+pytest = "*"
 
 [requires]
 python_version = "3.14"
