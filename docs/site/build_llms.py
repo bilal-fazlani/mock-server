@@ -112,3 +112,23 @@ def find_unlisted(docs_dir: Path, entries: list[NavEntry]) -> list[str]:
         path.relative_to(docs_dir).as_posix() for path in docs_dir.rglob("*.md")
     }
     return sorted(on_disk - listed)
+
+
+def render_llms_txt(
+    site_name: str,
+    site_description: str,
+    site_url: str,
+    pages: list[Page],
+) -> str:
+    """Render the llms.txt index (https://llmstxt.org) for the given pages."""
+    base = site_url.rstrip("/")
+    lines = [f"# {site_name}", "", f"> {site_description}", ""]
+    section = None
+    for page in pages:
+        if page.section != section:
+            if section is not None:
+                lines.append("")
+            lines.append(f"## {page.section}")
+            section = page.section
+        lines.append(f"- [{page.title}]({base}/{page.doc_path}): {page.description}")
+    return "\n".join(lines) + "\n"

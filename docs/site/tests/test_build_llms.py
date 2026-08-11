@@ -8,6 +8,7 @@ from build_llms import (
     flatten_nav,
     load_page,
     read_description,
+    render_llms_txt,
 )
 
 
@@ -121,3 +122,62 @@ def test_find_unlisted_is_empty_when_nav_covers_everything(tmp_path):
     entries = [NavEntry(section="Overview", title="A", doc_path="a.md")]
 
     assert find_unlisted(tmp_path, entries) == []
+
+
+def test_render_llms_txt_groups_pages_under_their_sections():
+    pages = [
+        Page(
+            section="Overview",
+            title="Overview",
+            doc_path="index.md",
+            description="What this thing is.",
+        ),
+        Page(
+            section="Get started",
+            title="Install & run",
+            doc_path="get-started/install.md",
+            description="How to run it.",
+        ),
+        Page(
+            section="Get started",
+            title="Your first mock endpoint",
+            doc_path="get-started/first-mock.md",
+            description="Add an endpoint step by step.",
+        ),
+    ]
+
+    rendered = render_llms_txt(
+        site_name="Mock Server",
+        site_description="A data-driven mock server.",
+        site_url="https://example.test",
+        pages=pages,
+    )
+
+    assert rendered == (
+        "# Mock Server\n"
+        "\n"
+        "> A data-driven mock server.\n"
+        "\n"
+        "## Overview\n"
+        "- [Overview](https://example.test/index.md): What this thing is.\n"
+        "\n"
+        "## Get started\n"
+        "- [Install & run](https://example.test/get-started/install.md): How to run it.\n"
+        "- [Your first mock endpoint](https://example.test/get-started/first-mock.md): "
+        "Add an endpoint step by step.\n"
+    )
+
+
+def test_render_llms_txt_tolerates_a_trailing_slash_in_site_url():
+    pages = [
+        Page(
+            section="Overview",
+            title="Overview",
+            doc_path="index.md",
+            description="What this thing is.",
+        )
+    ]
+
+    rendered = render_llms_txt("S", "D", "https://example.test/", pages)
+
+    assert "(https://example.test/index.md)" in rendered
