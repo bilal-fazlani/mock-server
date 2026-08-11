@@ -6,7 +6,10 @@
   # A Pipfile in the base directory makes Netlify run `pipenv install`
   # automatically; the installed console scripts (zensical) land on PATH, so the
   # build command needs no `pipenv run` prefix.
-  command = "zensical build"
+  # build_llms.py writes /llms.txt and the raw per-page markdown into the same
+  # output directory, after Zensical has produced the HTML. It runs second
+  # because Zensical renders any .md left in docs/ rather than copying it.
+  command = "zensical build && python build_llms.py"
   # Relative to `base`: Zensical writes its static output to docs/site/site.
   publish = "site"
   # Skip the build unless something under docs/site/ actually changed, so
@@ -15,8 +18,29 @@
   # proceeds on a non-zero exit (diff present). $CACHED_COMMIT_REF/$COMMIT_REF
   # are the last-built and current commits; ':/docs/site' is a repo-root-relative
   # pathspec, so it holds regardless of the command's working directory.
-  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- ':/docs/site'"
+  # This file is watched too: it configures the docs deploy but lives outside
+  # docs/site/, so without it a change to the build command or the headers below
+  # would push and deploy nothing.
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- ':/docs/site' ':/netlify.toml'"
 
 [build.environment]
   # Pin the interpreter so builds are reproducible (Pipfile requires the same).
   PYTHON_VERSION = "3.14"
+
+# The machine-readable routes written by build_llms.py. RFC 7763 registers
+# text/markdown; RFC 7764's `variant` parameter is deliberately omitted, since
+# the content is CommonMark plus Zensical admonitions rather than a registered
+# variant. No browser renders text/markdown inline, so these URLs download
+# instead of displaying — correct for the payload, if inconvenient to spot-check
+# by hand.
+[[headers]]
+  for = "/*.md"
+  [headers.values]
+    Content-Type = "text/markdown; charset=utf-8"
+
+# llms.txt carries markdown but keeps a .txt extension and text/plain, matching
+# the llmstxt.org convention (and robots.txt before it).
+[[headers]]
+  for = "/llms.txt"
+  [headers.values]
+    Content-Type = "text/plain; charset=utf-8"
