@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.10.0](https://github.com/bilal-fazlani/mock-server/compare/v0.9.0...v0.10.0) (2026-08-11)
+
+
+### Features
+
+* **docs:** flatten zensical nav for machine-readable routes ([6130fcf](https://github.com/bilal-fazlani/mock-server/commit/6130fcf7f8f050ccd8c5e1129a9526fd086b065c)), closes [#76](https://github.com/bilal-fazlani/mock-server/issues/76)
+* **docs:** read page descriptions and validate the docs corpus ([798b2a2](https://github.com/bilal-fazlani/mock-server/commit/798b2a22f96f284d9aa9d174669e368ce0766678)), closes [#76](https://github.com/bilal-fazlani/mock-server/issues/76)
+* **docs:** render the llms.txt index from nav and descriptions ([9531539](https://github.com/bilal-fazlani/mock-server/commit/9531539e863c336047fc55e289af337c73734dd6)), closes [#76](https://github.com/bilal-fazlani/mock-server/issues/76)
+* **docs:** write llms.txt and the raw markdown mirror ([f01cac4](https://github.com/bilal-fazlani/mock-server/commit/f01cac4ffff65d3b36a740d6110b6777171b4ec8)), closes [#76](https://github.com/bilal-fazlani/mock-server/issues/76)
+
+
+### Bug Fixes
+
+* **docs:** run build_llms.py inside the pipenv virtualenv ([aa7d89e](https://github.com/bilal-fazlani/mock-server/commit/aa7d89ea60d5abdbebf40a12857b88d0b13385c7)), closes [#76](https://github.com/bilal-fazlani/mock-server/issues/76)
+
 ## [0.9.0](https://github.com/bilal-fazlani/mock-server/compare/v0.8.1...v0.9.0) (2026-08-10)
 
 
