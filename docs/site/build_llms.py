@@ -7,10 +7,18 @@ docs/superpowers/specs/2026-08-11-llms-txt-docs-routes-design.md.
 
 from __future__ import annotations
 
+import shutil
+import sys
+import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 
 import yaml
+
+SITE_ROOT = Path(__file__).parent
+CONFIG_PATH = SITE_ROOT / "zensical.toml"
+DOCS_DIR = SITE_ROOT / "docs"
+OUTPUT_DIR = SITE_ROOT / "site"
 
 
 class GenerationError(Exception):
@@ -132,3 +140,64 @@ def render_llms_txt(
             section = page.section
         lines.append(f"- [{page.title}]({base}/{page.doc_path}): {page.description}")
     return "\n".join(lines) + "\n"
+
+
+def copy_pages(pages: list[Page], docs_dir: Path, output_dir: Path) -> None:
+    """Copy each source page verbatim to its mirrored path in the output.
+
+    Flat, mirroring docs/ exactly — sdk/junit.md, not sdk/junit/index.md. The
+    pages' existing relative links (../building/profiles.md) only resolve
+    correctly under the flat layout.
+    """
+    for page in pages:
+        destination = output_dir / page.doc_path
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(docs_dir / page.doc_path, destination)
+
+
+def generate(site_root: Path) -> int:
+    """Write llms.txt and the raw markdown mirror. Returns the page count."""
+    config_path = site_root / "zensical.toml"
+    docs_dir = site_root / "docs"
+    output_dir = site_root / "site"
+
+    if not output_dir.is_dir():
+        raise GenerationError(
+            f"{output_dir} does not exist — run `zensical build` first"
+        )
+
+    project = tomllib.loads(config_path.read_text(encoding="utf-8"))["project"]
+    entries = flatten_nav(project["nav"])
+
+    unlisted = find_unlisted(docs_dir, entries)
+    if unlisted:
+        raise GenerationError(
+            "these pages are not in nav, so they would be missing from llms.txt: "
+            + ", ".join(unlisted)
+        )
+
+    pages = [load_page(entry, docs_dir) for entry in entries]
+    copy_pages(pages, docs_dir, output_dir)
+    (output_dir / "llms.txt").write_text(
+        render_llms_txt(
+            site_name=project["site_name"],
+            site_description=project["site_description"],
+            site_url=project["site_url"],
+            pages=pages,
+        ),
+        encoding="utf-8",
+    )
+    return len(pages)
+
+
+def main() -> None:
+    try:
+        count = generate(SITE_ROOT)
+    except GenerationError as error:
+        print(f"build_llms: {error}", file=sys.stderr)
+        raise SystemExit(1)
+    print(f"build_llms: wrote llms.txt and {count} markdown pages to {OUTPUT_DIR}")
+
+
+if __name__ == "__main__":
+    main()

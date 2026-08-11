@@ -4,7 +4,9 @@ from build_llms import (
     GenerationError,
     NavEntry,
     Page,
+    copy_pages,
     find_unlisted,
+    generate,
     flatten_nav,
     load_page,
     read_description,
@@ -181,3 +183,95 @@ def test_render_llms_txt_tolerates_a_trailing_slash_in_site_url():
     rendered = render_llms_txt("S", "D", "https://example.test/", pages)
 
     assert "(https://example.test/index.md)" in rendered
+
+
+def test_copy_pages_mirrors_the_source_tree_verbatim(tmp_path):
+    docs_dir = tmp_path / "docs"
+    output_dir = tmp_path / "site"
+    output_dir.mkdir()
+    write_page(docs_dir, "sdk/junit.md", description="D.", body="# JUnit\n\nBody.\n")
+    pages = [
+        Page(
+            section="Testing SDKs",
+            title="JUnit 5 guide",
+            doc_path="sdk/junit.md",
+            description="D.",
+        )
+    ]
+
+    copy_pages(pages, docs_dir, output_dir)
+
+    copied = output_dir / "sdk" / "junit.md"
+    assert copied.read_text(encoding="utf-8") == (
+        '---\ndescription: "D."\n---\n\n# JUnit\n\nBody.\n'
+    )
+
+
+def build_site_root(tmp_path, nav_toml, pages):
+    """Assemble a fake docs/site/ with a zensical.toml, docs/, and site/."""
+    site_root = tmp_path / "site_root"
+    docs_dir = site_root / "docs"
+    (site_root / "site").mkdir(parents=True)
+    for rel_path, description in pages:
+        write_page(docs_dir, rel_path, description=description)
+    (site_root / "zensical.toml").write_text(
+        "[project]\n"
+        'site_name = "Mock Server"\n'
+        'site_description = "A data-driven mock server."\n'
+        'site_url = "https://example.test"\n'
+        f"nav = {nav_toml}\n",
+        encoding="utf-8",
+    )
+    return site_root
+
+
+def test_generate_writes_llms_txt_and_the_mirrored_pages(tmp_path):
+    site_root = build_site_root(
+        tmp_path,
+        nav_toml='[ { "Overview" = "index.md" }, '
+        '{ "Reference" = [ { "Configuration" = "reference/configuration.md" } ] } ]',
+        pages=[
+            ("index.md", "What this is."),
+            ("reference/configuration.md", "Env vars."),
+        ],
+    )
+
+    assert generate(site_root) == 2
+
+    output = site_root / "site"
+    assert (output / "index.md").is_file()
+    assert (output / "reference" / "configuration.md").is_file()
+    assert (output / "llms.txt").read_text(encoding="utf-8") == (
+        "# Mock Server\n"
+        "\n"
+        "> A data-driven mock server.\n"
+        "\n"
+        "## Overview\n"
+        "- [Overview](https://example.test/index.md): What this is.\n"
+        "\n"
+        "## Reference\n"
+        "- [Configuration](https://example.test/reference/configuration.md): Env vars.\n"
+    )
+
+
+def test_generate_raises_when_a_page_is_missing_from_nav(tmp_path):
+    site_root = build_site_root(
+        tmp_path,
+        nav_toml='[ { "Overview" = "index.md" } ]',
+        pages=[("index.md", "What this is."), ("stray.md", "Not in nav.")],
+    )
+
+    with pytest.raises(GenerationError, match="stray.md"):
+        generate(site_root)
+
+
+def test_generate_raises_when_the_build_output_is_absent(tmp_path):
+    site_root = build_site_root(
+        tmp_path,
+        nav_toml='[ { "Overview" = "index.md" } ]',
+        pages=[("index.md", "What this is.")],
+    )
+    (site_root / "site").rmdir()
+
+    with pytest.raises(GenerationError, match="zensical build"):
+        generate(site_root)
