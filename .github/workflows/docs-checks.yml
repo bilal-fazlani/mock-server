@@ -1,0 +1,48 @@
+name: Docs checks
+
+# ci.yml skips its entire run on docs/** and its only job is Node-only, so the
+# docs toolchain's Python tests need a workflow of their own. Scoped to
+# docs/site/** so a code-only PR never waits on it.
+on:
+  pull_request:
+    paths:
+      - 'docs/site/**'
+  push:
+    branches: [main]
+    paths:
+      - 'docs/site/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: docs/site
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          # Must match Pipfile's python_version and netlify.toml's
+          # PYTHON_VERSION so CI tests what the deploy actually runs.
+          python-version: '3.14'
+
+      - name: Install pipenv
+        run: pipx install pipenv
+
+      # --deploy fails on a Pipfile.lock that is out of date with the Pipfile.
+      # Same gate as `npm ci` in ci.yml, for the same reason.
+      - name: Install (strict — fails on lockfile drift)
+        run: pipenv install --dev --deploy
+
+      - name: Test
+        run: pipenv run pytest -v
