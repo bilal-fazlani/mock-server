@@ -1,6 +1,10 @@
 [project]
 site_name = "Mock Server"
-site_description = "How to create and configure mock endpoints in the mock server."
+# Describes the product, not the guide: this is the blockquote at the top of
+# /llms.txt, so it is the first sentence a machine reader sees. Every page
+# overrides it with its own front-matter `description`, leaving 404.html as the
+# only HTML page that falls back to this.
+site_description = "Mock upstream HTTP services with directories and JSON files instead of request-handling code. Switch scenarios per caller from a dashboard, a runtime API, or JUnit tests."
 # Required for instant navigation, the sitemap, and canonical URLs.
 site_url = "https://mock-server.bilal-fazlani.com"
 repo_url = "https://github.com/bilal-fazlani/mock-server"
