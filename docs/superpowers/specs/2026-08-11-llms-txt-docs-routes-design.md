@@ -161,7 +161,15 @@ inserts the rootdir containing `conftest.py` onto `sys.path`, which is what lets
 
 Three changes to `netlify.toml`:
 
-1. **Build command** → `zensical build && python build_llms.py`
+1. **Build command** → `zensical build && pipenv run python build_llms.py`
+
+   The `pipenv run` prefix is required and was missed on the first deploy.
+   Netlify's automatic `pipenv install` puts *console scripts* on PATH — a
+   console script carries a shebang pointing into the virtualenv, which is why
+   `zensical` needs no prefix. Bare `python` gets no such treatment: it resolves
+   to the system interpreter, which cannot see the virtualenv's site-packages,
+   so the build died on `ModuleNotFoundError: No module named 'yaml'` *after*
+   Zensical had already reported success.
 2. **Headers** for the new routes:
 
    ```toml

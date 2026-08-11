@@ -4,12 +4,19 @@
 [build]
   base = "docs/site"
   # A Pipfile in the base directory makes Netlify run `pipenv install`
-  # automatically; the installed console scripts (zensical) land on PATH, so the
-  # build command needs no `pipenv run` prefix.
+  # automatically; the installed console scripts (zensical) land on PATH, so
+  # `zensical` needs no `pipenv run` prefix — a console script carries a shebang
+  # pointing into the virtualenv.
+  #
+  # `python build_llms.py` gets no such treatment: bare `python` resolves to the
+  # system interpreter, which cannot see the virtualenv's site-packages. Without
+  # `pipenv run` the build dies on `ModuleNotFoundError: No module named 'yaml'`
+  # after Zensical has already reported success.
+  #
   # build_llms.py writes /llms.txt and the raw per-page markdown into the same
   # output directory, after Zensical has produced the HTML. It runs second
   # because Zensical renders any .md left in docs/ rather than copying it.
-  command = "zensical build && python build_llms.py"
+  command = "zensical build && pipenv run python build_llms.py"
   # Relative to `base`: Zensical writes its static output to docs/site/site.
   publish = "site"
   # Skip the build unless something under docs/site/ actually changed, so
