@@ -101,6 +101,23 @@ Dotfiles are ignored; anything else that doesn't fit this shape (a stray file, a
 badly-named scenario file, a missing metadata file) is a **structural error**,
 reported at startup.
 
+## Reading these docs as a machine
+
+Every page here is also served as raw markdown, at the same path with a `.md`
+suffix — `/sdk/junit.md` alongside `/sdk/junit/`. Links between pages are
+preserved, so you can crawl the whole guide as markdown without touching the
+HTML.
+
+[`/llms.txt`](https://mock-server.bilal-fazlani.com/llms.txt) indexes every page
+with a one-line description, following the
+[llms.txt convention](https://llmstxt.org). Point a coding agent at it and it
+fetches only the pages it needs:
+
+```bash
+curl https://mock-server.bilal-fazlani.com/llms.txt
+curl https://mock-server.bilal-fazlani.com/building/templating.md
+```
+
 ## Where to go next
 
 - **[Install & run](get-started/install.md)** — npx, Docker, and from-source setup.

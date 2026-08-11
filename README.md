@@ -80,3 +80,11 @@ python3 -m venv .venv && .venv/bin/pip install zensical
 
 Start with `docs/site/docs/index.md` for the mental model, or
 `docs/site/docs/get-started/install.md` to install and run.
+
+The published site also serves the guide as markdown for programmatic consumers.
+[`/llms.txt`](https://mock-server.bilal-fazlani.com/llms.txt) indexes every page
+with a one-line description, and each page is served raw at its own path with a
+`.md` suffix (for example
+[`/sdk/junit.md`](https://mock-server.bilal-fazlani.com/sdk/junit.md)). Both are
+generated at build time by `docs/site/build_llms.py`, which fails the build if a
+page is missing its `description:` front matter or is absent from the nav.
