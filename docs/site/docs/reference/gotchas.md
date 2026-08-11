@@ -1,3 +1,7 @@
+---
+description: "A worked GET example with a path parameter, plus the mistakes that most often produce a surprising response."
+---
+
 # Gotchas & worked example
 
 ## Worked example — a GET with a path parameter

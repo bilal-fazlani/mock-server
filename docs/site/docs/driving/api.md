@@ -1,3 +1,7 @@
+---
+description: "The JSON HTTP API for flipping scenarios, managing profiles, resetting sequence progress, and reading request logs."
+---
+
 # Runtime-control API
 
 A JSON HTTP API for **driving a running mock server** — flip scenarios, manage

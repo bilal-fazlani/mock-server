@@ -1,3 +1,7 @@
+---
+description: "The <slug>.json fixture shape: status, headers, body, and per-fixture response delay."
+---
+
 # Fixtures
 
 Not every scenario is a fixture — a scenario can instead be backed by a

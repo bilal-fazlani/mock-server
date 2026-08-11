@@ -1,3 +1,7 @@
+---
+description: "MockServerContainer and MockServerClient as plain Java objects, for TestNG, Spock, Kotest, or no test framework at all."
+---
+
 # Testcontainers & the client
 
 Two of the four modules carry no test framework at all. Reach for them when the

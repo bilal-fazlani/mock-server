@@ -1,3 +1,7 @@
+---
+description: "Back a scenario with a <slug>.mjs module that picks or computes its outcome at request time."
+---
+
 # Code-backed scenario resolvers (`<slug>.mjs`)
 
 ## What it is

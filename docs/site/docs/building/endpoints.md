@@ -1,3 +1,7 @@
+---
+description: "The _system.json and _endpoint.json metadata that maps a request method and path to a catalog directory."
+---
+
 # Endpoints
 
 ## Endpoint fields

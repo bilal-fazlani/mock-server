@@ -1,3 +1,7 @@
+---
+description: "Add POST /accounts/balance to an existing system, with a default and an insufficient scenario, step by step."
+---
+
 # Step-by-step: add an endpoint
 
 We'll add `POST /accounts/balance` to the existing "Hello System", returning a

@@ -1,3 +1,7 @@
+---
+description: "A data-driven mock server: mock an upstream by creating directories and JSON files under a catalog tree, with no request-handling code."
+---
+
 # Mock Server
 
 A **data-driven** mock server: you mock an upstream service by creating

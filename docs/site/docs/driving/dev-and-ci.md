@@ -1,3 +1,7 @@
+---
+description: "Point your app at the mock server, choose scenarios per environment, and pick between ephemeral and persistent data."
+---
+
 # Using it in dev & CI
 
 The mock server exists so your code can call it instead of real upstreams. Point

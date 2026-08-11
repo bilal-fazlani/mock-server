@@ -1,3 +1,7 @@
+---
+description: "The ordered walk that resolves an incoming request to a response, as implemented in the router."
+---
+
 # Request routing flow
 
 How an incoming request is resolved to a response, as implemented in

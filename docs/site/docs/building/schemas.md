@@ -1,3 +1,7 @@
+---
+description: "Validate requests and responses against an OpenAPI 3.1 operation object in _schema.json."
+---
+
 # Schemas
 
 ## Schema validation

@@ -1,3 +1,7 @@
+---
+description: "The per-request stdout stream, and the two environment variables governing its verbosity and format."
+---
+
 # Console logs
 
 The server prints one line per request to stdout, independent of the

@@ -1,3 +1,7 @@
+---
+description: "mock-server-spring-boot-test, which points the application under test at the server with no URL plumbing."
+---
+
 # Spring Boot guide
 
 `mock-server-spring-boot-test` removes the URL plumbing. Declare the server, and

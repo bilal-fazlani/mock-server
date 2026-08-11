@@ -1,3 +1,7 @@
+---
+description: "Run the server via npx, Docker, or from source, and decide whether to persist state in MongoDB."
+---
+
 # Install & run
 
 Requirements: **Node.js 22+**. MongoDB is optional — if

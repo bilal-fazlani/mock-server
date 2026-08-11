@@ -1,3 +1,7 @@
+---
+description: "Check a whole catalog in one pass that reports every problem at once, without starting a server."
+---
+
 # Validating a catalog
 
 The catalog is checked in a single pass that reports **every** problem at once,

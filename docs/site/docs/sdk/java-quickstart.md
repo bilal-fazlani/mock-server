@@ -1,3 +1,7 @@
+---
+description: "A working JUnit integration test against a real mock server, from nothing, in four steps."
+---
+
 # Java quick start
 
 A working integration test, from nothing, in four steps. The result is a real

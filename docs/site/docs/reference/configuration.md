@@ -1,3 +1,7 @@
+---
+description: "Canonical reference for every environment variable that governs app-wide behavior."
+---
+
 # Configuration
 
 ## App configuration

@@ -1,3 +1,7 @@
+---
+description: "Scenario slugs, the real passthrough to a live upstream, and sequences that answer differently on each call."
+---
+
 # Scenarios
 
 ## Scenarios & the `real` passthrough

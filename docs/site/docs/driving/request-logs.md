@@ -1,3 +1,7 @@
+---
+description: "Every received request with its full decision trace, plus querying, trace correlation, and retention."
+---
+
 # Request logs
 
 ## What is recorded

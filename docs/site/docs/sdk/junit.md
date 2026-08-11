@@ -1,3 +1,7 @@
+---
+description: "The mock-server-junit Jupiter extension: a per-test profile, the injected handle, and the end-of-test schema check."
+---
+
 # JUnit 5 guide
 
 `mock-server-junit` is a JUnit Jupiter extension. It gives each test a

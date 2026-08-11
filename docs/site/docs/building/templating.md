@@ -1,3 +1,7 @@
+---
+description: "The {{ … }} engine: placeholder sources, the expression grammar and transforms, custom functions, and type preservation."
+---
+
 # Placeholders & templating
 
 Every fixture string — in `body` and in `headers` — is a template: anything

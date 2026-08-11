@@ -1,3 +1,7 @@
+---
+description: "The management dashboard at /ui: profiles, global mocks, catalog browsing, and live log views."
+---
+
 # The dashboard
 
 The management UI at `<origin>/ui` is the human control surface for a running

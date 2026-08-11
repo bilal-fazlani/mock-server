@@ -1,3 +1,7 @@
+---
+description: "Per-caller scenario selections, and the selectors that extract a profile ID from an incoming request."
+---
+
 # Profiles
 
 Profiles are edited in the UI at `/ui`, and can also be read, created, updated,
