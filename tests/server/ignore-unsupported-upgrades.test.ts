@@ -2,71 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import http from 'node:http'
 import net from 'node:net'
 import type { AddressInfo } from 'node:net'
-import {
-  ignoreUnsupportedUpgrades,
-  installUpgradeGuard,
-  rewriteUnsupportedUpgrade,
-} from '@/server/ignore-unsupported-upgrades'
-
-describe('rewriteUnsupportedUpgrade', () => {
-  it('strips the h2c handshake a cleartext HTTP/2 client opens with', () => {
-    const head = [
-      'GET /inventory/SKU-1 HTTP/1.1',
-      'Host: localhost:3000',
-      'Connection: Upgrade, HTTP2-Settings',
-      'Upgrade: h2c',
-      'HTTP2-Settings: AAMAAABkAARAAAAAAAIAAAAA',
-      'User-Agent: Java-http-client/21',
-    ].join('\r\n')
-
-    expect(rewriteUnsupportedUpgrade(head)).toBe(
-      ['GET /inventory/SKU-1 HTTP/1.1', 'Host: localhost:3000', 'User-Agent: Java-http-client/21'].join('\r\n'),
-    )
-  })
-
-  it('keeps the connection tokens that are not part of the upgrade', () => {
-    const head = ['GET / HTTP/1.1', 'Connection: keep-alive, Upgrade', 'Upgrade: h2c'].join('\r\n')
-
-    expect(rewriteUnsupportedUpgrade(head)).toBe(['GET / HTTP/1.1', 'Connection: keep-alive'].join('\r\n'))
-  })
-
-  it('matches tokens case-insensitively', () => {
-    const head = ['POST / HTTP/1.1', 'CONNECTION: upgrade', 'UPGRADE: H2C'].join('\r\n')
-
-    expect(rewriteUnsupportedUpgrade(head)).toBe('POST / HTTP/1.1')
-  })
-
-  it('leaves a websocket upgrade for Next to answer', () => {
-    const head = [
-      'GET /socket HTTP/1.1',
-      'Connection: Upgrade',
-      'Upgrade: websocket',
-      'Sec-WebSocket-Version: 13',
-    ].join('\r\n')
-
-    expect(rewriteUnsupportedUpgrade(head)).toBeNull()
-  })
-
-  it.each([
-    ['no Upgrade header', ['GET / HTTP/1.1', 'Connection: upgrade']],
-    ['no Connection: upgrade', ['GET / HTTP/1.1', 'Upgrade: h2c']],
-    ['no upgrade at all', ['GET / HTTP/1.1', 'Host: localhost', 'Accept: */*']],
-  ])('leaves a request with %s exactly as sent', (_case, lines) => {
-    expect(rewriteUnsupportedUpgrade(lines.join('\r\n'))).toBeNull()
-  })
-
-  it('passes through a head using obsolete line folding rather than orphaning the continuation', () => {
-    const head = ['GET / HTTP/1.1', 'Connection: upgrade', 'Upgrade: h2c,', '\th2c-fake'].join('\r\n')
-
-    expect(rewriteUnsupportedUpgrade(head)).toBeNull()
-  })
-
-  it('accepts a bare-LF head and normalises the rewrite to CRLF', () => {
-    const head = ['GET / HTTP/1.1', 'Host: h', 'Connection: upgrade', 'Upgrade: h2c'].join('\n')
-
-    expect(rewriteUnsupportedUpgrade(head)).toBe('GET / HTTP/1.1\r\nHost: h')
-  })
-})
+import { ignoreUnsupportedUpgrades, installUpgradeGuard } from '@/server/ignore-unsupported-upgrades'
 
 describe('installUpgradeGuard', () => {
   it('wraps servers created after it runs, once', () => {
@@ -89,8 +25,46 @@ describe('installUpgradeGuard', () => {
 
     const server = target.createServer()
     expect(created).toHaveLength(1)
-    // The wrapper replaces `emit`; the raw server prototype's is untouched.
-    expect(Object.hasOwn(server, 'emit')).toBe(true)
+    expect(server.listenerCount('upgrade')).toBe(0)
+    server.close()
+  })
+})
+
+describe('ignoreUnsupportedUpgrades', () => {
+  it('refuses an upgrade listener however it is registered', () => {
+    const server = ignoreUnsupportedUpgrades(http.createServer())
+    const noop = () => {}
+
+    server.on('upgrade', noop)
+    server.addListener('upgrade', noop)
+    server.once('upgrade', noop)
+    server.prependListener('upgrade', noop)
+    server.prependOnceListener('upgrade', noop)
+
+    expect(server.listenerCount('upgrade')).toBe(0)
+    server.close()
+  })
+
+  it('removes an upgrade listener registered before it ran', () => {
+    const server = http.createServer()
+    server.on('upgrade', () => {})
+
+    expect(server.listenerCount('upgrade')).toBe(1)
+    expect(ignoreUnsupportedUpgrades(server).listenerCount('upgrade')).toBe(0)
+    server.close()
+  })
+
+  it('leaves every other event alone, and is idempotent', () => {
+    const server = ignoreUnsupportedUpgrades(http.createServer())
+    ignoreUnsupportedUpgrades(server)
+
+    const seen: string[] = []
+    server.on('request', () => seen.push('request'))
+    server.once('close', () => seen.push('close'))
+
+    expect(server.listenerCount('request')).toBe(1)
+    expect(server.listenerCount('close')).toBe(1)
+    expect(server.on('request', () => {})).toBe(server)
     server.close()
   })
 })
@@ -130,13 +104,22 @@ function bodies(response: string): string[] {
   return out
 }
 
+/** The h2c handshake `java.net.http.HttpClient` opens a cleartext connection
+ *  with — and, on a connection it considers new, re-sends. */
+const h2c = (method: string, url: string, extra = '') =>
+  `${method} ${url} HTTP/1.1\r\n` +
+  'Host: localhost\r\n' +
+  'Connection: Upgrade, HTTP2-Settings\r\n' +
+  'Upgrade: h2c\r\n' +
+  'HTTP2-Settings: AAMAAABkAARAAAAAAAIAAAAA\r\n' +
+  extra +
+  '\r\n'
+
 describe('ignoreUnsupportedUpgrades on a live server', () => {
   let server: http.Server
   let port: number
-  let upgradesSeen: string[]
 
   beforeEach(async () => {
-    upgradesSeen = []
     server = ignoreUnsupportedUpgrades(
       http.createServer((req, res) => {
         let body = ''
@@ -144,16 +127,13 @@ describe('ignoreUnsupportedUpgrades on a live server', () => {
         req.on('data', (chunk) => (body += chunk))
         req.on('end', () => {
           res.setHeader('content-type', 'application/json')
-          res.end(JSON.stringify({ url: req.url, method: req.method, body, upgrade: req.headers.upgrade ?? null }))
+          res.end(JSON.stringify({ url: req.url, method: req.method, body }))
         })
       }),
     )
     // Stands in for Next's upgrade handler, which ends the socket without
-    // responding — the behaviour #72 reported.
-    server.on('upgrade', (req, socket) => {
-      upgradesSeen.push(String(req.headers.upgrade))
-      socket.end()
-    })
+    // responding — the behaviour #72 reported. The guard must refuse it.
+    server.on('upgrade', (_req, socket) => socket.end())
     await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
     port = (server.address() as AddressInfo).port
   })
@@ -163,54 +143,59 @@ describe('ignoreUnsupportedUpgrades on a live server', () => {
   })
 
   it('serves a GET carrying the h2c handshake as HTTP/1.1', async () => {
-    const response = await exchange(port, [
-      'GET /inventory/SKU-1?customerId=probe-1 HTTP/1.1\r\n' +
-        'Host: localhost\r\n' +
-        'Connection: Upgrade, HTTP2-Settings\r\n' +
-        'Upgrade: h2c\r\n' +
-        'HTTP2-Settings: AAMAAABkAARAAAAAAAIAAAAA\r\n\r\n',
-    ])
+    const response = await exchange(port, [h2c('GET', '/inventory/SKU-1?customerId=probe-1')])
 
     expect(statusLine(response)).toBe('HTTP/1.1 200 OK')
     expect(JSON.parse(bodies(response)[0])).toMatchObject({
       url: '/inventory/SKU-1?customerId=probe-1',
       method: 'GET',
-      upgrade: null,
     })
-    expect(upgradesSeen).toEqual([])
   })
 
   it('delivers a request body that arrives after the head', async () => {
     const body = 'x'.repeat(40)
     const response = await exchange(port, [
-      'POST /orders HTTP/1.1\r\n' +
-        'Host: localhost\r\n' +
-        'Connection: Upgrade, HTTP2-Settings\r\n' +
-        'Upgrade: h2c\r\n' +
-        `Content-Length: ${body.length}\r\n\r\n` +
-        body.slice(0, 10),
+      h2c('POST', '/orders', `Content-Length: ${body.length}\r\n`) + body.slice(0, 10),
       body.slice(10),
     ])
 
     expect(JSON.parse(bodies(response)[0])).toMatchObject({ method: 'POST', body })
   })
 
-  it('keeps the connection usable for the follow-up request', async () => {
+  // The regression the first fix left behind: it sanitised only the opening
+  // head, so request 2 reached Next's upgrade handler and was dropped with no
+  // response — while request 1 kept working, hiding it from any suite that
+  // called an endpoint once.
+  it('answers every upgrade-bearing request on one kept-alive connection, not just the first', async () => {
     const response = await exchange(port, [
-      'GET /first HTTP/1.1\r\nHost: localhost\r\nConnection: Upgrade, HTTP2-Settings\r\nUpgrade: h2c\r\n\r\n',
-      'GET /second HTTP/1.1\r\nHost: localhost\r\n\r\n',
+      h2c('POST', '/quotes', 'Content-Length: 5\r\n') + 'one--',
+      h2c('POST', '/quotes', 'Content-Length: 5\r\n') + 'two--',
+      h2c('POST', '/quotes', 'Content-Length: 5\r\n') + 'three',
     ])
 
-    expect(bodies(response).map((b) => JSON.parse(b).url)).toEqual(['/first', '/second'])
+    expect(bodies(response).map((b) => JSON.parse(b).body)).toEqual(['one--', 'two--', 'three'])
   })
 
-  it('still routes a websocket upgrade to the upgrade handler', async () => {
+  it('keeps the connection usable for a follow-up that drops the handshake', async () => {
+    const response = await exchange(port, [
+      h2c('GET', '/first'),
+      'GET /second HTTP/1.1\r\nHost: localhost\r\n\r\n',
+      h2c('GET', '/third'),
+    ])
+
+    expect(bodies(response).map((b) => JSON.parse(b).url)).toEqual(['/first', '/second', '/third'])
+  })
+
+  // Documented consequence of suppressing the dispatch: nothing here serves
+  // websockets, so they get the router's ordinary answer rather than a socket
+  // closed without a response.
+  it('answers a websocket upgrade as an ordinary request', async () => {
     const response = await exchange(port, [
       'GET /socket HTTP/1.1\r\nHost: localhost\r\nConnection: Upgrade\r\nUpgrade: websocket\r\nSec-WebSocket-Version: 13\r\n\r\n',
     ])
 
-    expect(response).toBe('')
-    expect(upgradesSeen).toEqual(['websocket'])
+    expect(statusLine(response)).toBe('HTTP/1.1 200 OK')
+    expect(JSON.parse(bodies(response)[0])).toMatchObject({ url: '/socket' })
   })
 
   it('leaves an ordinary request untouched', async () => {

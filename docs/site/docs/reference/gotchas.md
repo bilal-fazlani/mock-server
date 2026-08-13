@@ -138,10 +138,15 @@ curl -s <origin>/customers/customer-123/status
   that opens with the cleartext HTTP/2 handshake — `Upgrade: h2c`, which
   `java.net.http.HttpClient` sends by default on an `http://` URL — gets an ordinary
   HTTP/1.1 response rather than a refusal, and stays on HTTP/1.1 for that connection.
-  There is nothing to configure and no reason to pin a client's protocol version for
-  the mock's sake; earlier versions dropped those connections, so a pin added as a
-  workaround can go. See [Things that bite](../sdk/spring-boot.md#things-that-bite) in
-  the Spring Boot guide.
+  Every request is answered that way, not just the first on a connection: a client
+  that re-sends the handshake on a connection it reuses is served exactly as one
+  that sends it once. The same goes for any other `Upgrade` token, `websocket`
+  included — the request is routed and answered normally, so a websocket handshake
+  gets this server's ordinary `404`, never a silently closed socket. There is
+  nothing to configure and no reason to pin a client's protocol version for the
+  mock's sake; a pin added as a workaround against an earlier version can go. See
+  [Things that bite](../sdk/spring-boot.md#things-that-bite) in the Spring Boot
+  guide.
 
 !!! note "Source of truth"
 
