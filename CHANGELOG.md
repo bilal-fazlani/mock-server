@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.10.1](https://github.com/bilal-fazlani/mock-server/compare/v0.10.0...v0.10.1) (2026-08-13)
+
+
+### Bug Fixes
+
+* **build:** move the latest image tag with the newest release, not the trigger ([4feeec0](https://github.com/bilal-fazlani/mock-server/commit/4feeec060f8fb5625cca789809b5d70a87d545a0)), closes [#80](https://github.com/bilal-fazlani/mock-server/issues/80)
+* **server:** answer every upgrade-bearing request, not just the first ([a816b5a](https://github.com/bilal-fazlani/mock-server/commit/a816b5a01f8dd7c1cdfcd721dae8ed2bb7275a74))
+
 ## [0.10.0](https://github.com/bilal-fazlani/mock-server/compare/v0.9.0...v0.10.0) (2026-08-11)
 
 
