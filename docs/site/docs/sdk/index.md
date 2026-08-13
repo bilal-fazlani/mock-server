@@ -54,9 +54,12 @@ runnable outside the test suite.
 ## One profile per test
 
 Every test is handed a [profile](../building/profiles.md) of its own, under an ID
-minted from the test's name (`surfacesADeclinedCard-a3f9`). The scenario
-selections, the sequence progress, the resolver history, and the request log all
-hang off that ID.
+minted from the test's name (`surfacesADeclinedCard-a3f9`) — always URL-safe, so
+it can be sent as a path segment, a query value or a JSON string without
+escaping ([the exact
+guarantee](junit.md#what-a-profile-id-contains)). The scenario selections, the
+sequence progress, the resolver history, and the request log all hang off that
+ID.
 
 This is what makes the DSL's three moves work:
 
@@ -105,7 +108,7 @@ above it, so a test suite declares exactly one — the highest it needs.
 
 | Requirement | Version |
 | --- | --- |
-| Mock server | **0.7.0 or newer** — the SDK targets the runtime-control contract as of that release, and uses newer contract features only where the server's [additive evolution rules](../driving/api.md#stability-machine-readable-spec) make an older server degrade rather than break. |
+| Mock server | **0.7.0 or newer** — the SDK targets the runtime-control contract as of that release, and uses newer contract features only where the server's [additive evolution rules](../driving/api.md#stability-machine-readable-spec) make an older server degrade rather than break. That is a floor, not a recommendation: pin the image to a current [release](https://github.com/bilal-fazlani/mock-server/releases), which is what every `withTag` example on these pages does. |
 | Java | **21 (LTS) or newer**, from SDK **2.0.0** — the earlier 1.x line runs on **Java 17**. |
 | JUnit | Jupiter 6.x (the SDK brings `junit-jupiter-api` with it) |
 | Spring Boot | **4.1.0**, for `mock-server-spring-boot-test` only — the exact release the module is compiled and tested against, not a range across 4.x |

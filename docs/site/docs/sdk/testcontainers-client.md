@@ -81,11 +81,13 @@ for reasons unconnected to the change under test. Combine the default name with 
 tag rather than reaching for a static helper:
 
 ```java
-new MockServerContainer(MockServerContainer.DEFAULT_IMAGE_NAME.withTag("0.8.0"));
+new MockServerContainer(MockServerContainer.DEFAULT_IMAGE_NAME.withTag("0.10.0"));
 ```
 
-The SDK needs server **0.7.0 or newer** — see
-[Compatibility](index.md#compatibility).
+Pick the tag from the
+[releases](https://github.com/bilal-fazlani/mock-server/releases) — every release
+is published as an image tag, and nothing else is. The SDK needs server **0.7.0
+or newer** — see [Compatibility](index.md#compatibility).
 
 !!! warning "The catalog must be world-readable"
 

@@ -58,7 +58,7 @@ pays for the start.
 | Builder call | Default | Purpose & rules |
 | --- | --- | --- |
 | `withCatalog(String \| Path)` | *(none)* | The catalog directory to serve, bind-mounted read-only. A **filesystem path, not a classpath resource** — see [what the path means](#what-withcatalog-resolves-against). With no catalog, the container serves whatever its image was built with. |
-| `withImage(String \| DockerImageName)` | `ghcr.io/bilal-fazlani/mock-server:latest` | The image to run. Parsed as a **whole reference** — `withImage("0.8.0")` looks for a repository named `0.8.0`. For a tag, use `MockServerContainer.DEFAULT_IMAGE_NAME.withTag("0.8.0")`. |
+| `withImage(String \| DockerImageName)` | `ghcr.io/bilal-fazlani/mock-server:latest` | The image to run. Parsed as a **whole reference** — `withImage("0.10.0")` looks for a repository named `0.10.0`. For a tag, use `MockServerContainer.DEFAULT_IMAGE_NAME.withTag("0.10.0")`. |
 | `withStartupTimeout(Duration)` | 2 minutes | How long to wait for `GET /ui/api/health` to answer `200`. |
 | `configure(Consumer<MockServerContainer>)` | no-op | Anything else the container — or `GenericContainer` beneath it — can do: environment variables, networks, log consumers, reuse. Applied before the container starts, and additive across calls. |
 | `schemaCheck(SchemaCheck.Mode)` | `FAILED` | The suite-wide [end-of-test schema check](#the-end-of-test-schema-check). |
@@ -81,10 +81,14 @@ MockServer.container()
 
     ```java
     MockServer.container()
-            .withImage(MockServerContainer.DEFAULT_IMAGE_NAME.withTag("0.8.0"))
+            .withImage(MockServerContainer.DEFAULT_IMAGE_NAME.withTag("0.10.0"))
             .withCatalog("src/test/resources/catalog")
             .build();
     ```
+
+    Pick the tag from the
+    [releases](https://github.com/bilal-fazlani/mock-server/releases) — every
+    release is published as an image tag, and nothing else is.
 
     The SDK needs server **0.7.0 or newer** — see
     [Compatibility](index.md#compatibility).
@@ -164,6 +168,7 @@ void surfacesADeclinedCard(MockProfile profile) {
 | `.serves(scenario)` | Serves one scenario for every call. Returns the profile, so endpoints chain. |
 | `.servesSequence(first, rest…)` | Serves an ordered [sequence](../building/scenarios.md#scenario-sequences), one step per call, sticking on the last step once exhausted. |
 | `reset()` / `reset(endpoint)` | Rewinds sequence progress and [resolver history](../building/dynamic.md#history) so the next call starts from the first step. Leaves selections in place. |
+| `id()` | The minted profile ID — see [What a profile ID contains](#what-a-profile-id-contains) for what it is safe to put it into. |
 
 Both the endpoint and the scenario are checked against the server's catalog
 **before** the write, so a typo fails on the line that wrote it with a message
@@ -183,6 +188,25 @@ the moment the line has run, with no separate commit step. That costs two round
 trips per selection against a local container. A test making enough of them for
 that to matter should stage them itself through
 [`profile.client()`](testcontainers-client.md#the-runtime-control-client).
+
+### What a profile ID contains
+
+`profile.id()` is what a test sends as the caller identity, so it ends up in a
+URL path segment, a query value, a header, and a JSON string. **It never needs
+escaping in any of them.**
+
+The ID is the test's name, sanitised, plus a `-` and four hex digits —
+`surfacesADeclinedCard-a3f9`. Sanitising keeps ASCII letters, digits and `_` as
+themselves and collapses every run of anything else to a single `-`, so the
+character set is exactly `[A-Za-z0-9_-]`, with no leading or trailing `-`. The
+name is capped at 48 characters, which bounds the whole ID at 53.
+
+That holds however the test's name is written. A method name usually passes
+through unchanged; a `@DisplayName("charges a card, twice")` or a
+`@ParameterizedTest` label goes through the same sanitising, so its spaces and
+punctuation become hyphens rather than reaching the wire —
+`charges-a-card-twice-a3f9`. A name made entirely of dropped characters becomes
+`test`, and the suffix still makes it unique.
 
 !!! note "No `delayedBy(…)`"
 

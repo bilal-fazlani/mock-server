@@ -61,7 +61,13 @@ Options:
 Published images live in the GitHub Container Registry at
 [`ghcr.io/bilal-fazlani/mock-server`](https://github.com/bilal-fazlani/mock-server/pkgs/container/mock-server)
 (multi-arch `linux/amd64` and `linux/arm64`). Use `latest` or a pinned version tag
-like `1.2.0`; images are published only for tagged releases.
+like `0.10.0`; images are published only for tagged releases.
+
+Tags track the [releases](https://github.com/bilal-fazlani/mock-server/releases)
+one-for-one, so that page — or the [package
+listing](https://github.com/bilal-fazlani/mock-server/pkgs/container/mock-server)
+— is what to pin to. A server already running reports its own version at
+`GET /ui/api/health`.
 
 ```bash
 docker run --rm -p 3000:3000 ghcr.io/bilal-fazlani/mock-server:latest

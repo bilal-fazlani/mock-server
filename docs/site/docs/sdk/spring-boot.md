@@ -102,12 +102,16 @@ against](junit.md#what-withcatalog-resolves-against).
     ```java
     @ServiceConnection
     static final MockServerContainer MOCK_SERVER =
-            new MockServerContainer(MockServerContainer.DEFAULT_IMAGE_NAME.withTag("0.8.0"))
+            new MockServerContainer(MockServerContainer.DEFAULT_IMAGE_NAME.withTag("0.10.0"))
                     .withCatalog("src/test/resources/catalog");
     ```
 
+    Pick the tag from the
+    [releases](https://github.com/bilal-fazlani/mock-server/releases) — every
+    release is published as an image tag, and nothing else is.
+
     The constructor argument is a **whole image reference**, so
-    `new MockServerContainer("0.8.0")` looks for a repository named `0.8.0`.
+    `new MockServerContainer("0.10.0")` looks for a repository named `0.10.0`.
     Compose the tag onto `DEFAULT_IMAGE_NAME` as above. The SDK needs server
     **0.7.0 or newer** — see [Compatibility](index.md#compatibility).
 
@@ -248,12 +252,31 @@ a fixture is fine, but one written `12.50` arrives as `12.5`, and
 `assertEquals(new BigDecimal("12.50"), receipt.shippingCost())` fails on scale
 alone. Compare with `compareTo`.
 
+**`RestClient.Builder` needs `spring-boot-starter-restclient` on Boot 4.** Boot 4
+split the blocking HTTP clients out of `spring-boot-starter-web`, which now
+brings `spring-boot-webmvc`, `spring-boot-http-converter`,
+`spring-boot-starter-jackson` and Tomcat — and no rest-client module. Injecting
+`RestClient.Builder` into a `@Component` under `starter-web` alone fails the
+context with *"No qualifying bean of type
+`org.springframework.web.client.RestClient$Builder` available"*, in the
+application under test rather than in anything this SDK owns. Declare both:
+
+```kotlin
+// build.gradle.kts — the application's own dependencies, not the test ones
+dependencies {
+    implementation("org.springframework.boot:spring-boot-starter-web")
+    implementation("org.springframework.boot:spring-boot-starter-restclient")
+}
+```
+
 **Your application's own HTTP client needs no protocol pin.** With no other HTTP
 client library on the classpath, Spring Boot builds `RestClient` on
 `JdkClientHttpRequestFactory`, and `java.net.http.HttpClient` defaults to
 `Version.HTTP_2` — which on a cleartext `http://` URL means every new connection
 opens with the h2c upgrade handshake. The mock server
 [ignores the upgrade](../reference/gotchas.md) and answers
-over HTTP/1.1, so the code under test stays exactly as it ships to production: no
-`requestFactory` override, no `Version.HTTP_1_1` builder. Against a real upstream
-over TLS the version is negotiated by ALPN and HTTP/2 is used as normal.
+over HTTP/1.1 — every request, not just the first on a connection, so a client
+that reuses connections and re-sends the handshake is served normally too. The
+code under test stays exactly as it ships to production: no `requestFactory`
+override, no `Version.HTTP_1_1` builder. Against a real upstream over TLS the
+version is negotiated by ALPN and HTTP/2 is used as normal.

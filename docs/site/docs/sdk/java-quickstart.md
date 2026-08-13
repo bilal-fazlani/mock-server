@@ -179,7 +179,7 @@ passed yesterday can fail today for reasons unconnected to the change under test
 | Line | What happens |
 | --- | --- |
 | `MockServer.container()…build()` | Declares the server. Nothing starts yet. The container comes up on the first test that needs it and is stopped when the whole test run ends. |
-| `MockProfile profile` parameter | Mints a profile ID from the test's own name — `capturesACharge-a3f9` — for this test alone. |
+| `MockProfile profile` parameter | Mints a profile ID from the test's own name — `capturesACharge-a3f9` — for this test alone. Always `[A-Za-z0-9_-]`, so it needs no escaping wherever the test puts it: see [what a profile ID contains](junit.md#what-a-profile-id-contains). |
 | `profile.endpoint("payments", "charge").serves("default")` | Pins that scenario for that profile, checked against the server's catalog before the write. In force by the time the line returns. |
 | `mock.baseUrl()` | `http://host:port` for the running container — what to point the code under test at. |
 | `profile.id()` as the customer | Makes the call resolve to this test's profile, because `profileIdSelector` reads `$.customerId`. |
