@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.11.0](https://github.com/bilal-fazlani/mock-server/compare/v0.10.1...v0.11.0) (2026-08-13)
+
+
+### ⚠ BREAKING CHANGES
+
+* default UNMOCKED_USERS to DEFAULT_MOCK
+
+### Features
+
+* default UNMOCKED_USERS to DEFAULT_MOCK ([c61f9a2](https://github.com/bilal-fazlani/mock-server/commit/c61f9a2cb802e9a3f9e5de9d4423c7ae4a91478b)), closes [#83](https://github.com/bilal-fazlani/mock-server/issues/83)
+
 ## [0.10.1](https://github.com/bilal-fazlani/mock-server/compare/v0.10.0...v0.10.1) (2026-08-13)
 
 
