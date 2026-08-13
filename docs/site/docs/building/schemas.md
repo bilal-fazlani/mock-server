@@ -126,12 +126,16 @@ de-facto required, because a request without it
 This covers both **body fields** (against `requestBody`) and **declared
 parameters** (against [`parameters`](#request-parameters)).
 
+The `requestBody` schema — `id` required, `middleName` optional:
+
 ```json
-// requestBody schema: "id" required, "middleName" optional
 { "type": "object", "required": ["id"],
   "properties": { "id": {}, "middleName": {} } }
+```
 
-// fixture body — the {{$.middleName}} placeholder is the error
+The fixture body, where the `{{$.middleName}}` placeholder is the error:
+
+```json
 { "id": "{{$.id}}", "middleName": "{{$.middleName}}" }
 ```
 
@@ -153,8 +157,10 @@ valid catalog.
 A `query:` or `header:` selector is flagged the same way when it reads a
 parameter the schema declares **optional**:
 
+Given `parameters` that declare `cursor` with `"required": true` and `limit`
+without it, this fixture body is the error:
+
 ```json
-// parameters: "cursor" required: true, "limit" declared without required
 { "next": "{{query:cursor}}", "size": "{{query:limit}}" }
 ```
 

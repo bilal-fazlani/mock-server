@@ -611,8 +611,11 @@ placeholder**, the resolved value is emitted raw — numbers stay numbers,
 booleans stay booleans, and a function may even return an object or array:
 
 ```json
-{ "amount": "{{$.amount}}" }   // → { "amount": 42 }, not { "amount": "42" }
+{ "amount": "{{$.amount}}" } // (1)!
 ```
+
+1.  Against a request whose `amount` is `42`, this renders as
+    `{ "amount": 42 }` — a number — not `{ "amount": "42" }`.
 
 When a placeholder is **interpolated** into surrounding text (including two
 adjacent placeholders), the value is coerced to a string — objects and arrays

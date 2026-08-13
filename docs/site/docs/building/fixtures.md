@@ -9,17 +9,32 @@ Not every scenario is a fixture — a scenario can instead be backed by a
 [Code-backed scenario resolvers](dynamic.md). This page covers the
 fixture-backed (`<slug>.json`) case.
 
-A fixture is a JSON file with this shape:
+A fixture is a JSON file with this shape — copy it into `<slug>.json` and edit
+the values:
 
 ```json
 {
-  "description": "Balance available", // optional, shown as the scenario's label in the UI
-  "summary": "200 with the settled balance", // optional, shown under the label in the catalog viewer
-  "status": 200,                       // required, numeric HTTP status
-  "delay": "400ms",                    // optional, wait this long before responding
-  "headers": { "x-foo": "bar" },       // optional
-  "body": { /* any JSON */ }           // required (key must be present; value may be any JSON)
+  "description": "Balance available", // (1)!
+  "summary": "200 with the settled balance", // (2)!
+  "status": 200, // (3)!
+  "delay": "400ms", // (4)!
+  "headers": { "x-foo": "bar" }, // (5)!
+  "body": { "available": 4250, "currency": "GBP" } // (6)!
 }
+```
+
+1.  **Optional.** The scenario's label wherever the UI lists scenarios.
+2.  **Optional.** A secondary line beneath the label, in the catalog viewer.
+3.  **Required**, and a number.
+4.  **Optional.** Wait this long before responding.
+5.  **Optional.** Merged over the automatic `content-type`.
+6.  **Required** — the key must be present, and its value may be any JSON:
+    an object, an array, a string, a number.
+
+Only `status` and `body` are required, so the smallest fixture that works is:
+
+```json
+{ "status": 200, "body": { "ok": true } }
 ```
 
 - `description` is optional free text used as the scenario's label wherever the UI

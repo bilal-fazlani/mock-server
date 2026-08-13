@@ -53,10 +53,28 @@ features = [
   "navigation.footer",            # prev/next links in the footer
   "navigation.top",               # back-to-top button
   "content.code.select",          # line-selection button on code blocks
+  "content.code.copy",            # copy button on code blocks
+  "content.code.annotate",        # numbered annotations on code lines
   "navigation.instant",           # SPA-style instant page loading (needs site_url)
   "navigation.instant.prefetch",  # prefetch links on hover
   "navigation.instant.progress",  # loading progress bar for slower loads
 ]
+
+# Where an annotation marker may sit inside a `json` block. JSON has no comments,
+# so the theme has no default for it and `(1)!` markers are left as literal text
+# unless a token selector is named here.
+#
+# `.c1` — the comment token. Pygments' JSON lexer tolerates a `//` comment and
+# tags it `c1`, and the theme then replaces the *whole* comment with the
+# annotation marker. That is what keeps a ```json block valid JSON: the `//
+# (1)!` a reader would otherwise copy is not in the rendered DOM at all, so
+# selecting or copying the block yields something that parses.
+#
+# Deliberately NOT `.s2` (a double-quoted string): a marker inside a string is
+# legal JSON but the theme consumes the entire string token, rendering
+# `"description": ,` — the value disappears. Keep markers in `//` comments.
+[project.extra.annotate]
+json = [".c1"]
 
 # Light + dark, with a toggle in the header (defaults to the reader's OS setting).
 [[project.theme.palette]]
