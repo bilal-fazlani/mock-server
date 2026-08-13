@@ -87,6 +87,12 @@ gh workflow run publish-npm.yml   --ref vX.Y.Z
 gh workflow run publish-image.yml --ref vX.Y.Z
 ```
 
+`publish-image.yml` moves the `latest` image tag only when the ref it is building **is** the
+newest non-prerelease release, so re-running an old tag republishes that version's own tags
+without dragging `latest` backwards. Each run states in its job summary whether `latest`
+moved and why. It also refuses to run against a non-tag ref, since the semver tags are
+derived from the ref and there would be nothing to push.
+
 npm rejects re-publishing an existing version — to redo a broken `X.Y.Z` you must release a new
 version. (You can also always cut a release the fully-manual way by tagging and publishing a
 GitHub Release yourself; the publish workflows key off `release: published` either way.)
@@ -117,5 +123,8 @@ embedded `mongod` launches (log shows the embedded-Mongo notice and serves a req
   the `@bilal-fazlani` scope.
 - **Provenance error** — `publish-npm.yml` needs `id-token: write` (present) and `package.json`
   needs a `repository` field (present); provenance requires a public repo.
-- **Wrong/missing image tags (e.g. no `latest`)** — the Release was marked pre-release, or the tag
-  isn't valid `vX.Y.Z` SemVer.
+- **Wrong/missing image tags (e.g. no `latest`)** — the Release was marked pre-release, the tag
+  isn't valid `vX.Y.Z` SemVer, or the run built a tag that is not the newest release. The run's
+  job summary says which. Before #80, a `workflow_dispatch` re-publish skipped `latest`
+  unconditionally and said nothing, which left `latest` on 0.9.0 for the whole 0.10.0 line —
+  check the summary rather than assuming a green run moved it.

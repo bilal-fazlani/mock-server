@@ -5,6 +5,15 @@ name: Publish container image
 #     image (1.2.0, 1.2, 1, latest) are produced together.
 #   - Manual runs are supported for re-publishing a release: dispatch this
 #     workflow against a tag ref (v*) so the semver tags resolve.
+#
+# `latest` follows the newest release, not the trigger. It used to be gated on
+# `github.event_name == 'release'`, so a manual re-publish produced the semver
+# tags and silently skipped `latest` — which is how `latest` came to sit on 0.9.0
+# for the whole of the 0.10.0 line (#80). Since `latest` is the default for both
+# `docker run` and the Java SDK's `new MockServerContainer()`, everyone on the
+# default was a release behind. Both triggers now ask the same question — is the
+# ref being built the newest non-prerelease release? — and the answer, with its
+# reason, goes into the job summary so a stale `latest` cannot pass unremarked.
 on:
   release:
     types: [published]
@@ -24,8 +33,59 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
+      # The semver tags are derived from the ref, so a run against anything but a
+      # tag would build and push nothing. Stop with a message rather than leaving
+      # a green run that published no image.
+      - name: Require a tag ref for a manual run
+        if: github.event_name == 'workflow_dispatch' && github.ref_type != 'tag'
+        run: |
+          echo "::error::Dispatch this workflow against a release tag (v*), not ${{ github.ref }}."
+          exit 1
+
+      # Does this run own `latest`? A release event knows from its own payload; a
+      # manual run has to ask, because re-publishing an older tag must never pull
+      # `latest` back onto an older image. `GET /releases/latest` ignores drafts
+      # and prereleases, so both branches agree on what "newest" means.
+      - name: Decide whether to move the latest tag
+        id: latest
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT_NAME: ${{ github.event_name }}
+          IS_PRERELEASE: ${{ github.event.release.prerelease }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "release" ]; then
+            if [ "$IS_PRERELEASE" = "true" ]; then
+              move=false
+              why="this release is a prerelease"
+            else
+              move=true
+              why="$REF_NAME was just published as a release"
+            fi
+          else
+            # No releases yet: nothing to be newer than, so nothing to move.
+            newest=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq '.tag_name' 2>/dev/null || true)
+            if [ -z "$newest" ]; then
+              move=false
+              why="the repository has no published release to compare $REF_NAME against"
+            elif [ "$REF_NAME" = "$newest" ]; then
+              move=true
+              why="$REF_NAME is the newest release"
+            else
+              move=false
+              why="$REF_NAME is not the newest release ($newest is)"
+            fi
+          fi
+          echo "move=$move" >> "$GITHUB_OUTPUT"
+          if [ "$move" = true ]; then
+            echo "\`latest\` **will** be moved to this build — $why." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "\`latest\` will **not** be moved — $why." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
       # Derive image tags/labels from the triggering ref:
-      # a release/tag v1.2.0 -> 1.2.0, 1.2, 1, latest.
+      # a release/tag v1.2.0 -> 1.2.0, 1.2, 1, and latest when this run owns it.
       - name: Compute tags and labels
         id: meta
         uses: docker/metadata-action@v6
@@ -35,7 +95,7 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
-            type=raw,value=latest,enable=${{ github.event_name == 'release' && !github.event.release.prerelease }}
+            type=raw,value=latest,enable=${{ steps.latest.outputs.move == 'true' }}
 
       # QEMU + Buildx enable the linux/arm64 build on an amd64 runner.
       - name: Set up QEMU
