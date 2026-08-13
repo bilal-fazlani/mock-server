@@ -103,6 +103,10 @@ MockServer.container()
     [releases](https://github.com/bilal-fazlani/mock-server/releases) — every
     release is published as an image tag, and nothing else is.
 
+    Whichever tag you run, the container logs the version it resolved to once it
+    is up — see [What a started container
+    reports](testcontainers-client.md#what-a-started-container-reports).
+
     The SDK needs server **0.7.0 or newer** — see
     [Compatibility](index.md#compatibility).
 

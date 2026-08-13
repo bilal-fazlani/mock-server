@@ -75,6 +75,30 @@ server.stop();
 port opens before its MongoDB connection is established, so a listening socket
 alone does not mean a mocked call can be served yet.
 
+### What a started container reports
+
+Once health is green, the container names the build that came up — through its
+own logger, the one already printing `Creating container for image`, so it lands
+in the same block a test run is read from:
+
+```text
+INFO tc.ghcr.io/bilal-fazlani/mock-server:latest -- Container ghcr.io/bilal-fazlani/mock-server:latest started in PT1.37S
+INFO tc.ghcr.io/bilal-fazlani/mock-server:latest -- mock-server 0.10.1 (sha 11467c7) - image ghcr.io/bilal-fazlani/mock-server:latest
+```
+
+On `latest` a second line follows, naming it as a moving tag and giving the pull
+that refreshes it. That is the case worth calling out: Testcontainers pulls an
+image only when it is **absent** locally, so a `latest` cached months ago is
+served indefinitely and starts identically to a fresh one. Without the version
+line, a suite failing against a long-fixed bug looks like a bug in the server, or
+a lie in these pages — and nothing on screen names the build responsible.
+
+Neither line can fail a start. A server that answers the health probe but not the
+version call downgrades to a warning and the container comes up regardless.
+
+The version is also readable in code, from the same place: `client().health()`
+returns `version()` and `sha()`.
+
 The default tag is `latest`, so pin the version in CI: a suite that passed
 yesterday can otherwise fail today against a server that changed underneath it,
 for reasons unconnected to the change under test. Combine the default name with a
