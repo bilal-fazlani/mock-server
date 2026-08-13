@@ -60,6 +60,12 @@ curl -s <origin>/customers/customer-123/status
 # → profile ID "customer-123" comes straight from the path
 ```
 
+That answers with `default.json` before you have created any profile at all —
+[`UNMOCKED_USERS`](configuration.md) defaults to `DEFAULT_MOCK` — and the server
+logs it at `warn` with `source=unmocked_policy selector=path:customerId`. Give
+`customer-123` a profile pinning `frozen`, and the same curl returns
+`frozen.json` instead.
+
 ## Gotchas & rules of thumb
 
 - **The endpoint name is its directory name.** There's no separate identifier to
@@ -69,6 +75,13 @@ curl -s <origin>/customers/customer-123/status
 - **`default` and `real` are reserved slugs.** Every endpoint must have a
   `default` scenario — either `default.json` or `default.mjs`; no endpoint may have
   a `real.json` or `real.mjs` — validation enforces both.
+- **A caller with no profile is served, not refused.**
+  [`UNMOCKED_USERS`](configuration.md) defaults to `DEFAULT_MOCK`, so a profiled
+  endpoint answers with its `default` fixture for an ID it has never seen. The
+  request logs at `warn` with `source=unmocked_policy`, and the entry's decision
+  trace carries `scenarioSource: "unmocked_policy"` — so a test asserting
+  `default` passes whether or not profile resolution worked. Set
+  `UNMOCKED_USERS=ERROR` where that distinction has to be fatal.
 - **Restart in production for catalog, fixture, *or* resolver changes.** The whole
   tree is loaded once at startup, and every `<scenario>.mjs` is compiled up front —
   a resolver that doesn't compile fails the boot. In development, fixture edits and

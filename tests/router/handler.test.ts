@@ -177,7 +177,7 @@ describe('mock handler logging', () => {
     expect(consoleSpy.info).not.toHaveBeenCalled()
     expect(consoleSpy.warn).toHaveBeenCalledTimes(1)
     expect(consoleSpy.warn.mock.calls[0][0]).toMatch(
-      /^\[mock\] POST \/hello -> 200 \d+ms test-system\/hello profile=ghost scenario=default source=unmocked_policy outcome=fixture$/,
+      /^\[mock\] POST \/hello -> 200 \d+ms test-system\/hello profile=ghost scenario=default source=unmocked_policy selector=\$\.customerId outcome=fixture$/,
     )
     expect(consoleSpy.error).not.toHaveBeenCalled()
     consoleSpy.restore()
@@ -417,6 +417,10 @@ describe('mock handler JSON console logging', () => {
       'mock.system': 'test-system',
       'mock.endpoint': 'hello',
       'mock.profileId': 'c1',
+      // The selector rides on every profiled request in JSON form, not only the
+      // unmocked-policy one the text line reserves it for — a structured field
+      // costs nothing to carry and is worth filtering on.
+      'mock.profileSelector': '$.customerId',
       'mock.scenario': 'default',
       'mock.scenarioSource': 'implicit',
       'mock.outcome': 'fixture',

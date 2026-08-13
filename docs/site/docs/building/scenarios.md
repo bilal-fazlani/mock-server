@@ -20,7 +20,8 @@ directory: either a fixture (`<scenario>.json`) or a code-backed resolver
 
 `default` is not reserved in the sense of being off-limits — it's **required**
 on every endpoint, backed by either `default.json` or `default.mjs`. Served
-when a selection resolves to `default`, and under `UNMOCKED_USERS=DEFAULT_MOCK`.
+when a selection resolves to `default`, and — under the default
+`UNMOCKED_USERS=DEFAULT_MOCK` — for a caller that has no profile at all.
 Because it's a fixed name (not a repointable field), "follow the default" and
 "pick `default`" are the same thing when `PASSTHROUGH_AS_DEFAULT=false`. When
 `default` is backed by a resolver (`default.mjs`), that resolver becomes the

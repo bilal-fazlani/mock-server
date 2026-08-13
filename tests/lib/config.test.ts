@@ -29,8 +29,8 @@ describe('parsePassthroughAsDefault', () => {
 })
 
 describe('parseUnmockedUsers', () => {
-  it('defaults to ERROR when unset', () => {
-    expect(parseUnmockedUsers(undefined)).toBe('ERROR')
+  it('defaults to DEFAULT_MOCK when unset', () => {
+    expect(parseUnmockedUsers(undefined)).toBe('DEFAULT_MOCK')
   })
 
   it('accepts the three valid values, case-insensitively', () => {

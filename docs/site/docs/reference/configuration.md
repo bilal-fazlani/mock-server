@@ -17,7 +17,7 @@ shows how they steer routing.
 | `MONGODB_CONNECTION_STRING` | Mongo connection URI<br>(optional) | External MongoDB for profiles, global mock selections, profile key mappings, and request logs. If unset, an in-memory MongoDB starts automatically on first use — data is ephemeral and lost on restart. The published Docker image bakes in a `mongod` binary so this embedded fallback works fully offline. |
 | `MONGODB_DB` | Database name<br>(default `mockDB`) | Name of the MongoDB database holding profiles, global mock selections, profile key mappings, and request logs — used whether the connection is an external MongoDB or the embedded in-memory one. |
 | `PASSTHROUGH_AS_DEFAULT` | `false` (default)<br>`true` | Controls what an omitted selection means. `false`: `default` is the implicit scenario, appears first in pickers, and is not stored when selected. `true`: `real` is the implicit scenario, appears first in pickers, and is not stored when selected. Passthrough itself is always allowed. |
-| `UNMOCKED_USERS` | `ERROR` (default)<br>`DEFAULT_MOCK`<br>`REAL` | What happens when a profiled endpoint extracts a profile ID but **no profile exists** for it. `ERROR`: loud `404`. `DEFAULT_MOCK`: serve the endpoint's `default` fixture. `REAL`: proxy to the live upstream — the classic "mock a few curated users, pass everyone else through" setup. |
+| `UNMOCKED_USERS` | `DEFAULT_MOCK` (default)<br>`ERROR`<br>`REAL` | What happens when a profiled endpoint extracts a profile ID but **no profile exists** for it. `DEFAULT_MOCK`: serve the endpoint's `default` fixture. `ERROR`: loud `404`. `REAL`: proxy to the live upstream — the classic "mock a few curated users, pass everyone else through" setup. |
 | `PASSTHROUGH_TIMEOUT_MS` | Number of milliseconds<br>(default `30000`) | Timeout for `real` upstream requests. A timeout returns `504`. |
 | `MOCK_CONSOLE_LOG_LEVEL` | `info` (default)<br>`warn`<br>`error` | Controls **whether** a console request line is printed. `info` logs every matched or unmatched mock request. `warn` logs warnings and errors. `error` logs only framework/routing/setup failures. See [Console logs](../driving/console-logs.md). |
 | `MOCK_LOG_FORMAT` | `text` (default)<br>`json` | Controls **how** console lines are serialized, independent of the level above. `text` prints the human one-liner built for a terminal. `json` prints one ECS-style object per line (`@timestamp`, `log.level`, `message`, `http.*`, `mock.*`) for Kibana or Datadog. See [Console logs](../driving/console-logs.md#json-format). |
@@ -41,6 +41,22 @@ shows how they steer routing.
     endpoints. Malformed requests — invalid JSON body, a selector that doesn't
     resolve — are always loud `400`s, in every configuration. Global endpoints do
     not use `UNMOCKED_USERS`.
+
+!!! note "Why `DEFAULT_MOCK` is the default"
+
+    Every endpoint declares a `default` scenario — startup enforces it — so there
+    is always something sensible to serve, and a caller with no profile gets it.
+    Profiles then stay an additive concept you reach for when you want per-caller
+    variation, rather than a prerequisite for any response at all.
+
+    Serving it is not silent. The request logs at `warn` with
+    `source=unmocked_policy` and the selector that produced the unmatched ID, and
+    the entry's decision trace records `scenarioSource: "unmocked_policy"` — so
+    "no profile matched" stays distinguishable from "the profile matched and
+    selected `default`" both in the console and after the fact through
+    [request logs](../driving/request-logs.md). Set `UNMOCKED_USERS=ERROR` when
+    you want an unresolved profile to fail the request instead — for a CI suite
+    where an unmatched caller means the test itself is wrong.
 
 !!! warning "Startup and runtime checks"
 

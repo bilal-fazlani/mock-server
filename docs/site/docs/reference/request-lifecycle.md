@@ -17,7 +17,7 @@ What the engine does for every incoming request, in order:
 | 2 | If a body is present, parse it as JSON. | `400` always |
 | 3a | For a profiled endpoint, resolve the profile ID. Reusable direct selectors use body/path/query/header values; Bearer selectors use the opaque credential or a top-level JWT claim; `profileKey` selectors first extract the nested body/path/query/header key, then look up `profileKeyMappings`. | Selector missing or malformed → `400`; mapping missing → `404 profile_key_mapping_not_found` |
 | 3b | For a global endpoint, skip profile ID resolution and read the saved shared selection from `globalMockScenarios`. | — |
-| 4 | For a profiled endpoint, load that profile from MongoDB. | Not found → `UNMOCKED_USERS` policy: `ERROR` → `404`; `DEFAULT_MOCK` → serve `default`; `REAL` → proxy |
+| 4 | For a profiled endpoint, load that profile from MongoDB. | Not found → `UNMOCKED_USERS` policy: `DEFAULT_MOCK` (default) → serve `default`, logged at `warn`; `ERROR` → `404`; `REAL` → proxy |
 | 5 | Resolve the scenario: saved profile/global pick, else the implicit scenario from `PASSTHROUGH_AS_DEFAULT`. If the pick is a [sequence](../building/scenarios.md#scenario-sequences), atomically advance its progress counter and take the step it lands on (sticking on the last step once exhausted). | Pinned key no longer declared → `500` |
 | 6 | If the resolved scenario slug is **resolver-backed**, look up its compiled `<slug>.mjs`, read that slug's history window, and invoke it with the request + history + profile ID. Rewrite the scenario to its return value and append that value to the slug's history. | Compile error (dev) → `500 resolver_compile_error`; no compiled resolver found → `500 resolver_missing`; throws → `500 resolver_threw`; exceeds its timeout → `500 resolver_timeout`; returns anything other than a fixture-backed declared scenario or `"real"` → `500 resolver_bad_return` (nothing appended to history) |
 | 7 | For direct-profile endpoints with `captureProfileKeys`, store each mapping before fixture serving or real proxying. Capturing runs even when the resolved ID has no profile; such a mapping expires after [`PROFILE_KEY_TTL_DURATION`](../building/profiles.md#retention-for-callers-with-no-profile). | Capture key missing → `400`; same key for a different **live** profile → `409 profile_key_mapping_conflict` (an already-expired mapping is claimable) |
@@ -63,8 +63,10 @@ selections. When `false` (default), missing selections resolve to `default` and
 `real` appears last in UI pickers. When `true`, missing selections resolve to
 `real`, `real` appears first, and startup requires every system's `baseUrlEnv` to
 be set. `UNMOCKED_USERS` is the policy when profile ID resolution succeeds but no
-profile exists. `PASSTHROUGH_TIMEOUT_MS` bounds `real` upstream requests; a
-timeout returns `504`.
+profile exists; it defaults to `DEFAULT_MOCK`, so an unknown caller is served the
+endpoint's `default` fixture and the request is logged at `warn` with
+`source=unmocked_policy`. `PASSTHROUGH_TIMEOUT_MS` bounds `real` upstream
+requests; a timeout returns `504`.
 
 Passthrough is always a legal implicit scenario named `real`. If a request
 resolves to `real` and the system's base URL is missing, the mock API returns a

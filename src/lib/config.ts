@@ -27,8 +27,17 @@ export function parsePassthroughAsDefault(raw: string | undefined): boolean {
   )
 }
 
+// What a profiled endpoint does when a request resolves a profile ID that has no
+// profile behind it. DEFAULT_MOCK is the default so a freshly authored catalog
+// answers the first curl: every endpoint is required to declare a `default`
+// scenario, so there is always something sensible to serve, and rejecting a
+// request the catalog is fully equipped to answer reads as the tool being broken
+// at exactly the moment someone is deciding whether it works. The signal is not
+// lost — the router marks the choice `scenarioSource: 'unmocked_policy'`, which
+// raises the console line to `warn` and is queryable on the request log. Set
+// ERROR to get the loud 404 back for a suite that wants unresolved profiles fatal.
 export function parseUnmockedUsers(raw: string | undefined): UnmockedUsers {
-  if (raw === undefined) return 'ERROR'
+  if (raw === undefined) return 'DEFAULT_MOCK'
   const upper = raw.toUpperCase()
   if (!UNMOCKED_USERS_VALUES.includes(upper as UnmockedUsers)) {
     throw new ConfigError(

@@ -24,7 +24,7 @@ Both are documented as settings in
 | Level | Covers |
 | --- | --- |
 | `info` (default) | Every matched or unmatched mock request. |
-| `warn` | Suspicious-but-served cases: `UNMOCKED_USERS` fallback, schema drift on `real`, failed Mongo request-log writes, and `no_match`. |
+| `warn` | Suspicious-but-served cases: `UNMOCKED_USERS` fallback (the default policy, so expect these until every caller has a profile), schema drift on `real`, failed Mongo request-log writes, and `no_match`. |
 | `error` | Framework, routing, and setup failures. |
 
 Fixture responses are `info` even when the fixture's status is non-2xx — the mock
@@ -52,9 +52,24 @@ Method, path, status, and duration always appear. The trailing `key=value`
 details are added only when they apply: `<system>/<endpoint>` once routing
 matched, `profile=` once a profile ID resolved, `scenario=`, `outcome=`,
 `delay=<n>ms` when the served fixture declared a [response
-delay](../building/fixtures.md#response-delay), `source=unmocked_policy`,
-`error=<code>`, and `validation=request:drift_warning` /
+delay](../building/fixtures.md#response-delay), `source=unmocked_policy` — with
+`selector=<expr>` beside it, naming the selector that produced the unmatched
+profile ID — `error=<code>`, and `validation=request:drift_warning` /
 `validation=response:drift_warning`.
+
+`source=unmocked_policy` is the line to know, because it is the one an unmodified
+server prints most: [`UNMOCKED_USERS`](../reference/configuration.md) defaults to
+`DEFAULT_MOCK`, so a request naming a profile that does not exist is served the
+endpoint's `default` fixture rather than refused, and this `warn` line is how you
+find out.
+
+```text
+[mock] POST /charge -> 200 3ms payments/charge profile=cust-42 scenario=default source=unmocked_policy selector=$.customerId outcome=fixture
+```
+
+The selector appears on this case alone. Elsewhere it is noise on a line that is
+already long; here it is the difference between knowing some ID went unmatched
+and knowing where in the request to look for the one that was sent.
 
 Text is the default because this ships as an `npx` binary people run in their own
 terminal.
@@ -99,6 +114,7 @@ an index. **A field is omitted entirely when it does not apply** — absent, nev
 | `mock.traceSampled` | Whether the caller's `traceparent` marked the trace as sampled. Omitted when the ID came from `x-request-id`, which has no such flag. |
 | `mock.system` / `mock.endpoint` | Catalog system slug and endpoint name, once routing matched. |
 | `mock.profileId` | Resolved profile ID, once one resolved. |
+| `mock.profileSelector` | The endpoint's `profileIdSelector` expression that produced it — e.g. `$.customerId`, `header:x-customer-id`. Carried on every profiled request, not only the `unmocked_policy` one the text line reserves it for. |
 | `mock.scenario` | Served scenario slug — the resolver's return value when the scenario is resolver-backed. |
 | `mock.scenarioSource` | How that scenario was selected: `pin`, `sequence`, `implicit`, `global`, or `unmocked_policy`. |
 | `mock.outcome` | `fixture`, `passthrough`, or `error`. |

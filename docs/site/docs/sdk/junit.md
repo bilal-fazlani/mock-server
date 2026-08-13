@@ -69,9 +69,22 @@ variables](../reference/configuration.md):
 ```java
 MockServer.container()
         .withCatalog("src/test/resources/catalog")
-        .configure(container -> container.withEnv("UNMOCKED_USERS", "DEFAULT_MOCK"))
+        .configure(container -> container.withEnv("UNMOCKED_USERS", "ERROR"))
         .build();
 ```
+
+!!! note "`UNMOCKED_USERS=ERROR` is worth considering for a suite"
+
+    The container inherits the server's own default, `DEFAULT_MOCK`: a request
+    naming a profile that does not exist is served the endpoint's `default`
+    fixture. That is the right default for a catalog you are still writing, and a
+    weaker one for a suite — a test whose endpoints all `serves("default")` will
+    pass whether or not profile resolution actually worked.
+
+    `verify(...)` still catches it, since verifications only see calls that
+    resolved to the profile, but that is an opt-in net. Setting `ERROR` as above
+    makes an unmatched caller fail the request outright, which in a suite that
+    sets up a profile per test is what an unmatched caller means anyway.
 
 !!! note "Pin the image tag in CI"
 

@@ -57,7 +57,7 @@ export const APP_ENVIRONMENT: EnvironmentDefinition[] = [
     name: 'UNMOCKED_USERS',
     category: 'Routing',
     description: 'Controls fallback behavior for unknown profile IDs.',
-    defaultValue: 'ERROR',
+    defaultValue: 'DEFAULT_MOCK',
     possibleValues: ['ERROR', 'DEFAULT_MOCK', 'REAL'],
     display: true,
   },

@@ -86,6 +86,46 @@ must be a string or number.
     returns a `400`. The extracted value is coerced to a string for the profile
     lookup, so numeric IDs work too.
 
+## Callers with no profile
+
+Resolving an ID and finding a profile for it are two steps, and the second one
+can miss — a caller you have not set up yet, or one you never will. What happens
+then is [`UNMOCKED_USERS`](../reference/configuration.md), and out of the box it
+is `DEFAULT_MOCK`: the endpoint serves its `default` fixture.
+
+That is why a freshly authored catalog answers the first request you send it. You
+do not need a profile to get a response; you need one when you want *this* caller
+to see something other than `default`. Profiles are how you vary a response per
+caller, not how you unlock one.
+
+| `UNMOCKED_USERS` | An unknown caller gets |
+| --- | --- |
+| `DEFAULT_MOCK` (default) | The endpoint's `default` fixture |
+| `ERROR` | `404`, with `profile "<id>" not found` |
+| `REAL` | Proxied to the live upstream — see [the `real` passthrough](scenarios.md#scenarios-the-real-passthrough) |
+
+The served-anyway cases stay visible rather than silent. The console line is
+raised to `warn` and carries `source=unmocked_policy` alongside the selector that
+produced the unmatched ID:
+
+```text
+[mock] POST /charge -> 200 3ms payments/charge profile=cust-42 scenario=default source=unmocked_policy selector=$.customerId outcome=fixture
+```
+
+and the request log records `scenarioSource: "unmocked_policy"` on the entry's
+decision trace, so "no profile matched" is still tellable from "the profile
+matched and selected `default`" long after the run. See
+[Console logs](../driving/console-logs.md) and
+[Request logs](../driving/request-logs.md).
+
+!!! note "Set `ERROR` when an unknown caller is a bug"
+
+    A test suite that sets up a profile per test is a suite where an unmatched
+    caller means the *test* is wrong, and a `404` is the fastest way to be told
+    so. `UNMOCKED_USERS=ERROR` restores that. The trade is deliberate: the default
+    optimises for a catalog you are still writing, this setting for one you are
+    relying on.
+
 ## Profile key mappings
 
 Some workflows have an early request that contains both the canonical profile ID

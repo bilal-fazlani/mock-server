@@ -225,9 +225,9 @@ request logs, so resolver behavior never depends on log retention:
 
 ### Retention for callers with no profile
 
-Under `UNMOCKED_USERS=DEFAULT_MOCK`, a request whose profile ID has no profile
-still runs a resolver-backed `default` — and appends to a history window keyed
-by that ID. Since the ID comes from request content, an unbounded number of
+Under `UNMOCKED_USERS=DEFAULT_MOCK` — the default — a request whose profile ID has
+no profile still runs a resolver-backed `default`, and appends to a history window
+keyed by that ID. Since the ID comes from request content, an unbounded number of
 such windows can be minted, and there is no profile to delete that would ever
 clear them.
 

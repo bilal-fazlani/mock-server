@@ -101,11 +101,62 @@ build`, or from a source checkout — are in
     effect in production. In development, fixture bodies are re-read per request
     so edits apply live.
 
-## 4. Choose a scenario for a profile
+## 4. Call it
 
-Open [the dashboard](../driving/ui.md) at `/ui`, create or open a profile whose
-ID matches the value your selector will extract (here, a `customerId` like
-`customer-123`), and pick the scenario for **Account Balance**. Save.
+Start the server and send the request. Nothing else is set up yet — that is the
+point:
+
+```bash
+curl -s -X POST <origin>/accounts/balance \
+  -H 'content-type: application/json' \
+  -d '{"customerId":"customer-123"}'
+```
+
+```json
+{
+  "customerId": "customer-123",
+  "balance": "4200.00",
+  "currency": "USD",
+  "asOf": "2026-08-13T09:14:02.881Z"
+}
+```
+
+The engine extracted `customer-123` with your `$.customerId` selector, looked for
+a profile with that ID, found none, and served `default.json` with its
+placeholders resolved. That last step is
+[`UNMOCKED_USERS`](../reference/configuration.md), which defaults to
+`DEFAULT_MOCK` — every endpoint is required to have a `default` scenario, so
+there is always something to serve.
+
+The server says so on its side, at `warn`:
+
+```text
+[mock] POST /accounts/balance -> 200 4ms hello-system/account_balance profile=customer-123 scenario=default source=unmocked_policy selector=$.customerId outcome=fixture
+```
+
+`source=unmocked_policy` means "no profile matched" — which is the next thing to
+fix, not an error. Set `UNMOCKED_USERS=ERROR` if you would rather this case be a
+`404`.
+
+## 5. Vary the response per caller
+
+`default` is what *every* caller gets. A profile is how one caller gets something
+else — here, how `customer-123` gets `insufficient` while everyone else keeps
+seeing a balance.
+
+Open [the dashboard](../driving/ui.md) at `/ui`, create a profile whose ID is
+`customer-123`, pick **Insufficient funds** for **Account Balance**, and save.
+Repeat the same curl:
+
+```json
+{
+  "customerId": "customer-123",
+  "error": "INSUFFICIENT_FUNDS"
+}
+```
+
+`402`, from `insufficient.json`, and the console line no longer carries
+`source=unmocked_policy`.
 
 Profiles are **deltas**: leaving an endpoint on `default` stores nothing — that
 profile simply follows the catalog. Only picks that differ from `default`
@@ -114,15 +165,3 @@ an endpoint can also be given an ordered
 [scenario sequence](../building/scenarios.md#scenario-sequences) served
 call-by-call. You can browse all declared endpoints and their scenarios at
 `/ui/catalog`.
-
-## 5. Call the endpoint
-
-```bash
-curl -s -X POST <origin>/accounts/balance \
-  -H 'content-type: application/json' \
-  -d '{"customerId":"customer-123"}'
-```
-
-The engine extracts `customer-123`, loads that profile, sees the scenario you
-picked (or falls back to `default`), and returns the matching fixture with
-placeholders resolved.

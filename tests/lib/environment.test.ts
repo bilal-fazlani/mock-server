@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Catalog } from '../../src/lib/catalog/types'
+import { parseUnmockedUsers } from '../../src/lib/config'
 import { buildEnvironmentRows } from '../../src/lib/environment'
 
 const catalog: Catalog = {
@@ -66,6 +67,18 @@ describe('buildEnvironmentRows', () => {
     )
     expect(rows.find((row) => row.name === 'NODE_ENV')).toBeUndefined()
     expect(rows.find((row) => row.name === 'ORDERS_URL')?.value).toBe('http://orders.test')
+  })
+
+  // Asserted against the parser rather than a literal: the failure this guards
+  // is the page and the parser disagreeing, which is silent — the page just
+  // states a default the server does not apply.
+  it('declares the UNMOCKED_USERS default the parser actually applies', () => {
+    const rows = buildEnvironmentRows(catalog, {})
+
+    expect(rows.find((row) => row.name === 'UNMOCKED_USERS')).toMatchObject({
+      status: 'default',
+      value: `(default: ${parseUnmockedUsers(undefined)})`,
+    })
   })
 
   it('includes possible values for enum environment variables', () => {

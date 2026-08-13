@@ -140,6 +140,12 @@ function requestConsoleFields(input: RequestConsoleLog): Record<string, unknown>
     'mock.profileId': trace.profileId,
     'mock.scenario': trace.scenario,
     'mock.scenarioSource': trace.scenarioSource,
+    // The selector expression that produced mock.profileId, not the value it
+    // produced — that is already mock.profileId. Carried on every profiled
+    // request so an `unmocked_policy` line says which part of the request the
+    // unmatched ID was read from, which is what turns "no profile matched" from
+    // a fact into something actionable.
+    'mock.profileSelector': trace.profileResolution?.selector,
     'mock.outcome': trace.outcome,
     'mock.delayMs': trace.delayMs,
     'mock.validation.request': trace.validation?.request,
@@ -170,7 +176,13 @@ function formatRequestConsoleLine(input: {
   if (trace.system && trace.endpoint) details.push(`${trace.system}/${trace.endpoint}`)
   if (trace.profileId) details.push(`profile=${trace.profileId}`)
   if (trace.scenario) details.push(`scenario=${trace.scenario}`)
-  if (trace.scenarioSource === 'unmocked_policy') details.push('source=unmocked_policy')
+  if (trace.scenarioSource === 'unmocked_policy') {
+    details.push('source=unmocked_policy')
+    // Only on this branch: elsewhere the selector is noise on a line that is
+    // already long, but here it is the difference between "some ID had no
+    // profile" and knowing where to look for the one that was sent.
+    if (trace.profileResolution) details.push(`selector=${trace.profileResolution.selector}`)
+  }
   if (trace.outcome) details.push(`outcome=${trace.outcome}`)
   if (trace.delayMs !== undefined) details.push(`delay=${trace.delayMs}ms`)
   if (trace.error) details.push(`error=${trace.error.code}`)
