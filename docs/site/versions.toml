@@ -1,0 +1,106 @@
+# The versions the guide is allowed to state about **our own** releases.
+#
+# Nothing in docs/ names one of these by hand: sync_versions.py writes them into
+# the pages, and tests/test_versions.py fails the build if a page disagrees or if
+# a version-shaped string turns up that is neither written from here nor exempt
+# below. See docs/superpowers/specs/2026-08-14-docs-version-sync-design.md.
+#
+# Both values are moved by automation, not by hand — the release flow for
+# `server`, and a repository_dispatch from mock-server-java-client plus a weekly
+# reconcile for `sdk_java`. Editing them here and running
+# `pipenv run python sync_versions.py` is the manual fallback.
+
+[current]
+# The npm package and the ghcr image share this. Written into the withTag(…) /
+# withImage(…) / new MockServerContainer("…") examples on the SDK pages.
+server = "0.11.0"
+# The Java SDK's four Maven artifacts, which share one version. Written into
+# every com.bilal-fazlani:<artifact>:<version> coordinate, Gradle and Maven both.
+sdk_java = "2.1.0"
+
+
+# Version-shaped strings that deliberately do not track a release. Every one in
+# the corpus must be either written from [current] or matched here, so that a
+# version nobody classified fails CI instead of quietly going stale.
+#
+# `pattern` is a regular expression matched against the whole line. `reason` is
+# read by a human deciding whether the exemption still holds — write it as an
+# argument, not a label.
+
+# --- Compatibility floors -------------------------------------------------
+# A floor is not a current version. It rises only when the SDK stops working
+# against an older server, which is a deliberate decision rather than a side
+# effect of releasing — so tracking it to `server` would silently claim we had
+# dropped support for every release below the newest one.
+
+[[exempt]]
+pattern = '\*\*0\.7\.0 or newer\*\*'
+reason = "compatibility floor: the oldest server the SDK targets, not the newest"
+
+[[exempt]]
+pattern = 'server \*\*0\.7\.0'
+reason = "compatibility floor, split across a line break on sdk/testcontainers-client.md"
+
+# --- Historical facts -----------------------------------------------------
+# "Since X" statements. Rewriting these to the current release inverts their
+# meaning: "safe with virtual threads from 2.1.0" would tell a 2.0.0 user the
+# guarantee does not apply to them, when it does.
+
+[[exempt]]
+pattern = 'from SDK \*\*2\.0\.0\*\*|From SDK 2\.0\.0|as of 2\.0\.0|from 2\.0\.0"'
+reason = "records when a guarantee began; permanently true of that release, not of the newest"
+
+# --- Third-party pins -----------------------------------------------------
+# These track what the SDK's build pins in its own libs.versions.toml, not
+# "latest of that library". Sourcing them automatically would mean reading the
+# other repo's version catalog, which is out of scope — see the spec.
+
+[[exempt]]
+pattern = 'Spring Boot 4\.1\.0|spring-boot-dependencies:4\.1\.0|other than 4\.1\.0|\*\*4\.1\.0\*\*'
+reason = "third-party pin: the Spring Boot release mock-server-spring-boot-test compiles against"
+
+[[exempt]]
+pattern = '\*\*7\.0\.8\*\*'
+reason = "third-party pin: the Spring Framework release Boot 4.1.0 manages"
+
+[[exempt]]
+pattern = '\*\*6\.1\.2\*\*'
+reason = "third-party pin: the JUnit BOM the SDK brings"
+
+[[exempt]]
+pattern = '\*\*2\.0\.5\*\*'
+reason = "third-party pin: the Testcontainers release the SDK compiles against"
+
+[[exempt]]
+pattern = '\*\*2\.22\.1\*\*|\*\*2\.16\.0\*\*|before 2\.16\.0'
+reason = "third-party pin and floor: the Jackson version the SDK resolves, and the oldest it accepts"
+
+# --- Other version lines --------------------------------------------------
+
+[[exempt]]
+pattern = 'contract version `1\.0\.0`'
+reason = "the runtime-control API contract, versioned independently in src/lib/control-api/openapi.json; AGENTS.md requires it move with the handler it describes, which is a stronger guarantee than syncing here would give"
+
+# --- Illustrative samples -------------------------------------------------
+# Not claims about a real release. Rewriting them would imply a precision the
+# surrounding prose does not intend.
+
+[[exempt]]
+pattern = 'my-mocks:1\.4\.0'
+reason = "a reader's own image tag in a docker build example, not one of ours"
+
+[[exempt]]
+pattern = 'like `0\.10\.0`'
+reason = "illustrates the shape of a release tag; the specific value carries no claim"
+
+[[exempt]]
+pattern = 'mock-server 0\.10\.1 \(sha 11467c7\)'
+reason = "captured log output. The version is paired with that build's git sha, which cannot be derived here — moving one without the other would print a pair that never existed"
+
+[[exempt]]
+pattern = '"service\.version":"0\.5\.0"'
+reason = "captured log output inside a JSON sample"
+
+[[exempt]]
+pattern = '"@timestamp":"2026-07-31T16:48:04\.417Z"'
+reason = "a timestamp in captured log output, not a version — matches the version shape by accident"

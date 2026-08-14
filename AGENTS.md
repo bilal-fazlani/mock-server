@@ -107,6 +107,28 @@ of the job, not just editing the text inside it.
 Purely internal changes (refactors with no behavior change, test-only edits, styling with no
 functional effect) don't need doc updates.
 
+## Never type one of our own versions into a docs page
+
+The guide states the server's and the Java SDK's versions in ~18 places — Maven and
+Gradle coordinates, `withTag(…)` / `withImage(…)` examples. **All of them are written by
+`docs/site/sync_versions.py` from `docs/site/versions.toml`.** Do not edit one by hand: it
+will be silently overwritten on the next release, and until then the page disagrees with
+its neighbours.
+
+To add a new one, write the snippet in a shape the rewriter recognises — a
+`com.bilal-fazlani:<artifact>:<version>` coordinate, or one of the container call forms.
+`docs/site/tests/test_versions.py` fails on any version-shaped string that is neither
+written from `versions.toml` nor listed under `[[exempt]]`, so an unrecognised shape is a
+red CI run rather than a page that quietly goes stale.
+
+Versions that must **not** track a release — compatibility floors (`0.7.0 or newer`),
+"since" statements (`from SDK 2.0.0`), third-party pins, the API contract version,
+illustrative samples — go in `[[exempt]]` with a reason. Adding one is the normal move, not
+a workaround; the list is the record of what was decided.
+
+`versions.toml` itself is moved by `.github/workflows/sync-docs-versions.yml`, not by hand.
+See `docs/superpowers/specs/2026-08-14-docs-version-sync-design.md`.
+
 ## A `/ui/api/*` change updates the OpenAPI spec in the same commit
 
 `src/lib/control-api/openapi.json` is the published contract for the runtime-control API,

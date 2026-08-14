@@ -94,7 +94,7 @@ modes, the escape hatch, and its one honest limitation.
 ## The four modules
 
 All four are published to Maven Central as
-`com.bilal-fazlani:<artifact>:2.0.0`, sharing one version. Each depends on the one
+`com.bilal-fazlani:<artifact>:2.1.0`, sharing one version. Each depends on the one
 above it, so a test suite declares exactly one — the highest it needs.
 
 | Artifact | What it adds | Depends on |
@@ -117,10 +117,10 @@ above it, so a test suite declares exactly one — the highest it needs.
 ### The versions the SDK pins
 
 Every third-party version is pinned in the build and declared in the published
-POMs. Read this as what 2.0.0 is compiled and tested against — not as a supported
-range:
+POMs. Read this as what the current release is compiled and tested against — not
+as a supported range:
 
-| Dependency | Pinned in 2.0.0 | Arrives through |
+| Dependency | Pinned version | Arrives through |
 | --- | --- | --- |
 | `org.springframework.boot:spring-boot`, `-test`, `-autoconfigure`, `-testcontainers` | **4.1.0** | `mock-server-spring-boot-test` |
 | `org.springframework:spring-context`, `spring-test` | **7.0.8** — the Framework release `spring-boot-dependencies:4.1.0` manages | `mock-server-spring-boot-test` |

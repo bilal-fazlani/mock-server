@@ -1,0 +1,149 @@
+name: Sync docs versions
+
+# Keeps the versions the guide states about our own releases equal to what is
+# actually published. See
+# docs/superpowers/specs/2026-08-14-docs-version-sync-design.md.
+#
+# Four triggers, one job, because all four want exactly the same work done:
+#
+#   release           this repo published one — the server version moved
+#   repository_dispatch  the Java SDK published one, sent from that repo's
+#                     release.yml once Central reports PUBLISHED
+#   schedule          the backstop. A dispatch that never arrives — a revoked
+#                     token, a failed step, a workflow someone edited — would
+#                     otherwise leave the docs stale with nothing watching,
+#                     which is the exact silence this whole thing exists to end
+#   workflow_dispatch a human wanting it now
+#
+# The commit lands on main directly rather than as a pull request. A PR would
+# reintroduce "somebody has to remember", and the change is mechanical, narrow,
+# and covered by tests/test_versions.py on the way in. Because it touches
+# docs/site/**, Netlify's `ignore` rule in netlify.toml rebuilds on its own — no
+# build hook, no special case.
+
+on:
+  release:
+    types: [published]
+  repository_dispatch:
+    types: [sdk-released]
+  schedule:
+    # Mondays, 06:00 UTC. Frequency is set by how long stale docs may live if a
+    # dispatch is lost, not by how often releases happen.
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-docs-versions
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # Read both versions from where a *user* would get them, not from where we
+      # think we put them. The server's from its own GitHub releases, which is
+      # what publishes the image tag; the SDK's from repo1's maven-metadata.xml,
+      # which is what a Gradle or Maven build actually resolves against.
+      #
+      # maven-metadata.xml rather than the solrsearch API on purpose: search is
+      # rate-limited and has been unavailable for stretches, while the metadata
+      # file is a plain artifact on the CDN. Its <release> element is the newest
+      # non-snapshot version, which is precisely the coordinate the docs quote.
+      - name: Resolve the published versions
+        id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          SERVER=$(gh release list --repo ${{ github.repository }} \
+            --exclude-drafts --exclude-pre-releases --limit 1 \
+            --json tagName --jq '.[0].tagName' | sed 's/^v//')
+
+          METADATA=https://repo1.maven.org/maven2/com/bilal-fazlani/mock-server-client/maven-metadata.xml
+          SDK=$(curl -fsSL "$METADATA" | sed -n 's:.*<release>\(.*\)</release>.*:\1:p')
+
+          for pair in "server:$SERVER" "sdk_java:$SDK"; do
+            name=${pair%%:*}; value=${pair#*:}
+            if ! printf '%s' "$value" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+              echo "::error::resolved $name as '$value', which is not a release version"
+              exit 1
+            fi
+            echo "$name=$value" >> "$GITHUB_OUTPUT"
+          done
+          echo "Resolved server=$SERVER sdk_java=$SDK"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          # Must match docs/site/Pipfile and netlify.toml's PYTHON_VERSION.
+          python-version: '3.14'
+
+      - name: Install pipenv
+        run: pipx install pipenv
+
+      - name: Install
+        working-directory: docs/site
+        run: pipenv install --dev --deploy
+
+      # Written with the same parser that reads it, so a malformed edit fails
+      # here rather than silently leaving the value unchanged.
+      - name: Write versions.toml
+        working-directory: docs/site
+        env:
+          SERVER: ${{ steps.resolve.outputs.server }}
+          SDK_JAVA: ${{ steps.resolve.outputs.sdk_java }}
+        run: |
+          pipenv run python - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          path = Path("versions.toml")
+          text = path.read_text(encoding="utf-8")
+          for key in ("server", "sdk_java"):
+              value = os.environ[key.upper()]
+              text, n = re.subn(
+                  rf'^({key} = ")[^"]*(")$',
+                  rf'\g<1>{value}\g<2>',
+                  text,
+                  count=1,
+                  flags=re.MULTILINE,
+              )
+              if n != 1:
+                  raise SystemExit(f"no [current].{key} line to rewrite in versions.toml")
+          path.write_text(text, encoding="utf-8")
+          PY
+
+      - name: Rewrite the guide
+        working-directory: docs/site
+        run: pipenv run python sync_versions.py
+
+      # The same suite CI runs on a pull request. A bad rewrite must not reach
+      # main just because a machine made it.
+      - name: Verify
+        working-directory: docs/site
+        run: pipenv run pytest -q
+
+      - name: Commit
+        env:
+          SERVER: ${{ steps.resolve.outputs.server }}
+          SDK_JAVA: ${{ steps.resolve.outputs.sdk_java }}
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo "The guide already states server=$SERVER sdk_java=$SDK_JAVA — nothing to do."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/site
+          git commit -m "docs: state server $SERVER and java sdk $SDK_JAVA" \
+                     -m "Written by sync-docs-versions.yml from the published releases."
+          git push

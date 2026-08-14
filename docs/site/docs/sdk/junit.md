@@ -14,7 +14,7 @@ you have not run a test yet.
 ```kotlin
 // build.gradle.kts
 dependencies {
-    testImplementation("com.bilal-fazlani:mock-server-junit:2.0.0")
+    testImplementation("com.bilal-fazlani:mock-server-junit:2.1.0")
 
     // No versions needed: mock-server-junit exposes the JUnit BOM transitively.
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
@@ -27,7 +27,7 @@ dependencies {
 <dependency>
   <groupId>com.bilal-fazlani</groupId>
   <artifactId>mock-server-junit</artifactId>
-  <version>2.0.0</version>
+  <version>2.1.0</version>
   <scope>test</scope>
 </dependency>
 ```
@@ -58,7 +58,7 @@ pays for the start.
 | Builder call | Default | Purpose & rules |
 | --- | --- | --- |
 | `withCatalog(String \| Path)` | *(none)* | The catalog directory to serve, bind-mounted read-only. A **filesystem path, not a classpath resource** — see [what the path means](#what-withcatalog-resolves-against). With no catalog, the container serves whatever its image was built with. |
-| `withImage(String \| DockerImageName)` | `ghcr.io/bilal-fazlani/mock-server:latest` | The image to run. Parsed as a **whole reference** — `withImage("0.10.0")` looks for a repository named `0.10.0`. For a tag, use `MockServerContainer.DEFAULT_IMAGE_NAME.withTag("0.10.0")`. |
+| `withImage(String \| DockerImageName)` | `ghcr.io/bilal-fazlani/mock-server:latest` | The image to run. Parsed as a **whole reference** — `withImage("0.11.0")` looks for a repository named `0.11.0`. For a tag, use `MockServerContainer.DEFAULT_IMAGE_NAME.withTag("0.11.0")`. |
 | `withStartupTimeout(Duration)` | 2 minutes | How long to wait for `GET /ui/api/health` to answer `200`. |
 | `configure(Consumer<MockServerContainer>)` | no-op | Anything else the container — or `GenericContainer` beneath it — can do: environment variables, networks, log consumers, reuse. Applied before the container starts, and additive across calls. |
 | `schemaCheck(SchemaCheck.Mode)` | `FAILED` | The suite-wide [end-of-test schema check](#the-end-of-test-schema-check). |
@@ -94,7 +94,7 @@ MockServer.container()
 
     ```java
     MockServer.container()
-            .withImage(MockServerContainer.DEFAULT_IMAGE_NAME.withTag("0.10.0"))
+            .withImage(MockServerContainer.DEFAULT_IMAGE_NAME.withTag("0.11.0"))
             .withCatalog("src/test/resources/catalog")
             .build();
     ```

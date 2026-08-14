@@ -14,7 +14,7 @@ in step.
 ```kotlin
 // build.gradle.kts
 dependencies {
-    testImplementation("com.bilal-fazlani:mock-server-spring-boot-test:2.0.0")
+    testImplementation("com.bilal-fazlani:mock-server-spring-boot-test:2.1.0")
 
     // No versions needed: the JUnit BOM arrives transitively.
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
@@ -27,7 +27,7 @@ dependencies {
 <dependency>
   <groupId>com.bilal-fazlani</groupId>
   <artifactId>mock-server-spring-boot-test</artifactId>
-  <version>2.0.0</version>
+  <version>2.1.0</version>
   <scope>test</scope>
 </dependency>
 ```
@@ -102,7 +102,7 @@ against](junit.md#what-withcatalog-resolves-against).
     ```java
     @ServiceConnection
     static final MockServerContainer MOCK_SERVER =
-            new MockServerContainer(MockServerContainer.DEFAULT_IMAGE_NAME.withTag("0.10.0"))
+            new MockServerContainer(MockServerContainer.DEFAULT_IMAGE_NAME.withTag("0.11.0"))
                     .withCatalog("src/test/resources/catalog");
     ```
 
@@ -111,7 +111,7 @@ against](junit.md#what-withcatalog-resolves-against).
     release is published as an image tag, and nothing else is.
 
     The constructor argument is a **whole image reference**, so
-    `new MockServerContainer("0.10.0")` looks for a repository named `0.10.0`.
+    `new MockServerContainer("0.11.0")` looks for a repository named `0.11.0`.
     Compose the tag onto `DEFAULT_IMAGE_NAME` as above. The SDK needs server
     **0.7.0 or newer** — see [Compatibility](index.md#compatibility).
 
