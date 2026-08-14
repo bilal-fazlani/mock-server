@@ -194,18 +194,50 @@ other change to the test.
 class CheckoutServiceIT { … }
 ```
 
-It is ignored when a container has already supplied a connection-details bean, so
-leaving it set in a shared properties file cannot quietly redirect a
-containerised test.
+It is ignored when a container has already supplied a connection-details bean —
+under every spelling of it — so leaving it set in a shared properties file cannot
+quietly redirect a containerised test.
 
-!!! warning "Spell it `mock-server.url` exactly"
+A **relaxed** spelling is not a trap. `mock-server.url` binds under Spring Boot's
+relaxed rules like every other property here, and so does the **presence** check
+that decides whether the attach-mode bean is registered at all: `mockserver.url`,
+`mockServer.url`, and a `MOCK_SERVER_URL` environment variable are the same
+property, and each one turns attach mode on pointing at the value it carries.
 
-    Every other property here binds under Spring Boot's relaxed rules, so
-    `mock-server.wiring.enabled` and `mockserver.wiring.enabled` are the same
-    property. `mock-server.url` is the exception: its **presence** is what decides
-    whether the attach-mode bean is registered at all, and that decision is a
-    `@ConditionalOnProperty` match, which is exact. `mockserver.url` binds the
-    value and registers nothing.
+Getting the *value* wrong, and getting the *name* wrong in a way Spring does not
+read as this property, are the two that cost you something — and they fail in
+opposite directions.
+
+!!! warning "A URL you get wrong is honoured, not ignored"
+
+    Nothing validates the value before the wiring uses it. Point it at an address
+    nothing is listening on and the context fails to load, naming what it tried:
+
+    ```text
+    could not reach the mock server at http://localhost:3001/ui/api/catalog (java.net.ConnectException)
+    ```
+
+    Point it at an address something *is* listening on — a colleague's server,
+    last week's port — and nothing fails. The wiring publishes that server's
+    catalog and the test runs against it. Your evidence is the one `INFO` line the
+    wiring logs as it publishes, which names the server it actually reached:
+
+    ```text
+    mock-server: wired 2 systems to http://localhost:3001
+      payments -> payments.url, PAYMENTS_URL
+      shipping -> shipping.api.url, SHIPPING_API_URL, shipping.api-url
+    ```
+
+    That line needs an SLF4J binding on the test runtime classpath to appear. With
+    `slf4j-api` and no binding, SLF4J installs a no-op logger, and this becomes the
+    one case here that leaves no trace at all.
+
+A name Spring does **not** read as this property — `mock-server.uri`,
+`mock.server.url` — is not this property at all, and fails the opposite way:
+nothing binds, no bean is registered, nothing is published, and the test behaves
+as though you had never set the URL. Attach mode never happens, so the application
+under test goes on to call its real upstream — or fails to resolve a placeholder —
+several layers from here.
 
 ## Sharing the container across test classes
 
