@@ -133,6 +133,8 @@ API](../driving/api.md). Instances are thread-safe and meant to be shared, one p
 server; the handles they hand out are per-interaction builders and are not.
 
 ```java
+import com.bilalfazlani.mockserver.client.MockServerClient;
+
 MockServerClient client = MockServerClient.create("http://localhost:3000");
 ```
 
@@ -185,17 +187,22 @@ trip. After a restart under a long-lived client, call `refreshCatalog()`.
 ### Request logs
 
 ```java
+import com.bilalfazlani.mockserver.client.LogEntry;
+import com.bilalfazlani.mockserver.client.LogSummary;
+
 List<LogSummary> calls =
         client.logs().profile("customer-123").endpoint("charge").limit(50).fetch();
 
 Optional<LogEntry> detail = client.logEntry(calls.get(0).logId());
 ```
 
-`fetch()` returns summaries; `fetchFull()` returns entries with captured request
-and response bodies. Filters mirror the [API's query
-parameters](../driving/api.md#request-logs): `profile`, `endpoint`, `errorsOnly()`,
-`validation(ValidationFilter)`, `logId`, `since` / `before` cursors, and `limit`
-(clamped to 1–200 by the server).
+`fetch()` returns `List<LogSummary>`; `fetchFull()` returns `List<LogEntry>` — the
+same rows, with captured request and response bodies included. Filters mirror
+the [API's query parameters](../driving/api.md#request-logs): `profile`,
+`endpoint`, `errorsOnly()`, `validation(ValidationFilter)`, `logId`, `since` /
+`before` cursors, and `limit` (clamped to 1–200 by the server).
+`ValidationFilter` is in the same package as `LogSummary` and `LogEntry` above,
+`com.bilalfazlani.mockserver.client`.
 
 `logEntry` returns empty when no entry has that ID — normally because it aged out
 of the log's TTL window rather than because the ID was wrong.

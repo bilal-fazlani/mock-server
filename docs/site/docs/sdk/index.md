@@ -97,12 +97,12 @@ All four are published to Maven Central as
 `com.bilal-fazlani:<artifact>:2.1.0`, sharing one version. Each depends on the one
 above it, so a test suite declares exactly one — the highest it needs.
 
-| Artifact | What it adds | Depends on |
-| --- | --- | --- |
-| `mock-server-client` | A fluent Java client for the runtime-control API: profiles, global mocks, catalog, request logs. No test framework. | — |
-| `mock-server-testcontainers` | `MockServerContainer`, a `GenericContainer` that mounts a catalog and does not report started until the server is healthy. | `mock-server-client` |
-| `mock-server-junit` | The JUnit 5 DSL: a `MockServer` extension, `MockProfile` injection, `serves` / `verify` / `await`, the schema check. | `mock-server-testcontainers` |
-| `mock-server-spring-boot-test` | `@ServiceConnection` support and catalog-driven URL wiring, so the application's own beans are built already pointing at the mock. | `mock-server-junit` |
+| Artifact | What it adds | Depends on | Javadoc |
+| --- | --- | --- | --- |
+| `mock-server-client` | A fluent Java client for the runtime-control API: profiles, global mocks, catalog, request logs. No test framework. | — | [`mock-server-client` javadoc](https://javadoc.io/doc/com.bilal-fazlani/mock-server-client/latest) |
+| `mock-server-testcontainers` | `MockServerContainer`, a `GenericContainer` that mounts a catalog and does not report started until the server is healthy. | `mock-server-client` | [`mock-server-testcontainers` javadoc](https://javadoc.io/doc/com.bilal-fazlani/mock-server-testcontainers/latest) |
+| `mock-server-junit` | The JUnit 5 DSL: a `MockServer` extension, `MockProfile` injection, `serves` / `verify` / `await`, the schema check. | `mock-server-testcontainers` | [`mock-server-junit` javadoc](https://javadoc.io/doc/com.bilal-fazlani/mock-server-junit/latest) |
+| `mock-server-spring-boot-test` | `@ServiceConnection` support and catalog-driven URL wiring, so the application's own beans are built already pointing at the mock. | `mock-server-junit` | [`mock-server-spring-boot-test` javadoc](https://javadoc.io/doc/com.bilal-fazlani/mock-server-spring-boot-test/latest) |
 
 ## Compatibility
 

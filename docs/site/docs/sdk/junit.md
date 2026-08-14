@@ -391,6 +391,8 @@ other.
 flake somewhere else later.
 
 ```java
+import com.bilalfazlani.mockserver.junit.UsesGlobalMocks;
+
 @Test
 @UsesGlobalMocks
 void seesAGatewayOutage() {
