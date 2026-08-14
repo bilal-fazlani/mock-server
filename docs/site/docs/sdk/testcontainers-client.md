@@ -162,9 +162,31 @@ drop every selection made earlier. Ask for that wholesale replacement explicitly
 with `clearScenarios()`. It is not atomic against a concurrent writer of the same
 profile — the API offers no compare-and-set, and the last write wins.
 
+Where you put `clearScenarios()` in the chain makes no difference. It records the
+intent to drop the *stored* selections, and `apply()` honours that before it
+composes what this handle staged, so a selection staged ahead of the call survives
+it. Both of these write `card_declined` against an otherwise-emptied profile:
+
+```java
+client.profile("customer-123")
+      .endpoint("payments", "charge").serves("card_declined")
+      .clearScenarios()
+      .apply();
+
+client.profile("customer-123")
+      .clearScenarios()
+      .endpoint("payments", "charge").serves("card_declined")
+      .apply();
+```
+
+Order decides one thing only: repeat a call and the later one wins — a second
+selection for the same endpoint replaces the first, as does a second
+`displayName()`.
+
 | Call | What it does |
 | --- | --- |
 | `get()` | The stored profile, or empty when none has been written under this ID. |
+| `clearScenarios()` | Stages the removal of every selection the *stored* profile holds, so `apply()` writes only what this handle staged. Chain position is irrelevant. With nothing else staged, it empties the profile's selections and keeps the profile. |
 | `apply()` | Commits the staged selections and returns the stored profile. The server normalises on the way in, so what comes back may differ from what was staged. |
 | `reset()` / `reset(endpoint)` | Rewinds sequence progress and resolver history. Leaves selections in place. |
 | `delete()` | Removes the profile and everything keyed to it — mappings, sequence progress, resolver history, request logs. Idempotent. |
@@ -177,6 +199,14 @@ client.globalMock("payments", "gateway_status").clear();
 
 List<GlobalMockScenario> inForce = client.globalMocks();
 ```
+
+Nothing is staged here, and there is no `apply()`: `serves(…)` and `clear()` each
+send their request as you call it, and the change is in force the moment they
+return. What `clear()` leaves in force is the endpoint's implicit default rather
+than a selection of its own, and it drops that endpoint's resolver history along
+with the override. A global mock is one value rather than a map to merge, so there
+is nothing to read-modify-write and nothing to batch — which is why profiles need
+an `apply()` and this does not.
 
 `client.catalog()` returns the systems, endpoints, and declared scenarios the
 server loaded at startup. It is fetched once and cached — the server reads its
