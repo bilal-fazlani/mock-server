@@ -178,6 +178,79 @@ adding a remapping cannot silently take the standard names away. A slug no syste
 in the catalog declares fails the context load and names the slugs that do exist,
 rather than quietly publishing nothing.
 
+### What is published outranks what the test declares
+
+A published name **wins over the test's own value for it** — over
+`@SpringBootTest(properties = …)`, over `@TestPropertySource`, over
+`application.properties`, over a system property, over a real environment
+variable, and over a `@DynamicPropertySource` method of your own. This is the
+opposite of the precedence a Spring reader expects, so it is worth stating
+flatly: on a wired test, writing
+
+```java
+@SpringBootTest(properties = "PAYMENTS_URL=http://my-own-stub:8080")
+```
+
+points nothing at that stub. The application reads the mock server's address
+instead, and nothing reports that the line was overruled.
+
+The reason is the seam the wiring uses. Publication goes through a
+`DynamicPropertyRegistrar`, so the values land in Spring's **Dynamic Test
+Properties** source, which is added to the front of the `Environment` during the
+context refresh — after the **Inlined Test Properties** source, which
+`@SpringBootTest(properties = …)` and `@TestPropertySource` had already added to
+the front earlier, during environment preparation. Last to the front is first to
+be read, and every ordinary source sits beneath both.
+
+`@DynamicPropertySource` loses for a different reason, and it is the one to
+watch, because that annotation is the *same* seam. Its methods write into the
+very same **Dynamic Test Properties** source — but they run while the context is
+being customized, and this registrar runs later, during the refresh. Same map,
+later write: the SDK's value replaces yours rather than merely outranking it.
+
+Two things sit outside this. Names the wiring never publishes are unaffected, so
+`mock-server.*` and everything else in your test's configuration behave normally.
+And a system left out of the wiring publishes nothing to outrank anything with,
+which is what the next section is for.
+
+### Pointing one system somewhere else
+
+Mock two dependencies and hit the third for real — a staging deployment, a
+hand-rolled stub, a second mock server. Name the system's **slug** and it is left
+out of the wiring, which is what lets the address you set for it survive:
+
+```java
+@SpringBootTest(properties = {
+    "mock-server.wiring.exclude=payments",
+    "PAYMENTS_URL=https://payments.staging.example.com"
+})
+@MockServerTest
+class CheckoutServiceIT { … }   // shipping is mocked; payments is not
+```
+
+Comma-separate the slugs for more than one. Every other system in the catalog is
+published exactly as before, so this is per-system rather than the suite-wide
+switch below.
+
+Declare it on **the test class that needs it** — `@SpringBootTest(properties = …)`
+as above, or `@TestPropertySource`. It binds from `application.properties` too,
+but there it excludes that system for *every* test in the suite, which is rarely
+what you want: the classes that were happily mocking payments quietly stop.
+
+Nothing at all goes out for an excluded system — neither the names derived from
+its `baseUrlEnv` nor anything [remapped](#when-your-key-is-neither) to it. That
+combination is the point rather than a conflict: a remap in a shared properties
+file applies to the whole suite, an exclusion belongs to the one test class that
+needs it, and the exclusion is the more specific instruction.
+
+A slug no system in the catalog declares fails the context load and names the
+slugs that do exist. That check matters more here than it does for a remapping:
+a misspelled exclusion would leave the system wired, so the value you set by hand
+would keep being overwritten and the failure would point nowhere near the
+property that caused it.
+
+### Turning the wiring off entirely
+
 To publish nothing at all and point the code at
 `MOCK_SERVER.baseUrl()` by hand, set `mock-server.wiring.enabled=false`. The
 connection-details bean and the test DSL stay in place.
