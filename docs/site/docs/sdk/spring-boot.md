@@ -14,7 +14,7 @@ in step.
 ```kotlin
 // build.gradle.kts
 dependencies {
-    testImplementation("com.bilal-fazlani:mock-server-spring-boot-test:2.1.0")
+    testImplementation("com.bilal-fazlani:mock-server-spring-boot-test:2.2.0")
 
     // No versions needed: the JUnit BOM arrives transitively.
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
@@ -27,7 +27,7 @@ dependencies {
 <dependency>
   <groupId>com.bilal-fazlani</groupId>
   <artifactId>mock-server-spring-boot-test</artifactId>
-  <version>2.1.0</version>
+  <version>2.2.0</version>
   <scope>test</scope>
 </dependency>
 ```

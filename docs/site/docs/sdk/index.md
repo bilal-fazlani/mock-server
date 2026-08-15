@@ -94,7 +94,7 @@ modes, the escape hatch, and its one honest limitation.
 ## The four modules
 
 All four are published to Maven Central as
-`com.bilal-fazlani:<artifact>:2.1.0`, sharing one version. Each depends on the one
+`com.bilal-fazlani:<artifact>:2.2.0`, sharing one version. Each depends on the one
 above it, so a test suite declares exactly one — the highest it needs.
 
 | Artifact | What it adds | Depends on | Javadoc |
