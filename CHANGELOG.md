@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.0](https://github.com/bilal-fazlani/mock-server/compare/v0.11.0...v0.12.0) (2026-08-18)
+
+
+### Features
+
+* **docs:** write our own versions into the guide from one source of truth ([8b86279](https://github.com/bilal-fazlani/mock-server/commit/8b86279e7193f101c41e25d32535c58604b7b9d7)), closes [#85](https://github.com/bilal-fazlani/mock-server/issues/85)
+
 ## [0.11.0](https://github.com/bilal-fazlani/mock-server/compare/v0.10.1...v0.11.0) (2026-08-13)
 
 
