@@ -289,6 +289,10 @@ The rules:
 The `since` cursor remains the alternative when you'd rather not hold a
 connection open: read, remember the newest log ID, and poll it yourself.
 
+On the JVM these are `minCount(int)` and `waitMs(Duration)` on the client's [log
+query](../sdk/testcontainers-client.md#request-logs), which send exactly these two
+parameters.
+
 Fetch one full entry by ID (with the decision trace and captured
 request/response) via `GET /ui/api/logs/{logId}`, which answers
 `{ "entry": { … }, "bodyHtml": { … } }`, or

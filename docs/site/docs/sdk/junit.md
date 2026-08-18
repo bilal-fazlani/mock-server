@@ -346,9 +346,12 @@ deleted, because deleting a profile deletes its log.
 | `OFF` | Nothing. For the test that sends something invalid on purpose to prove the code under test handles the rejection. |
 
 Set the suite-wide default on the builder; override it per class or per method
-with `@SchemaCheck`, nearest annotation wins:
+with `@SchemaCheck`, nearest annotation wins. The annotation and its `Mode` are in
+the extension's own package, `com.bilalfazlani.mockserver.junit`:
 
 ```java
+import com.bilalfazlani.mockserver.junit.SchemaCheck;
+
 @Test
 @SchemaCheck(SchemaCheck.Mode.OFF)   // this test sends a negative amount on purpose
 void reportsAChargeTheGatewayRejectsOutright(MockProfile profile) {
@@ -387,8 +390,9 @@ profile ID from the request at all. Two tests moving it at once clobber each
 other.
 
 `@UsesGlobalMocks` is what makes it safe, and it is **required** — calling
-`mock.globalMock(…)` from a test without it fails immediately rather than as a
-flake somewhere else later.
+`mock.globalMock(…)` from a test without it throws `IllegalStateException`
+immediately rather than flaking somewhere else later. The message names the test
+and the endpoint it drove.
 
 ```java
 import com.bilalfazlani.mockserver.junit.UsesGlobalMocks;
@@ -422,10 +426,23 @@ Three conditions on that guarantee:
 - **The call must come from the test's own thread.** The extension tracks which
   test is calling by the thread Jupiter runs each callback on, so a call from a
   thread with no callback in scope — a test body under
-  `@Timeout(threadMode = SEPARATE_THREAD)`, above all — is refused outright rather
-  than waved through with no snapshot taken. If stepping outside the guard is what
-  you mean, say so with `mock.client().globalMock(…)`, which is unguarded and
-  restores nothing.
+  `@Timeout(threadMode = SEPARATE_THREAD)`, above all — is refused with the same
+  `IllegalStateException` rather than waved through with no snapshot taken. If
+  stepping outside the guard is what you mean, say so with
+  `mock.client().globalMock(…)`, which is unguarded and restores nothing.
+
+Both refusals are `IllegalStateException`, so a test whose subject *is* the guard
+asserts on that one type:
+
+```java
+assertThrows(IllegalStateException.class, () -> mock.globalMock("payments", "gateway_status"));
+```
+
+Naming an endpoint the catalog does not declare, or one that is not a global mock,
+is a different failure: `mock.globalMock(…)` rejects it locally against the cached
+catalog with a
+[`ClientValidationException`](testcontainers-client.md#failures), before anything
+goes over the wire.
 
 ## Bearer-token endpoints
 

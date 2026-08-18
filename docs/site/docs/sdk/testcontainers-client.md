@@ -142,6 +142,12 @@ MockServerClient client = MockServerClient.create("http://localhost:3000");
 timeout, a 10-second request timeout, the `ObjectMapper` JSON handling is derived
 from (copied, never mutated), or the whole `HttpClient`.
 
+Every type this client hands back is in that same package,
+`com.bilalfazlani.mockserver.client` — `ProfileHandle`, `GlobalMockScenario`,
+`LogSummary`, `LogEntry`, `ValidationFilter`, `Health`, and the four exceptions
+under [Failures](#failures). The container is the one exception, in
+`com.bilalfazlani.mockserver.testcontainers` as above.
+
 ### Profiles
 
 Unlike the JUnit DSL, a `ProfileHandle` **stages** locally and sends nothing until
@@ -227,12 +233,50 @@ Optional<LogEntry> detail = client.logEntry(calls.get(0).logId());
 ```
 
 `fetch()` returns `List<LogSummary>`; `fetchFull()` returns `List<LogEntry>` — the
-same rows, with captured request and response bodies included. Filters mirror
-the [API's query parameters](../driving/api.md#request-logs): `profile`,
-`endpoint`, `errorsOnly()`, `validation(ValidationFilter)`, `logId`, `since` /
-`before` cursors, and `limit` (clamped to 1–200 by the server).
-`ValidationFilter` is in the same package as `LogSummary` and `LogEntry` above,
-`com.bilalfazlani.mockserver.client`.
+same rows, with captured request and response bodies included, which is the
+[`include=full`](../driving/api.md#request-logs) the API page describes. Filters
+mirror the [API's query parameters](../driving/api.md#request-logs): `profile`,
+`endpoint`, `errorsOnly()`, `validation(ValidationFilter)`, `logId`,
+`traceId`, `since` / `before` cursors, and `limit` (clamped to 1–200 by the
+server). `logId` matches a prefix and ignores case; `traceId` matches the whole
+value and does not.
+
+`minCount(int)` and `waitMs(Duration)` are not filters, and they are the pair to
+reach for when the call you are asserting on is asynchronous. They leave the rows
+alone and say **when the read is answered**: the server holds the request until
+that many entries match the query's other filters, and answers the moment they do
+— the [awaiting-calls](../driving/api.md#awaiting-calls) rules in full, from the
+builder.
+
+```java
+// Answers as soon as the third call to `charge` is recorded, or after two seconds.
+List<LogSummary> rows = client.logs()
+        .profile("customer-123")
+        .endpoint("charge")
+        .minCount(3)
+        .waitMs(Duration.ofSeconds(2))
+        .fetch();
+```
+
+A read that already meets the threshold does not wait at all, and a wait that runs
+out answers anyway with whatever matched by then — neither is an error, which is
+what makes this cheap enough to send on every pass instead of writing a polling
+loop. It is the raw log path's equivalent of the JUnit DSL's
+[`await`](junit.md#waiting-for-calls-made-off-the-request-thread). Each supplies
+the other's default — `minCount` alone waits up to ten seconds, `waitMs` alone
+waits for a single entry — so set them together. The threshold is counted
+independently of `limit`, so `minCount(50).limit(10)` still answers with ten rows
+once fifty have matched.
+
+!!! warning "The client's request timeout has to outlast the wait"
+
+    This is the one setting on the builder that deliberately makes a request slow,
+    and the request is still an ordinary one. A client on its default 10-second
+    request timeout answers `waitMs(Duration.ofSeconds(30))` with a
+    `MockServerConnectionException` at ten seconds rather than an answer at thirty.
+    Raise `MockServerClient.builder(baseUrl).requestTimeout(…)` past the longest
+    wait you mean to ask for, leaving room for the round trip, or keep each wait
+    comfortably under the timeout and loop for the rest of the budget.
 
 `logEntry` returns empty when no entry has that ID — normally because it aged out
 of the log's TTL window rather than because the ID was wrong.
