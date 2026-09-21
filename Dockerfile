@@ -29,6 +29,12 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # in). Defaults to "unknown" for local `docker build` without --build-arg.
 ARG GIT_SHA=unknown
 ENV GIT_SHA=${GIT_SHA}
+# Version to report at runtime. Left blank, the build falls back to the version
+# in package.json, which is what the published image ships. A downstream build
+# passes the tag it publishes under, so the server reports the same string its
+# registry and deployment metadata use.
+ARG APP_VERSION=
+ENV APP_VERSION=${APP_VERSION}
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build

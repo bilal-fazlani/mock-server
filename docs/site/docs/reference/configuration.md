@@ -8,7 +8,10 @@ description: "Canonical reference for every environment variable that governs ap
 
 Environment variables govern app-wide behavior. Values are case-insensitive. This
 is the canonical reference for each setting; [Request lifecycle](request-lifecycle.md)
-shows how they steer routing.
+shows how they steer routing. Every variable below is read at startup by a running
+server; the two that a *build* reads instead — `APP_VERSION` and `GIT_SHA`, which
+name the build the server reports — live in
+[Naming your own build](../get-started/install.md#naming-your-own-build).
 
 | Variable | Values | Meaning |
 | --- | --- | --- |

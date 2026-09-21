@@ -43,7 +43,8 @@ hand-writing calls — or, on the JVM, use the hand-written one in the
 tracks this contract and ignores what it does not recognise. It covers every
 route below, plus the ones the dashboard uses internally, and it carries its own
 `info.version` — the version of the *contract*, not of the build. The build is
-what `GET /ui/api/health` reports as `version` and `sha`.
+what `GET /ui/api/health` reports as `version` and `sha`, which a build from
+source can [set for itself](../get-started/install.md#naming-your-own-build).
 
 The API **evolves additively**. New routes, new optional request fields, new
 response fields, and new members of an existing enum arrive in ordinary

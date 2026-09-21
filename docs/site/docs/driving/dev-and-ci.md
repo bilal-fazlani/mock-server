@@ -80,7 +80,9 @@ jobs:
 ```
 
 The health response also carries the running build's `version` and `sha`, so a CI
-step can log or assert exactly which image it is testing against:
+step can log or assert exactly which image it is testing against — and a build
+from source can [name itself](../get-started/install.md#naming-your-own-build),
+so the string you assert on is the tag you published:
 
 ```bash
 curl -sf http://localhost:3000/ui/api/health | jq '{version, sha}'

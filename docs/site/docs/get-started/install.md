@@ -127,6 +127,8 @@ docker run --rm -p 3000:3000 my-mocks:1.4.0
 The `--chown=nextjs:nodejs` matters: the image drops to the unprivileged `nextjs`
 user, which is also who runs the `RUN` line above. `ENTRYPOINT`, `CMD`, `EXPOSE`,
 and the health check are all inherited, so the derived image needs none of them.
+So is the version the base image reports: a derived build cannot change it (see
+[Naming your own build](#naming-your-own-build)).
 
 !!! note "`mock-server` is a shim, not the CMD"
 
@@ -164,7 +166,34 @@ catalog against the checkout's own environment — see
 is reachable, or `503 {"status":"error","mongo":"down",…}` otherwise — useful as
 a readiness probe when scripting startup (see
 [Using it in dev & CI](../driving/dev-and-ci.md)). Both bodies also carry the
-running build's `version` and `sha`.
+running build's `version` and `sha`, the same pair the dashboard footer and the
+[Environment page](../driving/ui.md#environment-uienvironment) show.
+
+### Naming your own build
+
+Both values are fixed when the server is compiled, from two environment
+variables read by `next build`:
+
+| Variable | Default | Sets |
+| --- | --- | --- |
+| `APP_VERSION` | the `version` in `package.json` | The `version` in the health body, the dashboard footer, and the Environment page. Blank counts as unset. |
+| `GIT_SHA` | `GITHUB_SHA`, else `unknown` | The `sha` in the same three places. The published image passes it as a Docker build-arg. |
+
+That matters when you build this server from source into your own image: set
+`APP_VERSION` to the tag you publish under, and the running server reports the
+same string your registry, your deployment metadata, and your rollback tooling
+use.
+
+```bash
+docker build --build-arg APP_VERSION=17.0 -t my-mocks:17.0 .
+```
+
+!!! warning "A derived image inherits the version it was built from"
+
+    Setting `APP_VERSION` while building `FROM ghcr.io/bilal-fazlani/mock-server`
+    does nothing: that base image was already compiled, so it keeps reporting the
+    version it shipped with. Extending the published image gives you your own
+    catalog, not your own version string — only a build from source can set one.
 
 ## Next steps
 

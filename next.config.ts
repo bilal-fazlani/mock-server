@@ -1,12 +1,17 @@
 import { readFileSync } from "node:fs";
 import type { NextConfig } from "next";
 
-// Build info baked in at build time. Version comes from package.json; the git
-// SHA is passed in via GIT_SHA (Docker build-arg) or GITHUB_SHA (CI), and falls
-// back to "unknown" for local builds where neither is set.
-const { version } = JSON.parse(readFileSync("./package.json", "utf8")) as {
-  version: string;
-};
+// Build info baked in at build time. Version comes from APP_VERSION when the
+// build sets one — a downstream image built from this source can then report its
+// own release tag instead of this repo's package version — and from package.json
+// otherwise. Blank counts as unset, because a CI expression that resolves to
+// nothing ("APP_VERSION=${{ inputs.version }}") would otherwise bake an empty
+// version. The git SHA is passed in via GIT_SHA (Docker build-arg) or GITHUB_SHA
+// (CI), and falls back to "unknown" for local builds where neither is set.
+const { version: packageVersion } = JSON.parse(
+  readFileSync("./package.json", "utf8"),
+) as { version: string };
+const version = process.env.APP_VERSION?.trim() || packageVersion;
 const gitSha = process.env.GIT_SHA ?? process.env.GITHUB_SHA ?? "unknown";
 
 const nextConfig: NextConfig = {
