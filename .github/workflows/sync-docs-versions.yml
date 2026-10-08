@@ -45,6 +45,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          # Always main, whatever the trigger. A `release` event checks out the
+          # release tag, which leaves HEAD detached and makes the bare `git push`
+          # in the Commit step fail — and main is where that commit belongs.
+          ref: main
 
       # Read both versions from where a *user* would get them, not from where we
       # think we put them. The server's from its own GitHub releases, which is
