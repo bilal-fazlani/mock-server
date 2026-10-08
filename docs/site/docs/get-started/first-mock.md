@@ -1,10 +1,10 @@
 ---
-description: "Add POST /accounts/balance to an existing system, with a default and an insufficient scenario, step by step."
+description: "Add POST /wallet/balance to an existing system, with a default and an insufficient scenario, step by step."
 ---
 
 # Step-by-step: add an endpoint
 
-We'll add `POST /accounts/balance` to the existing "Hello System", returning a
+We'll add `POST /wallet/balance` to the existing "Hello System", returning a
 customer's balance, with a `default` (balance available) and an `insufficient`
 scenario.
 
@@ -13,18 +13,18 @@ scenario.
 Under the system directory, make a new directory named after the endpoint and add
 `_endpoint.json`:
 
-`catalog/hello-system/account_balance/_endpoint.json`
+`catalog/hello-system/wallet_balance/_endpoint.json`
 
 ```json
 {
-  "displayName": "Account Balance",
+  "displayName": "Wallet Balance",
   "method": "POST",
-  "path": "/accounts/balance",
+  "path": "/wallet/balance",
   "profileIdSelector": "$.customerId"
 }
 ```
 
-Note what's *not* here: no `name` field (the directory name `account_balance` *is*
+Note what's *not* here: no `name` field (the directory name `wallet_balance` *is*
 the endpoint name) and no scenario list — scenarios are just the `<scenario>.json`
 files you drop in next, not something declared up front. There's also no `real`
 entry to write — passthrough is implicit on every endpoint. Every field is
@@ -37,7 +37,7 @@ brand-new system, first create its directory with a `_system.json` — see
 Each scenario is one `<scenario>.json` file, named after the scenario, sitting
 next to `_endpoint.json`:
 
-`catalog/hello-system/account_balance/default.json`
+`catalog/hello-system/wallet_balance/default.json`
 
 ```json
 {
@@ -52,7 +52,7 @@ next to `_endpoint.json`:
 }
 ```
 
-`catalog/hello-system/account_balance/insufficient.json`
+`catalog/hello-system/wallet_balance/insufficient.json`
 
 ```json
 {
@@ -107,7 +107,7 @@ Start the server and send the request. Nothing else is set up yet — that is th
 point:
 
 ```bash
-curl -s -X POST <origin>/accounts/balance \
+curl -s -X POST <origin>/wallet/balance \
   -H 'content-type: application/json' \
   -d '{"customerId":"customer-123"}'
 ```
@@ -131,7 +131,7 @@ there is always something to serve.
 The server says so on its side, at `warn`:
 
 ```text
-[mock] POST /accounts/balance -> 200 4ms hello-system/account_balance profile=customer-123 scenario=default source=unmocked_policy selector=$.customerId outcome=fixture
+[mock] POST /wallet/balance -> 200 4ms hello-system/wallet_balance profile=customer-123 scenario=default source=unmocked_policy selector=$.customerId outcome=fixture
 ```
 
 `source=unmocked_policy` means "no profile matched" — which is the next thing to
@@ -145,7 +145,7 @@ else — here, how `customer-123` gets `insufficient` while everyone else keeps
 seeing a balance.
 
 Open [the dashboard](../driving/ui.md) at `/ui`, create a profile whose ID is
-`customer-123`, pick **Insufficient funds** for **Account Balance**, and save.
+`customer-123`, pick **Insufficient funds** for **Wallet Balance**, and save.
 Repeat the same curl:
 
 ```json
