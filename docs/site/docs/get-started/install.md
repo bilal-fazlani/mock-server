@@ -137,6 +137,51 @@ So is the version the base image reports: a derived build cannot change it (see
     dispatches `serve` (the default) and `validate` — it exists so a derived
     build and an ad-hoc `docker run` can reach the validator.
 
+#### Trusting a database's CA
+
+The image carries no CA bundle beyond the system's own, so it stays neutral about
+where your MongoDB runs. When that database is signed by a private CA, or by a
+managed database's CA such as Amazon DocumentDB's, add the bundle in a derived
+image and point the connection string at it:
+
+```dockerfile
+# syntax=docker/dockerfile:1
+FROM ghcr.io/bilal-fazlani/mock-server:latest
+ADD --checksum=sha256:<hash> --chmod=0444 https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem /app/global-bundle.pem
+COPY --chown=nextjs:nodejs catalog /app/catalog
+RUN mock-server validate
+```
+
+Then run the image with the CA file named in the query string of
+[`MONGODB_CONNECTION_STRING`](../reference/configuration.md), next to an explicit
+`tls=true`:
+
+```bash
+docker run --rm -p 3000:3000 \
+  -e MONGODB_CONNECTION_STRING='mongodb://user:pass@db.example.com:27017/?tls=true&tlsCAFile=/app/global-bundle.pem' \
+  my-mocks:1.4.0
+```
+
+Three details in that `ADD` line:
+
+- **No `USER` switch is needed.** `COPY` and `ADD` run as root whatever the base
+  image's `USER` is, which is why the `COPY` line needs its `--chown` and the
+  `ADD` line does not.
+- **`--chmod=0444` is required.** A file fetched by a remote `ADD` lands with
+  mode `600`, owned by root, which the image's unprivileged `nextjs` user cannot
+  read — the connection then fails on the CA file rather than on the database.
+- **`--checksum=sha256:<hash>` pins the download.** The build fails if the
+  published bundle changes, instead of silently trusting a different one. When
+  the provider rotates the bundle, update the hash; the image itself is not
+  affected.
+
+`ADD --checksum` needs BuildKit with Dockerfile frontend 1.6 or newer. The
+`# syntax=docker/dockerfile:1` line at the top of the example fetches the current
+frontend, so it works on any BuildKit-enabled Docker without checking versions.
+
+For a bundle you already hold, `COPY --chmod=0444 my-ca.pem /app/my-ca.pem` does
+the same without the download.
+
 ## From source (development)
 
 ```bash

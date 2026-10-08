@@ -1,13 +1,5 @@
 # syntax=docker/dockerfile:1
 
-# --- rds-ca: download and verify the AWS RDS/DocumentDB trust bundle ---
-FROM alpine:3.22 AS rds-ca
-ARG RDS_GLOBAL_BUNDLE_URL=https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem
-ARG RDS_GLOBAL_BUNDLE_SHA256=e5bb2084ccf45087bda1c9bffdea0eb15ee67f0b91646106e466714f9de3c7e3
-RUN apk add --no-cache ca-certificates curl \
-  && curl -fsSL "${RDS_GLOBAL_BUNDLE_URL}" -o /global-bundle.pem \
-  && echo "${RDS_GLOBAL_BUNDLE_SHA256}  /global-bundle.pem" | sha256sum -c -
-
 # --- deps: install all deps (incl. dev, needed for the build) ---
 # Debian/glibc base (matching the runner) so native addons traced into the
 # standalone bundle — notably sharp's @img/sharp-linux-* binary — are glibc-linked
@@ -102,11 +94,8 @@ RUN set -eu; \
   && apt-get autoremove -y \
   && rm -rf /var/lib/apt/lists/*
 
-COPY --from=rds-ca /global-bundle.pem ./global-bundle.pem
-
 RUN groupadd --system --gid 1001 nodejs \
-  && useradd --system --uid 1001 --gid nodejs nextjs \
-  && chmod 0444 /app/global-bundle.pem
+  && useradd --system --uid 1001 --gid nodejs nextjs
 
 # Subcommand shim on PATH: `mock-server validate` in a derived image's build, or
 # in an ad-hoc `docker run`. The CMD below still starts the server directly, so
