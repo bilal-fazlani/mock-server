@@ -15,7 +15,7 @@ name the build the server reports — live in
 
 | Variable | Values | Meaning |
 | --- | --- | --- |
-| `CATALOG_PATH` | Directory path<br>(default `./catalog`) | Where the catalog tree is loaded from. A relative path resolves against the server's working directory; an absolute path is used as-is. The `npx @bilal-fazlani/mock-server [catalogPath]` CLI argument, when given, overrides this variable. |
+| `CATALOG_PATH` | Directory path<br>(default `./catalog`) | Where the catalog tree is loaded from. A relative path resolves against the server's working directory; an absolute path is used as-is. The `npx @bilal-fazlani/mock-server [catalogPath]` CLI argument, when given, overrides this variable. The shipped server exits at startup if the directory does not exist (`npm run dev` logs the error and keeps running). In the Docker image, mount a catalog at `/app/catalog`. |
 | `PORT` | Port number<br>(default `3000`) | The port the HTTP server listens on. The CLI's `-p` / `--port` flag, when given, overrides this variable. |
 | `BIND_ADDRESS` | IPv4 or IPv6 address<br>(default `0.0.0.0`) | The network address the HTTP server listens on. Only an IP literal is accepted — `0.0.0.0` (every IPv4 interface), `127.0.0.1` (loopback only), `::`, `::1`. A hostname such as `localhost` is rejected, and so is any other value: the server exits at startup naming the variable and the bad value, before it listens. The CLI's `--bind` flag, when given, overrides this variable; `--bind` with no address is a usage error. The `HOSTNAME` variable that container platforms set to the container's own name is **never** read for this, so a platform-assigned hostname cannot move the listener. Applies to the image and the CLI; `next dev` and `next start` ignore it. Leave it at the default in a container, where any specific address breaks something — see [Container health checks](../get-started/install.md#container-health-checks). |
 | `MONGODB_CONNECTION_STRING` | Mongo connection URI<br>(optional) | External MongoDB for profiles, global mock selections, profile key mappings, and request logs. If unset, an in-memory MongoDB starts automatically on first use — data is ephemeral and lost on restart. The published Docker image bakes in a `mongod` binary so this embedded fallback works fully offline. |
@@ -33,7 +33,7 @@ name the build the server reports — live in
 !!! note "Embedded MongoDB is ephemeral"
 
     `MONGODB_CONNECTION_STRING` is optional. Leave it unset for a quick local run
-    or a `docker run` with nothing else configured — an in-memory `mongod` boots
+    or a `docker run` with only a catalog mounted — an in-memory `mongod` boots
     on first use and is discarded when the process exits, so profiles, global
     mock selections, mappings, and request logs do **not** survive a restart.
     Set `MONGODB_CONNECTION_STRING` to a real MongoDB instance for anything you

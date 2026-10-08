@@ -8,6 +8,12 @@ We'll add `POST /wallet/balance` to the existing "Hello System", returning a
 customer's balance, with a `default` (balance available) and an `insufficient`
 scenario.
 
+!!! note "Start from the example catalog"
+
+    "The existing Hello System" is the repository's `catalog/hello-system/`.
+    Neither the npm package nor the Docker image includes it, so
+    [download it into `./catalog`](install.md#get-a-catalog-to-try) first.
+
 ## 1. Create the endpoint directory and its metadata
 
 Under the system directory, make a new directory named after the endpoint and add

@@ -22,7 +22,7 @@
 // runtime, resolved next to itself.
 
 import { build } from 'esbuild'
-import { existsSync, mkdirSync } from 'node:fs'
+import { existsSync, mkdirSync, rmSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -35,6 +35,8 @@ const entries = [
 ]
 
 mkdirSync(outDir, { recursive: true })
+// File tracing copies the sample catalog in via cwd-relative reads; neither the image nor the package ships one.
+rmSync(path.join(outDir, 'catalog'), { recursive: true, force: true })
 
 for (const entry of entries) {
   const outfile = path.join(outDir, entry.outfile)

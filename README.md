@@ -26,7 +26,7 @@ isn't set, an in-memory MongoDB starts automatically (data is ephemeral).
 npx @bilal-fazlani/mock-server ./catalog
 
 # or via Docker
-docker run --rm -p 3000:3000 ghcr.io/bilal-fazlani/mock-server:latest
+docker run --rm -p 3000:3000 -v "$(pwd)/catalog:/app/catalog:ro" ghcr.io/bilal-fazlani/mock-server:latest
 
 # check a catalog without starting anything (exit 0 clean, 1 on any error)
 npx @bilal-fazlani/mock-server validate ./catalog
@@ -34,8 +34,10 @@ npx @bilal-fazlani/mock-server validate ./catalog
 
 Mock endpoints answer at the **root** — an endpoint whose catalog `path` is
 `/hello/world` responds at `http://localhost:3000/hello/world`; the management UI
-is at `http://localhost:3000/ui`. The repo ships an example system
-(`catalog/hello-system/`) to call and edit:
+is at `http://localhost:3000/ui`. The repo has an example system
+(`catalog/hello-system/`) to call and edit — the guide shows how to
+[download it](https://mock-server.bilal-fazlani.com/get-started/install/#get-a-catalog-to-try).
+With it serving:
 
 ```bash
 curl -s -X POST http://localhost:3000/hello/world \

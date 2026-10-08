@@ -57,7 +57,7 @@ pays for the start.
 
 | Builder call | Default | Purpose & rules |
 | --- | --- | --- |
-| `withCatalog(String \| Path)` | *(none)* | The catalog directory to serve, bind-mounted read-only. A **filesystem path, not a classpath resource** — see [what the path means](#what-withcatalog-resolves-against). With no catalog, the container serves whatever its image was built with. |
+| `withCatalog(String \| Path)` | *(none)* | The catalog directory to serve, bind-mounted read-only. A **filesystem path, not a classpath resource** — see [what the path means](#what-withcatalog-resolves-against). The default image contains no catalog, so a container started without one exits with a `catalog directory not found` error. |
 | `withImage(String \| DockerImageName)` | `ghcr.io/bilal-fazlani/mock-server:latest` | The image to run. Parsed as a **whole reference** — `withImage("0.12.0")` looks for a repository named `0.12.0`. For a tag, use `MockServerContainer.DEFAULT_IMAGE_NAME.withTag("0.12.0")`. |
 | `withStartupTimeout(Duration)` | 2 minutes | How long to wait for `GET /ui/api/health` to answer `200`. |
 | `configure(Consumer<MockServerContainer>)` | no-op | Anything else the container — or `GenericContainer` beneath it — can do: environment variables, networks, log consumers, reuse. Applied before the container starts, and additive across calls. |

@@ -161,6 +161,12 @@ describe('loadCatalog', () => {
     expect(() => loadCatalog('/nonexistent/catalog')).toThrow(CatalogLoadError)
   })
 
+  it('says how to supply a catalog when the directory does not exist', () => {
+    expect(() => loadCatalog('/nonexistent/catalog')).toThrow(
+      /^catalog directory not found: \/nonexistent\/catalog\n.*argument.*CATALOG_PATH.*\/app\/catalog/s,
+    )
+  })
+
   it('loads an endpoint with metadata but zero scenario files as empty scenarios', () => {
     const dir = tmpCatalogDir({
       'sys/_system.json': SYSTEM_META,

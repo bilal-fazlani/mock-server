@@ -112,9 +112,6 @@ COPY --from=build /app/public ./public
 COPY --from=build --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=build --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Runtime data read via process.cwd() at request time.
-COPY --from=build --chown=nextjs:nodejs /app/catalog ./catalog
-
 USER nextjs
 EXPOSE 3000
 

@@ -82,6 +82,7 @@ describe('runValidate', () => {
     const { io, err } = capture()
     expect(runValidate(path.join(os.tmpdir(), 'mock-validate-absent'), io)).toBe(1)
     expect(err[1]).toContain('catalog directory not found')
+    expect(err.join('\n')).toMatch(/CATALOG_PATH.*\/app\/catalog/s)
   })
 
   it('exits 1 when a resolver fails to compile', () => {

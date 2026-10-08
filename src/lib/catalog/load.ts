@@ -25,7 +25,11 @@ export class CatalogLoadError extends Error {}
 // left to validateCatalog so they land in the startup error list.
 export function loadCatalog(catalogDir: string): Catalog {
   if (!fs.existsSync(catalogDir)) {
-    throw new CatalogLoadError(`catalog directory not found: ${catalogDir}`)
+    throw new CatalogLoadError(
+      `catalog directory not found: ${catalogDir}\n` +
+        'Pass the catalog directory as an argument, set CATALOG_PATH, ' +
+        'or in Docker mount one at /app/catalog (-v "$(pwd)/catalog:/app/catalog:ro").',
+    )
   }
   const problems: string[] = []
   const systems: SystemDef[] = []

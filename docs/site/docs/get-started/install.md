@@ -28,6 +28,21 @@ There are four, and they suit different moments:
 Whichever you pick, you can check a catalog without starting anything — see
 [Validating a catalog](../building/validate.md).
 
+## Get a catalog to try
+
+Neither the npm package nor the Docker image contains a catalog: the server needs
+one from you, and exits with an error if it can't find it. To try the server
+before writing your own, download the repository's example catalog
+(`catalog/hello-system/`) into `./catalog`. It needs only `curl` and `tar`:
+
+```bash
+curl -fsSL https://github.com/bilal-fazlani/mock-server/archive/refs/heads/main.tar.gz | tar -xz --strip-components=1 mock-server-main/catalog
+```
+
+The example follows the repository's `main` branch, so it can be ahead of the
+release you run. Then continue with a run below, or with
+[Your first mock endpoint](first-mock.md), which starts from it.
+
 ## npx (quickest)
 
 ```bash
@@ -36,6 +51,8 @@ npx @bilal-fazlani/mock-server ./catalog
 
 The positional argument is the catalog directory (default `./catalog`, relative
 to your current directory); it overrides the `CATALOG_PATH` environment variable.
+If the directory doesn't exist the server exits with an error saying so. Don't
+have a catalog yet? [Download the example](#get-a-catalog-to-try).
 
 ```text
 Usage:
@@ -72,8 +89,14 @@ listing](https://github.com/bilal-fazlani/mock-server/pkgs/container/mock-server
 `GET /ui/api/health`.
 
 ```bash
-docker run --rm -p 3000:3000 ghcr.io/bilal-fazlani/mock-server:latest
+docker run --rm -p 3000:3000 \
+  -v "$(pwd)/catalog:/app/catalog:ro" \
+  ghcr.io/bilal-fazlani/mock-server:latest
 ```
+
+The image contains no catalog, so this mounts yours at `/app/catalog`. Without one
+the container exits with a `catalog directory not found` error rather than serving
+nothing. To try it first, [download the example catalog](#get-a-catalog-to-try).
 
 The image bakes in `mongod`, so with no `MONGODB_CONNECTION_STRING` it starts an
 in-memory MongoDB (ephemeral — lost when the container stops). Pass a connection
@@ -81,16 +104,16 @@ string for a real, persistent MongoDB instead:
 
 ```bash
 docker run --rm -p 3000:3000 \
+  -v "$(pwd)/catalog:/app/catalog:ro" \
   -e MONGODB_CONNECTION_STRING='mongodb://host.docker.internal:27017' \
   ghcr.io/bilal-fazlani/mock-server:latest
 ```
 
-The image also bakes in the example `catalog/` tree. Your own catalog gets there
-one of two ways, and both are supported.
+Your catalog gets into the image one of two ways, and both are supported.
 
 ### Docker: run the image (dev loop)
 
-Mount your catalog over the baked-in one. Nothing is built, so an edit is one
+Mount your catalog at `/app/catalog`. Nothing is built, so an edit is one
 container restart away:
 
 ```bash
@@ -134,8 +157,8 @@ image needs none of them. So is the version the base image reports: a derived bu
 
 !!! note "`mock-server` is a shim, not the CMD"
 
-    The image's `CMD` still starts the server directly, so plain `docker run`
-    behaves exactly as before. `mock-server` is a small script on `PATH` that
+    The image's `CMD` still starts the server directly, so `docker run` needs no
+    subcommand to serve. `mock-server` is a small script on `PATH` that
     dispatches `serve` (the default) and `validate` — it exists so a derived
     build and an ad-hoc `docker run` can reach the validator.
 
