@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.13.0](https://github.com/bilal-fazlani/mock-server/compare/v0.12.0...v0.13.0) (2026-10-08)
+
+
+### ⚠ BREAKING CHANGES
+
+* **build:** a bare `docker run` with no catalog now exits with an error instead of serving the sample system. Mount a catalog at /app/catalog or build an image FROM this one with `COPY catalog /app/catalog`; see the install guide, which also shows how to download the sample catalog. A server with an invalid catalog or configuration now exits at boot instead of reporting healthy and answering 500.
+
+### Bug Fixes
+
+* **build:** stop shipping the sample catalog in the image ([3ea58e1](https://github.com/bilal-fazlani/mock-server/commit/3ea58e16599f2ab75b4610c270a2261d2151701f)), closes [#101](https://github.com/bilal-fazlani/mock-server/issues/101)
+* **ci:** check out main in the docs-version sync on every trigger ([05101b9](https://github.com/bilal-fazlani/mock-server/commit/05101b90285773dadae680022e44ec1b65be0304)), closes [#99](https://github.com/bilal-fazlani/mock-server/issues/99)
+* **server:** fail at startup when the catalog or configuration is invalid ([bc77544](https://github.com/bilal-fazlani/mock-server/commit/bc77544cf4c254401d72b1620fa869aa954823dd)), closes [#101](https://github.com/bilal-fazlani/mock-server/issues/101)
+* **server:** treat a catalog with no systems as an error ([1c69710](https://github.com/bilal-fazlani/mock-server/commit/1c69710d6f57f4258f25d96e6fd2fb736db8f435)), closes [#101](https://github.com/bilal-fazlani/mock-server/issues/101)
+
 ## [0.12.0](https://github.com/bilal-fazlani/mock-server/compare/v0.11.0...v0.12.0) (2026-10-08)
 
 
