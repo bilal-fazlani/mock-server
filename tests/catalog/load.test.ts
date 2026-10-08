@@ -167,6 +167,17 @@ describe('loadCatalog', () => {
     )
   })
 
+  it('throws when the catalog directory contains no systems', () => {
+    const dir = tmpCatalogDir({})
+    expect(() => loadCatalog(dir)).toThrow(CatalogLoadError)
+    expect(() => loadCatalog(dir)).toThrow(/contains no systems.*Docker mount.*host path/)
+  })
+
+  it('throws when the catalog holds only dotfiles and a root _functions file', () => {
+    const dir = tmpCatalogDir({ '.gitkeep': '', '_functions.mjs': 'export const noop = () => ""' })
+    expect(() => loadCatalog(dir)).toThrow(/contains no systems/)
+  })
+
   it('loads an endpoint with metadata but zero scenario files as empty scenarios', () => {
     const dir = tmpCatalogDir({
       'sys/_system.json': SYSTEM_META,

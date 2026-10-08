@@ -23,7 +23,8 @@ The positional argument is the catalog directory (default `./catalog`, relative
 to your current directory); it overrides the `CATALOG_PATH` environment
 variable — the same precedence as serving. Nothing else about the environment is
 read: no `.env` file is loaded, no MongoDB is contacted, no server starts, no
-port is opened.
+port is opened. A directory that does not exist, or that contains no systems,
+is an error.
 
 | Outcome | Exit code | Output |
 | --- | --- | --- |

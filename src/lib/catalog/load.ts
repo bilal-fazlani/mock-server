@@ -175,6 +175,11 @@ export function loadCatalog(catalogDir: string): Catalog {
   if (problems.length > 0) {
     throw new CatalogLoadError(`invalid catalog structure:\n - ${problems.join('\n - ')}`)
   }
+  if (systems.length === 0) {
+    throw new CatalogLoadError(
+      `catalog directory ${catalogDir} contains no systems — if it is a Docker mount, check the host path exists`,
+    )
+  }
   return { systems, warnings, resolveFunctions: fns.resolveTable }
 }
 

@@ -136,6 +136,7 @@ and dashboard requests fail until it loads. MongoDB is not part of this check.
 
 Startup fails hard if any of:
 
+- the catalog directory does not exist or contains no systems;
 - existing catalog/fixture checks fail: path templates, selectors, fixture shape,
   placeholders, ambiguous endpoints, schemas;
 - a scenario slug has both `<slug>.json` and `<slug>.mjs`;

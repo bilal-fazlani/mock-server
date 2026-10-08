@@ -51,7 +51,7 @@ npx @bilal-fazlani/mock-server ./catalog
 
 The positional argument is the catalog directory (default `./catalog`, relative
 to your current directory); it overrides the `CATALOG_PATH` environment variable.
-If the directory doesn't exist the server exits with an error saying so. Don't
+If the directory doesn't exist, or holds no systems, the server exits with an error saying so. Don't
 have a catalog yet? [Download the example](#get-a-catalog-to-try).
 
 ```text
@@ -96,7 +96,8 @@ docker run --rm -p 3000:3000 \
 
 The image contains no catalog, so this mounts yours at `/app/catalog`. Without one
 the container exits with a `catalog directory not found` error rather than serving
-nothing. To try it first, [download the example catalog](#get-a-catalog-to-try).
+nothing. A mount whose host path doesn't exist is created as an empty directory by
+Docker, which exits with a `contains no systems` error in the same way. To try it first, [download the example catalog](#get-a-catalog-to-try).
 
 The image bakes in `mongod`, so with no `MONGODB_CONNECTION_STRING` it starts an
 in-memory MongoDB (ephemeral — lost when the container stops). Pass a connection
