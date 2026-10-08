@@ -102,7 +102,7 @@ against](junit.md#what-withcatalog-resolves-against).
     ```java
     @ServiceConnection
     static final MockServerContainer MOCK_SERVER =
-            new MockServerContainer(MockServerContainer.DEFAULT_IMAGE_NAME.withTag("0.12.0"))
+            new MockServerContainer(MockServerContainer.DEFAULT_IMAGE_NAME.withTag("0.13.0"))
                     .withCatalog("src/test/resources/catalog");
     ```
 
@@ -111,7 +111,7 @@ against](junit.md#what-withcatalog-resolves-against).
     release is published as an image tag, and nothing else is.
 
     The constructor argument is a **whole image reference**, so
-    `new MockServerContainer("0.12.0")` looks for a repository named `0.12.0`.
+    `new MockServerContainer("0.13.0")` looks for a repository named `0.13.0`.
     Compose the tag onto `DEFAULT_IMAGE_NAME` as above. The SDK needs server
     **0.7.0 or newer** — see [Compatibility](index.md#compatibility).
 

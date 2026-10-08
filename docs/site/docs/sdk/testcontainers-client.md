@@ -105,7 +105,7 @@ for reasons unconnected to the change under test. Combine the default name with 
 tag rather than reaching for a static helper:
 
 ```java
-new MockServerContainer(MockServerContainer.DEFAULT_IMAGE_NAME.withTag("0.12.0"));
+new MockServerContainer(MockServerContainer.DEFAULT_IMAGE_NAME.withTag("0.13.0"));
 ```
 
 Pick the tag from the
