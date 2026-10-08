@@ -126,8 +126,8 @@ docker run --rm -p 3000:3000 my-mocks:1.4.0
 
 The `--chown=nextjs:nodejs` matters: the image drops to the unprivileged `nextjs`
 user, which is also who runs the `RUN` line above. `ENTRYPOINT`, `CMD`, `EXPOSE`,
-and the health check are all inherited, so the derived image needs none of them.
-So is the version the base image reports: a derived build cannot change it (see
+and the [health check](#container-health-checks) are all inherited, so the derived
+image needs none of them. So is the version the base image reports: a derived build cannot change it (see
 [Naming your own build](#naming-your-own-build)).
 
 !!! note "`mock-server` is a shim, not the CMD"
@@ -213,6 +213,28 @@ a readiness probe when scripting startup (see
 [Using it in dev & CI](../driving/dev-and-ci.md)). Both bodies also carry the
 running build's `version` and `sha`, the same pair the dashboard footer and the
 [Environment page](../driving/ui.md#environment-uienvironment) show.
+
+### Container health checks
+
+The image declares its own `HEALTHCHECK`, which `docker run` and Docker Compose
+honour. It asks the endpoint above from inside the container with Node:
+
+```bash
+node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/ui/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+```
+
+Orchestrators usually run a check of their own instead — an ECS task
+definition, a Compose `healthcheck:`, a Kubernetes `exec` probe — and ignore the
+image's. `curl` is installed in the image for exactly that, so the usual form
+works as it is:
+
+```bash
+curl -f http://localhost:3000/ui/api/health
+```
+
+Use your own port in place of `3000` if you changed `PORT`. `-f` makes `curl` exit non-zero on the `503` the endpoint returns when MongoDB is
+down, which is what a probe needs. Use the Node form instead if you would rather
+not depend on `curl`; both ship in the image.
 
 ### Naming your own build
 

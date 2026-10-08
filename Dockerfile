@@ -90,7 +90,12 @@ RUN set -eu; \
      else \
        echo "Unsupported TARGETARCH: ${TARGETARCH}" >&2 && exit 1; \
      fi \
-  && apt-get purge -y gnupg curl \
+  # gnupg only verifies the repo key; curl stays on purpose. Orchestrator health
+  # checks (ECS task definitions, compose `healthcheck:`, Kubernetes `exec`
+  # probes) ignore HEALTHCHECK below and usually run
+  # `curl -f http://localhost:3000/ui/api/health`. It was installed explicitly
+  # above, so it is marked manual and `autoremove` leaves it alone.
+  && apt-get purge -y gnupg \
   && apt-get autoremove -y \
   && rm -rf /var/lib/apt/lists/*
 

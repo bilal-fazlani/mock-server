@@ -104,3 +104,7 @@ reason = "captured log output inside a JSON sample"
 [[exempt]]
 pattern = '"@timestamp":"2026-07-31T16:48:04\.417Z"'
 reason = "a timestamp in captured log output, not a version — matches the version shape by accident"
+
+[[exempt]]
+pattern = 'http://127\.0\.0\.1:'
+reason = "the loopback address in the image's HEALTHCHECK command, not a version — matches the version shape by accident"
