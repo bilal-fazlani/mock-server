@@ -46,7 +46,10 @@ export interface Runtime {
   ) => CompiledResolver | null
 }
 
-let runtime: Runtime | null = null
+// Production shares one runtime across bundles via globalThis; dev keeps it per module so hot reloads rebuild it.
+const globalScope = globalThis as typeof globalThis & { __mockServerRuntime?: Runtime }
+let moduleRuntime: Runtime | null = null
+const isProduction = () => process.env.NODE_ENV === 'production'
 
 function resolverKey(systemSlug: string, endpointName: string, slug: string): string {
   return `${systemSlug}/${endpointName}/${slug}`
@@ -104,10 +107,11 @@ function devCompileResolver(
   return compileResolver(source, `${systemSlug}/${endpointName}/${slug}.mjs`)
 }
 
-// Startup validation gate: the first request (or page render) that touches
-// the runtime fails hard if catalog, fixtures, and app config are out of sync.
+// Startup validation gate: the server builds this at boot (instrumentation.ts)
+// and fails hard if catalog, fixtures, and app config are out of sync.
 export function getRuntime(): Runtime {
-  if (runtime) return runtime
+  const cached = isProduction() ? globalScope.__mockServerRuntime : moduleRuntime
+  if (cached) return cached
   // The listen address was already enforced before the server started (see
   // src/server/serve-main.ts); checked here too so `next dev` and any other
   // path that skips that entry point fails the same way.
@@ -147,7 +151,7 @@ export function getRuntime(): Runtime {
   // live; in production they're served from the cache built during startup
   // validation, so a file deleted or corrupted after startup can't 500 a request.
   const isDev = process.env.NODE_ENV !== 'production'
-  runtime = {
+  const built: Runtime = {
     catalog,
     catalogDir,
     passthroughAsDefault,
@@ -174,5 +178,7 @@ export function getRuntime(): Runtime {
       : (systemSlug, endpointName, slug) =>
           resolvers.get(resolverKey(systemSlug, endpointName, slug)) ?? null,
   }
-  return runtime
+  if (isProduction()) globalScope.__mockServerRuntime = built
+  else moduleRuntime = built
+  return built
 }

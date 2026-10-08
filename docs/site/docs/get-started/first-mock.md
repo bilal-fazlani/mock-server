@@ -88,7 +88,7 @@ Every problem is reported at once, so fix what it lists before moving on — the
 full rule list is in
 [Validation rules](../reference/configuration.md#validation-rules).
 
-The server runs the same catalog checks at startup and refuses to boot on any
+The server runs the same catalog checks at startup and exits on any
 error, so restarting is a valid check too; the subcommand just doesn't need a
 port or a database to tell you. The other ways to run it — inside a `docker
 build`, or from a source checkout — are in

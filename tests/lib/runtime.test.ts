@@ -29,6 +29,7 @@ const ENDPOINT_META = {
 const FIXTURE = { status: 200, body: { ok: true } }
 
 afterEach(() => {
+  delete (globalThis as { __mockServerRuntime?: unknown }).__mockServerRuntime
   process.chdir(originalCwd)
   process.env = { ...originalEnv }
   vi.resetModules()
@@ -53,6 +54,28 @@ describe('getRuntime', () => {
       unmockedUsers: 'ERROR',
       consoleLogLevel: 'warn',
     })
+  })
+
+  it('builds a fresh runtime per module copy in development, so hot reloads take effect', async () => {
+    process.chdir(__dirname + '/../..')
+    process.env = { ...originalEnv, NODE_ENV: 'development' }
+    vi.resetModules()
+    const first = (await import('../../src/lib/runtime')).getRuntime()
+    vi.resetModules()
+    const second = (await import('../../src/lib/runtime')).getRuntime()
+
+    expect(second).not.toBe(first)
+  })
+
+  it('builds the runtime once across separately bundled copies of the module in production', async () => {
+    process.chdir(__dirname + '/../..')
+    process.env = { ...originalEnv, NODE_ENV: 'production' }
+    vi.resetModules()
+    const first = (await import('../../src/lib/runtime')).getRuntime()
+    vi.resetModules()
+    const second = (await import('../../src/lib/runtime')).getRuntime()
+
+    expect(second).toBe(first)
   })
 
   it('fails startup when BIND_ADDRESS is not an IP address', async () => {

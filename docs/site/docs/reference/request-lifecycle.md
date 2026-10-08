@@ -128,6 +128,12 @@ saved sequence restarts its progress on the next request. See
 
 ## Startup validation
 
+The server builds its configuration and catalog once, as it starts, and does not
+begin serving if that fails: it prints the error and exits with a non-zero status.
+Under `npm run dev` it logs the same error and keeps running instead, so you can
+fix the catalog without restarting; `GET /ui/api/health` answers `503` and mock
+and dashboard requests fail until it loads. MongoDB is not part of this check.
+
 Startup fails hard if any of:
 
 - existing catalog/fixture checks fail: path templates, selectors, fixture shape,

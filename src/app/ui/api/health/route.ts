@@ -1,7 +1,8 @@
 import { getDb } from '../../../../lib/profiles/store'
 import { BUILD_INFO } from '../../../../lib/build-info'
+import { getRuntime } from '../../../../lib/runtime'
 
-// Never cache — the health check must reflect live Mongo connectivity.
+// Never cache — the health check must reflect live runtime and Mongo state.
 export const dynamic = 'force-dynamic'
 
 // Fail fast: the MongoDB driver's default server-selection timeout is 30s, far
@@ -11,6 +12,14 @@ const CHECK_TIMEOUT_MS = 3000
 
 export async function GET(): Promise<Response> {
   const build = { version: BUILD_INFO.version, sha: BUILD_INFO.gitSha }
+  try {
+    getRuntime()
+  } catch (err) {
+    return Response.json(
+      { status: 'error', mongo: 'unchecked', error: err instanceof Error ? err.message : String(err), ...build },
+      { status: 503 },
+    )
+  }
   try {
     await withTimeout(pingMongo(), CHECK_TIMEOUT_MS)
     return Response.json({ status: 'ok', mongo: 'up', ...build })

@@ -6,9 +6,8 @@ description: "Check a whole catalog in one pass that reports every problem at on
 
 The catalog is checked in a single pass that reports **every** problem at once,
 rather than stopping at the first. The server runs that pass at startup and
-refuses to boot on any error, so restarting is always a valid check — but it
-needs a port, a MongoDB, and a running process to tell you about a typo in a
-fixture.
+exits on any error, so restarting is always a valid check — but it needs a port
+and a running process to tell you about a typo in a fixture.
 
 `mock-server validate` runs the same catalog checks and exits.
 

@@ -145,8 +145,9 @@ logs it at `warn` with `source=unmocked_policy selector=path:customerId`. Give
   Interpolate a placeholder into surrounding text and the value is coerced back to
   a string; header values are always strings. See [Typed
   substitution](../building/templating.md#typed-substitution).
-- **Run the validator before you ship.** It's the same gate the server applies on
-  first request — catching it early beats a hard failure at runtime.
+- **Run the validator before you ship.** It's the same gate the server applies at
+  startup, where the shipped server exits on failure — catching it early beats a
+  failed deploy.
 - **The server speaks HTTP/1.1, and ignores requests to switch protocol.** A client
   that opens with the cleartext HTTP/2 handshake — `Upgrade: h2c`, which
   `java.net.http.HttpClient` sends by default on an `http://` URL — gets an ordinary

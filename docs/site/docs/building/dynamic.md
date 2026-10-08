@@ -275,8 +275,8 @@ endpoint, but no compiled resolver could be produced for it at request time.
 
 ## Compilation, sandboxing, and timeouts
 
-- **Compiled at boot — fail-fast in both dev and production.** When the runtime
-  first initializes, *every* endpoint's `<slug>.mjs` resolvers are transpiled
+- **Compiled at boot — fail-fast in both dev and production.** When the server
+  starts, *every* endpoint's `<slug>.mjs` resolvers are transpiled
   (via esbuild) and compiled up front, and any resolver that fails to
   transpile or doesn't default-export a function aborts that initialization —
   the same fail-fast error list as catalog and fixture problems. A leftover
@@ -284,8 +284,8 @@ endpoint, but no compiled resolver could be produced for it at request time.
   on the same list, with an error telling you to rename it — never silently
   skipped. This is not
   production-only: a resolver that is already broken at boot fails hard in
-  development too (the first request to *any* endpoint throws the aggregated
-  startup error, not a scoped `resolver_compile_error`).
+  development too (the boot logs the aggregated startup error and every request
+  to *any* endpoint fails with it, not a scoped `resolver_compile_error`).
   [`mock-server validate`](validate.md) runs the same compilation step, so a
   broken resolver is caught before deploy — without starting a server.
 - **Live edits in development recompile per request.** After a good boot, dev

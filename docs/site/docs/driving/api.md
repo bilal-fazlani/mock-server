@@ -98,7 +98,7 @@ response.
 | `POST /ui/api/profiles/{profileId}/reset` | `{ endpoint? }` | `204` | — |
 | `GET /ui/api/logs` | — (query params below) | `200 { "entries": … }` | — |
 | `GET /ui/api/logs/{logId}` | — | `200 { "entry": …, "bodyHtml": … }` | `404 log_not_found` |
-| `GET /ui/api/health` | — | `200 { status, mongo, version, sha }` | `503` Mongo down (same fields, plus `error`, no `code`) |
+| `GET /ui/api/health` | — | `200 { status, mongo, version, sha }` | `503` Mongo down, or the configuration or catalog failed to load (same fields, plus `error`, no `code`; `mongo` is `down` or `unchecked`) |
 
 ## `GET /ui/api/catalog`
 

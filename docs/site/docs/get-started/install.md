@@ -210,7 +210,10 @@ catalog against the checkout's own environment — see
 ## Health check
 
 `GET /ui/api/health` returns `200 {"status":"ok","mongo":"up",…}` when MongoDB
-is reachable, or `503 {"status":"error","mongo":"down",…}` otherwise — useful as
+is reachable, or `503 {"status":"error","mongo":"down",…}` otherwise. It also
+answers `503` with `"mongo":"unchecked"` when the server could not load its
+configuration or catalog; a normally started server exits in that case, so you
+see this under `npm run dev`. It is useful as
 a readiness probe when scripting startup (see
 [Using it in dev & CI](../driving/dev-and-ci.md)). Both bodies also carry the
 running build's `version` and `sha`, the same pair the dashboard footer and the
