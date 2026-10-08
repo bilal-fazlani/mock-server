@@ -16,6 +16,8 @@ Arguments:
 
 Options:
   -p, --port <number>    Port to listen on (default: 3000, or $PORT).
+  --bind <address>       IP address to listen on (default: 0.0.0.0, or
+                         $BIND_ADDRESS). IPv4 or IPv6; a hostname is rejected.
   -h, --help             Show this help and exit.
   -v, --version          Print the version and exit.
 
@@ -50,6 +52,8 @@ Environment:
   CATALOG_PATH                 Catalog directory (relative or absolute).
 `
 
+const BIND_USAGE_ERROR = '--bind requires an IP address, for example --bind 127.0.0.1'
+
 // Only the FIRST token may name a subcommand, so a catalog path or a flag in
 // that position still means "serve" and `mock-server ./catalog` is unchanged.
 // The cost of the grammar: a catalog directory literally named `validate` must
@@ -66,6 +70,8 @@ function parseServeArgs(argv) {
     command: 'serve',
     catalogPath: undefined,
     port: undefined,
+    bind: undefined,
+    error: undefined,
     help: false,
     version: false,
   }
@@ -79,6 +85,21 @@ function parseServeArgs(argv) {
       opts.port = argv[++i]
     } else if (arg.startsWith('--port=')) {
       opts.port = arg.slice('--port='.length)
+    } else if (arg === '--bind') {
+      // A missing or empty address must not fall through to the default: that
+      // would silently listen on every interface when the caller asked to
+      // narrow it. A following flag is not an address, so it is left unconsumed.
+      const value = argv[i + 1]
+      if (value === undefined || value.trim() === '' || value.startsWith('-')) {
+        opts.error ??= BIND_USAGE_ERROR
+      } else {
+        opts.bind = value
+        i++
+      }
+    } else if (arg.startsWith('--bind=')) {
+      const value = arg.slice('--bind='.length)
+      if (value.trim() === '') opts.error ??= BIND_USAGE_ERROR
+      else opts.bind = value
     } else if (!arg.startsWith('-') && opts.catalogPath === undefined) {
       opts.catalogPath = arg
     }

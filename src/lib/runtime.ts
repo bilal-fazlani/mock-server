@@ -4,6 +4,7 @@ import { type SchemaRegistry } from './catalog/schema'
 import type { Catalog } from './catalog/types'
 import { validateAppConfig, validateCatalog } from './catalog/validate'
 import {
+  parseBindAddress,
   parseConsoleLogLevel,
   parseLogFormat,
   parsePassthroughAsDefault,
@@ -107,6 +108,10 @@ function devCompileResolver(
 // the runtime fails hard if catalog, fixtures, and app config are out of sync.
 export function getRuntime(): Runtime {
   if (runtime) return runtime
+  // The listen address was already enforced before the server started (see
+  // src/server/serve-main.ts); checked here too so `next dev` and any other
+  // path that skips that entry point fails the same way.
+  parseBindAddress(process.env.BIND_ADDRESS)
   const passthroughAsDefault = parsePassthroughAsDefault(process.env.PASSTHROUGH_AS_DEFAULT)
   const unmockedUsers = parseUnmockedUsers(process.env.UNMOCKED_USERS)
   const consoleLogLevel = parseConsoleLogLevel(process.env.MOCK_CONSOLE_LOG_LEVEL)

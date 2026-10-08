@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Catalog } from '../../src/lib/catalog/types'
-import { parseUnmockedUsers } from '../../src/lib/config'
+import { parseBindAddress, parseUnmockedUsers } from '../../src/lib/config'
 import { buildEnvironmentRows } from '../../src/lib/environment'
 
 const catalog: Catalog = {
@@ -43,6 +43,7 @@ describe('buildEnvironmentRows', () => {
 
     expect(rows.map((row) => row.name)).toEqual([
       'CATALOG_PATH',
+      'BIND_ADDRESS',
       'MONGODB_CONNECTION_STRING',
       'MONGODB_DB',
       'PASSTHROUGH_AS_DEFAULT',
@@ -78,6 +79,25 @@ describe('buildEnvironmentRows', () => {
     expect(rows.find((row) => row.name === 'UNMOCKED_USERS')).toMatchObject({
       status: 'default',
       value: `(default: ${parseUnmockedUsers(undefined)})`,
+    })
+  })
+
+  it('declares the BIND_ADDRESS default the parser actually applies', () => {
+    const rows = buildEnvironmentRows(catalog, {})
+
+    expect(rows.find((row) => row.name === 'BIND_ADDRESS')).toMatchObject({
+      category: 'System',
+      status: 'default',
+      value: `(default: ${parseBindAddress(undefined)})`,
+    })
+  })
+
+  it('shows a set BIND_ADDRESS as set', () => {
+    const rows = buildEnvironmentRows(catalog, { BIND_ADDRESS: '127.0.0.1' })
+
+    expect(rows.find((row) => row.name === 'BIND_ADDRESS')).toMatchObject({
+      status: 'set',
+      value: '127.0.0.1',
     })
   })
 

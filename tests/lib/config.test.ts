@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   ConfigError,
+  parseBindAddress,
   parseConsoleLogLevel,
   parseLogFormat,
   parseResolverHistoryLimit,
@@ -10,6 +11,20 @@ import {
   parseResolverHistoryTtlSeconds,
   parseUnmockedUsers,
 } from '../../src/lib/config'
+
+describe('parseBindAddress', () => {
+  it('defaults to 0.0.0.0 and accepts IPv4 and IPv6 literals', () => {
+    expect(parseBindAddress(undefined)).toBe('0.0.0.0')
+    expect(parseBindAddress('127.0.0.1')).toBe('127.0.0.1')
+    expect(parseBindAddress('::1')).toBe('::1')
+  })
+
+  it('reports a non-IP value as a ConfigError naming the variable and the value', () => {
+    expect(() => parseBindAddress('my-host')).toThrow(ConfigError)
+    expect(() => parseBindAddress('my-host')).toThrow('BIND_ADDRESS')
+    expect(() => parseBindAddress('my-host')).toThrow('"my-host"')
+  })
+})
 
 describe('parsePassthroughAsDefault', () => {
   it('defaults to false when unset', () => {

@@ -52,6 +52,8 @@ Arguments:
 
 Options:
   -p, --port <number>    Port to listen on (default: 3000, or $PORT).
+  --bind <address>       IP address to listen on (default: 0.0.0.0, or
+                         $BIND_ADDRESS). IPv4 or IPv6; a hostname is rejected.
   -h, --help             Show this help and exit.
   -v, --version          Print the version and exit.
 ```
@@ -235,6 +237,21 @@ curl -f http://localhost:3000/ui/api/health
 Use your own port in place of `3000` if you changed `PORT`. `-f` makes `curl` exit non-zero on the `503` the endpoint returns when MongoDB is
 down, which is what a probe needs. Use the Node form instead if you would rather
 not depend on `curl`; both ship in the image.
+
+Both forms connect to the loopback address, so they need the server listening on
+it. The default does that: [`BIND_ADDRESS`](../reference/configuration.md) is `0.0.0.0`,
+which includes loopback, and the `HOSTNAME` your platform sets to the container's
+name has no effect on it. Any *specific* `BIND_ADDRESS` breaks something in a
+container:
+
+- A non-loopback address stops the server listening on `127.0.0.1`, so the image's
+  `HEALTHCHECK` and any probe aimed at `127.0.0.1` or `localhost` fail with
+  *connection refused*.
+- A loopback address (`127.0.0.1`) leaves it unreachable from outside: published
+  ports (`docker run -p`), load balancers and sidecars arrive on the container's
+  own interface, not on loopback.
+
+Leave it at the default in a container unless you know why you need otherwise.
 
 ### Naming your own build
 

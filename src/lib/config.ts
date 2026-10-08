@@ -1,4 +1,5 @@
 import path from 'node:path'
+import { BindAddressError, parseBindAddress as parseBindAddressValue } from './bind-address'
 
 export type UnmockedUsers = 'ERROR' | 'DEFAULT_MOCK' | 'REAL'
 export type ConsoleLogLevel = 'info' | 'warn' | 'error'
@@ -16,6 +17,17 @@ export class ConfigError extends Error {}
 const UNMOCKED_USERS_VALUES: UnmockedUsers[] = ['ERROR', 'DEFAULT_MOCK', 'REAL']
 const CONSOLE_LOG_LEVEL_VALUES: ConsoleLogLevel[] = ['info', 'warn', 'error']
 const LOG_FORMAT_VALUES: LogFormat[] = ['text', 'json']
+
+// The listen address is validated by the same module serve-main.ts uses before
+// the server starts; this wrapper only gives the startup gate its ConfigError.
+export function parseBindAddress(raw: string | undefined): string {
+  try {
+    return parseBindAddressValue(raw)
+  } catch (err) {
+    if (err instanceof BindAddressError) throw new ConfigError(err.message)
+    throw err
+  }
+}
 
 export function parsePassthroughAsDefault(raw: string | undefined): boolean {
   if (raw === undefined) return false

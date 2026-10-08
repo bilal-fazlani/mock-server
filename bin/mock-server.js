@@ -69,9 +69,15 @@ function serve(opts) {
     return
   }
 
+  if (opts.error) {
+    process.stderr.write(`mock-server: ${opts.error}\nRun "mock-server --help" for usage.\n`)
+    process.exit(1)
+  }
+
   const env = { ...process.env }
   env.CATALOG_PATH = resolveCatalogPath(opts)
   if (opts.port !== undefined) env.PORT = String(opts.port)
+  if (opts.bind !== undefined) env.BIND_ADDRESS = String(opts.bind)
 
   // serve.cjs, not Next's server.js: it installs the unsupported-upgrade guard
   // (#72) before loading server.js. See src/server/serve-main.ts. Both are

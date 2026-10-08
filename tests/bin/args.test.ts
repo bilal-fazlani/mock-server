@@ -7,6 +7,8 @@ const { parseArgs, HELP, VALIDATE_HELP } = require('../../bin/args.js') as {
     command: 'serve' | 'validate'
     catalogPath?: string
     port?: string
+    bind?: string
+    error?: string
     help: boolean
     version: boolean
   }
@@ -25,6 +27,45 @@ describe('parseArgs', () => {
     expect(parseArgs(['--port=8080']).port).toBe('8080')
   })
 
+  it('reads --bind in both forms and leaves it unset otherwise', () => {
+    expect(parseArgs(['--bind', '127.0.0.1']).bind).toBe('127.0.0.1')
+    expect(parseArgs(['--bind=::1']).bind).toBe('::1')
+    expect(parseArgs(['./catalog', '--port', '4000']).bind).toBeUndefined()
+  })
+
+  it('reads --bind alongside a catalog path and a port', () => {
+    const opts = parseArgs(['./catalog', '--bind', '127.0.0.1', '-p', '4000'])
+    expect(opts.catalogPath).toBe('./catalog')
+    expect(opts.bind).toBe('127.0.0.1')
+    expect(opts.port).toBe('4000')
+  })
+
+  it('reports --bind without an address as a usage error instead of ignoring it', () => {
+    expect(parseArgs(['--bind']).error).toMatch(/--bind requires an IP address/)
+    expect(parseArgs(['./catalog', '--bind']).error).toMatch(/--bind requires/)
+    expect(parseArgs(['--bind', '']).error).toMatch(/--bind requires/)
+    expect(parseArgs(['--bind=']).error).toMatch(/--bind requires/)
+    expect(parseArgs(['--bind=  ']).error).toMatch(/--bind requires/)
+    expect(parseArgs(['--bind']).bind).toBeUndefined()
+  })
+
+  it('does not swallow a following flag as the --bind address', () => {
+    const opts = parseArgs(['--bind', '--port', '4000'])
+    expect(opts.error).toMatch(/--bind requires/)
+    expect(opts.port).toBe('4000')
+    expect(opts.bind).toBeUndefined()
+  })
+
+  it('has no usage error for a well-formed --bind or none at all', () => {
+    expect(parseArgs(['--bind', '127.0.0.1']).error).toBeUndefined()
+    expect(parseArgs(['--bind=::']).error).toBeUndefined()
+    expect(parseArgs(['./catalog']).error).toBeUndefined()
+  })
+
+  it('does not take the --bind value for the catalog path', () => {
+    expect(parseArgs(['--bind', '0.0.0.0']).catalogPath).toBeUndefined()
+  })
+
   it('reads catalog path alongside a port', () => {
     const opts = parseArgs(['./catalog', '--port', '4000'])
     expect(opts.catalogPath).toBe('./catalog')
@@ -40,6 +81,11 @@ describe('parseArgs', () => {
   it('exposes help text mentioning usage', () => {
     expect(HELP).toContain('mock-server')
     expect(HELP).toContain('CATALOG_PATH')
+  })
+
+  it('documents --bind and BIND_ADDRESS in the help', () => {
+    expect(HELP).toContain('--bind <address>')
+    expect(HELP).toContain('$BIND_ADDRESS')
   })
 })
 

@@ -55,6 +55,15 @@ describe('getRuntime', () => {
     })
   })
 
+  it('fails startup when BIND_ADDRESS is not an IP address', async () => {
+    process.chdir(__dirname + '/../..')
+    process.env = { ...originalEnv, BIND_ADDRESS: 'my-host' }
+    vi.resetModules()
+    const { getRuntime } = await import('../../src/lib/runtime')
+
+    expect(() => getRuntime()).toThrow(/BIND_ADDRESS must be an IPv4 or IPv6 address.*"my-host"/)
+  })
+
   it('compiles a <slug>.ts resolver and serves it via getCompiledResolver, patching the label', async () => {
     const dir = tmpProjectDir({
       'catalog/sys/_system.json': SYSTEM_META,

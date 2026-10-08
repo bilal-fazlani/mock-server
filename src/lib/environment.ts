@@ -32,6 +32,14 @@ export const APP_ENVIRONMENT: EnvironmentDefinition[] = [
     display: true,
   },
   {
+    name: 'BIND_ADDRESS',
+    category: 'System',
+    description:
+      'IP address the server listens on (IPv4 or IPv6). The platform-set HOSTNAME is ignored. Applies to the shipped server, CLI and image, not next dev or next start.',
+    defaultValue: '0.0.0.0',
+    display: true,
+  },
+  {
     name: 'MONGODB_CONNECTION_STRING',
     category: 'System',
     description: 'MongoDB connection URI for profiles, global mocks, mappings, and logs.',

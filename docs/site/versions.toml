@@ -106,5 +106,5 @@ pattern = '"@timestamp":"2026-07-31T16:48:04\.417Z"'
 reason = "a timestamp in captured log output, not a version — matches the version shape by accident"
 
 [[exempt]]
-pattern = 'http://127\.0\.0\.1:'
-reason = "the loopback address in the image's HEALTHCHECK command, not a version — matches the version shape by accident"
+pattern = '(?<![\d.])(?:0\.0\.0\.0|127\.0\.0\.1)(?![\d.])'
+reason = "the two listen addresses BIND_ADDRESS documents (every IPv4 interface, loopback only) — four-part IPv4 literals that match the three-part version shape by accident. Anchored so a longer dotted number does not match"

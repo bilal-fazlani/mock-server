@@ -37,7 +37,6 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
-ENV HOSTNAME=0.0.0.0
 # Use the system mongod (installed below) instead of downloading at runtime,
 # so `docker run` with no MONGODB_CONNECTION_STRING works offline.
 ENV MONGOMS_SYSTEM_BINARY=/usr/bin/mongod
@@ -119,7 +118,9 @@ COPY --from=build --chown=nextjs:nodejs /app/catalog ./catalog
 USER nextjs
 EXPOSE 3000
 
-# HOSTNAME/PORT come from the ENV above; no shell wrapper needed. tini runs as
+# PORT comes from the ENV above and the listen address from BIND_ADDRESS (default
+# 0.0.0.0); serve.cjs copies it over the platform-set HOSTNAME, which is never read
+# as a bind address. No shell wrapper needed. tini runs as
 # PID 1 so it forwards SIGTERM to node for graceful shutdown and reaps the mongod
 # child that the embedded fallback spawns.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
