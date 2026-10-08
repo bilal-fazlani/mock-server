@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.12.0](https://github.com/bilal-fazlani/mock-server/compare/v0.11.0...v0.12.0) (2026-10-08)
+
+
+### ⚠ BREAKING CHANGES
+
+* **build:** /app/global-bundle.pem is no longer in the image. To keep using it, add it in a derived image and point MONGODB_CONNECTION_STRING at it with tlsCAFile=/app/global-bundle.pem; see the install guide, "Trusting a database's CA".
+
+### Features
+
+* **build:** keep curl in the runtime image for external health checks ([f3f3591](https://github.com/bilal-fazlani/mock-server/commit/f3f359170c6bcc929106eba7c617231098192178)), closes [#97](https://github.com/bilal-fazlani/mock-server/issues/97)
+* **build:** let a build name the version it reports ([c1b2681](https://github.com/bilal-fazlani/mock-server/commit/c1b26813e521d752508b2591a754aaad1c7f2528))
+* **docs:** write our own versions into the guide from one source of truth ([8b86279](https://github.com/bilal-fazlani/mock-server/commit/8b86279e7193f101c41e25d32535c58604b7b9d7)), closes [#85](https://github.com/bilal-fazlani/mock-server/issues/85)
+* **server:** listen on BIND_ADDRESS instead of the platform-set HOSTNAME ([6898582](https://github.com/bilal-fazlani/mock-server/commit/6898582c6489d2c27bc97fea7b64d23260b362b1)), closes [#98](https://github.com/bilal-fazlani/mock-server/issues/98)
+
+
+### Bug Fixes
+
+* **build:** drop the AWS RDS CA bundle from the image ([b834d52](https://github.com/bilal-fazlani/mock-server/commit/b834d529b522c69265e999f4ec6e691b0888aa78)), closes [#96](https://github.com/bilal-fazlani/mock-server/issues/96)
+
 ## [0.11.0](https://github.com/bilal-fazlani/mock-server/compare/v0.10.1...v0.11.0) (2026-08-13)
 
 
