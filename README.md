@@ -7,7 +7,8 @@ to canned responses. Which response a given caller gets is chosen per **profile*
 `default`, `frozen`, or `failure`), all editable from a built-in web UI. When a
 scenario has to be *decided* rather than pinned, back it with a small JavaScript
 resolver instead of a fixture. Any endpoint can also proxy through to a real
-upstream (`real` passthrough).
+upstream (`real` passthrough), presenting a client certificate to upstreams that
+require mutual TLS.
 
 For JVM integration tests there is a **[Java SDK](docs/site/docs/sdk/index.md)** —
 JUnit 5 and Spring Boot modules that start the server from the test run, give each

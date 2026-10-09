@@ -146,6 +146,11 @@ scenario resolvers](../building/dynamic.md). The `real` passthrough is always
 implicit and never appears in either list. `mockType` is `"profiled"` or
 `"global"`.
 
+On a system, `clientCertEnv` and `clientKeyEnv` are present only when its
+`_system.json` declares a [client certificate](../building/scenarios.md#upstreams-that-require-mtls),
+and always together. They carry the variable **names**; the certificate and key
+themselves are never exposed.
+
 `profileIdSelector` and `captureProfileKeys` mirror the endpoint's catalog
 definition verbatim — see [Profile-ID extraction](../building/profiles.md#profile-id-extraction-selectors)
 and [Profile key mappings](../building/profiles.md#profile-key-mappings) for

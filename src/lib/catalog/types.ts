@@ -41,6 +41,11 @@ export interface SystemDef {
   name: string
   slug: string
   baseUrlEnv: string
+  /** Env var holding the PEM client certificate presented on passthrough.
+   * Always declared together with `clientKeyEnv`. */
+  clientCertEnv?: string
+  /** Env var holding the PEM private key for `clientCertEnv`. */
+  clientKeyEnv?: string
   endpoints: EndpointDef[]
 }
 

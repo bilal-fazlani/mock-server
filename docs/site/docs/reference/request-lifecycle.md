@@ -21,7 +21,7 @@ What the engine does for every incoming request, in order:
 | 5 | Resolve the scenario: saved profile/global pick, else the implicit scenario from `PASSTHROUGH_AS_DEFAULT`. If the pick is a [sequence](../building/scenarios.md#scenario-sequences), atomically advance its progress counter and take the step it lands on (sticking on the last step once exhausted). | Pinned key no longer declared → `500` |
 | 6 | If the resolved scenario slug is **resolver-backed**, look up its compiled `<slug>.mjs`, read that slug's history window, and invoke it with the request + history + profile ID. Rewrite the scenario to its return value and append that value to the slug's history. | Compile error (dev) → `500 resolver_compile_error`; no compiled resolver found → `500 resolver_missing`; throws → `500 resolver_threw`; exceeds its timeout → `500 resolver_timeout`; returns anything other than a fixture-backed declared scenario or `"real"` → `500 resolver_bad_return` (nothing appended to history) |
 | 7 | For direct-profile endpoints with `captureProfileKeys`, store each mapping before fixture serving or real proxying. Capturing runs even when the resolved ID has no profile; such a mapping expires after [`PROFILE_KEY_TTL_DURATION`](../building/profiles.md#retention-for-callers-with-no-profile). | Capture key missing → `400`; same key for a different **live** profile → `409 profile_key_mapping_conflict` (an already-expired mapping is claimable) |
-| 8a | If scenario is `real`: proxy to the `baseUrlEnv` upstream and return its response. | Missing base URL → `500` (startup prevents this only when `PASSTHROUGH_AS_DEFAULT=true`) |
+| 8a | If scenario is `real`: proxy to the `baseUrlEnv` upstream and return its response, presenting the system's [client certificate](../building/scenarios.md#upstreams-that-require-mtls) when it declares one. | Missing base URL → `500` `missing_base_url`; declared client certificate or key unset → `500` `missing_client_cert`; not a usable PEM pair → `500` `invalid_client_cert` (startup prevents all three only when `PASSTHROUGH_AS_DEFAULT=true`); upstream unreachable or handshake refused → `502` |
 | 8b | Otherwise: take the cached fixture, resolve placeholders — a [placeholder expression](../building/templating.md#placeholder-expressions) may invoke built-in transforms and sandboxed [custom functions](../building/templating.md#custom-functions-_functionsmjs) — wait the fixture's [`delay`](../building/fixtures.md#response-delay) if one is set, and return its status/headers/body. | Placeholder didn't resolve, or named an unknown function → `500 template_error`; a custom function threw or returned an unusable value → `500 function_error`; it exceeded its timeout → `500 function_timeout`. Every one names the function and the placeholder (see [Errors](../building/templating.md#errors)) |
 
 Step 6 only runs when the resolved scenario slug (step 5) is backed by a
@@ -145,7 +145,9 @@ Startup fails hard if any of:
   scenario at all;
 - a global endpoint declares profile-only fields;
 - a profiled endpoint lacks `profileIdSelector`;
-- `PASSTHROUGH_AS_DEFAULT=true` and any system's `baseUrlEnv` is unset;
+- `PASSTHROUGH_AS_DEFAULT=true` and any system's `baseUrlEnv` is unset, or a
+  system that declares `clientCertEnv` / `clientKeyEnv` lacks a matching PEM
+  certificate and unencrypted key in them;
 - any scenario resolver (`<slug>.mjs`) fails to compile or doesn't
   default-export a function;
 - any `_functions.mjs` file fails to compile, exports a
@@ -213,7 +215,10 @@ flowchart TD
     CaptureReal -- MissingKey --> RCapSel["400 - capture key selector did not resolve"]
     CaptureReal -- No, global, or success --> ProxyURL{"baseUrlEnv set?"}
     ProxyURL -- No --> RNoBase["500 - missing upstream base URL"]
-    ProxyURL -- Yes --> Proxy["Proxy request to real upstream"]
+    ProxyURL -- Yes --> ClientCert{"Client certificate declared?"}
+    ClientCert -- "Declared, var unset" --> RNoCert["500 - missing_client_cert"]
+    ClientCert -- "Declared, not a usable PEM pair" --> RBadCert["500 - invalid_client_cert"]
+    ClientCert -- "Valid, or none declared" --> Proxy["Proxy request to real upstream<br/>(presenting the client certificate, if any)"]
     Proxy -- Transport failure --> RProxyFail["502 - passthrough request failed"]
     Proxy -- Timeout --> RTimeout["Create 504 JSON timeout response"]
     Proxy -- Upstream response --> DriftProbe["For parseable JSON + response schema:<br/>record drift warning if invalid"]

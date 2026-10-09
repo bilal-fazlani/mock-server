@@ -51,6 +51,14 @@ vi.mock('../../src/lib/runtime', () => ({
             },
           ],
         },
+        {
+          name: 'Billing',
+          slug: 'billing',
+          baseUrlEnv: 'BILLING_URL',
+          clientCertEnv: 'BILLING_CLIENT_CERT',
+          clientKeyEnv: 'BILLING_CLIENT_KEY',
+          endpoints: [],
+        },
       ],
     },
   }),
@@ -67,7 +75,7 @@ describe('GET /ui/api/catalog', () => {
     const res = await GET()
     expect(res.status).toBe(200)
     const body = await res.json()
-    expect(body.systems).toHaveLength(1)
+    expect(body.systems).toHaveLength(2)
     const [system] = body.systems
     expect(system.slug).toBe('hello-system')
     expect(system.endpoints[0]).toEqual({
@@ -82,6 +90,23 @@ describe('GET /ui/api/catalog', () => {
     // mockType defaults to 'profiled', resolverScenarios preserved
     expect(system.endpoints[1].mockType).toBe('profiled')
     expect(system.endpoints[1].resolverScenarios).toEqual(['by_amount'])
+  })
+
+  it('projects client certificate env var names only where the system declares them', async () => {
+    process.env.BILLING_CLIENT_KEY = '-----BEGIN PRIVATE KEY-----\nsecret\n-----END PRIVATE KEY-----'
+    try {
+      const body = await (await GET()).json()
+      const [hello, billing] = body.systems
+      expect(hello).not.toHaveProperty('clientCertEnv')
+      expect(hello).not.toHaveProperty('clientKeyEnv')
+      expect(billing).toMatchObject({
+        clientCertEnv: 'BILLING_CLIENT_CERT',
+        clientKeyEnv: 'BILLING_CLIENT_KEY',
+      })
+      expect(JSON.stringify(body)).not.toContain('PRIVATE KEY')
+    } finally {
+      delete process.env.BILLING_CLIENT_KEY
+    }
   })
 
   it('does not leak fixture bodies', async () => {

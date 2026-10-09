@@ -23,8 +23,19 @@ const catalog: Catalog = {
       baseUrlEnv: 'ORDERS_URL',
       endpoints: [],
     },
+    {
+      name: 'Billing',
+      slug: 'billing',
+      baseUrlEnv: 'BILLING_URL',
+      clientCertEnv: 'BILLING_CLIENT_CERT',
+      clientKeyEnv: 'BILLING_CLIENT_KEY',
+      endpoints: [],
+    },
   ],
 }
+
+const CERT_PEM = '-----BEGIN CERTIFICATE-----\nMIIBcert\n-----END CERTIFICATE-----\n'
+const KEY_PEM = '-----BEGIN PRIVATE KEY-----\nMIIBkey\n-----END PRIVATE KEY-----\n'
 
 describe('buildEnvironmentRows', () => {
   it('renders app env vars and catalog upstream env vars without leaking the Mongo connection string value', () => {
@@ -39,6 +50,8 @@ describe('buildEnvironmentRows', () => {
       NODE_ENV: 'test',
       HELLO_SYSTEM_URL: 'http://hello.test',
       ORDERS_URL: 'http://orders.test',
+      BILLING_CLIENT_CERT: CERT_PEM,
+      BILLING_CLIENT_KEY: KEY_PEM,
     })
 
     expect(rows.map((row) => row.name)).toEqual([
@@ -57,6 +70,9 @@ describe('buildEnvironmentRows', () => {
       'REQUEST_LOG_TTL_DURATION',
       'HELLO_SYSTEM_URL',
       'ORDERS_URL',
+      'BILLING_URL',
+      'BILLING_CLIENT_CERT',
+      'BILLING_CLIENT_KEY',
     ])
     expect(rows.find((row) => row.name === 'MONGODB_CONNECTION_STRING')).toMatchObject({
       category: 'System',
@@ -68,6 +84,36 @@ describe('buildEnvironmentRows', () => {
     )
     expect(rows.find((row) => row.name === 'NODE_ENV')).toBeUndefined()
     expect(rows.find((row) => row.name === 'ORDERS_URL')?.value).toBe('http://orders.test')
+  })
+
+  it('shows client certificate and key rows as set or unset without their values', () => {
+    const set = buildEnvironmentRows(catalog, { BILLING_CLIENT_CERT: CERT_PEM, BILLING_CLIENT_KEY: KEY_PEM })
+    for (const name of ['BILLING_CLIENT_CERT', 'BILLING_CLIENT_KEY']) {
+      const row = set.find((r) => r.name === name)
+      expect(row).toMatchObject({ category: 'Upstream', status: 'set', value: 'Hidden', valueHidden: true })
+    }
+    expect(JSON.stringify(set)).not.toContain('MIIB')
+
+    const unset = buildEnvironmentRows(catalog, {})
+    expect(unset.find((r) => r.name === 'BILLING_CLIENT_KEY')).toMatchObject({
+      status: 'unset',
+      value: '(not set)',
+      description: 'PEM private key for the Billing client certificate.',
+    })
+    expect(unset.find((r) => r.name === 'BILLING_CLIENT_CERT')?.description).toBe(
+      'PEM client certificate presented on Billing passthrough.',
+    )
+  })
+
+  it('hides a variable that one system uses as a base URL and another as a client key', () => {
+    const shared: Catalog = {
+      systems: [
+        { name: 'A', slug: 'a', baseUrlEnv: 'SHARED', endpoints: [] },
+        { name: 'B', slug: 'b', baseUrlEnv: 'B_URL', clientCertEnv: 'B_CERT', clientKeyEnv: 'SHARED', endpoints: [] },
+      ],
+    }
+    const row = buildEnvironmentRows(shared, { SHARED: KEY_PEM }).find((r) => r.name === 'SHARED')
+    expect(row?.value).toBe('Hidden')
   })
 
   // Asserted against the parser rather than a literal: the failure this guards

@@ -12,6 +12,7 @@ import type { Catalog, EndpointDef, SystemDef } from '../catalog/types'
 import type { UnmockedUsers } from '../config'
 import type { DynamicOwnerType } from '../dynamic/history-store'
 import type { LogOutcome, LogTraceData, ValidationResult } from '../logs/store'
+import { resolveClientIdentity } from '../client-identity'
 import { DurationError, parseDelayMs } from '../mock-engine/duration'
 import { FixtureError, type Fixture } from '../mock-engine/fixtures'
 import {
@@ -650,6 +651,11 @@ async function proxy(
       endpoint: endpoint.name,
     })
   }
+  const identity = resolveClientIdentity(system, deps.env)
+  if (!identity.ok) {
+    traceError(trace, identity.code, identity.message)
+    return jsonResult(500, { error: identity.message, endpoint: endpoint.name })
+  }
   checkRequestSchemaDrift(system, endpoint, ctx, deps, trace)
   const targetUrl = `${baseUrl}${req.path}${req.search}`
   const startedAt = Date.now()
@@ -663,6 +669,7 @@ async function proxy(
       headers: req.headers,
       rawBody: req.rawBody,
       timeoutMs: deps.timeoutMs,
+      ...(identity.identity && { clientIdentity: { system: system.slug, ...identity.identity } }),
     })
   } catch (err) {
     const message = passthroughFailureMessage(err)

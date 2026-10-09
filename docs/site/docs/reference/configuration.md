@@ -65,8 +65,24 @@ name the build the server reports — live in
 !!! warning "Startup and runtime checks"
 
     `PASSTHROUGH_AS_DEFAULT=true` requires every system's `baseUrlEnv` to be set
-    at startup. With `PASSTHROUGH_AS_DEFAULT=false`, missing base URLs are allowed
-    until a request actually resolves to `real`; then the mock API returns `500`.
+    at startup, and — for a system that declares `clientCertEnv` and
+    `clientKeyEnv` — a valid PEM client certificate and key in those variables.
+    With `PASSTHROUGH_AS_DEFAULT=false`, missing base URLs and client
+    certificates are allowed until a request actually resolves to `real`; then
+    the mock API returns `500`.
+
+### Upstream variables
+
+Beyond the settings above, each system's `_system.json` names its own variables,
+which the server reads at request time:
+
+| Field in `_system.json` | Its variable holds | Shown on `/ui/environment` |
+| --- | --- | --- |
+| `baseUrlEnv` | The real upstream base URL for `real` passthrough. | Value |
+| `clientCertEnv` | The PEM client certificate presented to an upstream that requires mutual TLS. | Set / unset only |
+| `clientKeyEnv` | The unencrypted PEM private key for that certificate. | Set / unset only |
+
+See [Upstreams that require mTLS](../building/scenarios.md#upstreams-that-require-mtls).
 
 ## Validation rules
 
@@ -79,7 +95,9 @@ runs until the tree itself is well-formed:
 - Every entry directly under `catalog/` is a directory (a system) or a
   `_functions.mjs` file — anything else is a stray entry.
 - Every system directory has a `_system.json` that parses as a JSON object with
-  non-empty `name` and `baseUrlEnv` strings.
+  non-empty `name` and `baseUrlEnv` strings. `clientCertEnv` and
+  `clientKeyEnv` are optional, but come as a pair of non-empty strings: one
+  without the other is an error.
 - Every entry inside a system directory (other than `_system.json`,
   `_functions.mjs`, and at most one `_spec.yaml` / `_spec.yml` / `_spec.json`
   file — see [Schemas](../building/schemas.md#system-level-_spec-file)) is a
@@ -153,7 +171,9 @@ now-known catalog and reports its own list of errors:
   the endpoint's `path`. A declared path parameter with no such segment could
   never be supplied, so every request would fail — see
   [Request parameters](../building/schemas.md#request-parameters).
-- `PASSTHROUGH_AS_DEFAULT=true` → every system's `baseUrlEnv` is set. This is the
+- `PASSTHROUGH_AS_DEFAULT=true` → every system's `baseUrlEnv` is set, and every
+  system that declares `clientCertEnv` / `clientKeyEnv` has both set to a
+  matching PEM certificate and unencrypted key. This is the
   one rule that reads the environment rather than the catalog, so it runs at
   startup and under `npm run validate:catalog`, but **not** under
   [`mock-server validate`](../building/validate.md#what-it-deliberately-does-not-check).

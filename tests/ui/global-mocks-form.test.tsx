@@ -145,3 +145,36 @@ describe('GlobalMocksForm catalog link', () => {
     expect(html).toContain('View in catalog')
   })
 })
+
+describe('GlobalMocksForm client certificate warning', () => {
+  const mtlsCatalog: Catalog = {
+    systems: [
+      {
+        ...catalog.systems[0],
+        clientCertEnv: 'HELLO_CLIENT_CERT',
+        clientKeyEnv: 'HELLO_CLIENT_KEY',
+      },
+    ],
+  }
+
+  function renderMtls(env: Record<string, string>): string {
+    return renderToStaticMarkup(
+      <GlobalMocksForm
+        catalog={mtlsCatalog}
+        selections={[selection('real')]}
+        passthroughAsDefault={false}
+        env={{ HELLO_SYSTEM_URL: 'http://localhost', ...env }}
+      />,
+    )
+  }
+
+  it('warns when passthrough is selected and the client certificate vars are unset', () => {
+    expect(renderMtls({})).toContain('HELLO_CLIENT_CERT and HELLO_CLIENT_KEY are not set')
+    expect(renderMtls({ HELLO_CLIENT_CERT: 'pem' })).toContain('HELLO_CLIENT_KEY is not set')
+  })
+
+  it('does not warn when both client certificate vars are set', () => {
+    const html = renderMtls({ HELLO_CLIENT_CERT: 'pem', HELLO_CLIENT_KEY: 'pem' })
+    expect(html).not.toContain('client certificate is configured')
+  })
+})

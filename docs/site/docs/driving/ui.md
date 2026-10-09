@@ -91,7 +91,12 @@ response modal from the [Profiles](#profiles-ui) page apply here too: setting
 an endpoint back to the implicit scenario clears its stored override, and
 resolver-backed picks get the same `file-code` icon and **Reset resolver
 history** button as on a profile page. Saved selections that no longer match
-the catalog are counted and flagged at the top of the form.
+the catalog are counted and flagged at the top of the form. An endpoint whose
+effective pick is `Passthrough` shows a warning when its system's base URL is
+unset, and another when the system declares a
+[client certificate](../building/scenarios.md#upstreams-that-require-mtls) whose
+`clientCertEnv` or `clientKeyEnv` variable is unset — either way, requests for
+that endpoint return `500` until it is configured.
 
 ## Catalog (`/ui/catalog`)
 
@@ -134,4 +139,7 @@ The **Upstream** group has one row per distinct `baseUrlEnv` declared in the
 catalog, naming the systems it feeds — the quickest way to confirm whether
 `real` passthrough for a system is actually configured before a request fails
 for the missing URL (see
-[Scenarios](../building/scenarios.md#scenarios-the-real-passthrough)).
+[Scenarios](../building/scenarios.md#scenarios-the-real-passthrough)). A system
+that declares a [client certificate](../building/scenarios.md#upstreams-that-require-mtls)
+adds a row each for its `clientCertEnv` and `clientKeyEnv` variables. Those show
+only whether the variable is set — the certificate and key are never rendered.

@@ -139,27 +139,54 @@ export function buildEnvironmentRows(
     ...APP_ENVIRONMENT.filter((definition) => definition.display).map((definition) =>
       rowForDefinition(definition, env),
     ),
-    ...catalogBaseUrlRows(catalog, env),
+    ...catalogUpstreamRows(catalog, env),
   ]
 }
 
-function catalogBaseUrlRows(
+type Describe = (systems: string) => string
+
+interface UpstreamVariable {
+  systems: string[]
+  describe: Describe
+  hideValue: boolean
+}
+
+function catalogUpstreamRows(
   catalog: Catalog,
   env: Record<string, string | undefined>,
 ): EnvironmentRow[] {
-  const systemsByEnv = new Map<string, string[]>()
+  const definitions = new Map<string, UpstreamVariable>()
+  const add = (name: string, system: string, describe: Describe, hideValue: boolean) => {
+    const definition = definitions.get(name) ?? { systems: [], describe, hideValue }
+    definition.hideValue ||= hideValue
+    definition.systems.push(system)
+    definitions.set(name, definition)
+  }
   for (const system of catalog.systems) {
-    const systems = systemsByEnv.get(system.baseUrlEnv) ?? []
-    systems.push(system.name)
-    systemsByEnv.set(system.baseUrlEnv, systems)
+    add(system.baseUrlEnv, system.name, (systems) => `Base URL for ${systems} passthrough.`, false)
+    if (system.clientCertEnv && system.clientKeyEnv) {
+      add(
+        system.clientCertEnv,
+        system.name,
+        (systems) => `PEM client certificate presented on ${systems} passthrough.`,
+        true,
+      )
+      add(
+        system.clientKeyEnv,
+        system.name,
+        (systems) => `PEM private key for the ${systems} client certificate.`,
+        true,
+      )
+    }
   }
 
-  return [...systemsByEnv.entries()].map(([name, systems]) =>
+  return [...definitions.entries()].map(([name, { systems, describe, hideValue }]) =>
     rowForDefinition(
       {
         name,
         category: 'Upstream',
-        description: `Base URL for ${systems.join(', ')} passthrough.`,
+        description: describe(systems.join(', ')),
+        ...(hideValue && { hideValue }),
         display: true,
       },
       env,

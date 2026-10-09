@@ -1,3 +1,6 @@
+import { Agent, fetch as undiciFetch } from 'undici'
+import type { ClientIdentity } from '../client-identity'
+
 export interface PassthroughRequest {
   baseUrl: string
   method: string
@@ -6,6 +9,7 @@ export interface PassthroughRequest {
   headers: Record<string, string>
   rawBody: Buffer | null
   timeoutMs: number
+  clientIdentity?: ClientIdentity & { system: string }
 }
 
 export interface ProxiedResponse {
@@ -42,6 +46,17 @@ const STRIP_RESPONSE = new Set([
   'content-length',
 ])
 
+const dispatchers = new Map<string, { cert: string; key: string; agent: Agent }>()
+
+function dispatcherFor({ system, cert, key }: ClientIdentity & { system: string }): Agent {
+  const cached = dispatchers.get(system)
+  if (cached && cached.cert === cert && cached.key === key) return cached.agent
+  void cached?.agent.close()
+  const agent = new Agent({ connect: { cert, key } })
+  dispatchers.set(system, { cert, key, agent })
+  return agent
+}
+
 export async function passthrough(req: PassthroughRequest): Promise<ProxiedResponse> {
   const url = new URL(req.path + req.search, req.baseUrl)
   const headers: Record<string, string> = {}
@@ -53,13 +68,16 @@ export async function passthrough(req: PassthroughRequest): Promise<ProxiedRespo
   const timer = setTimeout(() => controller.abort(), req.timeoutMs)
   try {
     const hasBody = req.rawBody !== null && !['GET', 'HEAD'].includes(req.method.toUpperCase())
-    const res = await fetch(url, {
+    const init = {
       method: req.method,
       headers,
       body: hasBody ? new Uint8Array(req.rawBody!) : undefined,
       signal: controller.signal,
-      redirect: 'manual',
-    })
+      redirect: 'manual' as const,
+    }
+    const res = req.clientIdentity
+      ? await undiciFetch(url, { ...init, dispatcher: dispatcherFor(req.clientIdentity) })
+      : await fetch(url, init)
     const bodyBytes = Buffer.from(await res.arrayBuffer())
     const outHeaders: Record<string, string> = {}
     res.headers.forEach((value, key) => {

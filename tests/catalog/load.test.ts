@@ -145,6 +145,43 @@ describe('loadCatalog', () => {
     expect(message).toMatch(/not valid JSON/)
   })
 
+  it('loads a system declaring clientCertEnv and clientKeyEnv', () => {
+    const dir = tmpCatalogDir({
+      'sys/_system.json': { ...SYSTEM_META, clientCertEnv: 'TEST_CLIENT_CERT', clientKeyEnv: 'TEST_CLIENT_KEY' },
+      'sys/ep/_endpoint.json': ENDPOINT_META,
+      'sys/ep/default.json': FIXTURE,
+    })
+    expect(loadCatalog(dir).systems[0]).toMatchObject({
+      clientCertEnv: 'TEST_CLIENT_CERT',
+      clientKeyEnv: 'TEST_CLIENT_KEY',
+    })
+  })
+
+  it('leaves clientCertEnv and clientKeyEnv off a system that declares neither', () => {
+    const dir = tmpCatalogDir({
+      'sys/_system.json': SYSTEM_META,
+      'sys/ep/_endpoint.json': ENDPOINT_META,
+      'sys/ep/default.json': FIXTURE,
+    })
+    const [system] = loadCatalog(dir).systems
+    expect(system).not.toHaveProperty('clientCertEnv')
+    expect(system).not.toHaveProperty('clientKeyEnv')
+  })
+
+  it.each([
+    [{ clientCertEnv: 'TEST_CLIENT_CERT' }, /"clientCertEnv" and "clientKeyEnv" must be set together/],
+    [{ clientKeyEnv: 'TEST_CLIENT_KEY' }, /"clientCertEnv" and "clientKeyEnv" must be set together/],
+    [{ clientCertEnv: '', clientKeyEnv: 'TEST_CLIENT_KEY' }, /missing or invalid "clientCertEnv"/],
+    [{ clientCertEnv: 'TEST_CLIENT_CERT', clientKeyEnv: 7 }, /missing or invalid "clientKeyEnv"/],
+  ])('rejects an incomplete client certificate pair %j', (fields, error) => {
+    const dir = tmpCatalogDir({
+      'sys/_system.json': { ...SYSTEM_META, ...fields },
+      'sys/ep/_endpoint.json': ENDPOINT_META,
+      'sys/ep/default.json': FIXTURE,
+    })
+    expect(() => loadCatalog(dir)).toThrow(error)
+  })
+
   it('ignores dotfiles at every level', () => {
     const dir = tmpCatalogDir({
       '.DS_Store': '',

@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import { resolveClientIdentity } from '../client-identity'
 import { DurationError, parseDelayMs } from '../mock-engine/duration'
 import {
   builtinArity,
@@ -504,6 +505,10 @@ export function validateAppConfig(
         errors.push(
           `system "${system.name}": PASSTHROUGH_AS_DEFAULT=true requires ${system.baseUrlEnv} to be set`,
         )
+      }
+      const identity = resolveClientIdentity(system, env)
+      if (!identity.ok) {
+        errors.push(`system "${system.name}": PASSTHROUGH_AS_DEFAULT=true requires a client certificate: ${identity.message}`)
       }
     }
   }

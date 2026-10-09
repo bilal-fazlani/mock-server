@@ -897,6 +897,43 @@ describe('validateAppConfig', () => {
   it('passes when PASSTHROUGH_AS_DEFAULT is true and the base URL is set', () => {
     expect(validateAppConfig(cat, { TEST_URL: 'http://x' }, true)).toEqual([])
   })
+
+  describe('with a client certificate declared', () => {
+    const mtls: Catalog = {
+      systems: [{ ...system, clientCertEnv: 'TEST_CLIENT_CERT', clientKeyEnv: 'TEST_CLIENT_KEY' }],
+    }
+    const pem = (name: string) =>
+      fs.readFileSync(path.join(__dirname, '../testdata/mtls', name), 'utf8')
+
+    it('ignores unset certificate vars when PASSTHROUGH_AS_DEFAULT is false', () => {
+      expect(validateAppConfig(mtls, {}, false)).toEqual([])
+    })
+
+    it('flags an unset certificate var when PASSTHROUGH_AS_DEFAULT is true', () => {
+      expect(validateAppConfig(mtls, { TEST_URL: 'http://x', TEST_CLIENT_KEY: pem('client.key') }, true)).toEqual([
+        'system "Test System": PASSTHROUGH_AS_DEFAULT=true requires a client certificate: environment variable TEST_CLIENT_CERT is not set',
+      ])
+    })
+
+    it('flags an unparseable key when PASSTHROUGH_AS_DEFAULT is true', () => {
+      const errors = validateAppConfig(
+        mtls,
+        { TEST_URL: 'http://x', TEST_CLIENT_CERT: pem('client.crt'), TEST_CLIENT_KEY: 'nope' },
+        true,
+      )
+      expect(errors.join('\n')).toMatch(/TEST_CLIENT_KEY does not hold an unencrypted PEM private key/)
+    })
+
+    it('passes when the certificate and key are set and match', () => {
+      expect(
+        validateAppConfig(
+          mtls,
+          { TEST_URL: 'http://x', TEST_CLIENT_CERT: pem('client.crt'), TEST_CLIENT_KEY: pem('client.key') },
+          true,
+        ),
+      ).toEqual([])
+    })
+  })
 })
 
 describe('schema path parameters vs endpoint path', () => {

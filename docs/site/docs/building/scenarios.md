@@ -42,6 +42,57 @@ nothing to return.
     the mock API returns `500` if a request resolves to `real` without an upstream
     URL.
 
+### Upstreams that require mTLS
+
+Some upstreams require mutual TLS: their callers present a client certificate
+and key on every request, for example:
+
+```bash
+curl https://payments.example.com/info --cert client.crt --key client.key
+```
+
+Pointed at the mock, that caller changes only its base URL — to the mock's
+`http://` address — and drops nothing else. The mock serves plain HTTP, so the
+caller's TLS options have no effect on the inbound side. The mock holds the
+client identity instead, and presents it whenever it passes a call through to
+that upstream. Declare it on the system:
+
+```json
+{
+  "name": "Payments",
+  "baseUrlEnv": "PAYMENTS_URL",
+  "clientCertEnv": "PAYMENTS_CLIENT_CERT",
+  "clientKeyEnv": "PAYMENTS_CLIENT_KEY"
+}
+```
+
+and set those variables to the **PEM text** of the certificate and key — the
+same values the caller hands to curl, not file paths:
+
+```bash
+export PAYMENTS_CLIENT_CERT="$(cat client.crt)"
+export PAYMENTS_CLIENT_KEY="$(cat client.key)"
+```
+
+Systems without the two fields proxy exactly as before. The connection pool for
+a client identity is reused across requests and rebuilt when the values change.
+
+When a request resolves to `real` and the identity is unusable, the mock answers
+`500` instead of calling the upstream, with an `error` naming the variable:
+
+| Problem | Trace code |
+| --- | --- |
+| `clientCertEnv` or `clientKeyEnv` is declared but its variable is unset | `missing_client_cert` |
+| The certificate isn't a PEM certificate, the key isn't an unencrypted PEM private key, or the key doesn't belong to the certificate | `invalid_client_cert` |
+
+Under `PASSTHROUGH_AS_DEFAULT=true` the same checks run at startup, so the server
+refuses to boot rather than failing on the first request.
+
+Encrypted (passphrase-protected) keys and PKCS#12 bundles aren't supported:
+convert them to an unencrypted PEM pair first. If the upstream's own server
+certificate is signed by a private CA, trust that CA with Node's
+`NODE_EXTRA_CA_CERTS`.
+
 ## Code-backed scenarios
 
 A scenario backed by `<slug>.mjs` instead of `<slug>.json` defers the response

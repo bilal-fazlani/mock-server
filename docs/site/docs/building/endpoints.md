@@ -12,6 +12,8 @@ A system directory needs one `_system.json`:
 | --- | --- | --- |
 | `name` | yes | Human-readable system name (e.g. `"Hello System"`), used in the UI and in log/error labels. The **slug** used in paths and lookups is the directory name itself (e.g. `hello-system`), not derived from this field. |
 | `baseUrlEnv` | yes | Name of the environment variable that holds this system's real upstream base URL, used for `real` passthrough. |
+| `clientCertEnv` | with `clientKeyEnv` | Name of the environment variable that holds the PEM client certificate presented to an upstream that requires mutual TLS. Set it together with `clientKeyEnv` or not at all — one without the other fails validation. See [Upstreams that require mTLS](scenarios.md#upstreams-that-require-mtls). |
+| `clientKeyEnv` | with `clientCertEnv` | Name of the environment variable that holds the unencrypted PEM private key for that certificate. |
 
 A system directory may also carry one optional `_spec.yaml` (or `_spec.yml` /
 `_spec.json`) — a single OpenAPI document that supplies request/response schemas

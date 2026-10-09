@@ -57,7 +57,8 @@ The full rule list is in
 
 **Environment configuration.** The startup gate additionally parses
 `PASSTHROUGH_AS_DEFAULT` and, when it is `true`, requires every system's
-`baseUrlEnv` to be set. `validate` skips both, because it is built to run where
+`baseUrlEnv` to be set, along with a usable PEM pair in any declared
+`clientCertEnv` / `clientKeyEnv`. `validate` skips both, because it is built to run where
 upstream base URLs legitimately do not exist — a consumer's CI job, or a
 `docker build` layer. Failing there would reject a perfectly good catalog edit
 for a reason that has nothing to do with the edit.

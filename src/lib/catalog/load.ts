@@ -165,6 +165,7 @@ export function loadCatalog(catalogDir: string): Catalog {
       name: requireString(sysMeta, 'name', slug, problems),
       slug,
       baseUrlEnv: requireString(sysMeta, 'baseUrlEnv', slug, problems),
+      ...optionalClientIdentity(sysMeta, slug, problems),
       endpoints,
     })
   }
@@ -236,6 +237,24 @@ function requireString(
   if (typeof value === 'string' && value.length > 0) return value
   problems.push(`${label}: missing or invalid "${field}"`)
   return ''
+}
+
+function optionalClientIdentity(
+  meta: Record<string, unknown>,
+  label: string,
+  problems: string[],
+): Pick<SystemDef, 'clientCertEnv' | 'clientKeyEnv'> {
+  const hasCert = meta.clientCertEnv !== undefined
+  const hasKey = meta.clientKeyEnv !== undefined
+  if (!hasCert && !hasKey) return {}
+  if (hasCert !== hasKey) {
+    problems.push(`${label}: "clientCertEnv" and "clientKeyEnv" must be set together`)
+    return {}
+  }
+  return {
+    clientCertEnv: requireString(meta, 'clientCertEnv', label, problems),
+    clientKeyEnv: requireString(meta, 'clientKeyEnv', label, problems),
+  }
 }
 
 function optionalCaptureProfileKeys(
