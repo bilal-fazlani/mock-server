@@ -1,3 +1,5 @@
+import fs from 'node:fs'
+import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import type { Catalog } from '../../src/lib/catalog/types'
 import { parseBindAddress, parseUnmockedUsers } from '../../src/lib/config'
@@ -34,8 +36,10 @@ const catalog: Catalog = {
   ],
 }
 
-const CERT_PEM = '-----BEGIN CERTIFICATE-----\nMIIBcert\n-----END CERTIFICATE-----\n'
-const KEY_PEM = '-----BEGIN PRIVATE KEY-----\nMIIBkey\n-----END PRIVATE KEY-----\n'
+const MTLS = path.join(__dirname, '../testdata/mtls')
+const CERT_PEM = fs.readFileSync(path.join(MTLS, 'client.crt'), 'utf8')
+const KEY_PEM = fs.readFileSync(path.join(MTLS, 'client.key'), 'utf8')
+const OTHER_KEY_PEM = fs.readFileSync(path.join(MTLS, 'server.key'), 'utf8')
 
 describe('buildEnvironmentRows', () => {
   it('renders app env vars and catalog upstream env vars without leaking the Mongo connection string value', () => {
@@ -92,7 +96,7 @@ describe('buildEnvironmentRows', () => {
       const row = set.find((r) => r.name === name)
       expect(row).toMatchObject({ category: 'Upstream', status: 'set', value: 'Hidden', valueHidden: true })
     }
-    expect(JSON.stringify(set)).not.toContain('MIIB')
+    expect(JSON.stringify(set)).not.toContain('MII')
 
     const unset = buildEnvironmentRows(catalog, {})
     expect(unset.find((r) => r.name === 'BILLING_CLIENT_KEY')).toMatchObject({
@@ -103,6 +107,26 @@ describe('buildEnvironmentRows', () => {
     expect(unset.find((r) => r.name === 'BILLING_CLIENT_CERT')?.description).toBe(
       'PEM client certificate presented on Billing passthrough.',
     )
+  })
+
+  it('marks both client certificate rows invalid with the problem, never the PEM', () => {
+    const rows = buildEnvironmentRows(catalog, {
+      BILLING_CLIENT_CERT: CERT_PEM,
+      BILLING_CLIENT_KEY: OTHER_KEY_PEM,
+    })
+    for (const name of ['BILLING_CLIENT_CERT', 'BILLING_CLIENT_KEY']) {
+      expect(rows.find((r) => r.name === name)).toMatchObject({
+        status: 'invalid',
+        value: 'Hidden',
+        problem:
+          'environment variable BILLING_CLIENT_KEY does not hold the private key for the certificate in BILLING_CLIENT_CERT',
+      })
+    }
+    expect(JSON.stringify(rows)).not.toContain('MII')
+
+    const notPem = buildEnvironmentRows(catalog, { BILLING_CLIENT_CERT: 'nope', BILLING_CLIENT_KEY: KEY_PEM })
+    expect(notPem.find((r) => r.name === 'BILLING_CLIENT_CERT')?.status).toBe('invalid')
+    expect(JSON.stringify(notPem)).not.toContain('nope')
   })
 
   it('hides a variable that one system uses as a base URL and another as a client key', () => {

@@ -1,6 +1,7 @@
 import type { Catalog } from './catalog/types'
+import { resolveClientIdentity } from './client-identity'
 
-export type EnvironmentStatus = 'set' | 'default' | 'unset'
+export type EnvironmentStatus = 'set' | 'default' | 'unset' | 'invalid'
 
 export interface EnvironmentDefinition {
   name: string
@@ -20,6 +21,7 @@ export interface EnvironmentRow {
   description: string
   possibleValues?: string[]
   valueHidden?: boolean
+  problem?: string
 }
 
 export const APP_ENVIRONMENT: EnvironmentDefinition[] = [
@@ -149,6 +151,7 @@ interface UpstreamVariable {
   systems: string[]
   describe: Describe
   hideValue: boolean
+  problem?: string
 }
 
 function catalogUpstreamRows(
@@ -156,31 +159,42 @@ function catalogUpstreamRows(
   env: Record<string, string | undefined>,
 ): EnvironmentRow[] {
   const definitions = new Map<string, UpstreamVariable>()
-  const add = (name: string, system: string, describe: Describe, hideValue: boolean) => {
+  const add = (
+    name: string,
+    system: string,
+    describe: Describe,
+    hideValue: boolean,
+    problem?: string,
+  ) => {
     const definition = definitions.get(name) ?? { systems: [], describe, hideValue }
     definition.hideValue ||= hideValue
+    definition.problem ??= problem
     definition.systems.push(system)
     definitions.set(name, definition)
   }
   for (const system of catalog.systems) {
     add(system.baseUrlEnv, system.name, (systems) => `Base URL for ${systems} passthrough.`, false)
     if (system.clientCertEnv && system.clientKeyEnv) {
+      const identity = resolveClientIdentity(system, env)
+      const problem = !identity.ok && identity.code === 'invalid_client_cert' ? identity.message : undefined
       add(
         system.clientCertEnv,
         system.name,
         (systems) => `PEM client certificate presented on ${systems} passthrough.`,
         true,
+        problem,
       )
       add(
         system.clientKeyEnv,
         system.name,
         (systems) => `PEM private key for the ${systems} client certificate.`,
         true,
+        problem,
       )
     }
   }
 
-  return [...definitions.entries()].map(([name, { systems, describe, hideValue }]) =>
+  return [...definitions.entries()].map(([name, { systems, describe, hideValue, problem }]) =>
     rowForDefinition(
       {
         name,
@@ -190,6 +204,7 @@ function catalogUpstreamRows(
         display: true,
       },
       env,
+      problem,
     ),
   )
 }
@@ -197,6 +212,7 @@ function catalogUpstreamRows(
 function rowForDefinition(
   definition: EnvironmentDefinition,
   env: Record<string, string | undefined>,
+  problem?: string,
 ): EnvironmentRow {
   const raw = env[definition.name]
   const value =
@@ -213,10 +229,17 @@ function rowForDefinition(
   return {
     name: definition.name,
     value,
-    status: raw === undefined ? (definition.defaultValue === undefined ? 'unset' : 'default') : 'set',
+    status: problem
+      ? 'invalid'
+      : raw === undefined
+        ? definition.defaultValue === undefined
+          ? 'unset'
+          : 'default'
+        : 'set',
     category: definition.category,
     description: definition.description,
     ...(definition.possibleValues ? { possibleValues: definition.possibleValues } : {}),
     ...(definition.hideValue && raw !== undefined ? { valueHidden: true } : {}),
+    ...(problem ? { problem } : {}),
   }
 }

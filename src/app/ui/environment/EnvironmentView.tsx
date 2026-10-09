@@ -107,6 +107,14 @@ function groupRows(
 }
 
 function DescriptionContent({ row }: { row: EnvironmentRow }) {
+  if (row.problem) {
+    return (
+      <div className="grid gap-2">
+        <span>{row.description}</span>
+        <span className="text-destructive">{row.problem}</span>
+      </div>
+    )
+  }
   if (!row.possibleValues || row.possibleValues.length === 0) {
     return row.description
   }
@@ -136,6 +144,7 @@ function DescriptionContent({ row }: { row: EnvironmentRow }) {
 function statusLabel(status: EnvironmentStatus): string {
   if (status === 'set') return 'Set'
   if (status === 'default') return 'Default'
+  if (status === 'invalid') return 'Invalid'
   return 'Unset'
 }
 
@@ -143,5 +152,6 @@ function statusClassName(status: EnvironmentStatus): string {
   const base = 'inline-flex min-w-[66px] items-center justify-center rounded-full px-2 py-[3px] text-xs font-semibold'
   if (status === 'set') return `${base} bg-[var(--success-tint)] text-[var(--success)]`
   if (status === 'default') return `${base} bg-[var(--accent-tint)] text-[var(--accent)]`
+  if (status === 'invalid') return `${base} border border-destructive bg-destructive/10 text-destructive`
   return `${base} border border-[var(--warning-border)] bg-[var(--warning-bg)] text-[var(--warning-text)]`
 }

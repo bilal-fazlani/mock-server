@@ -1,3 +1,5 @@
+import fs from 'node:fs'
+import path from 'node:path'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import type { Catalog } from '../../src/lib/catalog/types'
@@ -173,8 +175,20 @@ describe('GlobalMocksForm client certificate warning', () => {
     expect(renderMtls({ HELLO_CLIENT_CERT: 'pem' })).toContain('HELLO_CLIENT_KEY is not set')
   })
 
-  it('does not warn when both client certificate vars are set', () => {
-    const html = renderMtls({ HELLO_CLIENT_CERT: 'pem', HELLO_CLIENT_KEY: 'pem' })
-    expect(html).not.toContain('client certificate is configured')
+  it('flags an unusable client certificate without rendering the PEM', () => {
+    const html = renderMtls({ HELLO_CLIENT_CERT: 'not-a-cert-body', HELLO_CLIENT_KEY: 'pem' })
+    expect(html).toContain('client certificate is unusable')
+    expect(html).toContain('HELLO_CLIENT_CERT does not hold a PEM certificate')
+    expect(html).not.toContain('not-a-cert-body')
+  })
+
+  it('does not flag a usable client certificate', () => {
+    const dir = path.join(__dirname, '../testdata/mtls')
+    const html = renderMtls({
+      HELLO_CLIENT_CERT: fs.readFileSync(path.join(dir, 'client.crt'), 'utf8'),
+      HELLO_CLIENT_KEY: fs.readFileSync(path.join(dir, 'client.key'), 'utf8'),
+    })
+    expect(html).not.toContain('unusable')
+    expect(html).not.toContain('not set')
   })
 })

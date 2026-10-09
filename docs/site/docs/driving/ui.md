@@ -97,8 +97,10 @@ the catalog are counted and flagged at the top of the form. An endpoint whose
 effective pick is `Passthrough` shows a warning when its system's base URL is
 unset, and another when the system declares a
 [client certificate](../building/scenarios.md#upstreams-that-require-mtls) whose
-`clientCertEnv` or `clientKeyEnv` variable is unset — either way, requests for
-that endpoint return `500` until it is configured.
+`clientCertEnv` or `clientKeyEnv` variable is unset, or set but unusable (not
+PEM, an encrypted key, or a key that does not match the certificate) — in each
+case requests for that endpoint return `500` until it is fixed. The warning
+names the variable at fault, never its value.
 
 ## Catalog (`/ui/catalog`)
 
@@ -133,8 +135,8 @@ ID](request-logs.md#distributed-trace-correlation) when the request carried one.
 Every [configuration setting](../reference/configuration.md) the server was
 started with, grouped by category, each row showing the live value and a status
 chip — **Set** (explicitly configured), **Default** (falling back to the
-documented default, shown as `(default: …)`), or **Unset** (no value and no
-default). Secret values such as `MONGODB_CONNECTION_STRING` are shown as
+documented default, shown as `(default: …)`), **Unset** (no value and no
+default), or **Invalid** (set, but not usable). Secret values such as `MONGODB_CONNECTION_STRING` are shown as
 `Hidden`, never echoed.
 
 The **Upstream** group has one row per distinct `baseUrlEnv` declared in the
@@ -144,4 +146,6 @@ for the missing URL (see
 [Scenarios](../building/scenarios.md#scenarios-the-real-passthrough)). A system
 that declares a [client certificate](../building/scenarios.md#upstreams-that-require-mtls)
 adds a row each for its `clientCertEnv` and `clientKeyEnv` variables. Those show
-only whether the variable is set — the certificate and key are never rendered.
+only whether the variable is set — the certificate and key are never rendered. A
+pair that is set but unusable gets an **Invalid** chip on both rows, with the
+reason in the description.

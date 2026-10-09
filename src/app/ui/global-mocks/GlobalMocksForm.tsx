@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { SquareArrowOutUpRight } from 'lucide-react'
 import type { Catalog, EndpointDef, SystemDef } from '../../../lib/catalog/types'
-import { unsetClientIdentityEnv } from '../../../lib/client-identity'
+import { resolveClientIdentity, unsetClientIdentityEnv } from '../../../lib/client-identity'
 import type { GlobalMockScenario } from '../../../lib/profiles/store'
 import {
   implicitScenario,
@@ -71,6 +71,11 @@ export function GlobalMocksForm({
                 const missingPassthroughBaseUrl = selected === 'real' && !env[system.baseUrlEnv]
                 const missingClientIdentity =
                   selected === 'real' ? unsetClientIdentityEnv(system, env) : []
+                const identity = selected === 'real' ? resolveClientIdentity(system, env) : null
+                const invalidClientIdentity =
+                  identity && !identity.ok && identity.code === 'invalid_client_cert'
+                    ? identity.message
+                    : null
                 return (
                   <div
                     key={endpoint.name}
@@ -100,6 +105,13 @@ export function GlobalMocksForm({
                         Passthrough is selected, but {missingClientIdentity.join(' and ')}{' '}
                         {missingClientIdentity.length > 1 ? 'are' : 'is'} not set. Requests for this
                         endpoint will return 500 until the client certificate is configured.
+                      </Alert>
+                    )}
+                    {invalidClientIdentity && (
+                      <Alert>
+                        Passthrough is selected, but the client certificate is unusable:{' '}
+                        {invalidClientIdentity}. Requests for this endpoint will return 500 until it
+                        is fixed.
                       </Alert>
                     )}
                     <GlobalScenarioConfig
