@@ -280,13 +280,19 @@ that decides whether the attach-mode bean is registered at all: `mockserver.url`
 `mockServer.url`, and a `MOCK_SERVER_URL` environment variable are the same
 property, and each one turns attach mode on pointing at the value it carries.
 
+An **empty** value is not attach mode with nothing to attach to — it is an error.
+`mock-server.url=` (or one that is only whitespace) fails context load at once,
+with a message naming the property. The usual cause is an unset placeholder such
+as `mock-server.url=${MOCK_SERVER_URL:}` in CI; remove the property, or give it a
+real address.
+
 Getting the *value* wrong, and getting the *name* wrong in a way Spring does not
 read as this property, are the two that cost you something — and they fail in
 opposite directions.
 
 !!! warning "A URL you get wrong is honoured, not ignored"
 
-    Nothing validates the value before the wiring uses it. Point it at an address
+    Beyond being non-blank, nothing validates the value before the wiring uses it. Point it at an address
     nothing is listening on and the context fails to load, naming what it tried:
 
     ```text
