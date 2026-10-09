@@ -124,6 +124,13 @@ logs it at `warn` with `source=unmocked_policy selector=path:customerId`. Give
 - **`real` is always selectable.** If `PASSTHROUGH_AS_DEFAULT=false` and a system
   has no configured base URL, explicit `real` picks show a UI warning and return
   `500` at request time until the base URL is set.
+- **The mock serves plain HTTP only.** Point callers at its `http://` address. A
+  caller that keeps `https://` fails the TLS handshake before any request is
+  sent, so nothing reaches the request log. A caller that presents a client
+  certificate needs no other change: its certificate options have no effect over
+  plain HTTP. To pass its calls through to an upstream that requires mutual TLS,
+  give the system a client certificate — see
+  [Upstreams that require mTLS](../building/scenarios.md#upstreams-that-require-mtls).
 - **Body selectors don't allow hyphens** in keys; path/query/header names do.
   `$.customer-id` is invalid — the JSON key would need to be `customer_id` (or use
   a path/query/header selector).

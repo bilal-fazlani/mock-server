@@ -51,9 +51,9 @@ and key on every request, for example:
 curl https://payments.example.com/info --cert client.crt --key client.key
 ```
 
-Pointed at the mock, that caller changes only its base URL — to the mock's
-`http://` address — and drops nothing else. The mock serves plain HTTP, so the
-caller's TLS options have no effect on the inbound side. The mock holds the
+Pointed at the mock, that caller changes only its base URL, to the mock's
+`http://` address, and keeps its certificate options. The mock serves plain
+HTTP, so those options have no effect on the inbound side. The mock holds the
 client identity instead, and presents it whenever it passes a call through to
 that upstream. Declare it on the system:
 
