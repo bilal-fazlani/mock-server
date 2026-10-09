@@ -28,7 +28,11 @@
   # This file is watched too: it configures the docs deploy but lives outside
   # docs/site/, so without it a change to the build command or the headers below
   # would push and deploy nothing.
-  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- ':/docs/site' ':/netlify.toml'"
+  # With no build cache $CACHED_COMMIT_REF is empty, and the bare diff compares
+  # the fresh checkout with itself, exits 0, and cancels — and a canceled build
+  # never writes the cache back, so every later deploy cancels too. Build
+  # whenever there is no distinct previous commit to compare against.
+  ignore = "[ -n \"$CACHED_COMMIT_REF\" ] && [ \"$CACHED_COMMIT_REF\" != \"$COMMIT_REF\" ] && git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- ':/docs/site' ':/netlify.toml'"
 
 [build.environment]
   # Pin the interpreter so builds are reproducible (Pipfile requires the same).
