@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.14.0](https://github.com/bilal-fazlani/mock-server/compare/v0.13.0...v0.14.0) (2026-10-09)
+
+
+### Features
+
+* **passthrough:** present a client certificate to mTLS upstreams ([a990a54](https://github.com/bilal-fazlani/mock-server/commit/a990a54e28848105e3c97c1d0c83a96ffb2121a1))
+
 ## [0.13.0](https://github.com/bilal-fazlani/mock-server/compare/v0.12.0...v0.13.0) (2026-10-08)
 
 
