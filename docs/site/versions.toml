@@ -13,7 +13,7 @@
 [current]
 # The npm package and the ghcr image share this. Written into the withTag(…) /
 # withImage(…) / new MockServerContainer("…") examples on the SDK pages.
-server = "0.14.0"
+server = "0.15.0"
 # The Java SDK's four Maven artifacts, which share one version. Written into
 # every com.bilal-fazlani:<artifact>:<version> coordinate, Gradle and Maven both.
 sdk_java = "2.3.0"
