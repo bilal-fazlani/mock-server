@@ -1,5 +1,6 @@
 [project]
 site_name = "Mock Server"
+extra_css = ["stylesheets/extra.css"]
 # Describes the product, not the guide: this is the blockquote at the top of
 # /llms.txt, so it is the first sentence a machine reader sees. Every page
 # overrides it with its own front-matter `description`, leaving 404.html as the
