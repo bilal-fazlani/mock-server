@@ -90,4 +90,25 @@ describe('EnvironmentView', () => {
 
     expect(html).not.toContain('mongodb://')
   })
+
+  it('renders an Invalid chip and the problem for an unusable client certificate row', () => {
+    const html = renderToStaticMarkup(
+      <EnvironmentView
+        rows={[
+          {
+            name: 'HELLO_CLIENT_CERT',
+            value: 'Hidden',
+            status: 'invalid',
+            category: 'Upstream',
+            description: 'PEM client certificate presented on Hello passthrough.',
+            valueHidden: true,
+            problem: 'environment variable HELLO_CLIENT_CERT does not hold a PEM certificate',
+          },
+        ]}
+      />,
+    )
+
+    expect(html).toContain('Invalid')
+    expect(html).toContain('environment variable HELLO_CLIENT_CERT does not hold a PEM certificate')
+  })
 })

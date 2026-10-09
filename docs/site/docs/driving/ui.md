@@ -136,8 +136,8 @@ Every [configuration setting](../reference/configuration.md) the server was
 started with, grouped by category, each row showing the live value and a status
 chip — **Set** (explicitly configured), **Default** (falling back to the
 documented default, shown as `(default: …)`), **Unset** (no value and no
-default), or **Invalid** (set, but not usable). Secret values such as `MONGODB_CONNECTION_STRING` are shown as
-`Hidden`, never echoed.
+default), or **Invalid** (set, but not usable). Secret values such as
+`MONGODB_CONNECTION_STRING` are shown as `Hidden`, never echoed.
 
 The **Upstream** group has one row per distinct `baseUrlEnv` declared in the
 catalog, naming the systems it feeds — the quickest way to confirm whether
