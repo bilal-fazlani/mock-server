@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.15.0](https://github.com/bilal-fazlani/mock-server/compare/v0.14.0...v0.15.0) (2026-10-09)
+
+
+### Features
+
+* **ui:** show an unusable client certificate on the global mocks and environment pages ([580aaaa](https://github.com/bilal-fazlani/mock-server/commit/580aaaab030ce9577842cb2a0d20fbda5ac58730))
+* **ui:** warn on scenario pickers when a client certificate var is unset ([7a19e4b](https://github.com/bilal-fazlani/mock-server/commit/7a19e4b5899362ec40b6c0e0d45275e378ce4744))
+
 ## [0.14.0](https://github.com/bilal-fazlani/mock-server/compare/v0.13.0...v0.14.0) (2026-10-09)
 
 
