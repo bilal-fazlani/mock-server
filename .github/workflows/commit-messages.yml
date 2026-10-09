@@ -1,0 +1,56 @@
+name: Commit messages
+
+# A separate workflow rather than a job in ci.yml: `paths-ignore` applies to a whole workflow, and
+# docs-only changes still produce commits release-please parses, so this must run on every push.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: commit-messages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  commit-messages:
+    # release-please parses every commit it considers for a release, and when its parser throws it
+    # logs a debug line and leaves that commit out of the release PR: green run, missing changelog
+    # entry, no signal. This runs the same parser, at the version release-please resolves, over the
+    # commits a change adds, so an unparseable body fails here instead of vanishing there.
+    name: Commit messages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          # The default shallow clone has neither the base commit nor the range to the head.
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: .github/commit-parse-check/package-lock.json
+
+      # The script's lockfile is written by npm 11; Node 22 bundles npm 10, which rejects it.
+      - name: Pin npm 11 (must match the npm major that wrote the lockfile)
+        run: npm install -g npm@11
+
+      - name: Install the parser
+        working-directory: .github/commit-parse-check
+        run: npm ci
+
+      - name: Confirm the parser still behaves as the check assumes
+        run: node .github/commit-parse-check/check.mjs --self-test
+
+      - name: Check commit messages
+        # On a pull request: every non-merge commit the branch adds. On a push to main: what the
+        # push added, as a backstop for commits that reach main without a pull request.
+        env:
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: node .github/commit-parse-check/check.mjs "$BASE_SHA" "$HEAD_SHA"

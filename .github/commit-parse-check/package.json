@@ -1,0 +1,10 @@
+{
+  "name": "commit-parse-check",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Runs the exact Conventional-Commits parser release-please uses over commit messages, so a body it cannot parse fails at PR time instead of silently dropping a changelog entry at release time.",
+  "type": "module",
+  "dependencies": {
+    "@conventional-commits/parser": "0.4.1"
+  }
+}
