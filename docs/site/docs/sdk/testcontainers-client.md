@@ -67,13 +67,32 @@ server.stop();
 | `new MockServerContainer()` | Runs `ghcr.io/bilal-fazlani/mock-server:latest`. |
 | `new MockServerContainer(String \| DockerImageName)` | Runs an explicit image. Parsed as a **whole reference**, not a bare tag. An image that is not `DEFAULT_IMAGE_NAME` must declare compatibility with `asCompatibleSubstituteFor`, for a private mirror or a fork. |
 | `withCatalog(String \| Path)` | Bind-mounts the directory read-only and points `CATALOG_PATH` at it. A **filesystem path, not a classpath resource**: a relative one resolves against the JVM's working directory, which Gradle and Maven both default to the module directory. Throws `IllegalArgumentException` at this call — not at `start()` — if the path is not an existing directory. |
-| `withStartupTimeout(Duration)` | Inherited. How long to wait for health; `DEFAULT_STARTUP_TIMEOUT` is 2 minutes. |
+| `withStartupTimeout(Duration)` | Inherited. How long to wait for health; `DEFAULT_STARTUP_TIMEOUT` is 2 minutes. Applies only to a server that is still running: one that exits fails at once instead of waiting this out. |
 | `baseUrl()` | `http://host:mappedPort` — no trailing slash, no path. |
 | `client()` | A `MockServerClient` bound to `baseUrl()`, created on first call and cached with its catalog. |
 
 `start()` does not return until `GET /ui/api/health` answers `200`. The container's
 port opens before its MongoDB connection is established, so a listening socket
 alone does not mean a mocked call can be served yet.
+
+### A server that cannot start
+
+A server that exits instead of becoming healthy, on a missing or invalid catalog
+say, fails `start()` within seconds rather than after the startup timeout. The
+exception is a `MockServerExitedException`, which extends Testcontainers'
+`ContainerLaunchException`, so an existing `catch` still matches. Its message
+holds the exit code and the last 20 lines of the server's output, so the reason
+reaches the test report without an SLF4J binding on the classpath:
+
+```text
+mock-server exited with code 1 while starting (image ghcr.io/bilal-fazlani/mock-server:latest). Its output:
+  mock-server: cannot start: catalog directory not found: /app/catalog
+  Pass the catalog directory as an argument, set CATALOG_PATH, or in Docker mount one at /app/catalog (-v "$(pwd)/catalog:/app/catalog:ro").
+```
+
+Read `exitCode()` and `output()` (the whole output, not only the tail) rather than
+parsing the message, whose wording may change. A wait strategy replaced with
+`waitingFor(...)` gets the same exit check.
 
 ### What a started container reports
 
@@ -144,8 +163,9 @@ from (copied, never mutated), or the whole `HttpClient`.
 
 Every type this client hands back is in that same package,
 `com.bilalfazlani.mockserver.client` — `ProfileHandle`, `GlobalMockScenario`,
-`LogSummary`, `LogEntry`, `ValidationFilter`, `Health`, and the four exceptions
-under [Failures](#failures). The container is the one exception, in
+`LogSummary`, `LogEntry`, `ValidationFilter`, `Health`, and the four client
+exceptions under [Failures](#failures). The container and its
+`MockServerExitedException` are the exceptions, in
 `com.bilalfazlani.mockserver.testcontainers` as above.
 
 ### Profiles
@@ -296,6 +316,7 @@ server to come up.
 | `ApiErrorException` | The server answered non-2xx. Branch on `status()`, never on `error()`, whose wording changes freely. `code()` carries the [stable error code](../driving/api.md#error-codes) when the server sends one, and is empty against older servers. |
 | `MockServerConnectionException` | No response at all: connection refused, a timeout, or an interrupted thread. Usually a server that is not running where the client was pointed. |
 | `MockServerClientException` | The base class, and — raised directly — a response that could not be understood. Catch it to handle any interaction failure uniformly. |
+| `MockServerExitedException` | Thrown by `MockServerContainer.start()`, not by the client: the server exited before it became healthy. A `ContainerLaunchException`, not a `MockServerClientException`. See [A server that cannot start](#a-server-that-cannot-start). |
 
 ## Forward compatibility
 

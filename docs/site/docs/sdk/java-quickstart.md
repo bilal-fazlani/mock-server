@@ -48,7 +48,8 @@ the container. `src/test/resources/catalog` is the convention, and a relative
 path like that one resolves against the test run's working directory, which
 Gradle and Maven both default to the module directory. See [what it resolves
 against](junit.md#what-withcatalog-resolves-against) for the cases where that
-matters.
+matters. Forget the catalog and the server exits: the test fails within seconds,
+with the server's own `catalog directory not found` message.
 
 ```text
 src/test/resources/catalog/

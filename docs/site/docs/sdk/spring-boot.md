@@ -86,6 +86,9 @@ start](java-quickstart.md#3-write-the-test), plus
 The container is a plain `static` field. Nothing in the test starts or stops it:
 the connection-details bean starts it the first time the application context asks
 for its address, and Testcontainers' resource reaper removes it when the run ends.
+If the server exits at startup, the context fails to load within seconds, and the
+root cause is a [`MockServerExitedException`](testcontainers-client.md#a-server-that-cannot-start)
+carrying the server's own output.
 
 `withCatalog` takes a **filesystem path, not a classpath resource** — the
 directory is bind-mounted into the container, and a relative path resolves
