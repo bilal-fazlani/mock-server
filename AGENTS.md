@@ -12,9 +12,9 @@ it would give you, then wait for a yes. This holds even though the Superpowers s
 insists you must invoke matching skills before responding — **this rule overrides that
 instruction.** "A skill might apply" is not permission; the cost is the point.
 
-This applies only to the `superpowers:*` namespace. This repo's own skills
-(`.claude/skills/` — `feature-lifecycle`, `maintaining-project-docs`) are small,
-project-specific, and should be used freely whenever they apply, without asking.
+This applies only to the `superpowers:*` namespace. This repo's own skill
+(`.claude/skills/maintaining-project-docs`) is small, project-specific, and should be used
+freely whenever it applies, without asking.
 
 ## Verify before committing — CI does not lint
 
@@ -163,47 +163,26 @@ Adding a config variable means adding it **everywhere it is surfaced**, in the s
 The same applies when a variable is renamed or removed. This rule exists because
 `REQUEST_LOG_TTL_DURATION` shipped documented but absent from the environment page.
 
-## GitHub issue labels
+## Work is tracked on the taskboard, not GitHub issues
 
-Issues are labelled on **two orthogonal axes** — one **type** and one **area**. Whenever
-you create a new GitHub issue (via `gh issue create`), apply exactly one from each axis. Do
-not invent priority tiers (`Tier 1`, `P0`, …) — sequencing lives in milestones/projects, not
-labels.
+Planned work for this repo and `mock-server-java-client` lives in the taskboard project
+**`MOCK`** (via the `taskboard` MCP tools and the `taskboard` skill) — tickets, epics,
+dependencies, specs and decisions. Its `agentInstructions` hold the run rules and the
+survey-before-designing step; read them with `get_project MOCK` before working a ticket.
 
-**Type — what kind of work** (pick one):
+- **Don't open GitHub issues for our own work**, and don't file out-of-scope finds there —
+  they become `MOCK` tickets with `surfacedFrom` set.
+- GitHub issues stay open only as an inbox for outside reports. One worth acting on becomes
+  a `MOCK` ticket; close the issue when the ticket lands.
+- New specs are `Spec` documents on the board. The existing files under
+  `docs/superpowers/specs/` stay where they are as history; add no new ones.
+- `#NN` references in older commits, docs and specs point at GitHub (issues closed, project
+  board `3` retired) and remain valid history.
 
-- `bug` — something is broken or behaves incorrectly
-- `enhancement` — a new capability or user-facing improvement
-- `tech-debt` — cleanup / maintainability with no user-facing feature
-- `documentation` — docs-only
-
-**Area — what part of the system** (pick one; all share the same blue):
-
-- `area: templating` — placeholder / fixture templating engine
-- `area: fault-sim` — latency & fault injection
-- `area: resolver` — dynamic profile resolver & history
-- `area: ui` — dashboard UI
-- `area: build` — Docker / CI / release / packaging
-- `area: observability` — logging, tracing & diagnostics
-
-If a new issue genuinely fits no existing area, create a new `area: <name>` label (color
-`1D76DB`, matching the family) rather than leaving it unlabelled — and mention the new area
-to the user.
-
-## Ticket state lives on the GitHub project board
-
-Project board `3` (`bilal-fazlani`) is the single source of ticket state — there is no
-in-repo mirror of it. Lane moves are `gh project item-edit`; the `feature-lifecycle` skill
-names the exact moment each transition fires. To read the current lane tallies:
-
-```bash
-gh project item-list 3 --owner bilal-fazlani --format json --limit 200 \
-  --jq '[.items[] | select(.content.number != null) | .status] | group_by(.) | map({lane: .[0], n: length})'
-```
-
-Ordering dependencies between issues are native GitHub relationships
-(`--add-blocked-by` / `--add-blocking` / `--parent`), documented in the `feature-lifecycle`
-skill under "Issue relationships" — not editorial arrows in a checked-in file.
+Labels on `MOCK` tickets: one type (`bug`, `enhancement`, `tech-debt`, `docs`) and one area
+(`templating`, `fault-sim`, `resolver`, `ui`, `build`, `observability`, `sdk`,
+`spring-boot`, …). Taskboard labels are shared across projects, so reuse before creating.
+No priority-tier labels — use the ticket's `priority` field.
 
 ## Browser preview from a feature worktree runs the wrong code
 
