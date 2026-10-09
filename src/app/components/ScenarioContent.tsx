@@ -42,9 +42,16 @@ export function ScenarioContentSkeleton({ kind }: { kind: ScenarioKind }) {
 export function ScenarioContent({ scenario }: { scenario: ScenarioView }) {
   if (scenario.kind === 'passthrough') {
     return (
-      <p className="font-mono text-[0.85rem] text-secondary-foreground">
-        Passthrough - {scenario.url ?? `(env ${scenario.baseUrlEnv} not set)`}
-      </p>
+      <div className="grid gap-1">
+        <p className="font-mono text-[0.85rem] text-secondary-foreground">
+          Passthrough - {scenario.url ?? `(env ${scenario.baseUrlEnv} not set)`}
+        </p>
+        {(scenario.clientIdentityUnset ?? []).map((name) => (
+          <p key={name} className="font-mono text-[0.85rem] text-destructive">
+            {name} is not set — requests will fail.
+          </p>
+        ))}
+      </div>
     )
   }
 

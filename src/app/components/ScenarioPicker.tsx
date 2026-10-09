@@ -76,6 +76,10 @@ export function ScenarioPicker({
       {Object.entries(scenarios).map(([key, option]) => {
         const tone = scenarioTone(key)
         const disabled = isUnavailable(key)
+        const unset =
+          option.kind === 'passthrough'
+            ? [...(option.url == null && option.baseUrlEnv ? [option.baseUrlEnv] : []), ...(option.clientIdentityUnset ?? [])]
+            : []
         const chip = (
           <label
             key={key}
@@ -95,10 +99,10 @@ export function ScenarioPicker({
             >
               {option.label}
             </span>
-            {option.kind === 'passthrough' && option.url == null && (
+            {unset.length > 0 && (
               <TriangleAlert
                 className="size-3.5 flex-none text-destructive"
-                aria-label={`${option.baseUrlEnv} is not set`}
+                aria-label={`${unset.join(', ')} ${unset.length > 1 ? 'are' : 'is'} not set`}
                 role="img"
               />
             )}

@@ -69,7 +69,19 @@ describe('scenariosWithPassthrough option shape', () => {
       kind: 'passthrough',
       baseUrlEnv: 'SYS_URL',
       url: null,
+      clientIdentityUnset: [],
     })
+  })
+
+  it('lists only the names of unset client certificate vars on the real entry', () => {
+    const options = scenariosWithPassthrough(
+      ep(),
+      false,
+      sys({ clientCertEnv: 'SYS_CERT', clientKeyEnv: 'SYS_KEY' }),
+      { SYS_CERT: '-----BEGIN CERTIFICATE-----' },
+    )
+    expect(options.real.clientIdentityUnset).toEqual(['SYS_KEY'])
+    expect(JSON.stringify(options.real)).not.toContain('BEGIN CERTIFICATE')
   })
 
   it('resolves the real entry\'s url from the system\'s baseUrlEnv when set', () => {

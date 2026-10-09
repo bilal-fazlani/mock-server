@@ -61,6 +61,14 @@ describe('buildScenarioViews', () => {
     })
   })
 
+  it('lists only the names of unset client certificate vars on the passthrough entry', async () => {
+    const secure: SystemDef = { ...system, clientCertEnv: 'TEST_CERT', clientKeyEnv: 'TEST_KEY' }
+    const views = await buildScenarioViews(secure, endpoint, fixturesDir, { TEST_CERT: 'PEM-VALUE' }, false)
+    const real = views[1]
+    expect(real).toMatchObject({ kind: 'passthrough', clientIdentityUnset: ['TEST_KEY'] })
+    expect(JSON.stringify(real)).not.toContain('PEM-VALUE')
+  })
+
   it('prepends the synthetic passthrough entry first when passthrough is the default', async () => {
     const views = await buildScenarioViews(system, endpoint, fixturesDir, {}, true)
     expect(views).toHaveLength(2)

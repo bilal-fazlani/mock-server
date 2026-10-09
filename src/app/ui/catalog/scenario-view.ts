@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import type { EndpointDef, SystemDef } from '../../../lib/catalog/types'
+import { unsetClientIdentityEnv } from '../../../lib/client-identity'
 import { REAL_LABEL } from '../../../lib/config'
 import { loadFixture } from '../../../lib/mock-engine/fixtures'
 import { resolverFilePath } from '../../../lib/mock-engine/resolver'
@@ -11,7 +12,7 @@ export type ScenarioView = {
   summary?: string
   isDefault: boolean
 } & (
-  | { kind: 'passthrough'; baseUrlEnv: string; url: string | null }
+  | { kind: 'passthrough'; baseUrlEnv: string; url: string | null; clientIdentityUnset?: string[] }
   | { kind: 'fixture'; json: string; html: string }
   | { kind: 'error'; message: string }
   | { kind: 'resolver'; code: string; html: string }
@@ -70,6 +71,7 @@ export async function buildScenarioViews(
     kind: 'passthrough',
     baseUrlEnv: system.baseUrlEnv,
     url: env[system.baseUrlEnv] ?? null,
+    clientIdentityUnset: unsetClientIdentityEnv(system, env),
   }
 
   return passthroughAsDefault ? [passthrough, ...declared] : [...declared, passthrough]

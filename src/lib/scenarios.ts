@@ -1,4 +1,5 @@
 import type { EndpointDef, SystemDef } from './catalog/types'
+import { unsetClientIdentityEnv } from './client-identity'
 import { REAL_LABEL, REAL_SUMMARY } from './config'
 
 export const DEFAULT_SCENARIO = 'default'
@@ -37,6 +38,8 @@ export interface ScenarioOption {
   url?: string | null
   /** Passthrough only: the env var name backing `url`. */
   baseUrlEnv?: string
+  /** Passthrough only: names (never values) of the system's client certificate vars that aren't set. */
+  clientIdentityUnset?: string[]
 }
 
 export function scenariosWithPassthrough(
@@ -63,6 +66,7 @@ export function scenariosWithPassthrough(
     kind: 'passthrough',
     baseUrlEnv: system.baseUrlEnv,
     url: env[system.baseUrlEnv] ?? null,
+    clientIdentityUnset: unsetClientIdentityEnv(system, env),
   }
   return passthroughAsDefault
     ? { [REAL_SCENARIO]: real, ...ordered }

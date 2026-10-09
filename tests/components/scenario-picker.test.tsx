@@ -302,6 +302,27 @@ describe('ScenarioPicker', () => {
     expect(chipForValue(html, 'real')).not.toContain('is not set')
   })
 
+  it('warns on the passthrough chip when only a client certificate var is unset', () => {
+    const html = renderToStaticMarkup(
+      <ScenarioPicker
+        system="hello-system"
+        endpointName="hello_world"
+        endpointDisplayName="Hello World"
+        scenarios={{
+          real: {
+            label: 'Passthrough',
+            kind: 'passthrough',
+            baseUrlEnv: 'HELLO_SYSTEM_URL',
+            url: 'http://localhost:9999',
+            clientIdentityUnset: ['HELLO_CERT', 'HELLO_KEY'],
+          },
+        }}
+        selected="real"
+      />,
+    )
+    expect(chipForValue(html, 'real')).toContain('aria-label="HELLO_CERT, HELLO_KEY are not set"')
+  })
+
   it('does not disable scenarios outside the unavailable list', () => {
     const html = renderToStaticMarkup(
       <ScenarioPicker

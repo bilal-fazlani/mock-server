@@ -72,6 +72,21 @@ describe('ScenarioHoverCardBody', () => {
     expect(html).toContain('HELLO_SYSTEM_URL')
     expect(html).toContain('is not set')
   })
+  it('warns for each unset client certificate var on passthrough', () => {
+    const html = renderToStaticMarkup(
+      <ScenarioHoverCardBody
+        option={{
+          label: 'Passthrough',
+          kind: 'passthrough',
+          baseUrlEnv: 'HELLO_SYSTEM_URL',
+          url: 'http://localhost:9999',
+          clientIdentityUnset: ['HELLO_CERT'],
+        }}
+      />,
+    )
+    expect(html).toContain('HELLO_CERT')
+    expect(html).toContain('is not set')
+  })
   it('omits the summary line when the option has none', () => {
     const html = renderToStaticMarkup(<ScenarioHoverCardBody option={{ label: 'Plain', status: 200, kind: 'fixture' }} onViewResponse={() => {}} />)
     expect(html).toContain('HTTP 200 OK')

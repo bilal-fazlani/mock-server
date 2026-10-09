@@ -31,4 +31,12 @@ describe('ScenarioContent', () => {
     }
     expect(renderToStaticMarkup(<ScenarioContent scenario={view} />)).toContain('X_URL')
   })
+
+  it('warns about unset client certificate vars on passthrough views', () => {
+    const view: ScenarioView = {
+      key: 'real', label: 'Passthrough', isDefault: false, kind: 'passthrough',
+      baseUrlEnv: 'X_URL', url: 'http://up.test', clientIdentityUnset: ['X_KEY'],
+    }
+    expect(renderToStaticMarkup(<ScenarioContent scenario={view} />)).toContain('X_KEY is not set')
+  })
 })
