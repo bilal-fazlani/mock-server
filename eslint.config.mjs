@@ -21,6 +21,8 @@ const eslintConfig = defineConfig([
     // the tree, so linting them double-reports every file and applies this
     // config's path-based overrides (e.g. bin/**) to the wrong paths.
     ".claude/worktrees/**",
+    // Scratch space (unpacked tarballs, build copies) that is git-ignored.
+    ".tmp/**",
   ]),
   {
     // bin/ scripts are plain CommonJS (no "type": "module" in package.json,
