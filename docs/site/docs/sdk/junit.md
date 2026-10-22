@@ -57,7 +57,8 @@ pays for the start.
 
 | Builder call | Default | Purpose & rules |
 | --- | --- | --- |
-| `withCatalog(String \| Path)` | *(none)* | The catalog directory to serve, bind-mounted read-only. A **filesystem path, not a classpath resource** — see [what the path means](#what-withcatalog-resolves-against). The default image contains no catalog, so a container started without one exits, and each test that needs it fails within seconds with a `MockServerExitedException` whose message carries the server's `catalog directory not found` line. |
+| `withCatalog(String \| Path)` | *(none)* | The catalog directory to serve, bind-mounted read-only. A **filesystem path, not a classpath resource** — see [what the path means](#what-withcatalog-resolves-against). The default image contains no catalog, so a container started without one exits, and each test that needs it fails within seconds with a `MockServerExitedException` whose message carries the server's `catalog directory not found` line. Each system's `port` is read from its `_system.json` and exposed. |
+| `withBuiltInCatalog(Consumer<CatalogPorts>)` | *(none)* | Instead of `withCatalog`, for a custom image with the catalog copied in: `ports -> ports.server(3000).system("payments", 9001)`. `server(…)` defaults to 3000; every system's port must be declared, because there is no folder to read them from. Calling both builder methods throws `IllegalStateException` at the second. See [A catalog built into the image](testcontainers-client.md#a-catalog-built-into-the-image). |
 | `withImage(String \| DockerImageName)` | `ghcr.io/bilal-fazlani/mock-server:latest` | The image to run. Parsed as a **whole reference** — `withImage("0.17.0")` looks for a repository named `0.17.0`. For a tag, use `MockServerContainer.DEFAULT_IMAGE_NAME.withTag("0.17.0")`. |
 | `withStartupTimeout(Duration)` | 2 minutes | How long to wait for `GET /ui/api/health` to answer `200`. Applies only to a server that is still running; one that exits fails at once. |
 | `configure(Consumer<MockServerContainer>)` | no-op | Anything else the container — or `GenericContainer` beneath it — can do: environment variables, networks, log consumers, reuse. Applied before the container starts, and additive across calls. |
@@ -107,8 +108,26 @@ MockServer.container()
     is up — see [What a started container
     reports](testcontainers-client.md#what-a-started-container-reports).
 
-    The SDK needs server **0.16.0 or newer** — see
+    The SDK needs server **0.17.0 or newer** — see
     [Compatibility](index.md#compatibility).
+
+### Pointing the code under test at a system
+
+`mock.baseUrl()` is the server's **admin** URL, which serves the dashboard and the
+control API and never a mocked call. Each catalog system is served on its own
+port, so the code under test gets that system's URL:
+
+```java
+new PaymentsClient(mock.systemBaseUrl("payments"))
+```
+
+`systemBaseUrl(slug)` takes the system's slug, its directory name under the
+catalog, and starts the container if nothing has yet. An unknown slug throws
+`IllegalArgumentException`. A system's own `port` in `_system.json` is the port
+*inside* the container; the URL carries the mapped port the host sees. After the
+container starts, its ports are checked against the server's catalog, and a
+mismatch fails the start — see [the check after
+start](testcontainers-client.md#the-check-after-start).
 
 ### What `withCatalog` resolves against
 
@@ -159,6 +178,13 @@ default:
 static final MockServer mock =
         MockServer.attachedTo("http://localhost:3000").schemaCheck(SchemaCheck.Mode.STRICT).build();
 ```
+
+In attach mode there is no container to map ports through. `systemBaseUrl(slug)`
+is the attached URL's scheme and host on the port the server's catalog reports for
+that system, so `MockServer.connect("http://localhost:3000")` yields
+`http://localhost:4001` for a system whose `_system.json` says `4001`. That port
+has to be reachable from the test, which `docker run -p` and a Service for each
+system port arrange; the admin port alone is not enough.
 
 The extension owns none of that server's lifecycle: it never starts, stops, or
 restarts it. Whatever else is using it sees the profiles these tests create and
@@ -302,7 +328,7 @@ poller, a queue consumer — `verify` would race it. Use `await` with a budget:
 profile.endpoint("payments", "refund_status").servesSequence("default", "default", "settled");
 
 CompletableFuture<RefundStatus> settlement =
-        new PaymentsClient(mock.baseUrl()).awaitSettlement(profile.id(), "rfnd_1");
+        new PaymentsClient(mock.systemBaseUrl("payments")).awaitSettlement(profile.id(), "rfnd_1");
 
 // The polling runs off this thread, so there is nothing to assert on yet — wait for the
 // mock server to have seen all three calls, then check what the client concluded.
@@ -359,7 +385,7 @@ import com.bilalfazlani.mockserver.junit.SchemaCheck;
 void reportsAChargeTheGatewayRejectsOutright(MockProfile profile) {
     profile.endpoint("payments", "charge").serves("default");
 
-    ChargeResult result = new PaymentsClient(mock.baseUrl()).charge(profile.id(), new BigDecimal("-5"));
+    ChargeResult result = new PaymentsClient(mock.systemBaseUrl("payments")).charge(profile.id(), new BigDecimal("-5"));
 
     assertEquals(ChargeResult.Outcome.ERROR, result.outcome());
 }
@@ -404,7 +430,7 @@ import com.bilalfazlani.mockserver.junit.UsesGlobalMocks;
 void seesAGatewayOutage() {
     mock.globalMock("payments", "gateway_status").serves("outage");
 
-    assertFalse(new PaymentsClient(mock.baseUrl()).gatewayUp());
+    assertFalse(new PaymentsClient(mock.systemBaseUrl("payments")).gatewayUp());
 }
 ```
 

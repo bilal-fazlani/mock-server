@@ -116,7 +116,7 @@ against](junit.md#what-withcatalog-resolves-against).
     The constructor argument is a **whole image reference**, so
     `new MockServerContainer("0.17.0")` looks for a repository named `0.17.0`.
     Compose the tag onto `DEFAULT_IMAGE_NAME` as above. The SDK needs server
-    **0.16.0 or newer** — see [Compatibility](index.md#compatibility).
+    **0.17.0 or newer** — see [Compatibility](index.md#compatibility).
 
 Everything the [JUnit 5 guide](junit.md) documents — `serves`, `servesSequence`,
 `verify`, `await`, `@SchemaCheck`, `@UsesGlobalMocks` — works unchanged inside
@@ -142,7 +142,11 @@ own. A context with none fails the test and names all three.
 
 Each catalog system declares the environment variable its base URL is deployed as
 — `baseUrlEnv` in `_system.json`. That name is published verbatim, plus its
-dotted lower-case form:
+dotted lower-case form. The value is that **system's own URL**, not the server's:
+every system is served on a port of its own, so `payments` and `shipping` are
+published as different addresses on the same host. With a container each is the
+mapped port of that system's port, the same value as
+`systemBaseUrl("payments")`.
 
 | Published name | For `"baseUrlEnv": "PAYMENTS_URL"` | Binds |
 | --- | --- | --- |
@@ -255,7 +259,7 @@ property that caused it.
 ### Turning the wiring off entirely
 
 To publish nothing at all and point the code at
-`MOCK_SERVER.baseUrl()` by hand, set `mock-server.wiring.enabled=false`. The
+`MOCK_SERVER.systemBaseUrl(…)` by hand, set `mock-server.wiring.enabled=false`. The
 connection-details bean and the test DSL stay in place.
 
 ## Attaching to a running server
@@ -263,6 +267,13 @@ connection-details bean and the test DSL stay in place.
 Set `mock-server.url` and everything above works against a server that is already
 running — a developer's own, with its dashboard open — with no container and no
 other change to the test.
+
+`mock-server.url` is the server's **admin** URL. Each system's URL is that URL's
+scheme and host on the port the server's catalog reports for the system, so with
+`http://localhost:3000` a system declaring `"port": 4001` is published as
+`http://localhost:4001`. Those system ports have to be reachable from the test, not
+only the admin port, and a system the server reports no port for fails the
+context load by name.
 
 ```java
 @SpringBootTest(properties = "mock-server.url=http://localhost:3000")
@@ -302,12 +313,12 @@ opposite directions.
     Point it at an address something *is* listening on — a colleague's server,
     last week's port — and nothing fails. The wiring publishes that server's
     catalog and the test runs against it. Your evidence is the one `INFO` line the
-    wiring logs as it publishes, which names the server it actually reached:
+    wiring logs as it publishes, which names the server it actually reached and, per system, the URL it published:
 
     ```text
-    mock-server: wired 2 systems to http://localhost:3001
-      payments -> payments.url, PAYMENTS_URL
-      shipping -> shipping.api.url, SHIPPING_API_URL, shipping.api-url
+    mock-server: wired 2 systems of http://localhost:3001
+      payments http://localhost:4001 -> payments.url, PAYMENTS_URL
+      shipping http://localhost:4002 -> shipping.api.url, SHIPPING_API_URL, shipping.api-url
     ```
 
     That line needs an SLF4J binding on the test runtime classpath to appear. With

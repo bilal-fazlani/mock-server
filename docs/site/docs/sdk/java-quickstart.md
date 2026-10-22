@@ -54,7 +54,7 @@ with the server's own `catalog directory not found` message.
 ```text
 src/test/resources/catalog/
   payments/                     # system directory; its name IS the system slug
-    _system.json                # { "displayName", "baseUrlEnv" }
+    _system.json                # { "displayName", "baseUrlEnv", "port" }
     charge/                     # endpoint directory; its name IS the endpoint slug
       _endpoint.json            # method, path, and how the caller's ID is read
       default.json              # the happy path
@@ -66,9 +66,14 @@ src/test/resources/catalog/
 ```json
 {
   "displayName": "Payments",
-  "baseUrlEnv": "PAYMENTS_URL"
+  "baseUrlEnv": "PAYMENTS_URL",
+  "port": 4001
 }
 ```
+
+Every system declares its own `port`, between 1024 and 65535. The SDK reads it,
+exposes it from the container, and hands you the mapped URL, so the number never
+appears in your test.
 
 `payments/charge/_endpoint.json`
 
@@ -143,7 +148,7 @@ class PaymentsClientTest {
     void capturesACharge(MockProfile profile) {
         profile.endpoint("payments", "charge").serves("default");
 
-        ChargeResult result = new PaymentsClient(mock.baseUrl()).charge(profile.id(), new BigDecimal("42.50"));
+        ChargeResult result = new PaymentsClient(mock.systemBaseUrl("payments")).charge(profile.id(), new BigDecimal("42.50"));
 
         assertEquals(ChargeResult.Outcome.CAPTURED, result.outcome());
         assertEquals("chg_" + profile.id(), result.reference());
@@ -154,7 +159,7 @@ class PaymentsClientTest {
     void surfacesADeclinedCard(MockProfile profile) {
         profile.endpoint("payments", "charge").serves("card_declined");
 
-        ChargeResult result = new PaymentsClient(mock.baseUrl()).charge(profile.id(), new BigDecimal("42.50"));
+        ChargeResult result = new PaymentsClient(mock.systemBaseUrl("payments")).charge(profile.id(), new BigDecimal("42.50"));
 
         assertEquals(ChargeResult.Outcome.DECLINED, result.outcome());
         assertEquals("card_declined", result.reason());
@@ -182,7 +187,7 @@ passed yesterday can fail today for reasons unconnected to the change under test
 | `MockServer.container()…build()` | Declares the server. Nothing starts yet. The container comes up on the first test that needs it and is stopped when the whole test run ends. |
 | `MockProfile profile` parameter | Mints a profile ID from the test's own name — `capturesACharge-a3f9` — for this test alone. Always `[A-Za-z0-9_-]`, so it needs no escaping wherever the test puts it: see [what a profile ID contains](junit.md#what-a-profile-id-contains). |
 | `profile.endpoint("payments", "charge").serves("default")` | Pins that scenario for that profile, checked against the server's catalog before the write. In force by the time the line returns. |
-| `mock.baseUrl()` | `http://host:port` for the running container — what to point the code under test at. |
+| `mock.systemBaseUrl("payments")` | `http://host:port` for the `payments` system on the running container — what to point the code under test at. `mock.baseUrl()` is the admin URL, which serves no mocked traffic. |
 | `profile.id()` as the customer | Makes the call resolve to this test's profile, because `profileIdSelector` reads `$.customerId`. |
 | `profile.verify(…)` | Asserts on the request the server actually received, considering only calls that resolved to this profile. |
 | *(end of test)* | The profile is deleted, taking its selections, sequence progress, and log entries with it. |
@@ -193,7 +198,7 @@ passed yesterday can fail today for reasons unconnected to the change under test
   contract test — the SDK fails a test whose request or response broke the
   schema, without a single extra assertion. See [Schemas](../building/schemas.md)
   and [the schema check](junit.md#the-end-of-test-schema-check).
-- **Spring Boot?** Skip the `mock.baseUrl()` plumbing entirely — a
+- **Spring Boot?** Skip the `mock.systemBaseUrl(…)` plumbing entirely — a
   `@ServiceConnection` field publishes `PAYMENTS_URL` into the test's
   `Environment`, so the application's own beans are built already pointing at the
   mock. See the [Spring Boot guide](spring-boot.md).

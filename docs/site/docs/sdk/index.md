@@ -15,7 +15,7 @@ test that is running, and assert on the requests that actually went over the wir
 void surfacesADeclinedCard(MockProfile profile) {
     profile.endpoint("payments", "charge").serves("card_declined");
 
-    ChargeResult result = new PaymentsClient(mock.baseUrl()).charge(profile.id(), new BigDecimal("42.50"));
+    ChargeResult result = new PaymentsClient(mock.systemBaseUrl("payments")).charge(profile.id(), new BigDecimal("42.50"));
 
     assertEquals(ChargeResult.Outcome.DECLINED, result.outcome());
     profile.verify(endpoint("charge").called(once()).withBodyPath("$.amount", new BigDecimal("42.50")));
@@ -108,7 +108,7 @@ above it, so a test suite declares exactly one — the highest it needs.
 
 | Requirement | Version |
 | --- | --- |
-| Mock server | **0.16.0 or newer**, from SDK **3.0.0** — the 2.x line needs **0.7.0 to 0.15.x**. SDK 3 targets the runtime-control contract as of that server release, which renamed the catalog's `name` fields with no aliases, so an older server is not supported. That is a floor, not a recommendation: pin the image to a current [release](https://github.com/bilal-fazlani/mock-server/releases), which is what every `withTag` example on these pages does. |
+| Mock server | **0.17.0 or newer**, from SDK **4.0.0** — the 3.x line needs **0.16.x**, and the 2.x line **0.7.0 to 0.15.x**. 0.17.0 is the release that serves every catalog system on its own port, which SDK 4 depends on, so an older server is not supported. That is a floor, not a recommendation: pin the image to a current [release](https://github.com/bilal-fazlani/mock-server/releases), which is what every `withTag` example on these pages does. |
 | Java | **21 (LTS) or newer**, from SDK **2.0.0** — the earlier 1.x line runs on **Java 17**. |
 | JUnit | Jupiter 6.x (the SDK brings `junit-jupiter-api` with it) |
 | Spring Boot | **4.1.0**, for `mock-server-spring-boot-test` only — the exact release the module is compiled and tested against, not a range across 4.x |
@@ -161,6 +161,28 @@ guide](junit.md#registering-the-extension).
     21–23 — safe under Spring Boot's `spring.threads.virtual.enabled=true` or
     JUnit's parallel test execution. `MockServerClient` also implements
     `AutoCloseable` as of 2.0.0.
+
+## Upgrading from SDK 3.x
+
+SDK **4.0.0** needs mock server **0.17.0 or newer**, which serves every catalog
+system on its own port and keeps the main port for the dashboard and the control
+API. Three changes follow:
+
+1. **Every `_system.json` declares a `port`**, from 1024 to 65535 and unique across
+   systems. `withCatalog` reads it from the folder you mount and exposes it; there
+   is nothing else to set. See the [sample catalog](java-quickstart.md#2-give-the-server-a-catalog).
+2. **An image with the catalog built in uses `withBuiltInCatalog`.** The advice to
+   leave out `withCatalog` no longer works, because the SDK cannot read ports it
+   cannot see. Declare them with `ports -> ports.system("payments", 9001)` on
+   `MockServerContainer` or the JUnit builder. The start fails, naming the system,
+   if they disagree with the server's catalog. See [A catalog built into the
+   image](testcontainers-client.md#a-catalog-built-into-the-image).
+3. **Point the code under test at `systemBaseUrl(slug)`, not `baseUrl()`.**
+   `baseUrl()` is the admin URL and answers nothing mocked, so a leftover call
+   returns the server's `404` rather than a stub. Spring Boot's wiring already
+   publishes each system's own URL into its `baseUrlEnv`, so a `@ServiceConnection`
+   test needs no change. `CatalogSystem` also gains a `port`, ahead of
+   `endpoints`, which matters only if you construct one.
 
 ## Where to go next
 

@@ -22,7 +22,7 @@ no health loop to write, and no curl:
 void surfacesADeclinedCard(MockProfile profile) {
     profile.endpoint("payments", "charge").serves("card_declined");
 
-    ChargeResult result = new PaymentsClient(mock.baseUrl()).charge(profile.id(), new BigDecimal("42.50"));
+    ChargeResult result = new PaymentsClient(mock.systemBaseUrl("payments")).charge(profile.id(), new BigDecimal("42.50"));
 
     assertEquals(ChargeResult.Outcome.DECLINED, result.outcome());
     profile.verify(endpoint("charge").called(once()));

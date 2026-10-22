@@ -58,22 +58,67 @@ server.client()
         .endpoint("payments", "charge").serves("card_declined")
         .apply();
 
-// …exercise the system under test against server.baseUrl(), then:
+// …point the system under test at server.systemBaseUrl("payments"), then:
 server.stop();
 ```
+
+`baseUrl()` is the **admin** URL: the control API and the dashboard, nothing
+mocked. Every catalog system listens on a port of its own, and
+`systemBaseUrl(slug)` is the URL to hand the code under test in place of that
+upstream.
 
 | Member | Purpose & rules |
 | --- | --- |
 | `new MockServerContainer()` | Runs `ghcr.io/bilal-fazlani/mock-server:latest`. |
 | `new MockServerContainer(String \| DockerImageName)` | Runs an explicit image. Parsed as a **whole reference**, not a bare tag. An image that is not `DEFAULT_IMAGE_NAME` must declare compatibility with `asCompatibleSubstituteFor`, for a private mirror or a fork. |
-| `withCatalog(String \| Path)` | Bind-mounts the directory read-only and points `CATALOG_PATH` at it. A **filesystem path, not a classpath resource**: a relative one resolves against the JVM's working directory, which Gradle and Maven both default to the module directory. Throws `IllegalArgumentException` at this call — not at `start()` — if the path is not an existing directory. |
+| `withCatalog(String \| Path)` | Bind-mounts the directory read-only and points `CATALOG_PATH` at it. Reads the `port` of every `<system>/_system.json` under it, and exposes those ports together with the admin port. A **filesystem path, not a classpath resource**: a relative one resolves against the JVM's working directory, which Gradle and Maven both default to the module directory. Throws `IllegalArgumentException` at this call — not at `start()` — if the path is not an existing directory. |
+| `withBuiltInCatalog(Consumer<CatalogPorts>)` | For an image with the catalog copied in, where there is no folder to read ports from: `ports -> ports.server(3000).system("payments", 9001)`. `server(…)` is optional and defaults to 3000; every system must be declared. Replaces whatever was exposed before. See [A catalog built into the image](#a-catalog-built-into-the-image). |
 | `withStartupTimeout(Duration)` | Inherited. How long to wait for health; `DEFAULT_STARTUP_TIMEOUT` is 2 minutes. Applies only to a server that is still running: one that exits fails at once instead of waiting this out. |
-| `baseUrl()` | `http://host:mappedPort` — no trailing slash, no path. |
+| `baseUrl()` | The **admin** URL, `http://host:mappedPort` — no trailing slash, no path. It serves `/ui` and `/ui/api` only. |
+| `systemBaseUrl(String slug)` | One system's URL, built from the mapped port of the system's own port — what the code under test calls. Throws `IllegalArgumentException` for a slug the catalog does not have. |
 | `client()` | A `MockServerClient` bound to `baseUrl()`, created on first call and cached with its catalog. |
 
-`start()` does not return until `GET /ui/api/health` answers `200`. The container's
+Give the container **exactly one** of `withCatalog` and `withBuiltInCatalog`.
+Calling both fails at the second call with an `IllegalStateException`. Calling
+neither leaves the server with no catalog, and it exits with `catalog directory
+not found`; the default image contains none.
+
+`start()` does not return until `GET /ui/api/health` answers `200`, which the
+server reports only once every system's port is listening. The container's
 port opens before its MongoDB connection is established, so a listening socket
 alone does not mean a mocked call can be served yet.
+
+### A catalog built into the image
+
+An image of your own, built `FROM` the default one with a catalog copied in,
+cannot have its ports read before it starts, so declare them instead of calling
+`withCatalog`:
+
+```java
+MockServerContainer server = new MockServerContainer("registry.example.com/team/payments-mock:1.4")
+        .withBuiltInCatalog(ports -> ports
+                .server(3000)                  // optional, defaults to 3000
+                .system("payments", 9001)
+                .system("orders", 9002));
+```
+
+The image name is parsed as a whole reference, and an image that is not
+`DEFAULT_IMAGE_NAME` still needs `asCompatibleSubstituteFor`, as above.
+
+### The check after start
+
+Once the server is healthy, the container compares each system's `port` in the
+server's catalog with the ports it exposed. A system the server has but you did
+not declare, one you declared that the server lacks, or a wrong number fails
+`start()` with a `ContainerLaunchException` before any test runs. It applies to
+`withCatalog` as well as `withBuiltInCatalog`. A message looks like:
+
+```text
+mock-server's system ports do not match the ones exposed:
+  `payments` listens on 9002 in the image's catalog, but `withBuiltInCatalog` declared 9001.
+```
+
+Every disagreement is listed, one line per system.
 
 ### A server that cannot start
 
@@ -129,7 +174,7 @@ new MockServerContainer(MockServerContainer.DEFAULT_IMAGE_NAME.withTag("0.17.0")
 
 Pick the tag from the
 [releases](https://github.com/bilal-fazlani/mock-server/releases) — every release
-is published as an image tag, and nothing else is. The SDK needs server **0.16.0
+is published as an image tag, and nothing else is. The SDK needs server **0.17.0
 or newer** — see [Compatibility](index.md#compatibility).
 
 !!! warning "The catalog must be world-readable"
@@ -156,6 +201,9 @@ import com.bilalfazlani.mockserver.client.MockServerClient;
 
 MockServerClient client = MockServerClient.create("http://localhost:3000");
 ```
+
+The URL is the **admin** port. A client never talks to a system's port; those
+are for the code under test.
 
 `MockServerClient.builder(baseUrl)` changes the defaults: a 5-second connect
 timeout, a 10-second request timeout, the `ObjectMapper` JSON handling is derived
