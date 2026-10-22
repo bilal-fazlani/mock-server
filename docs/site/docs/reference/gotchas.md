@@ -31,7 +31,7 @@ catalog/hello-system/customer_status/
 
 ```json
 {
-  "description": "Active",
+  "displayName": "Active",
   "status": 200,
   "body": {
     "customerId": "{{path:customerId}}",
@@ -45,7 +45,7 @@ catalog/hello-system/customer_status/
 
 ```json
 {
-  "description": "Frozen",
+  "displayName": "Frozen",
   "status": 200,
   "body": {
     "customerId": "{{path:customerId}}",

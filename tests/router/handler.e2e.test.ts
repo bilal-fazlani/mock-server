@@ -32,8 +32,8 @@ function handlerWith(profiles: Record<string, Partial<MockProfile>>, overrides: 
       headers: { 'x-proxied': '1' },
       bodyBytes: Buffer.from('proxied'),
     }),
-    loadFixture: (systemSlug, endpointName, scenario) =>
-      loadFixture(CATALOG_DIR, systemSlug, endpointName, scenario),
+    loadFixture: (systemSlug, endpointSlug, scenario) =>
+      loadFixture(CATALOG_DIR, systemSlug, endpointSlug, scenario),
     now: () => NOW,
     ...overrides,
   }

@@ -6,17 +6,17 @@ import { CatalogView } from '../../src/app/ui/catalog/CatalogView'
 const catalog: Catalog = {
   systems: [
     {
-      name: 'Hello System',
+      displayName: 'Hello System',
       slug: 'hello-system',
       baseUrlEnv: 'HELLO_SYSTEM_URL',
       endpoints: [
         {
-          name: 'hello_world',
+          slug: 'hello_world',
           displayName: 'Hello World',
           method: 'POST',
           path: '/hello/world',
           profileIdSelector: '$.customerId',
-          scenarios: { default: { label: 'Hello success' }, failure: { label: 'Hello failure' } },
+          scenarios: { default: { displayName: 'Hello success' }, failure: { displayName: 'Hello failure' } },
           resolverScenarios: [],
         },
       ],
@@ -59,12 +59,12 @@ describe('CatalogView', () => {
           endpoints: [
             ...catalog.systems[0].endpoints,
             {
-              name: 'oauth_token',
+              slug: 'oauth_token',
               displayName: 'OAuth Token',
               method: 'POST',
               path: '/oauth/token',
               mockType: 'global',
-              scenarios: { default: { label: 'Token issued' } },
+              scenarios: { default: { displayName: 'Token issued' } },
               resolverScenarios: [],
             },
           ],

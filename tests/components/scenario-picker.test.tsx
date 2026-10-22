@@ -4,9 +4,9 @@ import { ScenarioPicker } from '../../src/app/components/ScenarioPicker'
 import type { ScenarioOption } from '../../src/lib/scenarios'
 
 const scenarios: Record<string, ScenarioOption> = {
-  real: { label: 'Passthrough', kind: 'passthrough' },
-  success: { label: 'Hello success', kind: 'fixture' },
-  failure: { label: 'Hello failure', kind: 'fixture' },
+  real: { displayName: 'Passthrough', kind: 'passthrough' },
+  success: { displayName: 'Hello success', kind: 'fixture' },
+  failure: { displayName: 'Hello failure', kind: 'fixture' },
 }
 
 // The chip's own <label …> opening tag — the element Radix clones for the hover
@@ -83,7 +83,7 @@ describe('ScenarioPicker', () => {
     const html = renderToStaticMarkup(
       <ScenarioPicker
         system="hello-system"
-        endpointName="hello_world"
+        endpointSlug="hello_world"
         endpointDisplayName="Hello World"
         scenarios={scenarios}
         selected="success"
@@ -100,7 +100,7 @@ describe('ScenarioPicker', () => {
     const html = renderToStaticMarkup(
       <ScenarioPicker
         system="hello-system"
-        endpointName="hello_world"
+        endpointSlug="hello_world"
         endpointDisplayName="Hello World"
         scenarios={scenarios}
         selected="success"
@@ -116,7 +116,7 @@ describe('ScenarioPicker', () => {
     const html = renderToStaticMarkup(
       <ScenarioPicker
         system="hello-system"
-        endpointName="hello_world"
+        endpointSlug="hello_world"
         endpointDisplayName="Hello World"
         scenarios={scenarios}
         selected="real"
@@ -133,7 +133,7 @@ describe('ScenarioPicker', () => {
     const html = renderToStaticMarkup(
       <ScenarioPicker
         system="hello-system"
-        endpointName="hello_world"
+        endpointSlug="hello_world"
         endpointDisplayName="Hello World"
         scenarios={scenarios}
         selected="success"
@@ -151,12 +151,12 @@ describe('ScenarioPicker', () => {
     const html = renderToStaticMarkup(
       <ScenarioPicker
         system="hello-system"
-        endpointName="hello_world"
+        endpointSlug="hello_world"
         endpointDisplayName="Hello World"
         scenarios={{
-          default: { label: 'Default success', kind: 'fixture' },
-          failure: { label: 'Failure', kind: 'fixture' },
-          real: { label: 'Passthrough', kind: 'passthrough' },
+          default: { displayName: 'Default success', kind: 'fixture' },
+          failure: { displayName: 'Failure', kind: 'fixture' },
+          real: { displayName: 'Passthrough', kind: 'passthrough' },
         }}
         selected="failure"
       />,
@@ -174,12 +174,12 @@ describe('ScenarioPicker', () => {
     const html = renderToStaticMarkup(
       <ScenarioPicker
         system="hello-system"
-        endpointName="hello_world"
+        endpointSlug="hello_world"
         endpointDisplayName="Hello World"
         scenarios={{
-          default: { label: 'Default success', kind: 'fixture' },
-          failure: { label: 'Failure', kind: 'fixture' },
-          real: { label: 'Passthrough', kind: 'passthrough' },
+          default: { displayName: 'Default success', kind: 'fixture' },
+          failure: { displayName: 'Failure', kind: 'fixture' },
+          real: { displayName: 'Passthrough', kind: 'passthrough' },
         }}
         selected="failure"
       />,
@@ -204,12 +204,12 @@ describe('ScenarioPicker', () => {
     const html = renderToStaticMarkup(
       <ScenarioPicker
         system="hello-system"
-        endpointName="hello_world"
+        endpointSlug="hello_world"
         endpointDisplayName="Hello World"
         scenarios={{
-          default: { label: 'Default', kind: 'fixture' },
-          dynamic: { label: 'dynamic', kind: 'resolver' },
-          real: { label: 'Passthrough', kind: 'passthrough' },
+          default: { displayName: 'Default', kind: 'fixture' },
+          dynamic: { displayName: 'dynamic', kind: 'resolver' },
+          real: { displayName: 'Passthrough', kind: 'passthrough' },
         }}
         selected="default"
       />,
@@ -225,11 +225,11 @@ describe('ScenarioPicker', () => {
     const html = renderToStaticMarkup(
       <ScenarioPicker
         system="hello-system"
-        endpointName="hello_world"
+        endpointSlug="hello_world"
         endpointDisplayName="Hello World"
         scenarios={{
-          success: { label: 'Hello success', kind: 'fixture' },
-          ghost: { label: 'ghost — unavailable', kind: 'fixture' },
+          success: { displayName: 'Hello success', kind: 'fixture' },
+          ghost: { displayName: 'ghost — unavailable', kind: 'fixture' },
         }}
         selected="success"
         unavailable={['ghost']}
@@ -250,9 +250,9 @@ describe('ScenarioPicker', () => {
     const html = renderToStaticMarkup(
       <ScenarioPicker
         system="hello-system"
-        endpointName="hello_world"
+        endpointSlug="hello_world"
         endpointDisplayName="Hello World"
-        scenarios={{ ...scenarios, dynamic: { label: 'dynamic — unavailable', kind: 'fixture' } }}
+        scenarios={{ ...scenarios, dynamic: { displayName: 'dynamic — unavailable', kind: 'fixture' } }}
         selected="dynamic"
         unavailable={['dynamic']}
       />,
@@ -269,11 +269,11 @@ describe('ScenarioPicker', () => {
     const html = renderToStaticMarkup(
       <ScenarioPicker
         system="hello-system"
-        endpointName="hello_world"
+        endpointSlug="hello_world"
         endpointDisplayName="Hello World"
         scenarios={{
-          success: { label: 'Hello success', kind: 'fixture' },
-          real: { label: 'Passthrough', kind: 'passthrough', baseUrlEnv: 'HELLO_SYSTEM_URL', url: null },
+          success: { displayName: 'Hello success', kind: 'fixture' },
+          real: { displayName: 'Passthrough', kind: 'passthrough', baseUrlEnv: 'HELLO_SYSTEM_URL', url: null },
         }}
         selected="success"
       />,
@@ -285,12 +285,12 @@ describe('ScenarioPicker', () => {
     const html = renderToStaticMarkup(
       <ScenarioPicker
         system="hello-system"
-        endpointName="hello_world"
+        endpointSlug="hello_world"
         endpointDisplayName="Hello World"
         scenarios={{
-          success: { label: 'Hello success', kind: 'fixture' },
+          success: { displayName: 'Hello success', kind: 'fixture' },
           real: {
-            label: 'Passthrough',
+            displayName: 'Passthrough',
             kind: 'passthrough',
             baseUrlEnv: 'HELLO_SYSTEM_URL',
             url: 'http://localhost:9999',
@@ -306,11 +306,11 @@ describe('ScenarioPicker', () => {
     const html = renderToStaticMarkup(
       <ScenarioPicker
         system="hello-system"
-        endpointName="hello_world"
+        endpointSlug="hello_world"
         endpointDisplayName="Hello World"
         scenarios={{
           real: {
-            label: 'Passthrough',
+            displayName: 'Passthrough',
             kind: 'passthrough',
             baseUrlEnv: 'HELLO_SYSTEM_URL',
             url: 'http://localhost:9999',
@@ -327,7 +327,7 @@ describe('ScenarioPicker', () => {
     const html = renderToStaticMarkup(
       <ScenarioPicker
         system="hello-system"
-        endpointName="hello_world"
+        endpointSlug="hello_world"
         endpointDisplayName="Hello World"
         scenarios={scenarios}
         selected="success"

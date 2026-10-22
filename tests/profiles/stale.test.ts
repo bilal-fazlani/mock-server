@@ -9,35 +9,35 @@ import {
 const catalog: Catalog = {
   systems: [
     {
-      name: 'Hello System',
+      displayName: 'Hello System',
       slug: 'hello-system',
       baseUrlEnv: 'HELLO_SYSTEM_URL',
       endpoints: [
         {
-          name: 'hello_world',
+          slug: 'hello_world',
           displayName: 'Hello World',
           method: 'POST',
           path: '/hello/world',
           profileIdSelector: '$.customerId',
-          scenarios: { default: { label: 'Success' } },
+          scenarios: { default: { displayName: 'Success' } },
           resolverScenarios: [],
         },
         {
-          name: 'resolver_ep',
+          slug: 'resolver_ep',
           displayName: 'Resolver Endpoint',
           method: 'GET',
           path: '/resolver',
           profileIdSelector: '$.customerId',
-          scenarios: { default: { label: 'Success' }, by_amount: { label: 'Routes by amount' } },
+          scenarios: { default: { displayName: 'Success' }, by_amount: { displayName: 'Routes by amount' } },
           resolverScenarios: ['by_amount'],
         },
         {
-          name: 'health_check',
+          slug: 'health_check',
           displayName: 'Health Check',
           method: 'GET',
           path: '/health',
           mockType: 'global',
-          scenarios: { default: { label: 'OK' } },
+          scenarios: { default: { displayName: 'OK' } },
           resolverScenarios: [],
         },
       ],

@@ -47,14 +47,14 @@ A profile's page shows one card per profiled endpoint:
   **Reset progress** button. Each step is a dropdown offering the same
   scenarios, with the same dot-or-icon slot and tone color on its closed
   trigger; every open option repeats that slot and shows the scenario's
-  `summary` as a second line beneath its label, and nothing inside the open
+  `summary` as a second line beneath its name, and nothing inside the open
   dropdown is clickable beyond picking an option.
 - Whenever the current selection involves a resolver-backed slug, a **Reset
   resolver history** button clears that endpoint's
   [history windows](../building/dynamic.md#history).
 
 Hovering, or tabbing to focus, a chip or a closed step trigger opens a hover
-card with its label, an HTTP status pill (fixture-backed scenarios only — a
+card with its name, an HTTP status pill (fixture-backed scenarios only — a
 resolver or `Passthrough` has no status of its own), and its `summary` when
 one is set. A fixture or resolver card adds a "View full response →"
 (resolver: "View resolver code →") link that opens a modal — closed with
@@ -106,7 +106,7 @@ names the variable at fault, never its value.
 
 A read-only view of everything the catalog declares: each system with its
 endpoints, and per endpoint a card for every scenario. A fixture-backed
-scenario's card shows its label, its `summary` when one is set, and the fixture
+scenario's card shows its name, its `summary` when one is set, and the fixture
 JSON itself; a resolver-backed scenario's card shows the resolver's JavaScript
 source, syntax-highlighted. A **Copy as cURL** button builds a runnable sample
 request for the endpoint — including a placeholder `authorization` header when

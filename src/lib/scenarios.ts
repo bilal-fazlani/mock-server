@@ -27,8 +27,8 @@ export function isProfiledEndpoint(endpoint: EndpointDef): boolean {
 export type ScenarioKind = 'fixture' | 'resolver' | 'passthrough'
 
 export interface ScenarioOption {
-  /** Friendly name (ScenarioMeta.label, or the dangling placeholder). */
-  label: string
+  /** Friendly name (ScenarioMeta.displayName, or the dangling placeholder). */
+  displayName: string
   /** ScenarioMeta.summary, or the fixed auto-summary for `real`. */
   summary?: string
   /** Fixture HTTP status; absent for resolvers, passthrough, and dangling pins. */
@@ -51,7 +51,7 @@ export function scenariosWithPassthrough(
   const declared: Record<string, ScenarioOption> = {}
   for (const [slug, meta] of Object.entries(endpoint.scenarios)) {
     declared[slug] = {
-      label: meta.label,
+      displayName: meta.displayName,
       ...(meta.summary ? { summary: meta.summary } : {}),
       ...(meta.status !== undefined ? { status: meta.status } : {}),
       kind: endpoint.resolverScenarios.includes(slug) ? 'resolver' : 'fixture',
@@ -61,7 +61,7 @@ export function scenariosWithPassthrough(
   const ordered =
     defaultOption === undefined ? declared : { [DEFAULT_SCENARIO]: defaultOption, ...rest }
   const real: ScenarioOption = {
-    label: REAL_LABEL,
+    displayName: REAL_LABEL,
     summary: REAL_SUMMARY,
     kind: 'passthrough',
     baseUrlEnv: system.baseUrlEnv,
@@ -110,7 +110,7 @@ export function scenarioOptionsWithDangling(
   const unavailable: string[] = []
   for (const slug of selected) {
     if (slug in options || unavailable.includes(slug)) continue
-    options[slug] = { label: danglingScenarioLabel(slug), kind: 'fixture' }
+    options[slug] = { displayName: danglingScenarioLabel(slug), kind: 'fixture' }
     unavailable.push(slug)
   }
   return { options, unavailable }

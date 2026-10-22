@@ -28,7 +28,7 @@ afterEach(() => {
   while (tmpDirs.length) fs.rmSync(tmpDirs.pop()!, { recursive: true, force: true })
 })
 
-const SYSTEM_META = { name: 'Test System', baseUrlEnv: 'TEST_URL' }
+const SYSTEM_META = { displayName: 'Test System', baseUrlEnv: 'TEST_URL' }
 const ENDPOINT_META = {
   displayName: 'Customer Status',
   method: 'GET',
@@ -42,7 +42,7 @@ const FAILURE_FIXTURE = { status: 503, body: { status: 'DOWN' } }
 // receives the accumulated history from a real (non-faked) history store.
 const DYNAMIC_SOURCE = `export default (i) => i.history.length < 1 ? 'failure' : 'default'`
 
-// Keyed by `${ownerType}|${ownerKey}|${endpointName}|${scenario}`, mirroring
+// Keyed by `${ownerType}|${ownerKey}|${endpointSlug}|${scenario}`, mirroring
 // the real history-store's compound key, but backed by a plain in-memory
 // array instead of Mongo -- this is the "real" collaborator under test here,
 // not a fake that always returns a canned value.
@@ -51,26 +51,26 @@ function makeHistoryStore() {
   // Whether each append was flagged owner-less (the signal the real store turns
   // into a TTL on the row).
   const ownerless: boolean[] = []
-  const key = (ownerType: string, ownerKey: string, endpointName: string, scenario: string) =>
-    `${ownerType}|${ownerKey}|${endpointName}|${scenario}`
+  const key = (ownerType: string, ownerKey: string, endpointSlug: string, scenario: string) =>
+    `${ownerType}|${ownerKey}|${endpointSlug}|${scenario}`
   return {
     store,
     ownerless,
     getDynamicHistory: async (
       ownerType: string,
       ownerKey: string,
-      endpointName: string,
+      endpointSlug: string,
       scenario: string,
-    ) => store.get(key(ownerType, ownerKey, endpointName, scenario)) ?? [],
+    ) => store.get(key(ownerType, ownerKey, endpointSlug, scenario)) ?? [],
     appendDynamicHistory: async (
       ownerType: string,
       ownerKey: string,
-      endpointName: string,
+      endpointSlug: string,
       scenario: string,
       slug: string,
       isOwnerless = false,
     ) => {
-      const k = key(ownerType, ownerKey, endpointName, scenario)
+      const k = key(ownerType, ownerKey, endpointSlug, scenario)
       const existing = store.get(k) ?? []
       store.set(k, [...existing, slug])
       ownerless.push(isOwnerless)
@@ -131,8 +131,8 @@ describe('dynamic resolver end-to-end (real compileResolver + real history store
         headers: { 'x-proxied': '1' },
         bodyBytes: Buffer.from('proxied'),
       }),
-      loadFixture: (systemSlug, endpointName, scenario) =>
-        loadFixture(dir, systemSlug, endpointName, scenario),
+      loadFixture: (systemSlug, endpointSlug, scenario) =>
+        loadFixture(dir, systemSlug, endpointSlug, scenario),
       now: () => NOW,
     }
     const handle = createMockHandler(deps)
@@ -191,8 +191,8 @@ describe('dynamic resolver end-to-end (real compileResolver + real history store
       getDynamicHistory: history.getDynamicHistory,
       appendDynamicHistory: history.appendDynamicHistory,
       passthrough: async () => ({ status: 299, headers: {}, bodyBytes: Buffer.from('proxied') }),
-      loadFixture: (systemSlug, endpointName, scenario) =>
-        loadFixture(dir, systemSlug, endpointName, scenario),
+      loadFixture: (systemSlug, endpointSlug, scenario) =>
+        loadFixture(dir, systemSlug, endpointSlug, scenario),
       now: () => NOW,
     }
     const handle = createMockHandler(deps)

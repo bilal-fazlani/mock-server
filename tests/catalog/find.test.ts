@@ -5,17 +5,17 @@ import { findEndpointBySlug } from '../../src/lib/catalog/find'
 const catalog: Catalog = {
   systems: [
     {
-      name: 'Hello System',
+      displayName: 'Hello System',
       slug: 'hello-system',
       baseUrlEnv: 'HELLO_SYSTEM_URL',
       endpoints: [
         {
-          name: 'hello_world',
+          slug: 'hello_world',
           displayName: 'Hello World',
           method: 'POST',
           path: '/hello/world',
           profileIdSelector: '$.customerId',
-          scenarios: { default: { label: 'Hello success' } },
+          scenarios: { default: { displayName: 'Hello success' } },
           resolverScenarios: [],
         },
       ],
@@ -26,8 +26,8 @@ const catalog: Catalog = {
 describe('findEndpointBySlug', () => {
   it('finds an endpoint by system slug and endpoint name', () => {
     const match = findEndpointBySlug(catalog, 'hello-system', 'hello_world')
-    expect(match?.system.name).toBe('Hello System')
-    expect(match?.endpoint.name).toBe('hello_world')
+    expect(match?.system.displayName).toBe('Hello System')
+    expect(match?.endpoint.slug).toBe('hello_world')
   })
 
   it('returns null for an unknown system slug', () => {

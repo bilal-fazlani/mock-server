@@ -303,28 +303,28 @@ export async function deleteProfile(db: Db, profileId: string): Promise<void> {
 export async function advanceScenarioProgress(
   db: Db,
   profileId: string,
-  endpointName: string,
+  endpointSlug: string,
   steps: string[],
 ): Promise<number> {
   try {
-    return await advanceScenarioProgressOnce(db, profileId, endpointName, steps)
+    return await advanceScenarioProgressOnce(db, profileId, endpointSlug, steps)
   } catch (err) {
     // Two concurrent first calls can both take the upsert-insert path; the
     // loser lands here and retries as a plain update against the winner's doc.
     if (!(err instanceof MongoServerError) || err.code !== 11000) throw err
-    return advanceScenarioProgressOnce(db, profileId, endpointName, steps)
+    return advanceScenarioProgressOnce(db, profileId, endpointSlug, steps)
   }
 }
 
 async function advanceScenarioProgressOnce(
   db: Db,
   profileId: string,
-  endpointName: string,
+  endpointSlug: string,
   steps: string[],
 ): Promise<number> {
   const now = new Date()
   const doc = await db.collection<ScenarioProgress>('scenarioProgress').findOneAndUpdate(
-    { profileId, endpointName },
+    { profileId, endpointName: endpointSlug },
     [
       {
         $set: {
@@ -357,11 +357,11 @@ export async function getScenarioProgress(db: Db, profileId: string): Promise<Sc
 export async function resetScenarioProgress(
   db: Db,
   profileId: string,
-  endpointName?: string,
+  endpointSlug?: string,
 ): Promise<void> {
   await db
     .collection<ScenarioProgress>('scenarioProgress')
-    .deleteMany(endpointName === undefined ? { profileId } : { profileId, endpointName })
+    .deleteMany(endpointSlug === undefined ? { profileId } : { profileId, endpointName: endpointSlug })
 }
 
 export async function getProfileKeyMapping(

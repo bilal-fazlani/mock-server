@@ -7,8 +7,8 @@ import { resolverFilePath } from '../../../lib/mock-engine/resolver'
 import { highlight } from '../highlight'
 
 export type ScenarioView = {
-  key: string
-  label: string
+  slug: string
+  displayName: string
   summary?: string
   isDefault: boolean
 } & (
@@ -21,33 +21,33 @@ export type ScenarioView = {
 export async function buildScenarioView(
   system: SystemDef,
   endpoint: EndpointDef,
-  key: string,
+  slug: string,
   catalogDir: string,
 ): Promise<ScenarioView> {
-  const meta = endpoint.scenarios[key]
-  const { label, summary } = meta
-  const isDefault = key === 'default'
-  if (endpoint.resolverScenarios.includes(key)) {
+  const meta = endpoint.scenarios[slug]
+  const { displayName, summary } = meta
+  const isDefault = slug === 'default'
+  if (endpoint.resolverScenarios.includes(slug)) {
     try {
       const code = fs.readFileSync(
-        resolverFilePath(catalogDir, system.slug, endpoint.name, key),
+        resolverFilePath(catalogDir, system.slug, endpoint.slug, slug),
         'utf8',
       )
-      return { key, label, ...(summary ? { summary } : {}), isDefault, kind: 'resolver' as const, code, html: await highlight(code, 'javascript') }
+      return { slug, displayName, ...(summary ? { summary } : {}), isDefault, kind: 'resolver' as const, code, html: await highlight(code, 'javascript') }
     } catch (err) {
-      return { key, label, ...(summary ? { summary } : {}), isDefault, kind: 'error' as const, message: (err as Error).message }
+      return { slug, displayName, ...(summary ? { summary } : {}), isDefault, kind: 'error' as const, message: (err as Error).message }
     }
   }
   try {
-    const fixture = loadFixture(catalogDir, system.slug, endpoint.name, key)
+    const fixture = loadFixture(catalogDir, system.slug, endpoint.slug, slug)
     // `json` is the full fixture (status/headers/body) — kept for the header
     // status-chip parsing. `html` highlights the body only, matching the
     // body block the pre-highlighting UI rendered.
     const json = JSON.stringify(fixture, null, 2)
     const bodyJson = JSON.stringify(fixture.body, null, 2)
-    return { key, label, ...(summary ? { summary } : {}), isDefault, kind: 'fixture' as const, json, html: await highlight(bodyJson, 'json') }
+    return { slug, displayName, ...(summary ? { summary } : {}), isDefault, kind: 'fixture' as const, json, html: await highlight(bodyJson, 'json') }
   } catch (err) {
-    return { key, label, ...(summary ? { summary } : {}), isDefault, kind: 'error' as const, message: (err as Error).message }
+    return { slug, displayName, ...(summary ? { summary } : {}), isDefault, kind: 'error' as const, message: (err as Error).message }
   }
 }
 
@@ -59,14 +59,14 @@ export async function buildScenarioViews(
   passthroughAsDefault: boolean,
 ): Promise<ScenarioView[]> {
   const declared: ScenarioView[] = await Promise.all(
-    Object.keys(endpoint.scenarios).map((key) => buildScenarioView(system, endpoint, key, catalogDir)),
+    Object.keys(endpoint.scenarios).map((slug) => buildScenarioView(system, endpoint, slug, catalogDir)),
   )
 
   // "real" is never declared in the catalog — it's an implicit capability of
   // every endpoint.
   const passthrough: ScenarioView = {
-    key: 'real',
-    label: REAL_LABEL,
+    slug: 'real',
+    displayName: REAL_LABEL,
     isDefault: passthroughAsDefault,
     kind: 'passthrough',
     baseUrlEnv: system.baseUrlEnv,

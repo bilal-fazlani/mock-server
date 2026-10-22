@@ -44,8 +44,8 @@ export function EndpointView({
 }) {
   const mockType = endpoint.mockType ?? 'profiled'
   const captureProfileKeys = endpoint.captureProfileKeys ?? []
-  const visibleScenarios = scenarios.filter((scenario) => scenario.key !== 'real')
-  const current = { systemSlug: system.slug, endpointName: endpoint.name }
+  const visibleScenarios = scenarios.filter((scenario) => scenario.slug !== 'real')
+  const current = { systemSlug: system.slug, endpointSlug: endpoint.slug }
   const profileSelector = endpoint.profileIdSelector
     ? parseProfileIdSelectorSafely(endpoint.profileIdSelector)
     : null
@@ -80,7 +80,7 @@ export function EndpointView({
             </span>
             <span className={rowLabelClass}>system</span>
             <div className="flex flex-wrap items-center gap-2.5">
-              <span className="inline-flex items-center min-h-[28px] leading-[1.15]">{system.name}</span>
+              <span className="inline-flex items-center min-h-[28px] leading-[1.15]">{system.displayName}</span>
               {showBaseUrl &&
                 (baseUrl ? (
                   <code className="inline-flex items-center min-h-[28px] text-secondary-foreground leading-[1.15]">
@@ -211,7 +211,7 @@ function parseProfileIdSelectorSafely(raw: string): ProfileIdSelector | null {
 
 interface EndpointRef {
   systemSlug: string
-  endpointName: string
+  endpointSlug: string
 }
 
 function NamespaceChip({
@@ -276,9 +276,9 @@ function UsageSection({
         <span className="text-[var(--warning-text)]">{empty}</span>
       ) : (
         entries.map(({ system, endpoint }) => {
-          const key = `${system.slug}/${endpoint.name}`
+          const key = `${system.slug}/${endpoint.slug}`
           const isCurrent =
-            system.slug === current.systemSlug && endpoint.name === current.endpointName
+            system.slug === current.systemSlug && endpoint.slug === current.endpointSlug
           if (isCurrent) {
             return (
               <span
@@ -298,7 +298,7 @@ function UsageSection({
           return (
             <Link
               key={key}
-              href={`/ui/catalog/${system.slug}/${endpoint.name}`}
+              href={`/ui/catalog/${system.slug}/${endpoint.slug}`}
               className="group/entry flex items-baseline gap-2 min-w-0 text-secondary-foreground no-underline"
             >
               <code className="flex-none text-muted-foreground text-[0.7rem] font-bold">

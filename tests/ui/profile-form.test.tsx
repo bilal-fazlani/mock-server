@@ -7,17 +7,17 @@ import UiLayout from '../../src/app/ui/layout'
 const catalog: Catalog = {
   systems: [
     {
-      name: 'Hello System',
+      displayName: 'Hello System',
       slug: 'hello-system',
       baseUrlEnv: 'HELLO_SYSTEM_URL',
       endpoints: [
         {
-          name: 'hello_world',
+          slug: 'hello_world',
           displayName: 'Hello World',
           method: 'POST',
           path: '/hello/world',
           profileIdSelector: '$.customerId',
-          scenarios: { default: { label: 'Hello success' }, failure: { label: 'Hello failure' } },
+          scenarios: { default: { displayName: 'Hello success' }, failure: { displayName: 'Hello failure' } },
           resolverScenarios: [],
         },
       ],
@@ -181,7 +181,7 @@ describe('ProfileForm', () => {
           endpoints: [
             {
               ...catalog.systems[0].endpoints[0],
-              scenarios: { failure: { label: 'Hello failure' }, default: { label: 'Hello success' } },
+              scenarios: { failure: { displayName: 'Hello failure' }, default: { displayName: 'Hello success' } },
             },
           ],
         },
@@ -235,12 +235,12 @@ describe('ProfileForm', () => {
           endpoints: [
             catalog.systems[0].endpoints[0],
             {
-              name: 'health_check',
+              slug: 'health_check',
               displayName: 'Health Check',
               method: 'GET',
               path: '/health',
               mockType: 'global',
-              scenarios: { default: { label: 'OK' } },
+              scenarios: { default: { displayName: 'OK' } },
               resolverScenarios: [],
             },
           ],
@@ -259,17 +259,17 @@ describe('ProfileForm', () => {
     const globalOnly: Catalog = {
       systems: [
         {
-          name: 'Ops System',
+          displayName: 'Ops System',
           slug: 'ops-system',
           baseUrlEnv: 'OPS_SYSTEM_URL',
           endpoints: [
             {
-              name: 'health_check',
+              slug: 'health_check',
               displayName: 'Health Check',
               method: 'GET',
               path: '/health',
               mockType: 'global',
-              scenarios: { default: { label: 'OK' } },
+              scenarios: { default: { displayName: 'OK' } },
               resolverScenarios: [],
             },
           ],
@@ -291,7 +291,7 @@ describe('ProfileForm', () => {
           endpoints: [
             {
               ...catalog.systems[0].endpoints[0],
-              scenarios: { default: { label: 'Hello success' }, hold: { label: 'Hold' }, 'by-amount': { label: 'By amount' } },
+              scenarios: { default: { displayName: 'Hello success' }, hold: { displayName: 'Hold' }, 'by-amount': { displayName: 'By amount' } },
               resolverScenarios: ['by-amount'],
             },
           ],

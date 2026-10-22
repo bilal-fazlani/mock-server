@@ -4,14 +4,14 @@ import type { MockProfile } from './store'
 
 export function staleScenarios(profile: MockProfile, catalog: Catalog): Record<string, string> {
   const endpoints = new Map<string, EndpointDef>(
-    catalog.systems.flatMap((s) => s.endpoints.map((e) => [e.name, e] as const)),
+    catalog.systems.flatMap((s) => s.endpoints.map((e) => [e.slug, e] as const)),
   )
   const stale: Record<string, string> = {}
-  for (const [endpointName, selection] of Object.entries(profile.endpointScenarios)) {
+  for (const [endpointSlug, selection] of Object.entries(profile.endpointScenarios)) {
     const steps = Array.isArray(selection) ? selection : [selection]
-    const endpoint = endpoints.get(endpointName)
+    const endpoint = endpoints.get(endpointSlug)
     const invalid = endpoint ? steps.filter((s) => !isScenarioDeclared(endpoint, s)) : steps
-    if (invalid.length > 0) stale[endpointName] = invalid.join(', ')
+    if (invalid.length > 0) stale[endpointSlug] = invalid.join(', ')
   }
   return stale
 }
@@ -29,7 +29,7 @@ export function renderableStaleEndpoints(
   catalog: Catalog,
 ): Record<string, string[]> {
   const present = new Set(
-    catalog.systems.flatMap((s) => s.endpoints.filter(isProfiledEndpoint).map((e) => e.name)),
+    catalog.systems.flatMap((s) => s.endpoints.filter(isProfiledEndpoint).map((e) => e.slug)),
   )
   return Object.fromEntries(
     Object.entries(staleByEndpoint).filter(([name]) => present.has(name)),
@@ -48,13 +48,13 @@ export function unresolvedStaleEndpoints(
   currentSelections: Record<string, string[]>,
 ): string[] {
   const unresolved: string[] = []
-  for (const [endpointName, dangling] of Object.entries(staleByEndpoint)) {
-    const current = currentSelections[endpointName]
+  for (const [endpointSlug, dangling] of Object.entries(staleByEndpoint)) {
+    const current = currentSelections[endpointSlug]
     if (current === undefined || current.length === 0) {
-      unresolved.push(endpointName)
+      unresolved.push(endpointSlug)
       continue
     }
-    if (current.some((slug) => dangling.includes(slug))) unresolved.push(endpointName)
+    if (current.some((slug) => dangling.includes(slug))) unresolved.push(endpointSlug)
   }
   return unresolved
 }

@@ -4,12 +4,12 @@ import type { EndpointDef } from '../../src/lib/catalog/types'
 
 function endpoint(overrides: Partial<EndpointDef> = {}): EndpointDef {
   return {
-    name: 'hello_world',
+    slug: 'hello_world',
     displayName: 'Hello World',
     method: 'POST',
     path: '/hello/world',
     profileIdSelector: '$.customerId',
-    scenarios: { default: { label: 'Success' } },
+    scenarios: { default: { displayName: 'Success' } },
     resolverScenarios: [],
     ...overrides,
   }

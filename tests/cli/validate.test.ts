@@ -22,7 +22,7 @@ afterEach(() => {
   while (tmpDirs.length) fs.rmSync(tmpDirs.pop()!, { recursive: true, force: true })
 })
 
-const SYSTEM_META = { name: 'Test System', baseUrlEnv: 'TEST_URL' }
+const SYSTEM_META = { displayName: 'Test System', baseUrlEnv: 'TEST_URL' }
 const ENDPOINT_META = {
   displayName: 'Hello World',
   method: 'POST',
@@ -128,7 +128,7 @@ describe('runValidate', () => {
 
   it('does not check environment config — a missing base URL is not an error', () => {
     const dir = tmpCatalogDir({
-      'sys/_system.json': { name: 'Test System', baseUrlEnv: 'DEFINITELY_UNSET_BASE_URL' },
+      'sys/_system.json': { displayName: 'Test System', baseUrlEnv: 'DEFINITELY_UNSET_BASE_URL' },
       'sys/ep/_endpoint.json': ENDPOINT_META,
       'sys/ep/default.json': { status: 200, body: {} },
     })

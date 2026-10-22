@@ -21,7 +21,7 @@ export default async function LogsPage({
   const endpoints = runtime
     .catalog.systems.flatMap((s) =>
       s.endpoints.map((e) => ({
-        name: e.name,
+        name: e.slug,
         displayName: e.displayName,
         method: e.method,
         path: e.path,
@@ -32,7 +32,7 @@ export default async function LogsPage({
     runtime.catalog.systems.flatMap((s) =>
       s.endpoints.flatMap((e) =>
         (e.captureProfileKeys ?? []).map((capture) => [
-          `${s.slug}/${e.name}/${capture.namespace}`,
+          `${s.slug}/${e.slug}/${capture.namespace}`,
           capture.keySelector,
         ]),
       ),
@@ -46,13 +46,13 @@ export default async function LogsPage({
         options={{
           profiles: profiles.map((p) => ({ profileId: p.profileId, displayName: p.displayName })),
           endpoints,
-          systemLabels: Object.fromEntries(runtime.catalog.systems.map((s) => [s.slug, s.name])),
+          systemLabels: Object.fromEntries(runtime.catalog.systems.map((s) => [s.slug, s.displayName])),
           scenarioLabels: Object.fromEntries(
             runtime.catalog.systems.flatMap((s) =>
               s.endpoints.flatMap((e) =>
                 Object.entries(e.scenarios).map(([scenario, meta]) => [
-                  `${s.slug}/${e.name}/${scenario}`,
-                  meta.label,
+                  `${s.slug}/${e.slug}/${scenario}`,
+                  meta.displayName,
                 ]),
               ),
             ),

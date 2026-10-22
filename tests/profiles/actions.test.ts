@@ -35,7 +35,7 @@ vi.mock('../../src/lib/runtime', () => ({
           baseUrlEnv: 'HELLO_SYSTEM_URL',
           endpoints: [
             {
-              name: 'hello_world',
+              slug: 'hello_world',
               displayName: 'Hello World',
               method: 'POST',
               path: '/hello/world',

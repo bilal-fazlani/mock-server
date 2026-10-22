@@ -20,12 +20,12 @@ vi.mock('../../src/lib/runtime', () => ({
     catalog: {
       systems: [
         {
-          name: 'Hello System',
+          displayName: 'Hello System',
           slug: 'hello-system',
           baseUrlEnv: 'HELLO_SYSTEM_URL',
           endpoints: [
             {
-              name: 'hello_world',
+              slug: 'hello_world',
               displayName: 'Hello World',
               method: 'POST',
               path: '/hello/world',

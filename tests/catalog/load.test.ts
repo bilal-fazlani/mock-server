@@ -21,20 +21,20 @@ afterEach(() => {
   while (tmpDirs.length) fs.rmSync(tmpDirs.pop()!, { recursive: true, force: true })
 })
 
-const SYSTEM_META = { name: 'Test System', baseUrlEnv: 'TEST_URL' }
+const SYSTEM_META = { displayName: 'Test System', baseUrlEnv: 'TEST_URL' }
 const ENDPOINT_META = {
   displayName: 'Hello World',
   method: 'POST',
   path: '/hello/world',
   profileIdSelector: '$.customerId',
 }
-const FIXTURE = { description: 'Success', status: 200, body: { ok: true } }
+const FIXTURE = { displayName: 'Success', status: 200, body: { ok: true } }
 
 describe('loadCatalog', () => {
   it('loads the example catalog systems', () => {
     const catalog = loadCatalog(path.join(__dirname, '../../catalog'))
     expect(catalog.systems.map((s) => s.slug)).toEqual(['hello-system'])
-    expect(catalog.systems.flatMap((s) => s.endpoints.map((e) => `${s.slug}/${e.name}`))).toEqual(
+    expect(catalog.systems.flatMap((s) => s.endpoints.map((e) => `${s.slug}/${e.slug}`))).toEqual(
       expect.arrayContaining(['hello-system/hello_world', 'hello-system/customer_status']),
     )
   })
@@ -44,12 +44,12 @@ describe('loadCatalog', () => {
       'sys/_system.json': SYSTEM_META,
       'sys/ep/_endpoint.json': ENDPOINT_META,
       'sys/ep/default.json': { status: 200, body: {} }, // no description
-      'sys/ep/failure.json': { description: 'It failed', status: 500, body: {} },
+      'sys/ep/failure.json': { displayName: 'It failed', status: 500, body: {} },
     })
     const catalog = loadCatalog(dir)
     expect(catalog.systems[0].endpoints[0].scenarios).toEqual({
-      default: { label: 'default', status: 200 },
-      failure: { label: 'It failed', status: 500 },
+      default: { displayName: 'default', status: 200 },
+      failure: { displayName: 'It failed', status: 500 },
     })
   })
 
@@ -58,12 +58,12 @@ describe('loadCatalog', () => {
       'sys/_system.json': SYSTEM_META,
       'sys/ep/_endpoint.json': ENDPOINT_META,
       'sys/ep/default.json': { status: 200, body: {} }, // no summary
-      'sys/ep/failure.json': { description: 'It failed', summary: 'Upstream 500', status: 500, body: {} },
+      'sys/ep/failure.json': { displayName: 'It failed', summary: 'Upstream 500', status: 500, body: {} },
     })
     const ep = loadCatalog(dir).systems[0].endpoints[0]
     expect(ep.scenarios).toEqual({
-      default: { label: 'default', status: 200 },
-      failure: { label: 'It failed', summary: 'Upstream 500', status: 500 },
+      default: { displayName: 'default', status: 200 },
+      failure: { displayName: 'It failed', summary: 'Upstream 500', status: 500 },
     })
   })
 
@@ -71,20 +71,20 @@ describe('loadCatalog', () => {
     const dir = tmpCatalogDir({
       'sys/_system.json': SYSTEM_META,
       'sys/ep/_endpoint.json': ENDPOINT_META,
-      'sys/ep/frozen.json': { description: 'Frozen', summary: 's', status: 403, body: {} },
+      'sys/ep/frozen.json': { displayName: 'Frozen', summary: 's', status: 403, body: {} },
     })
     const endpoint = loadCatalog(dir).systems[0].endpoints[0]
-    expect(endpoint.scenarios.frozen).toEqual({ label: 'Frozen', summary: 's', status: 403 })
+    expect(endpoint.scenarios.frozen).toEqual({ displayName: 'Frozen', summary: 's', status: 403 })
   })
 
   it('ignores a non-numeric status', () => {
     const dir = tmpCatalogDir({
       'sys/_system.json': SYSTEM_META,
       'sys/ep/_endpoint.json': ENDPOINT_META,
-      'sys/ep/bad.json': { description: 'Bad', status: '500', body: {} },
+      'sys/ep/bad.json': { displayName: 'Bad', status: '500', body: {} },
     })
     const endpoint = loadCatalog(dir).systems[0].endpoints[0]
-    expect(endpoint.scenarios.bad).toEqual({ label: 'Bad' })
+    expect(endpoint.scenarios.bad).toEqual({ displayName: 'Bad' })
   })
 
   it('orders scenarios default-first, then alphabetically', () => {
@@ -129,9 +129,29 @@ describe('loadCatalog', () => {
     expect(message).toMatch(/Bad Name\.json/)
   })
 
+  it('rejects the retired "name" key in _system.json, naming displayName', () => {
+    const dir = tmpCatalogDir({
+      'sys/_system.json': { name: 'Test System', displayName: 'Test System', baseUrlEnv: 'TEST_URL' },
+      'sys/ep/_endpoint.json': ENDPOINT_META,
+      'sys/ep/default.json': FIXTURE,
+    })
+    expect(() => loadCatalog(dir)).toThrow(/sys: _system\.json uses "name"; rename it to "displayName"/)
+  })
+
+  it('rejects the retired "description" key in a fixture, naming displayName', () => {
+    const dir = tmpCatalogDir({
+      'sys/_system.json': SYSTEM_META,
+      'sys/ep/_endpoint.json': ENDPOINT_META,
+      'sys/ep/default.json': { description: 'Success', status: 200, body: {} },
+    })
+    expect(() => loadCatalog(dir)).toThrow(
+      /sys\/ep: default\.json uses "description"; rename it to "displayName"/,
+    )
+  })
+
   it('flags metadata files with missing fields or invalid JSON', () => {
     const dir = tmpCatalogDir({
-      'sys/_system.json': { name: 'S' }, // missing baseUrlEnv
+      'sys/_system.json': { displayName: 'S' }, // missing baseUrlEnv
       'sys/ep/_endpoint.json': 'not json {',
       'sys/ep/default.json': FIXTURE,
     })
@@ -235,7 +255,7 @@ describe('loadCatalog', () => {
     const catalog = loadCatalog(dir)
     const ep = catalog.systems[0].endpoints[0]
     expect(Object.keys(ep.scenarios)).toContain('by-amount')
-    expect(ep.scenarios['by-amount']).toEqual({ label: 'by-amount' }) // label = slug until runtime patches
+    expect(ep.scenarios['by-amount']).toEqual({ displayName: 'by-amount' }) // label = slug until runtime patches
     expect(ep.resolverScenarios).toEqual(['by-amount'])
   })
 
@@ -286,8 +306,8 @@ describe('loadCatalog', () => {
       'sys/ep-absent/default.json': FIXTURE,
     })
     const endpoints = loadCatalog(dir).systems[0].endpoints
-    const declaredEmpty = endpoints.find((e) => e.name === 'ep-empty')!
-    const keyAbsent = endpoints.find((e) => e.name === 'ep-absent')!
+    const declaredEmpty = endpoints.find((e) => e.slug === 'ep-empty')!
+    const keyAbsent = endpoints.find((e) => e.slug === 'ep-absent')!
 
     // An explicit `"captureProfileKeys": []` in _endpoint.json parses to a present,
     // empty array — a future `.length > 0` check on this line would collapse it

@@ -24,8 +24,8 @@ catalog/
 There is no special filename for a resolver — `dynamic.mjs` above is a plain
 example slug, not a reserved concept. Name resolver files for what they do
 (`by-amount.mjs`, `poll-twice-then-succeed.mjs`, `default.mjs`); the slug becomes
-the label shown in pickers, logs, and the catalog page (unless overridden by
-`description` — see below).
+the name shown in pickers, logs, and the catalog page (unless overridden by
+`displayName` — see below).
 
 Resolvers are trusted, version-controlled JavaScript, deployed with the mock
 server — not a sandbox against malicious authors, but a way to *enforce* the
@@ -91,13 +91,13 @@ This is the one rule everything else follows from:
 - **State is the history window, nothing else.** There is no mutable
   per-resolver storage beyond `history` — a stateful policy must be a pure
   function of `request` and `history`.
-- **Optional `export const description = '…'`** alongside the default export
-  becomes the resolver's UI label — read at compile time, exactly mirroring
-  the fixture `description` field. Without it, the picker, catalog page, and
+- **Optional `export const displayName = '…'`** alongside the default export
+  becomes the resolver's UI name — read at compile time, exactly mirroring
+  the fixture `displayName` field. Without it, the picker, catalog page, and
   logs fall back to showing the slug itself:
 
   ```js
-  export const description = 'Routes by transfer amount'
+  export const displayName = 'Routes by transfer amount'
 
   export default function pick(input) {
     // …
@@ -105,14 +105,14 @@ This is the one rule everything else follows from:
   ```
 
 - **Optional `export const summary = '…'`** is shown as a secondary line
-  beneath the label — the resolver counterpart of the fixture `summary` field,
+  beneath the name — the resolver counterpart of the fixture `summary` field,
   also read at compile time. It appears on the catalog viewer's endpoint page
   and in the scenario pickers (a chip's hover card, and a sequence step's
   dropdown — see [The dashboard](../driving/ui.md#profiles-ui)); it still does
   not appear in logs, and an empty string is treated as absent:
 
   ```js
-  export const description = 'Routes by transfer amount'
+  export const displayName = 'Routes by transfer amount'
   export const summary = 'Large transfers hold; small ones settle'
 
   export default function pick(input) {
@@ -163,7 +163,7 @@ catalog/
 ```
 
 ```js
-export const description = 'Routes by transfer amount'
+export const displayName = 'Routes by transfer amount'
 
 export default function routeByAmount(input) {
   const amount = input.request.body?.amount ?? 0

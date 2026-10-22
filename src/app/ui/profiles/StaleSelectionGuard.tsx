@@ -27,9 +27,9 @@ export function StaleSelectionGuard({
     const saveButton = document.getElementById(saveButtonId) as HTMLButtonElement | null
     if (!form || !saveButton) return
 
-    const readCurrent = (endpointName: string): string[] => {
+    const readCurrent = (endpointSlug: string): string[] => {
       const inputs = Array.from(form.querySelectorAll('input'))
-      const sequence = inputs.find((i) => i.name === `scenarioSequence:${endpointName}`)
+      const sequence = inputs.find((i) => i.name === `scenarioSequence:${endpointSlug}`)
       if (sequence) {
         try {
           const parsed: unknown = JSON.parse(sequence.value)
@@ -40,15 +40,15 @@ export function StaleSelectionGuard({
         return []
       }
       const checked = inputs.find(
-        (i) => i.name === `scenario:${endpointName}` && i.type === 'radio' && i.checked,
+        (i) => i.name === `scenario:${endpointSlug}` && i.type === 'radio' && i.checked,
       )
       return checked ? [checked.value] : []
     }
 
     const recompute = () => {
       const currentSelections: Record<string, string[]> = {}
-      for (const endpointName of Object.keys(staleByEndpoint)) {
-        currentSelections[endpointName] = readCurrent(endpointName)
+      for (const endpointSlug of Object.keys(staleByEndpoint)) {
+        currentSelections[endpointSlug] = readCurrent(endpointSlug)
       }
       const unresolved = unresolvedStaleEndpoints(staleByEndpoint, currentSelections)
       const isBlocked = unresolved.length > 0

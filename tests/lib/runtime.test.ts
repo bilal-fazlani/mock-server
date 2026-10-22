@@ -19,7 +19,7 @@ function tmpProjectDir(files: Record<string, unknown>): string {
   return dir
 }
 
-const SYSTEM_META = { name: 'Test System', baseUrlEnv: 'TEST_URL' }
+const SYSTEM_META = { displayName: 'Test System', baseUrlEnv: 'TEST_URL' }
 const ENDPOINT_META = {
   displayName: 'Endpoint',
   method: 'POST',
@@ -92,7 +92,7 @@ describe('getRuntime', () => {
       'catalog/sys/_system.json': SYSTEM_META,
       'catalog/sys/ep/_endpoint.json': ENDPOINT_META,
       'catalog/sys/ep/success.json': FIXTURE,
-      'catalog/sys/ep/default.mjs': `export const description = 'Routes by amount'\nexport default () => 'success'`,
+      'catalog/sys/ep/default.mjs': `export const displayName = 'Routes by amount'\nexport default () => 'success'`,
     })
     process.chdir(dir)
     process.env = { ...originalEnv }
@@ -104,9 +104,9 @@ describe('getRuntime', () => {
     expect(resolver).not.toBeNull()
     expect(resolver!.invoke({ request: { method: 'POST', path: '/ep', pathParams: {}, query: {}, headers: {}, body: null }, history: [], profileId: null }, 100)).toBe('success')
     expect(rt.resolverHistoryLimit).toBe(10)
-    // The compiled module's `description` export patches the scenario label.
+    // The compiled module's `displayName` export patches the scenario label.
     const ep = rt.catalog.systems[0].endpoints[0]
-    expect(ep.scenarios.default.label).toBe('Routes by amount')
+    expect(ep.scenarios.default.displayName).toBe('Routes by amount')
     expect(rt.getCompiledResolver('sys', 'ep', 'missing')).toBeNull()
   })
 

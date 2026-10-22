@@ -1,4 +1,4 @@
 {
-  "name": "Hello System",
+  "displayName": "Hello System",
   "baseUrlEnv": "HELLO_SYSTEM_URL"
 }

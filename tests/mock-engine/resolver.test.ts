@@ -76,19 +76,25 @@ describe('resolverFilePath', () => {
   })
 })
 
-describe('compileResolver description export', () => {
-  it('exposes export const description', () => {
-    const compiled = compileResolver(
-      `export const description = 'Routes by amount'\nexport default () => 'success'`,
-      'sys/ep/by-amount.mjs',
-    )
-    expect(compiled.description).toBe('Routes by amount')
+describe('compileResolver displayName export', () => {
+  it('rejects the retired description export, naming displayName', () => {
+    expect(() =>
+      compileResolver(`export const description = 'x'\nexport default () => 'x'`, 'sys/ep/a.mjs'),
+    ).toThrow(/sys\/ep\/a\.mjs: resolver exports "description"; rename it to "displayName"/)
   })
 
-  it('leaves description undefined when absent or not a string', () => {
-    expect(compileResolver(`export default () => 'x'`, 'l').description).toBeUndefined()
+  it('exposes export const displayName', () => {
+    const compiled = compileResolver(
+      `export const displayName = 'Routes by amount'\nexport default () => 'success'`,
+      'sys/ep/by-amount.mjs',
+    )
+    expect(compiled.displayName).toBe('Routes by amount')
+  })
+
+  it('leaves displayName undefined when absent or not a string', () => {
+    expect(compileResolver(`export default () => 'x'`, 'l').displayName).toBeUndefined()
     expect(
-      compileResolver(`export const description = 42\nexport default () => 'x'`, 'l').description,
+      compileResolver(`export const displayName = 42\nexport default () => 'x'`, 'l').displayName,
     ).toBeUndefined()
   })
 })

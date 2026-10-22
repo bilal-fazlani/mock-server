@@ -59,7 +59,7 @@ export function ScenarioContent({ scenario }: { scenario: ScenarioView }) {
     return (
       <div className="grid gap-2">
         <p className="font-mono text-[0.85rem] text-secondary-foreground">
-          Resolved at request time by <code>{scenario.key}.mjs</code>
+          Resolved at request time by <code>{scenario.slug}.mjs</code>
         </p>
         <div
           className="code-scroll overflow-x-auto rounded-sm border border-border text-[0.8rem] [&_pre]:inline-block [&_pre]:min-w-full [&_pre]:p-3"

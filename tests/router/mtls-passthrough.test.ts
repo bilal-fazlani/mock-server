@@ -49,19 +49,19 @@ afterAll(() => new Promise<void>((resolve) => server.close(() => resolve())))
 const CATALOG: Catalog = {
   systems: [
     {
-      name: 'Secure System',
+      displayName: 'Secure System',
       slug: 'secure-system',
       baseUrlEnv: 'SECURE_SYSTEM_URL',
       clientCertEnv: 'SECURE_CLIENT_CERT',
       clientKeyEnv: 'SECURE_CLIENT_KEY',
       endpoints: [
         {
-          name: 'info',
+          slug: 'info',
           displayName: 'Info',
           method: 'GET',
           path: '/info',
           mockType: 'global',
-          scenarios: { default: { label: 'Info' } },
+          scenarios: { default: { displayName: 'Info' } },
           resolverScenarios: [],
         },
       ],

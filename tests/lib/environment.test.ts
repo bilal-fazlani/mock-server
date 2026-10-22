@@ -8,25 +8,25 @@ import { buildEnvironmentRows } from '../../src/lib/environment'
 const catalog: Catalog = {
   systems: [
     {
-      name: 'Hello System',
+      displayName: 'Hello System',
       slug: 'hello-system',
       baseUrlEnv: 'HELLO_SYSTEM_URL',
       endpoints: [],
     },
     {
-      name: 'Orders',
+      displayName: 'Orders',
       slug: 'orders',
       baseUrlEnv: 'ORDERS_URL',
       endpoints: [],
     },
     {
-      name: 'Orders Duplicate',
+      displayName: 'Orders Duplicate',
       slug: 'orders-duplicate',
       baseUrlEnv: 'ORDERS_URL',
       endpoints: [],
     },
     {
-      name: 'Billing',
+      displayName: 'Billing',
       slug: 'billing',
       baseUrlEnv: 'BILLING_URL',
       clientCertEnv: 'BILLING_CLIENT_CERT',
@@ -132,8 +132,8 @@ describe('buildEnvironmentRows', () => {
   it('hides a variable that one system uses as a base URL and another as a client key', () => {
     const shared: Catalog = {
       systems: [
-        { name: 'A', slug: 'a', baseUrlEnv: 'SHARED', endpoints: [] },
-        { name: 'B', slug: 'b', baseUrlEnv: 'B_URL', clientCertEnv: 'B_CERT', clientKeyEnv: 'SHARED', endpoints: [] },
+        { displayName: 'A', slug: 'a', baseUrlEnv: 'SHARED', endpoints: [] },
+        { displayName: 'B', slug: 'b', baseUrlEnv: 'B_URL', clientCertEnv: 'B_CERT', clientKeyEnv: 'SHARED', endpoints: [] },
       ],
     }
     const row = buildEnvironmentRows(shared, { SHARED: KEY_PEM }).find((r) => r.name === 'SHARED')

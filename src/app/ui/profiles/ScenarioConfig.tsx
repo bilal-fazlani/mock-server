@@ -16,7 +16,7 @@ type Mode = 'single' | 'sequence'
 
 export function ScenarioConfig({
   system,
-  endpointName,
+  endpointSlug,
   endpointDisplayName,
   scenarios,
   selection,
@@ -27,7 +27,7 @@ export function ScenarioConfig({
 }: {
   /** System slug — the disclosure needs it to build catalog URLs. */
   system: string
-  endpointName: string
+  endpointSlug: string
   /** Human-readable endpoint name, for the disclosure's catalog link. */
   endpointDisplayName: string
   scenarios: Record<string, ScenarioOption>
@@ -115,12 +115,12 @@ export function ScenarioConfig({
         <div
           onChange={(e) => {
             const target = e.target as HTMLInputElement
-            if (target?.name === `scenario:${endpointName}`) setSingleValue(target.value)
+            if (target?.name === `scenario:${endpointSlug}`) setSingleValue(target.value)
           }}
         >
           <ScenarioPicker
             system={system}
-            endpointName={endpointName}
+            endpointSlug={endpointSlug}
             endpointDisplayName={endpointDisplayName}
             scenarios={options}
             selected={singleValue}
@@ -210,7 +210,7 @@ export function ScenarioConfig({
                 </span>
                 <ScenarioSelect
                   system={system}
-                  endpointName={endpointName}
+                  endpointSlug={endpointSlug}
                   endpointDisplayName={endpointDisplayName}
                   value={step}
                   scenarios={options}
@@ -265,7 +265,7 @@ export function ScenarioConfig({
               </span>
             )}
           </div>
-          <input type="hidden" name={`scenarioSequence:${endpointName}`} value={JSON.stringify(steps)} />
+          <input type="hidden" name={`scenarioSequence:${endpointSlug}`} value={JSON.stringify(steps)} />
         </div>
       )}
       {showResolverReset && resetDynamicAction && (
@@ -366,7 +366,7 @@ export function ScenarioOptionRow({
       </span>
       <span className="grid min-w-0 flex-1 gap-0.5">
         <span className="min-w-0 text-[0.9rem] font-medium leading-[1.3] text-foreground [overflow-wrap:anywhere]">
-          {option.label}
+          {option.displayName}
         </span>
         {option.summary && (
           <span className="text-[0.78rem] font-normal leading-[1.4] text-muted-foreground [overflow-wrap:anywhere]">
@@ -385,7 +385,7 @@ export function ScenarioOptionRow({
 // custom listbox styled like the single-mode scenario cards.
 function ScenarioSelect({
   system,
-  endpointName,
+  endpointSlug,
   endpointDisplayName,
   value,
   scenarios,
@@ -394,7 +394,7 @@ function ScenarioSelect({
   ariaLabel,
 }: {
   system: string
-  endpointName: string
+  endpointSlug: string
   endpointDisplayName: string
   value: string
   scenarios: Record<string, ScenarioOption>
@@ -434,7 +434,7 @@ function ScenarioSelect({
     options[next].focus()
   }
 
-  const label = scenarios[value]?.label ?? value
+  const displayName = scenarios[value]?.displayName ?? value
   const trigger = (
     <button
       ref={triggerRef}
@@ -453,7 +453,7 @@ function ScenarioSelect({
     >
       <SelectSlot kind={scenarios[value]?.kind ?? 'fixture'} tone={scenarioKind(value)} selected />
       <span className="min-w-0 text-[0.9rem] font-medium leading-[1.3] text-foreground [overflow-wrap:anywhere]">
-        {label}
+        {displayName}
       </span>
       <ChevronsUpDown className="ml-auto size-3.5 flex-none text-muted-foreground" aria-hidden="true" />
     </button>
@@ -470,7 +470,7 @@ function ScenarioSelect({
       ) : (
         <ScenarioDisclosure
           system={system}
-          endpointName={endpointName}
+          endpointSlug={endpointSlug}
           endpointDisplayName={endpointDisplayName}
           slug={value}
           option={scenarios[value] ?? { label: value, kind: 'fixture' }}

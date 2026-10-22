@@ -18,9 +18,9 @@ export interface ResolverInput {
 }
 
 export interface CompiledResolver {
-  /** Optional `export const description = '…'` from the resolver source — its UI label. */
-  description?: string
-  /** Optional `export const summary = '…'` — secondary line shown under the label. */
+  /** Optional `export const displayName = '…'` from the resolver source — its UI name. */
+  displayName?: string
+  /** Optional `export const summary = '…'` — secondary line shown under the name. */
   summary?: string
   invoke(input: ResolverInput, timeoutMs: number): unknown
 }
@@ -32,10 +32,10 @@ export class ResolverTimeoutError extends Error {}
 export function resolverFilePath(
   catalogDir: string,
   systemSlug: string,
-  endpointName: string,
+  endpointSlug: string,
   slug: string,
 ): string {
-  return path.join(catalogDir, systemSlug, endpointName, `${slug}.mjs`)
+  return path.join(catalogDir, systemSlug, endpointSlug, `${slug}.mjs`)
 }
 
 export function compileResolver(source: string, label: string): CompiledResolver {
@@ -63,15 +63,20 @@ export function compileResolver(source: string, label: string): CompiledResolver
   if (typeof fn !== 'function') {
     throw new ResolverCompileError(`${label}: resolver must default-export a function`)
   }
-  const rawDescription = (mod as Record<string, unknown> | undefined)?.description
-  const description = typeof rawDescription === 'string' ? rawDescription : undefined
+  if (mod && typeof mod === 'object' && 'description' in mod) {
+    throw new ResolverCompileError(
+      `${label}: resolver exports "description"; rename it to "displayName"`,
+    )
+  }
+  const rawDisplayName = (mod as Record<string, unknown> | undefined)?.displayName
+  const displayName = typeof rawDisplayName === 'string' ? rawDisplayName : undefined
   const rawSummary = (mod as Record<string, unknown> | undefined)?.summary
   const summary = typeof rawSummary === 'string' ? rawSummary : undefined
   sandbox.__resolver = fn
   const invokeScript = new vm.Script('__resolver(__input)', { filename: `${label}#invoke` })
 
   return {
-    ...(description !== undefined ? { description } : {}),
+    ...(displayName !== undefined ? { displayName } : {}),
     ...(summary !== undefined ? { summary } : {}),
     invoke(input: ResolverInput, timeoutMs: number): unknown {
       sandbox.__input = input

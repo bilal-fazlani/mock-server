@@ -1,5 +1,5 @@
 {
-  "description": "Active",
+  "displayName": "Active",
   "summary": "Customer is in good standing and can transact normally.",
   "status": 200,
   "body": {

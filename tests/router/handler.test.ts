@@ -9,17 +9,17 @@ const NOW = new Date('2026-07-02T00:00:00.000Z')
 const CATALOG: Catalog = {
   systems: [
     {
-      name: 'Test System',
+      displayName: 'Test System',
       slug: 'test-system',
       baseUrlEnv: 'TEST_SYSTEM_URL',
       endpoints: [
         {
-          name: 'hello',
+          slug: 'hello',
           displayName: 'Hello',
           method: 'POST',
           path: '/hello',
           profileIdSelector: '$.customerId',
-          scenarios: { default: { label: 'Success' } },
+          scenarios: { default: { displayName: 'Success' } },
           resolverScenarios: [],
         },
       ],

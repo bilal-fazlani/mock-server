@@ -7,7 +7,7 @@ import { StatusPill } from '../../components/StatusPill'
 import type { ScenarioView } from './scenario-view'
 
 export function EndpointScenarios({ scenarios }: { scenarios: ScenarioView[] }) {
-  const scenarioKeys = useMemo(() => scenarios.map((scenario) => scenario.key), [scenarios])
+  const scenarioKeys = useMemo(() => scenarios.map((scenario) => scenario.slug), [scenarios])
   const [collapsedKeys, setCollapsedKeys] = useState<Set<string>>(() => new Set())
 
   function expandAll() {
@@ -61,12 +61,12 @@ export function EndpointScenarios({ scenarios }: { scenarios: ScenarioView[] }) 
       ) : (
         <div className="grid gap-3">
           {scenarios.map((scenario, index) => {
-            const isOpen = !collapsedKeys.has(scenario.key)
-            const panelId = scenarioPanelId(scenario.key, index)
+            const isOpen = !collapsedKeys.has(scenario.slug)
+            const panelId = scenarioPanelId(scenario.slug, index)
             const statusValue = scenario.kind === 'fixture' ? fixtureStatusValue(scenario.json) : null
             return (
               <article
-                key={scenario.key}
+                key={scenario.slug}
                 className="overflow-hidden rounded-lg border border-border bg-card shadow-sm transition-colors duration-150 has-[:hover]:border-[rgba(var(--accent-rgb),0.58)] has-[:hover]:bg-[var(--accent-tint)] has-[:focus-visible]:border-[rgba(var(--accent-rgb),0.58)] has-[:focus-visible]:bg-[var(--accent-tint)]"
               >
                 <button
@@ -74,7 +74,7 @@ export function EndpointScenarios({ scenarios }: { scenarios: ScenarioView[] }) 
                   className="flex w-full items-center justify-between gap-2.5 rounded-none border-0 bg-transparent px-3.5 py-3 text-left text-foreground focus-visible:-outline-offset-2"
                   aria-expanded={isOpen}
                   aria-controls={panelId}
-                  onClick={() => toggleScenario(scenario.key)}
+                  onClick={() => toggleScenario(scenario.slug)}
                 >
                   <span className="inline-flex min-w-0 items-center gap-2.5">
                     <span
@@ -83,7 +83,7 @@ export function EndpointScenarios({ scenarios }: { scenarios: ScenarioView[] }) 
                     />
                     <span className="flex min-w-0 flex-col gap-1">
                       <span className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1.5">
-                        <span className="text-[0.95rem] font-semibold text-foreground">{scenario.label}</span>
+                        <span className="text-[0.95rem] font-semibold text-foreground">{scenario.displayName}</span>
                         <StatusPill value={statusValue} />
                       </span>
                       {scenario.summary && (

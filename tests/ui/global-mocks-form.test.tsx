@@ -9,17 +9,17 @@ import { GlobalMocksForm } from '../../src/app/ui/global-mocks/GlobalMocksForm'
 const catalog: Catalog = {
   systems: [
     {
-      name: 'Hello System',
+      displayName: 'Hello System',
       slug: 'hello-system',
       baseUrlEnv: 'HELLO_SYSTEM_URL',
       endpoints: [
         {
-          name: 'oauth_token',
+          slug: 'oauth_token',
           displayName: 'OAuth Token',
           method: 'POST',
           path: '/oauth/token',
           mockType: 'global',
-          scenarios: { default: { label: 'Token' }, expired: { label: 'Expired' }, dynamic: { label: 'dynamic' } },
+          scenarios: { default: { displayName: 'Token' }, expired: { displayName: 'Expired' }, dynamic: { displayName: 'dynamic' } },
           resolverScenarios: ['dynamic'],
         },
       ],
@@ -88,7 +88,7 @@ describe('GlobalMocksForm reset dynamic history button', () => {
           endpoints: [
             {
               ...catalog.systems[0].endpoints[0],
-              scenarios: { default: { label: 'Token' }, expired: { label: 'Expired' } },
+              scenarios: { default: { displayName: 'Token' }, expired: { displayName: 'Expired' } },
               resolverScenarios: ['default'],
             },
           ],

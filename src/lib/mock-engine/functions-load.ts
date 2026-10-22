@@ -7,7 +7,7 @@ export interface LoadedFunctions {
   problems: string[]
   // Readonly because the merged table is memoized and handed to every caller —
   // a mutation would leak into every later render of that endpoint.
-  resolveTable(systemSlug: string, endpointName: string): ReadonlyMap<string, CompiledFn>
+  resolveTable(systemSlug: string, endpointSlug: string): ReadonlyMap<string, CompiledFn>
 }
 
 type Level = Map<string, CompiledFn>
@@ -58,8 +58,8 @@ export function loadFunctions(catalogDir: string): LoadedFunctions {
 
   return {
     problems,
-    resolveTable(systemSlug, endpointName) {
-      const key = `${systemSlug}/${endpointName}`
+    resolveTable(systemSlug, endpointSlug) {
+      const key = `${systemSlug}/${endpointSlug}`
       const cached = tableCache.get(key)
       if (cached) return cached
       const merged = new Map(catalogLevel)

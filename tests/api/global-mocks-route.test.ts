@@ -17,12 +17,12 @@ vi.mock('../../src/lib/runtime', () => ({
     catalog: {
       systems: [
         {
-          name: 'Hello System',
+          displayName: 'Hello System',
           slug: 'hello-system',
           baseUrlEnv: 'HELLO_SYSTEM_URL',
           endpoints: [
             {
-              name: 'oauth_token',
+              slug: 'oauth_token',
               displayName: 'OAuth Token',
               method: 'POST',
               path: '/oauth/token',
@@ -31,7 +31,7 @@ vi.mock('../../src/lib/runtime', () => ({
               resolverScenarios: [],
             },
             {
-              name: 'account_balance',
+              slug: 'account_balance',
               displayName: 'Account Balance',
               method: 'POST',
               path: '/accounts/balance',
@@ -40,7 +40,7 @@ vi.mock('../../src/lib/runtime', () => ({
               resolverScenarios: ['dynamic'],
             },
             {
-              name: 'profiled_endpoint',
+              slug: 'profiled_endpoint',
               displayName: 'Profiled Endpoint',
               method: 'POST',
               path: '/profiled',

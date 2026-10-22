@@ -38,10 +38,10 @@ export interface Runtime {
   resolverHistoryLimit: number
   resolverHistoryTtlSeconds: number
   profileKeyTtlSeconds: number
-  loadFixture: (systemSlug: string, endpointName: string, scenario: string) => Fixture
+  loadFixture: (systemSlug: string, endpointSlug: string, scenario: string) => Fixture
   getCompiledResolver: (
     systemSlug: string,
-    endpointName: string,
+    endpointSlug: string,
     slug: string,
   ) => CompiledResolver | null
 }
@@ -51,14 +51,14 @@ const globalScope = globalThis as typeof globalThis & { __mockServerRuntime?: Ru
 let moduleRuntime: Runtime | null = null
 const isProduction = () => process.env.NODE_ENV === 'production'
 
-function resolverKey(systemSlug: string, endpointName: string, slug: string): string {
-  return `${systemSlug}/${endpointName}/${slug}`
+function resolverKey(systemSlug: string, endpointSlug: string, slug: string): string {
+  return `${systemSlug}/${endpointSlug}/${slug}`
 }
 
 // Compiles every endpoint's <slug>.mjs resolvers at startup, aggregating
 // failures into the same fail-fast error list as catalog/config problems.
-// Also patches each resolver-backed scenario's UI label and summary from the
-// compiled module's optional `description`/`summary` exports (label = slug
+// Also patches each resolver-backed scenario's UI name and summary from the
+// compiled module's optional `displayName`/`summary` exports (displayName = slug
 // otherwise).
 export function compileResolvers(
   catalog: Catalog,
@@ -69,16 +69,16 @@ export function compileResolvers(
   for (const system of catalog.systems) {
     for (const endpoint of system.endpoints) {
       for (const slug of endpoint.resolverScenarios) {
-        const label = `${system.slug}/${endpoint.name}/${slug}.mjs`
+        const label = `${system.slug}/${endpoint.slug}/${slug}.mjs`
         try {
           const source = fs.readFileSync(
-            resolverFilePath(catalogDir, system.slug, endpoint.name, slug),
+            resolverFilePath(catalogDir, system.slug, endpoint.slug, slug),
             'utf8',
           )
           const compiled = compileResolver(source, label)
-          resolvers.set(resolverKey(system.slug, endpoint.name, slug), compiled)
-          const meta = (endpoint.scenarios[slug] ??= { label: slug })
-          if (compiled.description) meta.label = compiled.description
+          resolvers.set(resolverKey(system.slug, endpoint.slug, slug), compiled)
+          const meta = (endpoint.scenarios[slug] ??= { displayName: slug })
+          if (compiled.displayName) meta.displayName = compiled.displayName
           if (compiled.summary) meta.summary = compiled.summary
         } catch (err) {
           errors.push(err instanceof Error ? err.message : String(err))
@@ -96,15 +96,15 @@ function devCompileResolver(
   catalog: Catalog,
   catalogDir: string,
   systemSlug: string,
-  endpointName: string,
+  endpointSlug: string,
   slug: string,
 ): CompiledResolver | null {
   const endpoint = catalog.systems
     .find((s) => s.slug === systemSlug)
-    ?.endpoints.find((e) => e.name === endpointName)
+    ?.endpoints.find((e) => e.slug === endpointSlug)
   if (!endpoint?.resolverScenarios.includes(slug)) return null
-  const source = fs.readFileSync(resolverFilePath(catalogDir, systemSlug, endpointName, slug), 'utf8')
-  return compileResolver(source, `${systemSlug}/${endpointName}/${slug}.mjs`)
+  const source = fs.readFileSync(resolverFilePath(catalogDir, systemSlug, endpointSlug, slug), 'utf8')
+  return compileResolver(source, `${systemSlug}/${endpointSlug}/${slug}.mjs`)
 }
 
 // Startup validation gate: the server builds this at boot (instrumentation.ts)
@@ -164,19 +164,19 @@ export function getRuntime(): Runtime {
     resolverHistoryTtlSeconds,
     profileKeyTtlSeconds,
     loadFixture: isDev
-      ? (systemSlug, endpointName, scenario) =>
-          loadFixture(catalogDir, systemSlug, endpointName, scenario)
-      : (systemSlug, endpointName, scenario) => {
-          const file = fixtureFilePath(catalogDir, systemSlug, endpointName, scenario)
+      ? (systemSlug, endpointSlug, scenario) =>
+          loadFixture(catalogDir, systemSlug, endpointSlug, scenario)
+      : (systemSlug, endpointSlug, scenario) => {
+          const file = fixtureFilePath(catalogDir, systemSlug, endpointSlug, scenario)
           const cached = fixtures.get(file)
           if (!cached) throw new FixtureError(`fixture not found: ${file}`)
           return cached
         },
     getCompiledResolver: isDev
-      ? (systemSlug, endpointName, slug) =>
-          devCompileResolver(catalog, catalogDir, systemSlug, endpointName, slug)
-      : (systemSlug, endpointName, slug) =>
-          resolvers.get(resolverKey(systemSlug, endpointName, slug)) ?? null,
+      ? (systemSlug, endpointSlug, slug) =>
+          devCompileResolver(catalog, catalogDir, systemSlug, endpointSlug, slug)
+      : (systemSlug, endpointSlug, slug) =>
+          resolvers.get(resolverKey(systemSlug, endpointSlug, slug)) ?? null,
   }
   if (isProduction()) globalScope.__mockServerRuntime = built
   else moduleRuntime = built

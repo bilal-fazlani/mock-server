@@ -208,17 +208,17 @@ describe('buildSchemaRegistry', () => {
     return {
       systems: [
         {
-          name: 'Test System',
+          displayName: 'Test System',
           slug: 'test-system',
           baseUrlEnv: 'TEST_URL',
           endpoints: [
             {
-              name: 'hello_world',
+              slug: 'hello_world',
               displayName: 'Hello World',
               method: 'POST',
               path: '/hello/world',
               profileIdSelector: '$.customerId',
-              scenarios: { default: { label: 'Success' } },
+              scenarios: { default: { displayName: 'Success' } },
               resolverScenarios: [],
               ...(schema !== undefined ? { schema } : {}),
             },

@@ -12,12 +12,12 @@ function toCatalogView(catalog: Catalog) {
   return {
     systems: catalog.systems.map((system) => ({
       slug: system.slug,
-      name: system.name,
+      displayName: system.displayName,
       baseUrlEnv: system.baseUrlEnv,
       ...(system.clientCertEnv !== undefined && { clientCertEnv: system.clientCertEnv }),
       ...(system.clientKeyEnv !== undefined && { clientKeyEnv: system.clientKeyEnv }),
       endpoints: system.endpoints.map((endpoint) => ({
-        name: endpoint.name,
+        slug: endpoint.slug,
         displayName: endpoint.displayName,
         method: endpoint.method,
         path: endpoint.path,
@@ -32,10 +32,10 @@ function toCatalogView(catalog: Catalog) {
           captureProfileKeys: endpoint.captureProfileKeys,
         }),
         resolverScenarios: endpoint.resolverScenarios,
-        // The runtime-control API contract exposes scenarios as slug → label
+        // The runtime-control API contract exposes scenarios as slug → displayName
         // strings; the internal `summary` is surfaced only in the catalog UI.
         scenarios: Object.fromEntries(
-          Object.entries(endpoint.scenarios).map(([slug, meta]) => [slug, meta.label]),
+          Object.entries(endpoint.scenarios).map(([slug, meta]) => [slug, meta.displayName]),
         ),
       })),
     })),

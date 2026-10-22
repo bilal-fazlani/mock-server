@@ -8,7 +8,7 @@ import {
 import { Dialog } from '../../src/app/components/ui/dialog'
 import type { ScenarioView } from '../../src/app/ui/catalog/scenario-view'
 
-const frozen = { label: 'Frozen', summary: 'Account is frozen', status: 403, kind: 'fixture' as const }
+const frozen = { displayName: 'Frozen', summary: 'Account is frozen', status: 403, kind: 'fixture' as const }
 
 // The modal body titles the dialog through Radix's `DialogTitle`, which reads the
 // Dialog root context (it owns the generated `titleId` the content is labelled
@@ -30,14 +30,14 @@ describe('ScenarioHoverCardBody', () => {
   })
   it('labels the resolver button as code and omits the pill without a status', () => {
     const html = renderToStaticMarkup(
-      <ScenarioHoverCardBody option={{ label: 'dynamic', summary: 's', kind: 'resolver' }} onViewResponse={() => {}} />,
+      <ScenarioHoverCardBody option={{ displayName: 'dynamic', summary: 's', kind: 'resolver' }} onViewResponse={() => {}} />,
     )
     expect(html).toContain('View resolver code')
     expect(html).not.toContain('HTTP')
   })
   it('renders passthrough without any response button', () => {
     const html = renderToStaticMarkup(
-      <ScenarioHoverCardBody option={{ label: 'Passthrough', summary: 'Forwards the request to the live upstream service.', kind: 'passthrough' }} />,
+      <ScenarioHoverCardBody option={{ displayName: 'Passthrough', summary: 'Forwards the request to the live upstream service.', kind: 'passthrough' }} />,
     )
     expect(html).toContain('Forwards the request')
     expect(html).not.toContain('View full response')
@@ -46,7 +46,7 @@ describe('ScenarioHoverCardBody', () => {
     const html = renderToStaticMarkup(
       <ScenarioHoverCardBody
         option={{
-          label: 'Passthrough',
+          displayName: 'Passthrough',
           summary: 'Forwards the request to the live upstream service.',
           kind: 'passthrough',
           baseUrlEnv: 'HELLO_SYSTEM_URL',
@@ -61,7 +61,7 @@ describe('ScenarioHoverCardBody', () => {
     const html = renderToStaticMarkup(
       <ScenarioHoverCardBody
         option={{
-          label: 'Passthrough',
+          displayName: 'Passthrough',
           summary: 'Forwards the request to the live upstream service.',
           kind: 'passthrough',
           baseUrlEnv: 'HELLO_SYSTEM_URL',
@@ -76,7 +76,7 @@ describe('ScenarioHoverCardBody', () => {
     const html = renderToStaticMarkup(
       <ScenarioHoverCardBody
         option={{
-          label: 'Passthrough',
+          displayName: 'Passthrough',
           kind: 'passthrough',
           baseUrlEnv: 'HELLO_SYSTEM_URL',
           url: 'http://localhost:9999',
@@ -88,7 +88,7 @@ describe('ScenarioHoverCardBody', () => {
     expect(html).toContain('is not set')
   })
   it('omits the summary line when the option has none', () => {
-    const html = renderToStaticMarkup(<ScenarioHoverCardBody option={{ label: 'Plain', status: 200, kind: 'fixture' }} onViewResponse={() => {}} />)
+    const html = renderToStaticMarkup(<ScenarioHoverCardBody option={{ displayName: 'Plain', status: 200, kind: 'fixture' }} onViewResponse={() => {}} />)
     expect(html).toContain('HTTP 200 OK')
     expect(html).not.toContain('data-slot="scenario-summary"')
   })
@@ -96,7 +96,7 @@ describe('ScenarioHoverCardBody', () => {
 
 describe('ScenarioResponseModalBody', () => {
   const view: ScenarioView = {
-    key: 'frozen', label: 'Frozen', isDefault: false, kind: 'fixture',
+    slug: 'frozen', displayName: 'Frozen', isDefault: false, kind: 'fixture',
     json: JSON.stringify({ status: 403, body: {} }), html: '<pre class="shiki"><code>{}</code></pre>',
   }
   it('renders header, content, and the catalog link when ready', () => {
@@ -160,7 +160,7 @@ describe('ScenarioResponseModalBody', () => {
     expect((html.match(/shimmer/g) ?? []).length).toBeGreaterThan(3)
   })
   it('adds the resolver description line only for resolver scenarios', () => {
-    const resolver = { label: 'Dynamic', kind: 'resolver' as const }
+    const resolver = { displayName: 'Dynamic', kind: 'resolver' as const }
     const resolverHtml = renderModalBody(
       <ScenarioResponseModalBody state={{ kind: 'loading' }} option={resolver} catalogHref="/x" endpointDisplayName="X" />,
     )
@@ -178,7 +178,7 @@ describe('ScenarioResponseModalBody', () => {
 describe('ScenarioDisclosure', () => {
   it('wraps its child as the hover trigger without altering the element', () => {
     const html = renderToStaticMarkup(
-      <ScenarioDisclosure system="s" endpointName="e" endpointDisplayName="E" slug="frozen" option={frozen}>
+      <ScenarioDisclosure system="s" endpointSlug="e" endpointDisplayName="E" slug="frozen" option={frozen}>
         <button type="button">chip</button>
       </ScenarioDisclosure>,
     )

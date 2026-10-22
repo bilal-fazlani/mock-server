@@ -10,7 +10,7 @@ A system directory needs one `_system.json`:
 
 | Field | Required | Purpose & rules |
 | --- | --- | --- |
-| `name` | yes | Human-readable system name (e.g. `"Hello System"`), used in the UI and in log/error labels. The **slug** used in paths and lookups is the directory name itself (e.g. `hello-system`), not derived from this field. |
+| `displayName` | yes | Human-readable system name (e.g. `"Hello System"`), used in the UI and in log/error labels. The **slug** used in paths and lookups is the directory name itself (e.g. `hello-system`), not derived from this field. |
 | `baseUrlEnv` | yes | Name of the environment variable that holds this system's real upstream base URL, used for `real` passthrough. |
 | `clientCertEnv` | with `clientKeyEnv` | Name of the environment variable that holds the PEM client certificate presented to an upstream that requires mutual TLS. Set it together with `clientKeyEnv` or not at all — one without the other fails validation. See [Upstreams that require mTLS](scenarios.md#upstreams-that-require-mtls). |
 | `clientKeyEnv` | with `clientCertEnv` | Name of the environment variable that holds the unencrypted PEM private key for that certificate. |
@@ -25,8 +25,8 @@ Each endpoint directory needs one `_endpoint.json`:
 
 | Field | Required | Purpose & rules |
 | --- | --- | --- |
-| *(directory name)* | — | The endpoint's machine identifier is its **directory name**, not a field in the file. It's the key under which a profile stores its scenario pick, and shows up in log lines. |
-| `displayName` | yes | Human-readable label shown in the UI (profile form and catalog viewer). Free text. |
+| *(directory name)* | — | The endpoint's `slug` is its **directory name**, not a field in the file. It's the key under which a profile stores its scenario pick, and shows up in log lines. |
+| `displayName` | yes | Human-readable name shown in the UI (profile form and catalog viewer). Free text. |
 | `method` | yes | HTTP method (`GET`, `POST`, …). Matched case-insensitively. |
 | `path` | yes | Path template, must start with `/`. Literal segments plus `{param}` placeholders — see [Path templates](#path-templates). |
 | `mockType` | no | `profiled` (default) means scenario selection comes from the resolved profile. `global` means one shared scenario applies to every caller and no profile lookup happens. |
@@ -40,9 +40,9 @@ slug — never both) becomes a scenario key. The endpoint **must** have a
 `default` scenario, as either `default.json` or `default.mjs`, and **must not**
 have a `real.json` or `real.mjs` — passthrough is implicit. At least one
 scenario per endpoint must be fixture-backed. Each fixture may carry an
-optional `description` string used as its UI label plus an optional `summary`
+optional `displayName` string used as its UI name plus an optional `summary`
 shown beneath it on the catalog page, and each resolver may export equivalent
-`description` and `summary` constants — see [Fixtures](fixtures.md) and
+`displayName` and `summary` constants — see [Fixtures](fixtures.md) and
 [Code-backed scenario resolvers](dynamic.md).
 
 To create a profile-less endpoint, set `"mockType": "global"` and omit

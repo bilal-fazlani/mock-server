@@ -9,19 +9,19 @@ vi.mock('../../src/lib/runtime', () => ({
     catalog: {
       systems: [
         {
-          name: 'Test System',
+          displayName: 'Test System',
           slug: 'test-system',
           baseUrlEnv: 'TEST_SYSTEM_URL',
           endpoints: [
             {
-              name: 'hello_world',
+              slug: 'hello_world',
               displayName: 'Hello World',
               method: 'POST',
               path: '/hello/world',
               profileIdSelector: '$.customerId',
               scenarios: {
-                default: { label: 'Success', summary: 'Happy path', status: 200 },
-                by_amount: { label: 'Routes by amount' },
+                default: { displayName: 'Success', summary: 'Happy path', status: 200 },
+                by_amount: { displayName: 'Routes by amount' },
               },
               resolverScenarios: ['by_amount'],
             },
@@ -45,7 +45,7 @@ describe('GET /ui/api/catalog/[system]/[endpoint]/scenarios/[slug]', () => {
     const res = await GET(new Request('http://mock/x'), ctx('test-system', 'hello_world', 'default'))
     expect(res.status).toBe(200)
     const { view } = await res.json()
-    expect(view).toMatchObject({ key: 'default', label: 'Success', summary: 'Happy path', kind: 'fixture' })
+    expect(view).toMatchObject({ slug: 'default', displayName: 'Success', summary: 'Happy path', kind: 'fixture' })
     expect(view.html).toContain('shiki')
   })
 
@@ -54,7 +54,7 @@ describe('GET /ui/api/catalog/[system]/[endpoint]/scenarios/[slug]', () => {
     const res = await GET(new Request('http://mock/x'), ctx('test-system', 'hello_world', 'by_amount'))
     expect(res.status).toBe(200)
     const { view } = await res.json()
-    expect(view).toMatchObject({ key: 'by_amount', kind: 'resolver' })
+    expect(view).toMatchObject({ slug: 'by_amount', kind: 'resolver' })
     expect(view.code).toContain('export default')
   })
 

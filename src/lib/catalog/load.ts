@@ -66,12 +66,12 @@ export function loadCatalog(catalogDir: string): Catalog {
         problems.push(`${slug}: unexpected entry (endpoints are directories): ${epEntry.name}`)
         continue
       }
-      const endpointName = epEntry.name
-      const endpointDir = path.join(systemDir, endpointName)
+      const endpointSlug = epEntry.name
+      const endpointDir = path.join(systemDir, endpointSlug)
       const epMeta = readMetaFile(path.join(endpointDir, ENDPOINT_META), problems)
       if (!epMeta) continue
 
-      const label = `${slug}/${endpointName}`
+      const label = `${slug}/${endpointSlug}`
       const displayName = requireString(epMeta, 'displayName', label, problems)
       const method = requireString(epMeta, 'method', label, problems)
       const endpointPath = requireString(epMeta, 'path', label, problems)
@@ -110,7 +110,7 @@ export function loadCatalog(catalogDir: string): Catalog {
         const match = fixEntry.isFile() ? SCENARIO_FILE.exec(fixEntry.name) : null
         if (!match) {
           problems.push(
-            `${slug}/${endpointName}: unexpected entry (scenarios are <name>.json fixtures or ` +
+            `${slug}/${endpointSlug}: unexpected entry (scenarios are <name>.json fixtures or ` +
               `<name>.mjs resolvers, name matching [a-z0-9][a-z0-9_-]*): ${fixEntry.name}`,
           )
           continue
@@ -120,19 +120,24 @@ export function loadCatalog(catalogDir: string): Catalog {
           // Dropped in #26. Loud, not skipped: a silently ignored resolver file
           // would make its scenario vanish from the endpoint with no pointer to why.
           problems.push(
-            `${slug}/${endpointName}: ${scenario}.ts resolvers are no longer supported; ` +
+            `${slug}/${endpointSlug}: ${scenario}.ts resolvers are no longer supported; ` +
               `rename to ${scenario}.mjs and remove type annotations`,
           )
         } else if (ext === 'mjs') {
           resolverSlugs.add(scenario)
           // Label = slug for now; getRuntime patches in the compiled resolver's
-          // `description` and `summary` exports after compilation.
-          scenarios[scenario] ??= { label: scenario }
+          // `displayName` and `summary` exports after compilation.
+          scenarios[scenario] ??= { displayName: scenario }
         } else {
           fixtureSlugs.add(scenario)
           const meta = parseScenarioFile(path.join(endpointDir, fixEntry.name))
+          if (meta.legacyDescription) {
+            problems.push(
+              `${slug}/${endpointSlug}: ${fixEntry.name} uses "description"; rename it to "displayName"`,
+            )
+          }
           scenarios[scenario] = {
-            label: meta.description ?? scenario,
+            displayName: meta.displayName ?? scenario,
             ...(meta.summary ? { summary: meta.summary } : {}),
             ...(meta.status !== null ? { status: meta.status } : {}),
           }
@@ -141,14 +146,14 @@ export function loadCatalog(catalogDir: string): Catalog {
       for (const scenario of resolverSlugs) {
         if (fixtureSlugs.has(scenario)) {
           problems.push(
-            `${slug}/${endpointName}: scenario "${scenario}" is backed by both ` +
+            `${slug}/${endpointSlug}: scenario "${scenario}" is backed by both ` +
               `${scenario}.json and ${scenario}.mjs — pick one`,
           )
         }
       }
 
       endpoints.push({
-        name: endpointName,
+        slug: endpointSlug,
         displayName,
         method,
         path: endpointPath,
@@ -161,8 +166,11 @@ export function loadCatalog(catalogDir: string): Catalog {
       })
     }
 
+    if ('name' in sysMeta) {
+      problems.push(`${slug}: ${SYSTEM_META} uses "name"; rename it to "displayName"`)
+    }
     systems.push({
-      name: requireString(sysMeta, 'name', slug, problems),
+      displayName: requireString(sysMeta, 'displayName', slug, problems),
       slug,
       baseUrlEnv: requireString(sysMeta, 'baseUrlEnv', slug, problems),
       ...optionalClientIdentity(sysMeta, slug, problems),
@@ -293,16 +301,23 @@ function optionalCaptureProfileKeys(
 // Lenient by design: an unreadable fixture falls back to the filename for the
 // label here and gets reported properly by validateCatalog.
 function parseScenarioFile(file: string): {
-  description: string | null
+  displayName: string | null
+  legacyDescription: boolean
   summary: string | null
   status: number | null
 } {
   try {
     const parsed: unknown = JSON.parse(fs.readFileSync(file, 'utf8'))
     if (parsed && typeof parsed === 'object') {
-      const obj = parsed as { description?: unknown; summary?: unknown; status?: unknown }
+      const obj = parsed as {
+        displayName?: unknown
+        description?: unknown
+        summary?: unknown
+        status?: unknown
+      }
       return {
-        description: typeof obj.description === 'string' ? obj.description : null,
+        displayName: typeof obj.displayName === 'string' ? obj.displayName : null,
+        legacyDescription: 'description' in obj,
         summary: typeof obj.summary === 'string' && obj.summary.length > 0 ? obj.summary : null,
         status: typeof obj.status === 'number' ? obj.status : null,
       }
@@ -310,7 +325,7 @@ function parseScenarioFile(file: string): {
   } catch {
     // reported by validateCatalog
   }
-  return { description: null, summary: null, status: null }
+  return { displayName: null, legacyDescription: false, summary: null, status: null }
 }
 
 function orderDefaultFirst(

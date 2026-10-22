@@ -13,17 +13,17 @@ const endpoint = {
   displayName: 'Hello World',
   method: 'POST' as const,
   path: '/hello/world',
-  scenarios: { default: { label: 'Hello success' }, 'by-amount': { label: 'By amount' } },
+  scenarios: { default: { displayName: 'Hello success' }, 'by-amount': { displayName: 'By amount' } },
   resolverScenarios: ['by-amount'],
 }
 
 const profiledCatalog: Catalog = {
   systems: [
     {
-      name: 'Hello System',
+      displayName: 'Hello System',
       slug: 'hello-system',
       baseUrlEnv: 'HELLO_SYSTEM_URL',
-      endpoints: [{ ...endpoint, name: 'hello_world', profileIdSelector: '$.customerId' }],
+      endpoints: [{ ...endpoint, slug: 'hello_world', profileIdSelector: '$.customerId' }],
     },
   ],
 }
@@ -31,10 +31,10 @@ const profiledCatalog: Catalog = {
 const globalCatalog: Catalog = {
   systems: [
     {
-      name: 'Hello System',
+      displayName: 'Hello System',
       slug: 'hello-system',
       baseUrlEnv: 'HELLO_SYSTEM_URL',
-      endpoints: [{ ...endpoint, name: 'hello_world', mockType: 'global' as const }],
+      endpoints: [{ ...endpoint, slug: 'hello_world', mockType: 'global' as const }],
     },
   ],
 }

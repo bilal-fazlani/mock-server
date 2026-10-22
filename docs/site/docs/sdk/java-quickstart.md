@@ -54,8 +54,8 @@ with the server's own `catalog directory not found` message.
 ```text
 src/test/resources/catalog/
   payments/                     # system directory; its name IS the system slug
-    _system.json                # { "name", "baseUrlEnv" }
-    charge/                     # endpoint directory; its name IS the endpoint name
+    _system.json                # { "displayName", "baseUrlEnv" }
+    charge/                     # endpoint directory; its name IS the endpoint slug
       _endpoint.json            # method, path, and how the caller's ID is read
       default.json              # the happy path
       card_declined.json        # the outcome a real gateway sandbox hides behind a magic card number
@@ -65,7 +65,7 @@ src/test/resources/catalog/
 
 ```json
 {
-  "name": "Payments",
+  "displayName": "Payments",
   "baseUrlEnv": "PAYMENTS_URL"
 }
 ```
@@ -91,7 +91,7 @@ field is the common one.
 
 ```json
 {
-  "description": "Captured",
+  "displayName": "Captured",
   "summary": "The happy path: the gateway captures the charge and returns a reference.",
   "status": 200,
   "body": {
@@ -105,7 +105,7 @@ field is the common one.
 
 ```json
 {
-  "description": "Card declined",
+  "displayName": "Card declined",
   "summary": "The issuer declined the card.",
   "status": 402,
   "body": {

@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 export interface Fixture {
-  description?: string
+  displayName?: string
   summary?: string
   status: number
   /** Optional response delay, e.g. "400ms", "2s", "1m". Applied before the
@@ -17,19 +17,19 @@ export class FixtureError extends Error {}
 export function fixtureFilePath(
   catalogDir: string,
   systemSlug: string,
-  endpointName: string,
+  endpointSlug: string,
   scenario: string,
 ): string {
-  return path.join(catalogDir, systemSlug, endpointName, `${scenario}.json`)
+  return path.join(catalogDir, systemSlug, endpointSlug, `${scenario}.json`)
 }
 
 export function loadFixture(
   catalogDir: string,
   systemSlug: string,
-  endpointName: string,
+  endpointSlug: string,
   scenario: string,
 ): Fixture {
-  const file = fixtureFilePath(catalogDir, systemSlug, endpointName, scenario)
+  const file = fixtureFilePath(catalogDir, systemSlug, endpointSlug, scenario)
   if (!fs.existsSync(file)) {
     throw new FixtureError(`fixture not found: ${file}`)
   }

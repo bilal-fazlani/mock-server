@@ -9,41 +9,41 @@ import { buildScenarioView } from '../../src/app/ui/catalog/scenario-view'
 const fixturesDir = path.join(__dirname, '../testdata/fixtures')
 
 const system: SystemDef = {
-  name: 'Test System',
+  displayName: 'Test System',
   slug: 'test-system',
   baseUrlEnv: 'TEST_SYSTEM_URL',
   endpoints: [],
 }
 
 const endpoint: EndpointDef = {
-  name: 'hello_world',
+  slug: 'hello_world',
   displayName: 'Hello World',
   method: 'POST',
   path: '/hello/world',
   profileIdSelector: '$.customerId',
-  scenarios: { default: { label: 'Success' } },
+  scenarios: { default: { displayName: 'Success' } },
   resolverScenarios: [],
 }
 
 describe('buildScenarioViews', () => {
   it('loads the raw fixture json for the default scenario', async () => {
     const views = await buildScenarioViews(system, endpoint, fixturesDir, {}, false)
-    const fixture = views.find((v) => v.key === 'default')
-    expect(fixture).toMatchObject({ key: 'default', isDefault: true, kind: 'fixture' })
+    const fixture = views.find((v) => v.slug === 'default')
+    expect(fixture).toMatchObject({ slug: 'default', isDefault: true, kind: 'fixture' })
     if (fixture?.kind === 'fixture') expect(fixture.json).toContain('"status"')
   })
 
   it('carries a scenario summary onto the matching view', async () => {
     const withSummary: EndpointDef = {
       ...endpoint,
-      scenarios: { default: { label: 'Success', summary: 'Returns a 200 body' } },
+      scenarios: { default: { displayName: 'Success', summary: 'Returns a 200 body' } },
     }
     const views = await buildScenarioViews(system, withSummary, fixturesDir, {}, false)
-    expect(views.find((v) => v.key === 'default')?.summary).toBe('Returns a 200 body')
+    expect(views.find((v) => v.slug === 'default')?.summary).toBe('Returns a 200 body')
   })
 
   it('reports an error view when a fixture is missing', async () => {
-    const missing: EndpointDef = { ...endpoint, scenarios: { nope: { label: 'Missing' } } }
+    const missing: EndpointDef = { ...endpoint, scenarios: { nope: { displayName: 'Missing' } } }
     const views = await buildScenarioViews(system, missing, fixturesDir, {}, false)
     expect(views[0].kind).toBe('error')
   })
@@ -53,7 +53,7 @@ describe('buildScenarioViews', () => {
     expect(views).toHaveLength(2)
     const real = views[1]
     expect(real).toMatchObject({
-      key: 'real',
+      slug: 'real',
       isDefault: false,
       kind: 'passthrough',
       baseUrlEnv: 'TEST_SYSTEM_URL',
@@ -72,8 +72,8 @@ describe('buildScenarioViews', () => {
   it('prepends the synthetic passthrough entry first when passthrough is the default', async () => {
     const views = await buildScenarioViews(system, endpoint, fixturesDir, {}, true)
     expect(views).toHaveLength(2)
-    expect(views[0]).toMatchObject({ key: 'real', kind: 'passthrough', url: null })
-    expect(views[1]).toMatchObject({ key: 'default' })
+    expect(views[0]).toMatchObject({ slug: 'real', kind: 'passthrough', url: null })
+    expect(views[1]).toMatchObject({ slug: 'default' })
   })
 
   it('marks a resolver-backed scenario slug with the resolver kind', async () => {
@@ -81,14 +81,14 @@ describe('buildScenarioViews', () => {
       system,
       {
         ...endpoint,
-        scenarios: { default: { label: 'Success' }, by_amount: { label: 'Routes by amount' } },
+        scenarios: { default: { displayName: 'Success' }, by_amount: { displayName: 'Routes by amount' } },
         resolverScenarios: ['by_amount'],
       },
       fixturesDir,
       {},
       false,
     )
-    const resolver = views.find((v) => v.key === 'by_amount')
+    const resolver = views.find((v) => v.slug === 'by_amount')
     expect(resolver?.kind).toBe('resolver')
   })
 })
@@ -107,7 +107,7 @@ describe('buildScenarioViews - resolver source and syntax highlighting', () => {
     fs.writeFileSync(
       path.join(dir, 'test-system', 'hello_world', 'default.json'),
       JSON.stringify({
-        description: 'Success',
+        displayName: 'Success',
         status: 200,
         body: { greeting: 'hello' },
       }),
@@ -115,7 +115,7 @@ describe('buildScenarioViews - resolver source and syntax highlighting', () => {
 
     const resolverEndpoint: EndpointDef = {
       ...endpoint,
-      scenarios: { default: { label: 'Success' }, 'by-amount': { label: 'Routes by amount' } },
+      scenarios: { default: { displayName: 'Success' }, 'by-amount': { displayName: 'Routes by amount' } },
       resolverScenarios: ['by-amount'],
     }
     views = await buildScenarioViews(system, resolverEndpoint, dir, {}, false)
@@ -126,7 +126,7 @@ describe('buildScenarioViews - resolver source and syntax highlighting', () => {
   })
 
   it('includes resolver source and highlighted html for resolver-backed scenarios', () => {
-    const resolver = views.find((v) => v.key === 'by-amount')
+    const resolver = views.find((v) => v.slug === 'by-amount')
     expect(resolver).toMatchObject({ kind: 'resolver' })
     expect((resolver as { code: string }).code).toContain('export default')
     expect((resolver as { html: string }).html).toContain('<pre')
@@ -149,12 +149,12 @@ describe('buildScenarioViews - resolver source and syntax highlighting', () => {
 describe('buildScenarioView', () => {
   it('builds a single fixture view with highlighted html', async () => {
     const view = await buildScenarioView(system, endpoint, 'default', fixturesDir)
-    expect(view).toMatchObject({ key: 'default', label: 'Success', isDefault: true, kind: 'fixture' })
+    expect(view).toMatchObject({ slug: 'default', displayName: 'Success', isDefault: true, kind: 'fixture' })
     if (view.kind === 'fixture') expect(view.html).toContain('shiki')
   })
 
   it('reports an error view for a missing fixture file', async () => {
-    const missing: EndpointDef = { ...endpoint, scenarios: { nope: { label: 'Missing' } } }
+    const missing: EndpointDef = { ...endpoint, scenarios: { nope: { displayName: 'Missing' } } }
     const view = await buildScenarioView(system, missing, 'nope', fixturesDir)
     expect(view.kind).toBe('error')
   })

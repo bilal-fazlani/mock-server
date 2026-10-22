@@ -22,17 +22,17 @@ export function CatalogView({
         </div>
       ) : (
         catalog.systems.map((system) => (
-          <section key={system.name} className="flex flex-col gap-2.5">
+          <section key={system.displayName} className="flex flex-col gap-2.5">
             <div className="flex items-baseline gap-3">
-              <h2>{system.name}</h2>
+              <h2>{system.displayName}</h2>
               <code className="font-mono text-[0.8rem] text-muted-foreground">
                 {env[system.baseUrlEnv] ?? '(not set)'}
               </code>
             </div>
             {system.endpoints.map((endpoint) => (
               <Link
-                key={endpoint.name}
-                href={`/ui/catalog/${system.slug}/${endpoint.name}`}
+                key={endpoint.slug}
+                href={`/ui/catalog/${system.slug}/${endpoint.slug}`}
                 className="flex flex-col gap-2 rounded-lg border border-border bg-card px-4 py-3.5 text-foreground shadow-sm no-underline hover:border-primary hover:no-underline"
               >
                 <div className="flex items-center gap-2.5">
@@ -47,7 +47,7 @@ export function CatalogView({
                   {endpoint.schema && <SchemaBadge />}
                 </div>
                 <div className="flex gap-4 text-[0.8rem] text-muted-foreground">
-                  <span>default: {endpoint.scenarios.default?.label}</span>
+                  <span>default: {endpoint.scenarios.default?.displayName}</span>
                   <span>
                     {Object.keys(endpoint.scenarios).length} scenarios
                     {' + passthrough'}

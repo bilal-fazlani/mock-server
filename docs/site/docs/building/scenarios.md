@@ -59,7 +59,7 @@ that upstream. Declare it on the system:
 
 ```json
 {
-  "name": "Payments",
+  "displayName": "Payments",
   "baseUrlEnv": "PAYMENTS_URL",
   "clientCertEnv": "PAYMENTS_CLIENT_CERT",
   "clientKeyEnv": "PAYMENTS_CLIENT_KEY"

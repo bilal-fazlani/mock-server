@@ -13,10 +13,10 @@ describe('fixtureFilePath', () => {
 })
 
 describe('loadFixture', () => {
-  it('loads the hello world default fixture with its description', () => {
+  it('loads the hello world default fixture with its displayName', () => {
     const f = loadFixture(catalogDir, 'hello-system', 'hello_world', 'default')
     expect(f.status).toBe(200)
-    expect(f.description).toBe('Greeting')
+    expect(f.displayName).toBe('Greeting')
     expect(f.body).toMatchObject({ status: 'success' })
   })
 

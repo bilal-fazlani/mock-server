@@ -14,7 +14,7 @@ the values:
 
 ```json
 {
-  "description": "Balance available", // (1)!
+  "displayName": "Balance available", // (1)!
   "summary": "200 with the settled balance", // (2)!
   "status": 200, // (3)!
   "delay": "400ms", // (4)!
@@ -23,8 +23,8 @@ the values:
 }
 ```
 
-1.  **Optional.** The scenario's label wherever the UI lists scenarios.
-2.  **Optional.** A secondary line beneath the label, in the catalog viewer.
+1.  **Optional.** The scenario's name wherever the UI lists scenarios.
+2.  **Optional.** A secondary line beneath the name, in the catalog viewer.
 3.  **Required**, and a number.
 4.  **Optional.** Wait this long before responding.
 5.  **Optional.** Merged over the automatic `content-type`.
@@ -37,11 +37,11 @@ Only `status` and `body` are required, so the smallest fixture that works is:
 { "status": 200, "body": { "ok": true } }
 ```
 
-- `description` is optional free text used as the scenario's label wherever the UI
+- `displayName` is optional free text used as the scenario's name wherever the UI
   lists scenarios (profile form, catalog viewer). If omitted, the UI falls back to
-  showing the filename (the scenario key) instead.
-- `summary` is optional free text shown as a secondary line beneath the label —
-  room for a sentence of context the short label can't carry. It appears on the
+  showing the filename (the scenario slug) instead.
+- `summary` is optional free text shown as a secondary line beneath the name —
+  room for a sentence of context the short name can't carry. It appears on the
   catalog viewer's endpoint page and in the scenario pickers (a chip's hover
   card, and a sequence step's dropdown — see [The
   dashboard](../driving/ui.md#profiles-ui)); it still does not appear in logs,

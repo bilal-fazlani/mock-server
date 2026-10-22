@@ -6,7 +6,7 @@ import type { ScenarioView } from '../../src/app/ui/catalog/scenario-view'
 describe('ScenarioContent', () => {
   it('renders fixture header pills and the highlighted body html', () => {
     const view: ScenarioView = {
-      key: 'frozen', label: 'Frozen', isDefault: false, kind: 'fixture',
+      slug: 'frozen', displayName: 'Frozen', isDefault: false, kind: 'fixture',
       json: JSON.stringify({ status: 403, headers: { 'x-frozen': 'yes' }, body: {} }),
       html: '<pre class="shiki"><code>{}</code></pre>',
     }
@@ -17,7 +17,7 @@ describe('ScenarioContent', () => {
 
   it('renders resolver views with the source file note', () => {
     const view: ScenarioView = {
-      key: 'dynamic', label: 'dynamic', isDefault: false, kind: 'resolver',
+      slug: 'dynamic', displayName: 'dynamic', isDefault: false, kind: 'resolver',
       code: 'export default () => "default"', html: '<pre class="shiki"><code>x</code></pre>',
     }
     const html = renderToStaticMarkup(<ScenarioContent scenario={view} />)
@@ -26,7 +26,7 @@ describe('ScenarioContent', () => {
 
   it('renders passthrough views with the upstream url or the unset-env note', () => {
     const view: ScenarioView = {
-      key: 'real', label: 'Passthrough', isDefault: false, kind: 'passthrough',
+      slug: 'real', displayName: 'Passthrough', isDefault: false, kind: 'passthrough',
       baseUrlEnv: 'X_URL', url: null,
     }
     expect(renderToStaticMarkup(<ScenarioContent scenario={view} />)).toContain('X_URL')
@@ -34,7 +34,7 @@ describe('ScenarioContent', () => {
 
   it('warns about unset client certificate vars on passthrough views', () => {
     const view: ScenarioView = {
-      key: 'real', label: 'Passthrough', isDefault: false, kind: 'passthrough',
+      slug: 'real', displayName: 'Passthrough', isDefault: false, kind: 'passthrough',
       baseUrlEnv: 'X_URL', url: 'http://up.test', clientIdentityUnset: ['X_KEY'],
     }
     expect(renderToStaticMarkup(<ScenarioContent scenario={view} />)).toContain('X_KEY is not set')

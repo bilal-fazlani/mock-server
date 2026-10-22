@@ -28,117 +28,117 @@ const NOW = new Date('2026-07-02T00:00:00.000Z')
 const CATALOG: Catalog = {
   systems: [
     {
-      name: 'Test System',
+      displayName: 'Test System',
       slug: 'test-system',
       baseUrlEnv: 'TEST_SYSTEM_URL',
       endpoints: [
         {
-          name: 'hello_world',
+          slug: 'hello_world',
           displayName: 'Hello World',
           method: 'POST',
           path: '/hello/world',
           profileIdSelector: '$.customerId',
-          scenarios: { default: { label: 'Success' }, failure: { label: 'Failure' }, slow: { label: 'Slow' } },
+          scenarios: { default: { displayName: 'Success' }, failure: { displayName: 'Failure' }, slow: { displayName: 'Slow' } },
           resolverScenarios: [],
         },
         {
-          name: 'capture_assessment',
+          slug: 'capture_assessment',
           displayName: 'Capture Assessment',
           method: 'POST',
           path: '/capture-assessment',
           profileIdSelector: '$.customerId',
           captureProfileKeys: [{ namespace: 'event-id', keySelector: '$.eventID' }],
-          scenarios: { default: { label: 'Success' } },
+          scenarios: { default: { displayName: 'Success' } },
           resolverScenarios: [],
         },
         {
-          name: 'mapped_callback',
+          slug: 'mapped_callback',
           displayName: 'Mapped Callback',
           method: 'POST',
           path: '/callbacks/transaction',
           profileIdSelector: 'profileKey:event-id:$.eventID',
-          scenarios: { default: { label: 'Success' } },
+          scenarios: { default: { displayName: 'Success' } },
           resolverScenarios: [],
         },
         {
-          name: 'customer_status',
+          slug: 'customer_status',
           displayName: 'Customer Status',
           method: 'GET',
           path: '/customers/{customerId}/status',
           profileIdSelector: 'path:customerId',
-          scenarios: { default: { label: 'Success' } },
+          scenarios: { default: { displayName: 'Success' } },
           resolverScenarios: [],
         },
         {
-          name: 'lookup',
+          slug: 'lookup',
           displayName: 'Lookup',
           method: 'GET',
           path: '/lookup',
           profileIdSelector: 'query:cid',
-          scenarios: { default: { label: 'Success' } },
+          scenarios: { default: { displayName: 'Success' } },
           resolverScenarios: [],
         },
         {
-          name: 'bearer_opaque',
+          slug: 'bearer_opaque',
           displayName: 'Bearer Opaque',
           method: 'GET',
           path: '/bearer/opaque',
           profileIdSelector: 'bearer',
-          scenarios: { default: { label: 'Success' } },
+          scenarios: { default: { displayName: 'Success' } },
           resolverScenarios: [],
         },
         {
-          name: 'bearer_claim',
+          slug: 'bearer_claim',
           displayName: 'Bearer Claim',
           method: 'GET',
           path: '/bearer/claim',
           profileIdSelector: 'bearer:sub',
-          scenarios: { default: { label: 'Success' } },
+          scenarios: { default: { displayName: 'Success' } },
           resolverScenarios: [],
         },
         {
-          name: 'oauth_token',
+          slug: 'oauth_token',
           displayName: 'OAuth Token',
           method: 'POST',
           path: '/oauth/token',
           mockType: 'global',
-          scenarios: { default: { label: 'Success' }, expired: { label: 'Expired token' } },
+          scenarios: { default: { displayName: 'Success' }, expired: { displayName: 'Expired token' } },
           resolverScenarios: [],
         },
         {
-          name: 'template_fail',
+          slug: 'template_fail',
           displayName: 'Template Fail',
           method: 'POST',
           path: '/tpl',
           profileIdSelector: '$.customerId',
-          scenarios: { default: { label: 'Success' } },
+          scenarios: { default: { displayName: 'Success' } },
           resolverScenarios: [],
         },
         {
-          name: 'dynamic_ep',
+          slug: 'dynamic_ep',
           displayName: 'Dynamic Ep',
           method: 'POST',
           path: '/dynamic-ep',
           profileIdSelector: '$.customerId',
-          scenarios: { default: { label: 'Success' }, failure: { label: 'Failure' }, dynamic: { label: 'dynamic' } },
+          scenarios: { default: { displayName: 'Success' }, failure: { displayName: 'Failure' }, dynamic: { displayName: 'dynamic' } },
           resolverScenarios: ['dynamic'],
         },
         {
-          name: 'resolver_default',
+          slug: 'resolver_default',
           displayName: 'Resolver Default',
           method: 'POST',
           path: '/resolver-default',
           profileIdSelector: '$.customerId',
-          scenarios: { default: { label: 'default' }, flaky: { label: 'flaky' }, hold: { label: 'Hold' }, success: { label: 'Success' } },
+          scenarios: { default: { displayName: 'default' }, flaky: { displayName: 'flaky' }, hold: { displayName: 'Hold' }, success: { displayName: 'Success' } },
           resolverScenarios: ['default', 'flaky'],
         },
         {
-          name: 'schema_checked',
+          slug: 'schema_checked',
           displayName: 'Schema Checked',
           method: 'POST',
           path: '/schema-checked',
           profileIdSelector: '$.customerId',
-          scenarios: { default: { label: 'Success' }, bad_response: { label: 'Bad response' } },
+          scenarios: { default: { displayName: 'Success' }, bad_response: { displayName: 'Bad response' } },
           resolverScenarios: [],
           schema: {
             parameters: [
@@ -180,12 +180,12 @@ const CATALOG: Catalog = {
           },
         },
         {
-          name: 'param_gate',
+          slug: 'param_gate',
           displayName: 'Param Gate',
           method: 'GET',
           path: '/param-gate',
           mockType: 'global',
-          scenarios: { default: { label: 'Success' } },
+          scenarios: { default: { displayName: 'Success' } },
           resolverScenarios: [],
           schema: {
             parameters: [{ name: 'cursor', in: 'query', required: true, schema: { type: 'string' } }],
@@ -233,8 +233,8 @@ function deps(overrides: Partial<RouterDeps> = {}): RouterDeps & {
       passthroughCalls.push(req)
       return proxied
     },
-    loadFixture: (systemSlug, endpointName, scenario) =>
-      loadFixture(FIXTURES, systemSlug, endpointName, scenario),
+    loadFixture: (systemSlug, endpointSlug, scenario) =>
+      loadFixture(FIXTURES, systemSlug, endpointSlug, scenario),
     now: () => NOW,
     schemas: buildSchemaRegistry(CATALOG).schemas,
     passthroughCalls,
@@ -399,10 +399,10 @@ describe('mock path', () => {
 describe('scenario sequences', () => {
   function fakeAdvance() {
     const counts = new Map<string, number>()
-    const calls: Array<{ profileId: string; endpointName: string; steps: string[] }> = []
-    const fn = async (profileId: string, endpointName: string, steps: string[]) => {
-      calls.push({ profileId, endpointName, steps })
-      const key = `${profileId}/${endpointName}`
+    const calls: Array<{ profileId: string; endpointSlug: string; steps: string[] }> = []
+    const fn = async (profileId: string, endpointSlug: string, steps: string[]) => {
+      calls.push({ profileId, endpointSlug, steps })
+      const key = `${profileId}/${endpointSlug}`
       const n = (counts.get(key) ?? 0) + 1
       counts.set(key, n)
       return n
@@ -442,7 +442,7 @@ describe('scenario sequences', () => {
     await routeRequest(post('/hello/world', { customerId: 'c1' }), d)
 
     expect(advance.calls).toEqual([
-      { profileId: 'c1', endpointName: 'hello_world', steps: ['failure', 'default'] },
+      { profileId: 'c1', endpointSlug: 'hello_world', steps: ['failure', 'default'] },
     ])
   })
 
@@ -1470,8 +1470,8 @@ describe('user functions (real hello-system catalog)', () => {
       schemas: buildSchemaRegistry(realCatalog).schemas,
       env: { HELLO_SYSTEM_URL: 'http://real.example' },
       getProfile: withProfile(profile({ profileId: 'c1', endpointScenarios: {} })),
-      loadFixture: (systemSlug, endpointName, scenario) =>
-        loadFixture(CATALOG_DIR, systemSlug, endpointName, scenario),
+      loadFixture: (systemSlug, endpointSlug, scenario) =>
+        loadFixture(CATALOG_DIR, systemSlug, endpointSlug, scenario),
     })
 
     const res = await routeRequest(post('/hello/world', { customerId: 'c1' }), d)
@@ -1509,11 +1509,11 @@ describe('user function errors surface as structured 500s, not crashes', () => {
       catalog,
       schemas: buildSchemaRegistry(catalog).schemas,
       env: {},
-      loadFixture: (systemSlug, endpointName, scenario) => loadFixture(dir, systemSlug, endpointName, scenario),
+      loadFixture: (systemSlug, endpointSlug, scenario) => loadFixture(dir, systemSlug, endpointSlug, scenario),
     })
   }
 
-  const SYSTEM_META = { name: 'Fn Error System', baseUrlEnv: 'FN_ERROR_URL' }
+  const SYSTEM_META = { displayName: 'Fn Error System', baseUrlEnv: 'FN_ERROR_URL' }
   // Global mock endpoint — no profile machinery needed to exercise the
   // function-call/error path.
   const ENDPOINT_META = { displayName: 'Boom', method: 'GET', path: '/boom', mockType: 'global' }
@@ -1577,7 +1577,7 @@ describe('omit end-to-end (#24)', () => {
       loadFixture: (s, e, sc) => loadFixture(dir, s, e, sc),
     })
   }
-  const SYS = { name: 'Echo System', baseUrlEnv: 'ECHO_URL' }
+  const SYS = { displayName: 'Echo System', baseUrlEnv: 'ECHO_URL' }
   const EP = { displayName: 'Echo', method: 'POST', path: '/echo', mockType: 'global' }
   // middleName is optional in the schema, so dropping it leaves a valid response.
   const OPTIONAL_SCHEMA = {
@@ -1654,7 +1654,7 @@ describe('uuid end-to-end (#10)', () => {
 
   const idDir = () =>
     tmpCatalogDir({
-      'sys/_system.json': { name: 'Id System', baseUrlEnv: 'ID_URL' },
+      'sys/_system.json': { displayName: 'Id System', baseUrlEnv: 'ID_URL' },
       'sys/new/_endpoint.json': {
         displayName: 'New',
         method: 'POST',
@@ -1690,7 +1690,7 @@ describe('uuid end-to-end (#10)', () => {
 
   const groupDir = () =>
     tmpCatalogDir({
-      'sys/_system.json': { name: 'Id System', baseUrlEnv: 'ID_URL' },
+      'sys/_system.json': { displayName: 'Id System', baseUrlEnv: 'ID_URL' },
       'sys/new/_endpoint.json': {
         displayName: 'New',
         method: 'POST',
@@ -1776,7 +1776,7 @@ describe('seeded faker/pick end-to-end (#15)', () => {
 
   const fakerDir = () =>
     tmpCatalogDir({
-      'sys/_system.json': { name: 'Faker System', baseUrlEnv: 'FAKER_URL' },
+      'sys/_system.json': { displayName: 'Faker System', baseUrlEnv: 'FAKER_URL' },
       'sys/new/_endpoint.json': {
         displayName: 'New',
         method: 'POST',

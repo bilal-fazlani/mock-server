@@ -28,11 +28,11 @@ const RESOLVER = 'export default () => "default"'
 describe('liveResolverScenarios', () => {
   it('lists every resolver-backed scenario across all systems, and no fixture-backed ones', () => {
     const dir = tmpCatalogDir({
-      'a/_system.json': { name: 'A', baseUrlEnv: 'A_URL' },
+      'a/_system.json': { displayName: 'A', baseUrlEnv: 'A_URL' },
       'a/ep1/_endpoint.json': ENDPOINT_META,
       'a/ep1/default.json': { status: 200, body: {} },
       'a/ep1/by-amount.mjs': RESOLVER,
-      'b/_system.json': { name: 'B', baseUrlEnv: 'B_URL' },
+      'b/_system.json': { displayName: 'B', baseUrlEnv: 'B_URL' },
       'b/ep2/_endpoint.json': ENDPOINT_META,
       'b/ep2/default.mjs': RESOLVER,
       'b/ep2/ok.json': { status: 200, body: {} },

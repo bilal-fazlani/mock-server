@@ -1,5 +1,5 @@
 {
-  "description": "Failure",
+  "displayName": "Failure",
   "summary": "Balance service is down — use this to exercise retry and error handling.",
   "status": 500,
   "body": { "error": "balance service unavailable" }

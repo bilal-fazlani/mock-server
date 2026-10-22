@@ -55,7 +55,7 @@ function ScenarioSlot({ kind, tone }: { kind: ScenarioOption['kind']; tone: Scen
 
 export function ScenarioPicker({
   system,
-  endpointName,
+  endpointSlug,
   endpointDisplayName,
   fieldName,
   scenarios,
@@ -63,7 +63,7 @@ export function ScenarioPicker({
   unavailable,
 }: {
   system: string
-  endpointName: string
+  endpointSlug: string
   endpointDisplayName: string
   fieldName?: string
   scenarios: Record<string, ScenarioOption>
@@ -87,7 +87,7 @@ export function ScenarioPicker({
           >
             <input
               type="radio"
-              name={fieldName ?? `scenario:${endpointName}`}
+              name={fieldName ?? `scenario:${endpointSlug}`}
               value={key}
               defaultChecked={key === selected}
               disabled={disabled}
@@ -97,7 +97,7 @@ export function ScenarioPicker({
             <span
               className={`min-w-0 text-[0.9rem] font-medium [overflow-wrap:anywhere]${disabled ? ' line-through' : ''}`}
             >
-              {option.label}
+              {option.displayName}
             </span>
             {unset.length > 0 && (
               <TriangleAlert
@@ -114,7 +114,7 @@ export function ScenarioPicker({
           <ScenarioDisclosure
             key={key}
             system={system}
-            endpointName={endpointName}
+            endpointSlug={endpointSlug}
             endpointDisplayName={endpointDisplayName}
             slug={key}
             option={option}

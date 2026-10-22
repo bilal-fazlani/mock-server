@@ -19,17 +19,17 @@ export async function saveGlobalMocks(formData: FormData): Promise<void> {
   for (const system of catalog.systems) {
     for (const endpoint of system.endpoints) {
       if (!isGlobalEndpoint(endpoint)) continue
-      const value = formData.get(`scenario:${system.slug}:${endpoint.name}`)
+      const value = formData.get(`scenario:${system.slug}:${endpoint.slug}`)
       if (typeof value !== 'string' || value === '') continue
       if (!isScenarioDeclared(endpoint, value)) {
-        throw new Error(`endpoint "${endpoint.name}": scenario "${value}" is not declared`)
+        throw new Error(`endpoint "${endpoint.slug}": scenario "${value}" is not declared`)
       }
       if (value === implicit) {
-        await clearGlobalMockScenario(db, system.slug, endpoint.name)
+        await clearGlobalMockScenario(db, system.slug, endpoint.slug)
       } else {
         await upsertGlobalMockScenario(db, {
           system: system.slug,
-          endpoint: endpoint.name,
+          endpoint: endpoint.slug,
           scenario: value,
         })
       }
@@ -41,10 +41,10 @@ export async function saveGlobalMocks(formData: FormData): Promise<void> {
 
 export async function resetGlobalDynamicHistoryAction(
   systemSlug: string,
-  endpointName: string,
+  endpointSlug: string,
 ): Promise<void> {
-  if (!systemSlug || !endpointName) throw new Error('system and endpoint are required')
+  if (!systemSlug || !endpointSlug) throw new Error('system and endpoint are required')
 
-  await resetDynamicHistory(await getDb(), 'global', systemSlug, endpointName)
+  await resetDynamicHistory(await getDb(), 'global', systemSlug, endpointSlug)
   revalidatePath('/ui/global-mocks')
 }

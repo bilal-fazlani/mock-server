@@ -7,52 +7,52 @@ vi.mock('../../src/lib/runtime', () => ({
     catalog: {
       systems: [
         {
-          name: 'Hello System',
+          displayName: 'Hello System',
           slug: 'hello-system',
           baseUrlEnv: 'HELLO_SYSTEM_URL',
           endpoints: [
             {
-              name: 'oauth_token',
+              slug: 'oauth_token',
               displayName: 'OAuth Token',
               method: 'POST',
               path: '/oauth/token',
               mockType: 'global',
-              scenarios: { default: { label: 'Token' }, expired: { label: 'Expired' } },
+              scenarios: { default: { displayName: 'Token' }, expired: { displayName: 'Expired' } },
               resolverScenarios: [],
             },
             {
-              name: 'profiled_endpoint',
+              slug: 'profiled_endpoint',
               displayName: 'Profiled Endpoint',
               method: 'POST',
               path: '/profiled',
               profileIdSelector: '$.customerId',
-              scenarios: { default: { label: 'Success' }, by_amount: { label: 'Routes by amount' } },
+              scenarios: { default: { displayName: 'Success' }, by_amount: { displayName: 'Routes by amount' } },
               resolverScenarios: ['by_amount'],
             },
             {
-              name: 'create_order',
+              slug: 'create_order',
               displayName: 'Create Order',
               method: 'POST',
               path: '/orders',
               profileIdSelector: '$.customer.customerId',
               captureProfileKeys: [{ namespace: 'order-id', keySelector: '$.orderId' }],
-              scenarios: { default: { label: 'Accepted' } },
+              scenarios: { default: { displayName: 'Accepted' } },
               resolverScenarios: [],
             },
             {
-              name: 'empty_capture_endpoint',
+              slug: 'empty_capture_endpoint',
               displayName: 'Empty Capture Endpoint',
               method: 'POST',
               path: '/empty-capture',
               profileIdSelector: '$.customerId',
               captureProfileKeys: [],
-              scenarios: { default: { label: 'Success' } },
+              scenarios: { default: { displayName: 'Success' } },
               resolverScenarios: [],
             },
           ],
         },
         {
-          name: 'Billing',
+          displayName: 'Billing',
           slug: 'billing',
           baseUrlEnv: 'BILLING_URL',
           clientCertEnv: 'BILLING_CLIENT_CERT',
@@ -79,7 +79,7 @@ describe('GET /ui/api/catalog', () => {
     const [system] = body.systems
     expect(system.slug).toBe('hello-system')
     expect(system.endpoints[0]).toEqual({
-      name: 'oauth_token',
+      slug: 'oauth_token',
       displayName: 'OAuth Token',
       method: 'POST',
       path: '/oauth/token',

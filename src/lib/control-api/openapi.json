@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Mock Server runtime-control API",
-    "version": "1.6.0",
+    "version": "2.0.0",
     "summary": "Drive a running mock server — flip scenarios, manage profiles, reset sequence progress, and read request logs.",
     "description": "The JSON HTTP API behind the mock server's dashboard, served under `/ui/api/*`.\n\nMock endpoints answer at the root (`/…`), so the control API cannot live there without colliding with a mocked route; `/ui` is the reserved admin namespace.\n\n**Local-dev only.** The API is unauthenticated (matching the dashboard) and gives no isolation guarantees — global mocks are a single shared switch that parallel callers can clobber. Use profiles for per-caller isolation. It does not author mocks; you create endpoints and fixtures by writing catalog files.\n\n**Versioning.** `info.version` is this contract's own version, independent of the server build (which `GET /ui/api/health` reports as `version` and `sha`). The contract evolves additively: new routes, new optional request fields, new response fields, and new enum members can appear in any release, so ignore fields you do not recognise. Error bodies are `{ \"error\": string, \"code\": string }` — the envelope is stable and `code` is safe to match on; the `error` message text is not.",
     "license": {
@@ -577,9 +577,9 @@
             "type": "string",
             "description": "URL-safe system identifier, taken from the directory name under `catalog/`. Use it in the `{system}` path segments."
           },
-          "name": {
+          "displayName": {
             "type": "string",
-            "description": "Display name for the system."
+            "description": "Human-readable name for the system."
           },
           "baseUrlEnv": {
             "type": "string",
@@ -598,19 +598,19 @@
             "items": { "$ref": "#/components/schemas/CatalogEndpoint" }
           }
         },
-        "required": ["slug", "name", "baseUrlEnv", "endpoints"]
+        "required": ["slug", "displayName", "baseUrlEnv", "endpoints"]
       },
       "CatalogEndpoint": {
         "type": "object",
         "title": "CatalogEndpoint",
         "properties": {
-          "name": {
+          "slug": {
             "type": "string",
-            "description": "Endpoint identifier, unique across the whole catalog. This is the key a profile's `endpointScenarios` maps, and the `{endpoint}` path segment."
+            "description": "Endpoint identifier, taken from the directory name under the system. This is the key a profile's `endpointScenarios` maps, and the `{endpoint}` path segment."
           },
           "displayName": {
             "type": "string",
-            "description": "Display name for the endpoint."
+            "description": "Human-readable name for the endpoint."
           },
           "method": {
             "type": "string",
@@ -659,7 +659,7 @@
           "scenarios": {
             "type": "object",
             "additionalProperties": { "type": "string" },
-            "description": "Every declared scenario as slug → label, fixture- and resolver-backed alike. The `real` passthrough is implicit on every endpoint and never appears here.",
+            "description": "Every declared scenario as slug → displayName, fixture- and resolver-backed alike. The `real` passthrough is implicit on every endpoint and never appears here.",
             "examples": [
               {
                 "default": "Balance available",
@@ -670,7 +670,7 @@
           }
         },
         "required": [
-          "name",
+          "slug",
           "displayName",
           "method",
           "path",
@@ -686,13 +686,13 @@
           {
             "type": "object",
             "properties": {
-              "key": {
+              "slug": {
                 "type": "string",
                 "description": "The scenario slug."
               },
-              "label": {
+              "displayName": {
                 "type": "string",
-                "description": "Friendly name — the fixture's or resolver's description, falling back to the slug."
+                "description": "Human-readable name — the fixture's or resolver's `displayName`, falling back to the slug."
               },
               "summary": {
                 "type": "string",
@@ -703,7 +703,7 @@
                 "description": "True for the scenario whose slug is `default`."
               }
             },
-            "required": ["key", "label", "isDefault"]
+            "required": ["slug", "displayName", "isDefault"]
           },
           {
             "oneOf": [

@@ -173,20 +173,20 @@ function catalogUpstreamRows(
     definitions.set(name, definition)
   }
   for (const system of catalog.systems) {
-    add(system.baseUrlEnv, system.name, (systems) => `Base URL for ${systems} passthrough.`, false)
+    add(system.baseUrlEnv, system.displayName, (systems) => `Base URL for ${systems} passthrough.`, false)
     if (system.clientCertEnv && system.clientKeyEnv) {
       const identity = resolveClientIdentity(system, env)
       const problem = !identity.ok && identity.code === 'invalid_client_cert' ? identity.message : undefined
       add(
         system.clientCertEnv,
-        system.name,
+        system.displayName,
         (systems) => `PEM client certificate presented on ${systems} passthrough.`,
         true,
         problem,
       )
       add(
         system.clientKeyEnv,
-        system.name,
+        system.displayName,
         (systems) => `PEM private key for the ${systems} client certificate.`,
         true,
         problem,

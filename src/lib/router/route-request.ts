@@ -67,7 +67,7 @@ export interface RouterDeps {
   timeoutMs: number
   env: Record<string, string | undefined>
   getProfile: (profileId: string) => Promise<MockProfile | null>
-  getGlobalMockScenario: (systemSlug: string, endpointName: string) => Promise<string | null>
+  getGlobalMockScenario: (systemSlug: string, endpointSlug: string) => Promise<string | null>
   getProfileKeyMapping: (namespace: string, key: string) => Promise<ProfileKeyMapping | null>
   captureProfileKeyMapping: (
     input: ProfileKeyMappingCaptureInput,
@@ -75,24 +75,24 @@ export interface RouterDeps {
   ) => Promise<void>
   advanceScenarioProgress: (
     profileId: string,
-    endpointName: string,
+    endpointSlug: string,
     steps: string[],
   ) => Promise<number>
   getCompiledResolver: (
     systemSlug: string,
-    endpointName: string,
+    endpointSlug: string,
     slug: string,
   ) => CompiledResolver | null
   getDynamicHistory: (
     ownerType: DynamicOwnerType,
     ownerKey: string,
-    endpointName: string,
+    endpointSlug: string,
     scenario: string,
   ) => Promise<string[]>
   appendDynamicHistory: (
     ownerType: DynamicOwnerType,
     ownerKey: string,
-    endpointName: string,
+    endpointSlug: string,
     scenario: string,
     slug: string,
     /**
@@ -104,7 +104,7 @@ export interface RouterDeps {
   ) => Promise<void>
   dynamicResolverTimeoutMs?: number
   passthrough: (req: PassthroughRequest) => Promise<ProxiedResponse>
-  loadFixture: (systemSlug: string, endpointName: string, scenario: string) => Fixture
+  loadFixture: (systemSlug: string, endpointSlug: string, scenario: string) => Fixture
   now?: () => Date
   /** Injected `{{uuid}}` generator, like `now`; defaults to `crypto.randomUUID`. */
   uuid?: () => string
@@ -137,7 +137,7 @@ export async function routeRequest(
   }
   const { system, endpoint, pathParams } = match
   trace.system = system.slug
-  trace.endpoint = endpoint.name
+  trace.endpoint = endpoint.slug
   const ctx: RequestContext = {
     body: null,
     pathParams,
@@ -150,7 +150,7 @@ export async function routeRequest(
       ctx.body = JSON.parse(req.rawBody.toString('utf8'))
     } catch {
       traceError(trace, 'invalid_json', 'invalid JSON request body')
-      return jsonResult(400, { error: 'invalid JSON request body', endpoint: endpoint.name })
+      return jsonResult(400, { error: 'invalid JSON request body', endpoint: endpoint.slug })
     }
   }
 
@@ -160,7 +160,7 @@ export async function routeRequest(
   let ownerless = false
   let scenario: string
   if (isGlobalEndpoint(endpoint)) {
-    const globalPick = await deps.getGlobalMockScenario(system.slug, endpoint.name)
+    const globalPick = await deps.getGlobalMockScenario(system.slug, endpoint.slug)
     scenario = globalPick ?? implicitScenario(deps.passthroughAsDefault)
     trace.scenario = scenario
     trace.scenarioSource = globalPick === null ? 'implicit' : 'global'
@@ -177,7 +177,7 @@ export async function routeRequest(
       switch (deps.unmockedUsers) {
         case 'ERROR':
           traceError(trace, 'profile_not_found', `profile "${profileId}" not found`)
-          return jsonResult(404, { error: `profile "${profileId}" not found`, endpoint: endpoint.name })
+          return jsonResult(404, { error: `profile "${profileId}" not found`, endpoint: endpoint.slug })
         case 'DEFAULT_MOCK':
           scenario = DEFAULT_SCENARIO
           trace.scenarioSource = 'unmocked_policy'
@@ -191,7 +191,7 @@ export async function routeRequest(
       // Profiles store only deviations from the configured implicit scenario
       // (delta save); a missing entry means "follow the environment default".
       scenario = await resolveScenarioSelection(
-        profile.endpointScenarios[endpoint.name],
+        profile.endpointScenarios[endpoint.slug],
         endpoint,
         profileId,
         deps,
@@ -217,7 +217,7 @@ export async function routeRequest(
     return proxy(system, endpoint, req, ctx, deps, trace)
   }
 
-  const compiled = deps.schemas?.get(schemaKey(system.slug, endpoint.name))
+  const compiled = deps.schemas?.get(schemaKey(system.slug, endpoint.slug))
   if (compiled) {
     const issues = [
       ...compiled.validateRequestParams(ctx),
@@ -228,7 +228,7 @@ export async function routeRequest(
       traceError(trace, 'request_schema_invalid', 'request does not match schema')
       return jsonResult(400, {
         error: 'request does not match schema',
-        endpoint: endpoint.name,
+        endpoint: endpoint.slug,
         details: issues,
       })
     }
@@ -255,17 +255,17 @@ export async function routeRequest(
     traceError(
       trace,
       'scenario_undeclared',
-      `scenario "${scenario}" is not declared for endpoint "${endpoint.name}"`,
+      `scenario "${scenario}" is not declared for endpoint "${endpoint.slug}"`,
     )
     return jsonResult(500, {
-      error: `scenario "${scenario}" is not declared for endpoint "${endpoint.name}"`,
-      endpoint: endpoint.name,
+      error: `scenario "${scenario}" is not declared for endpoint "${endpoint.slug}"`,
+      endpoint: endpoint.slug,
       scenario,
     })
   }
 
   try {
-    const fixture = deps.loadFixture(system.slug, endpoint.name, scenario)
+    const fixture = deps.loadFixture(system.slug, endpoint.slug, scenario)
     const now = deps.now ? deps.now() : new Date()
     const placeholders: Record<string, string> = {}
     const fnCtx = {
@@ -278,10 +278,10 @@ export async function routeRequest(
         body: ctx.body,
       },
       now,
-      seed: `${profileId ?? 'none'}:${endpoint.name}`,
+      seed: `${profileId ?? 'none'}:${endpoint.slug}`,
     }
     const functions = deps.catalog.resolveFunctions
-      ? deps.catalog.resolveFunctions(system.slug, endpoint.name)
+      ? deps.catalog.resolveFunctions(system.slug, endpoint.slug)
       : new Map()
     // One group map per request, shared by the body and header renders below,
     // so a grouped `{{uuid:X}}` in a response header and in the body resolve to
@@ -303,7 +303,7 @@ export async function routeRequest(
         traceError(trace, 'response_schema_invalid', 'generated response does not match schema')
         return jsonResult(500, {
           error: 'generated response does not match schema',
-          endpoint: endpoint.name,
+          endpoint: endpoint.slug,
           scenario,
           details: issues,
         })
@@ -336,7 +336,7 @@ export async function routeRequest(
       err instanceof DurationError
     ) {
       traceError(trace, err instanceof PlaceholderError ? err.code : 'template_error', err.message)
-      return jsonResult(500, { error: err.message, endpoint: endpoint.name, scenario })
+      return jsonResult(500, { error: err.message, endpoint: endpoint.slug, scenario })
     }
     throw err
   }
@@ -388,7 +388,7 @@ async function resolveScenarioSelection(
     trace.scenarioSource = 'implicit'
     return implicitScenario(deps.passthroughAsDefault)
   }
-  const served = await deps.advanceScenarioProgress(profileId, endpoint.name, selection)
+  const served = await deps.advanceScenarioProgress(profileId, endpoint.slug, selection)
   const step = Math.min(served, selection.length)
   trace.scenarioSource = 'sequence'
   trace.sequence = { step, of: selection.length, served }
@@ -407,7 +407,7 @@ async function runResolver(
 ): Promise<{ ok: true; scenario: string } | { ok: false; result: RouteResult }> {
   let compiled: CompiledResolver | null
   try {
-    compiled = deps.getCompiledResolver(system.slug, endpoint.name, slug)
+    compiled = deps.getCompiledResolver(system.slug, endpoint.slug, slug)
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     traceError(trace, 'resolver_compile_error', message)
@@ -415,7 +415,7 @@ async function runResolver(
       ok: false,
       result: jsonResult(500, {
         error: 'scenario resolver failed to compile',
-        endpoint: endpoint.name,
+        endpoint: endpoint.slug,
         scenario: slug,
         message,
       }),
@@ -425,13 +425,13 @@ async function runResolver(
     traceError(
       trace,
       'resolver_missing',
-      `scenario "${slug}" is resolver-backed but no compiled resolver was found for endpoint "${endpoint.name}"`,
+      `scenario "${slug}" is resolver-backed but no compiled resolver was found for endpoint "${endpoint.slug}"`,
     )
     return {
       ok: false,
       result: jsonResult(500, {
         error: 'scenario resolver is missing',
-        endpoint: endpoint.name,
+        endpoint: endpoint.slug,
         scenario: slug,
       }),
     }
@@ -439,7 +439,7 @@ async function runResolver(
 
   const ownerType: DynamicOwnerType = profileId ? 'profile' : 'global'
   const ownerKey = profileId ?? system.slug
-  const history = await deps.getDynamicHistory(ownerType, ownerKey, endpoint.name, slug)
+  const history = await deps.getDynamicHistory(ownerType, ownerKey, endpoint.slug, slug)
   const input: ResolverInput = {
     request: {
       method: endpoint.method,
@@ -467,7 +467,7 @@ async function runResolver(
     } else {
       traceError(trace, 'resolver_threw', err instanceof Error ? err.message : String(err))
     }
-    return { ok: false, result: jsonResult(500, { error: 'scenario resolver failed', endpoint: endpoint.name, scenario: slug }) }
+    return { ok: false, result: jsonResult(500, { error: 'scenario resolver failed', endpoint: endpoint.slug, scenario: slug }) }
   }
 
   // Return invariant: a fixture-backed declared slug, or "real". A
@@ -488,14 +488,14 @@ async function runResolver(
       ok: false,
       result: jsonResult(500, {
         error: 'scenario resolver returned an invalid scenario',
-        endpoint: endpoint.name,
+        endpoint: endpoint.slug,
         scenario: slug,
         returned,
       }),
     }
   }
 
-  await deps.appendDynamicHistory(ownerType, ownerKey, endpoint.name, slug, returned, ownerless)
+  await deps.appendDynamicHistory(ownerType, ownerKey, endpoint.slug, slug, returned, ownerless)
   return { ok: true, scenario: returned }
 }
 
@@ -515,13 +515,13 @@ async function resolveProfileId(
     traceError(
       trace,
       'no_profile_selector',
-      `profiled endpoint "${endpoint.name}" has no profileIdSelector`,
+      `profiled endpoint "${endpoint.slug}" has no profileIdSelector`,
     )
     return {
       ok: false,
       result: jsonResult(500, {
-        error: `profiled endpoint "${endpoint.name}" has no profileIdSelector`,
-        endpoint: endpoint.name,
+        error: `profiled endpoint "${endpoint.slug}" has no profileIdSelector`,
+        endpoint: endpoint.slug,
       }),
     }
   }
@@ -537,7 +537,7 @@ async function resolveProfileId(
       ok: false,
       result: jsonResult(400, {
         error: `profile ID selector "${endpoint.profileIdSelector}" did not resolve`,
-        endpoint: endpoint.name,
+        endpoint: endpoint.slug,
       }),
     }
   }
@@ -564,7 +564,7 @@ async function resolveProfileId(
         error: 'profile_key_mapping_not_found',
         namespace: selector.namespace,
         key,
-        endpoint: endpoint.name,
+        endpoint: endpoint.slug,
       }),
     }
   }
@@ -596,7 +596,7 @@ async function captureProfileKeys(
       )
       return jsonResult(400, {
         error: `profile key selector "${capture.keySelector}" did not resolve`,
-        endpoint: endpoint.name,
+        endpoint: endpoint.slug,
         namespace: capture.namespace,
       })
     }
@@ -606,7 +606,7 @@ async function captureProfileKeys(
           namespace: capture.namespace,
           key: String(value),
           profileId,
-          capturedBy: { system: system.slug, endpoint: endpoint.name },
+          capturedBy: { system: system.slug, endpoint: endpoint.slug },
         },
         ownerless,
       )
@@ -648,13 +648,13 @@ async function proxy(
     traceError(trace, 'missing_base_url', `environment variable ${system.baseUrlEnv} is not set`)
     return jsonResult(500, {
       error: `environment variable ${system.baseUrlEnv} is not set`,
-      endpoint: endpoint.name,
+      endpoint: endpoint.slug,
     })
   }
   const identity = resolveClientIdentity(system, deps.env)
   if (!identity.ok) {
     traceError(trace, identity.code, identity.message)
-    return jsonResult(500, { error: identity.message, endpoint: endpoint.name })
+    return jsonResult(500, { error: identity.message, endpoint: endpoint.slug })
   }
   checkRequestSchemaDrift(system, endpoint, ctx, deps, trace)
   const targetUrl = `${baseUrl}${req.path}${req.search}`
@@ -676,7 +676,7 @@ async function proxy(
     traceError(trace, 'passthrough_failed', `passthrough to ${targetUrl} failed: ${message}`)
     return jsonResult(502, {
       error: 'passthrough request failed',
-      endpoint: endpoint.name,
+      endpoint: endpoint.slug,
       upstream: targetUrl,
       message,
     })
@@ -723,7 +723,7 @@ function checkRequestSchemaDrift(
   deps: RouterDeps,
   trace: RouteTrace,
 ): void {
-  const compiled = deps.schemas?.get(schemaKey(system.slug, endpoint.name))
+  const compiled = deps.schemas?.get(schemaKey(system.slug, endpoint.slug))
   if (!compiled) return
   const issues = [...compiled.validateRequestParams(ctx), ...compiled.validateRequestBody(ctx.body)]
   setValidation(trace, 'request', issues.length > 0 ? 'drift_warning' : 'ok', issues)
@@ -741,7 +741,7 @@ function checkResponseSchemaDrift(
   deps: RouterDeps,
   trace: RouteTrace,
 ): void {
-  const compiled = deps.schemas?.get(schemaKey(system.slug, endpoint.name))
+  const compiled = deps.schemas?.get(schemaKey(system.slug, endpoint.slug))
   if (!compiled) return
   const contentType = proxied.headers['content-type'] ?? ''
   if (!contentType.includes('json')) return

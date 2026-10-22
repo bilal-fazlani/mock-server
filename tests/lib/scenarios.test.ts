@@ -11,14 +11,14 @@ import {
 } from '../../src/lib/scenarios'
 
 const ep = (over: Partial<EndpointDef> = {}): EndpointDef => ({
-  name: 'ep', displayName: 'Ep', method: 'GET', path: '/ep',
-  scenarios: { default: { label: 'Default' }, frozen: { label: 'Frozen' } },
+  slug: 'ep', displayName: 'Ep', method: 'GET', path: '/ep',
+  scenarios: { default: { displayName: 'Default' }, frozen: { displayName: 'Frozen' } },
   resolverScenarios: [],
   ...over,
 })
 
 const sys = (over: Partial<SystemDef> = {}): SystemDef => ({
-  name: 'Sys', slug: 'sys', baseUrlEnv: 'SYS_URL', endpoints: [],
+  displayName: 'Sys', slug: 'sys', baseUrlEnv: 'SYS_URL', endpoints: [],
   ...over,
 })
 
@@ -35,8 +35,8 @@ describe('scenariosWithPassthrough', () => {
 
   it('no longer injects any synthetic entries beyond real', () => {
     const endpoint = {
-      name: 'e', displayName: 'E', method: 'GET', path: '/e',
-      scenarios: { default: { label: 'default' }, 'by-amount': { label: 'Routes by amount' } },
+      slug: 'e', displayName: 'E', method: 'GET', path: '/e',
+      scenarios: { default: { displayName: 'default' }, 'by-amount': { displayName: 'Routes by amount' } },
       resolverScenarios: ['by-amount'],
     } as EndpointDef
     expect(Object.keys(scenariosWithPassthrough(endpoint, false, sys(), {}))).toEqual([
@@ -51,20 +51,20 @@ describe('scenariosWithPassthrough option shape', () => {
   it('carries label, kind, summary, and status per declared scenario', () => {
     const endpoint = ep({
       scenarios: {
-        default: { label: 'Default', summary: 'All good', status: 200 },
-        'by-amount': { label: 'Routes by amount' },
+        default: { displayName: 'Default', summary: 'All good', status: 200 },
+        'by-amount': { displayName: 'Routes by amount' },
       },
       resolverScenarios: ['by-amount'],
     })
     const options = scenariosWithPassthrough(endpoint, false, sys(), {})
-    expect(options.default).toEqual({ label: 'Default', summary: 'All good', status: 200, kind: 'fixture' })
-    expect(options['by-amount']).toEqual({ label: 'Routes by amount', kind: 'resolver' })
+    expect(options.default).toEqual({ displayName: 'Default', summary: 'All good', status: 200, kind: 'fixture' })
+    expect(options['by-amount']).toEqual({ displayName: 'Routes by amount', kind: 'resolver' })
   })
 
   it('gives the implicit real entry the passthrough kind and auto-summary', () => {
     const options = scenariosWithPassthrough(ep(), false, sys(), {})
     expect(options.real).toEqual({
-      label: 'Passthrough',
+      displayName: 'Passthrough',
       summary: REAL_SUMMARY,
       kind: 'passthrough',
       baseUrlEnv: 'SYS_URL',
@@ -109,16 +109,16 @@ describe('isScenarioDeclared', () => {
     expect(isScenarioDeclared(ep(), 'ghost')).toBe(false)
   })
   it('accepts a resolver-backed slug like any other declared scenario', () => {
-    const endpoint = ep({ scenarios: { default: { label: 'Default' }, 'by-amount': { label: 'Routes' } }, resolverScenarios: ['by-amount'] })
+    const endpoint = ep({ scenarios: { default: { displayName: 'Default' }, 'by-amount': { displayName: 'Routes' } }, resolverScenarios: ['by-amount'] })
     expect(isScenarioDeclared(endpoint, 'by-amount')).toBe(true)
   })
 })
 
 describe('involvesResolver', () => {
   const options: Record<string, ScenarioOption> = {
-    default: { label: 'Default', kind: 'fixture' },
-    'by-amount': { label: 'By amount', kind: 'resolver' },
-    real: { label: 'Passthrough', kind: 'passthrough' },
+    default: { displayName: 'Default', kind: 'fixture' },
+    'by-amount': { displayName: 'By amount', kind: 'resolver' },
+    real: { displayName: 'Passthrough', kind: 'passthrough' },
   }
 
   it('is true for a resolver-backed single selection', () => {
@@ -152,8 +152,8 @@ describe('danglingScenarioLabel', () => {
 
 describe('scenarioOptionsWithDangling', () => {
   const offered: Record<string, ScenarioOption> = {
-    default: { label: 'Default', kind: 'fixture' },
-    real: { label: 'Passthrough', kind: 'passthrough' },
+    default: { displayName: 'Default', kind: 'fixture' },
+    real: { displayName: 'Passthrough', kind: 'passthrough' },
   }
 
   it('leaves options untouched when the selection is offered', () => {
@@ -164,14 +164,14 @@ describe('scenarioOptionsWithDangling', () => {
 
   it('adds a dangling entry for a missing single selection', () => {
     const r = scenarioOptionsWithDangling(offered, 'gone')
-    expect(r.options.gone).toEqual({ label: 'gone — unavailable', kind: 'fixture' })
+    expect(r.options.gone).toEqual({ displayName: 'gone — unavailable', kind: 'fixture' })
     expect(r.unavailable).toEqual(['gone'])
   })
 
   it('adds dangling entries for missing sequence steps', () => {
     const r = scenarioOptionsWithDangling(offered, ['default', 'gone', 'vanished'])
     expect(r.unavailable.sort()).toEqual(['gone', 'vanished'])
-    expect(r.options.gone).toEqual({ label: 'gone — unavailable', kind: 'fixture' })
+    expect(r.options.gone).toEqual({ displayName: 'gone — unavailable', kind: 'fixture' })
   })
 
   it('ignores an undefined selection', () => {
@@ -183,7 +183,7 @@ describe('scenarioOptionsWithDangling option shape', () => {
   it('adds dangling pins as fixture-kind options with the unavailable label', () => {
     const offered = scenariosWithPassthrough(ep(), false, sys(), {})
     const { options, unavailable } = scenarioOptionsWithDangling(offered, 'ghost')
-    expect(options.ghost).toEqual({ label: danglingScenarioLabel('ghost'), kind: 'fixture' })
+    expect(options.ghost).toEqual({ displayName: danglingScenarioLabel('ghost'), kind: 'fixture' })
     expect(unavailable).toEqual(['ghost'])
   })
 })

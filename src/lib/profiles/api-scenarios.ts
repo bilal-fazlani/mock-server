@@ -21,7 +21,7 @@ export function parseEndpointScenariosFromJson(
 
   const byName = new Map<string, EndpointDef>()
   for (const system of catalog.systems) {
-    for (const endpoint of system.endpoints) byName.set(endpoint.name, endpoint)
+    for (const endpoint of system.endpoints) byName.set(endpoint.slug, endpoint)
   }
 
   const result: Record<string, ScenarioSelection> = {}
@@ -42,7 +42,7 @@ function normalizeSelection(
   if (Array.isArray(raw)) {
     if (!raw.every((step) => typeof step === 'string')) {
       throw new InvalidScenarioSelectionError(
-        `endpoint "${endpoint.name}": scenario sequence must be an array of strings`,
+        `endpoint "${endpoint.slug}": scenario sequence must be an array of strings`,
       )
     }
     for (const step of raw) assertDeclared(endpoint, step)
@@ -52,7 +52,7 @@ function normalizeSelection(
   }
   if (typeof raw !== 'string') {
     throw new InvalidScenarioSelectionError(
-      `endpoint "${endpoint.name}": scenario must be a string or array of strings`,
+      `endpoint "${endpoint.slug}": scenario must be a string or array of strings`,
     )
   }
   if (raw === '' || raw === implicit) return undefined
@@ -63,7 +63,7 @@ function normalizeSelection(
 function assertDeclared(endpoint: EndpointDef, scenario: string): void {
   if (!isScenarioDeclared(endpoint, scenario)) {
     throw new InvalidScenarioSelectionError(
-      `endpoint "${endpoint.name}": scenario "${scenario}" is not declared`,
+      `endpoint "${endpoint.slug}": scenario "${scenario}" is not declared`,
     )
   }
 }

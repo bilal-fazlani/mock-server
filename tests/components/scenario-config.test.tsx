@@ -4,18 +4,18 @@ import { ScenarioConfig, ScenarioOptionRow } from '../../src/app/ui/profiles/Sce
 import type { ScenarioOption } from '../../src/lib/scenarios'
 
 const scenarios: Record<string, ScenarioOption> = {
-  default: { label: 'Success', kind: 'fixture' },
-  failure: { label: 'Failure', kind: 'fixture' },
-  timeout: { label: 'Timeout', kind: 'fixture' },
-  real: { label: 'Passthrough', kind: 'passthrough' },
+  default: { displayName: 'Success', kind: 'fixture' },
+  failure: { displayName: 'Failure', kind: 'fixture' },
+  timeout: { displayName: 'Timeout', kind: 'fixture' },
+  real: { displayName: 'Passthrough', kind: 'passthrough' },
 }
 
 // Summaries live on the option, so the dropdown rows and the step hover cards
 // have a second line to show.
 const seqScenarios: Record<string, ScenarioOption> = {
-  default: { label: 'Active', summary: 'Customer is in good standing.', status: 200, kind: 'fixture' },
-  frozen: { label: 'Frozen', summary: 'Account actions blocked.', status: 200, kind: 'fixture' },
-  real: { label: 'Passthrough', summary: 'Forwards the request to the live upstream service.', kind: 'passthrough' },
+  default: { displayName: 'Active', summary: 'Customer is in good standing.', status: 200, kind: 'fixture' },
+  frozen: { displayName: 'Frozen', summary: 'Account actions blocked.', status: 200, kind: 'fixture' },
+  real: { displayName: 'Passthrough', summary: 'Forwards the request to the live upstream service.', kind: 'passthrough' },
 }
 
 // Each sequence-step trigger is a <button …>, followed by the slot indicator and
@@ -43,7 +43,7 @@ describe('ScenarioConfig', () => {
     const html = renderToStaticMarkup(
       <ScenarioConfig
         system="hello-system"
-        endpointName="hello_world"
+        endpointSlug="hello_world"
         endpointDisplayName="Hello World"
         scenarios={scenarios}
         selection="failure"
@@ -58,7 +58,7 @@ describe('ScenarioConfig', () => {
     const html = renderToStaticMarkup(
       <ScenarioConfig
         system="hello-system"
-        endpointName="hello_world"
+        endpointSlug="hello_world"
         endpointDisplayName="Hello World"
         scenarios={scenarios}
         selection={undefined}
@@ -72,7 +72,7 @@ describe('ScenarioConfig', () => {
     const html = renderToStaticMarkup(
       <ScenarioConfig
         system="hello-system"
-        endpointName="hello_world"
+        endpointSlug="hello_world"
         endpointDisplayName="Hello World"
         scenarios={scenarios}
         selection={['timeout', 'failure', 'default']}
@@ -90,7 +90,7 @@ describe('ScenarioConfig', () => {
     const html = renderToStaticMarkup(
       <ScenarioConfig
         system="hello-system"
-        endpointName="hello_world"
+        endpointSlug="hello_world"
         endpointDisplayName="Hello World"
         scenarios={scenarios}
         selection={['timeout', 'real', 'default']}
@@ -110,9 +110,9 @@ describe('ScenarioConfig', () => {
     const html = renderToStaticMarkup(
       <ScenarioConfig
         system="hello-system"
-        endpointName="hello_world"
+        endpointSlug="hello_world"
         endpointDisplayName="Hello World"
-        scenarios={{ ...scenarios, mystery_case: { label: 'mystery_case', kind: 'fixture' } }}
+        scenarios={{ ...scenarios, mystery_case: { displayName: 'mystery_case', kind: 'fixture' } }}
         selection={['mystery_case']}
         fallback="default"
       />,
@@ -124,7 +124,7 @@ describe('ScenarioConfig', () => {
     const html = renderToStaticMarkup(
       <ScenarioConfig
         system="hello-system"
-        endpointName="hello_world"
+        endpointSlug="hello_world"
         endpointDisplayName="Hello World"
         scenarios={scenarios}
         selection={['timeout', 'failure', 'default']}
@@ -143,7 +143,7 @@ describe('ScenarioConfig', () => {
     const html = renderToStaticMarkup(
       <ScenarioConfig
         system="hello-system"
-        endpointName="hello_world"
+        endpointSlug="hello_world"
         endpointDisplayName="Hello World"
         scenarios={scenarios}
         selection={['timeout', 'default']}
@@ -159,7 +159,7 @@ describe('ScenarioConfig', () => {
     const html = renderToStaticMarkup(
       <ScenarioConfig
         system="hello-system"
-        endpointName="hello_world"
+        endpointSlug="hello_world"
         endpointDisplayName="Hello World"
         scenarios={scenarios}
         selection={['timeout', 'failure', 'default']}
@@ -175,7 +175,7 @@ describe('ScenarioConfig', () => {
     const html = renderToStaticMarkup(
       <ScenarioConfig
         system="hello-system"
-        endpointName="hello_world"
+        endpointSlug="hello_world"
         endpointDisplayName="Hello World"
         scenarios={scenarios}
         selection={['timeout', 'default']}
@@ -189,7 +189,7 @@ describe('ScenarioConfig', () => {
     const html = renderToStaticMarkup(
       <ScenarioConfig
         system="hello-system"
-        endpointName="hello_world"
+        endpointSlug="hello_world"
         endpointDisplayName="Hello World"
         scenarios={scenarios}
         selection="ghost"
@@ -204,7 +204,7 @@ describe('ScenarioConfig', () => {
     const html = renderToStaticMarkup(
       <ScenarioConfig
         system="hello-system"
-        endpointName="hello_world"
+        endpointSlug="hello_world"
         endpointDisplayName="Hello World"
         scenarios={scenarios}
         selection={['default', 'gone']}
@@ -218,7 +218,7 @@ describe('ScenarioConfig', () => {
     const html = renderToStaticMarkup(
       <ScenarioConfig
         system="hello-system"
-        endpointName="customer_status"
+        endpointSlug="customer_status"
         endpointDisplayName="Customer Status"
         scenarios={seqScenarios}
         selection={['frozen', 'default']}
@@ -233,7 +233,7 @@ describe('ScenarioConfig', () => {
     const html = renderToStaticMarkup(
       <ScenarioConfig
         system="hello-system"
-        endpointName="customer_status"
+        endpointSlug="customer_status"
         endpointDisplayName="Customer Status"
         scenarios={seqScenarios}
         selection={['frozen']}
@@ -249,7 +249,7 @@ describe('ScenarioConfig', () => {
     const html = renderToStaticMarkup(
       <ScenarioConfig
         system="hello-system"
-        endpointName="hello_world"
+        endpointSlug="hello_world"
         endpointDisplayName="Hello World"
         scenarios={scenarios}
         selection={['default', 'gone']}

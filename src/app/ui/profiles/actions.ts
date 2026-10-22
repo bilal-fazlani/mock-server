@@ -36,25 +36,25 @@ export async function deleteProfileAction(formData: FormData): Promise<void> {
 }
 
 export async function resetScenarioProgressAction(
-  endpointName: string,
+  endpointSlug: string,
   formData: FormData,
 ): Promise<void> {
   const profileId = String(formData.get('profileId') ?? '').trim()
-  if (!profileId || !endpointName) throw new Error('profileId and endpoint are required')
+  if (!profileId || !endpointSlug) throw new Error('profileId and endpoint are required')
 
-  await resetScenarioProgress(await getDb(), profileId, endpointName)
-  await writeAdminLog(await getDb(), profileId, 'progress_reset', endpointName)
+  await resetScenarioProgress(await getDb(), profileId, endpointSlug)
+  await writeAdminLog(await getDb(), profileId, 'progress_reset', endpointSlug)
   revalidatePath(`/ui/profiles/${encodeURIComponent(profileId)}`)
 }
 
 export async function resetDynamicHistoryAction(
-  endpointName: string,
+  endpointSlug: string,
   formData: FormData,
 ): Promise<void> {
   const profileId = String(formData.get('profileId') ?? '').trim()
-  if (!profileId || !endpointName) throw new Error('profileId and endpoint are required')
+  if (!profileId || !endpointSlug) throw new Error('profileId and endpoint are required')
 
-  await resetDynamicHistory(await getDb(), 'profile', profileId, endpointName)
-  await writeAdminLog(await getDb(), profileId, 'progress_reset', endpointName)
+  await resetDynamicHistory(await getDb(), 'profile', profileId, endpointSlug)
+  await writeAdminLog(await getDb(), profileId, 'progress_reset', endpointSlug)
   revalidatePath(`/ui/profiles/${encodeURIComponent(profileId)}`)
 }

@@ -10,7 +10,7 @@ export function liveResolverScenarios(
 ): { endpointName: string; scenario: string }[] {
   return catalog.systems.flatMap((system) =>
     system.endpoints.flatMap((endpoint) =>
-      endpoint.resolverScenarios.map((scenario) => ({ endpointName: endpoint.name, scenario })),
+      endpoint.resolverScenarios.map((scenario) => ({ endpointName: endpoint.slug, scenario })),
     ),
   )
 }

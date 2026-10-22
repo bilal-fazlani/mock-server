@@ -5,19 +5,19 @@ import type { ScenarioView } from '../../src/app/ui/catalog/scenario-view'
 import { EndpointView } from '../../src/app/ui/catalog/EndpointView'
 
 const system: SystemDef = {
-  name: 'Hello System',
+  displayName: 'Hello System',
   slug: 'hello-system',
   baseUrlEnv: 'HELLO_SYSTEM_URL',
   endpoints: [],
 }
 
 const endpoint: EndpointDef = {
-  name: 'hello_world',
+  slug: 'hello_world',
   displayName: 'Hello World',
   method: 'POST',
   path: '/hello/world',
   profileIdSelector: '$.customerId',
-  scenarios: { default: { label: 'Hello success' } },
+  scenarios: { default: { displayName: 'Hello success' } },
   resolverScenarios: [],
 }
 
@@ -61,14 +61,14 @@ function fixtureHtml(marker: string): string {
 
 const scenarios: ScenarioView[] = [
   {
-    key: 'accept_policy',
-    label: 'Accept Policy',
+    slug: 'accept_policy',
+    displayName: 'Accept Policy',
     isDefault: true,
     kind: 'fixture',
     json: fixtureJson,
     html: fixtureHtml('accept-policy-body'),
   },
-  { key: 'real', label: 'Passthrough', isDefault: false, kind: 'passthrough', baseUrlEnv: 'HELLO_SYSTEM_URL', url: 'http://upstream.test' },
+  { slug: 'real', displayName: 'Passthrough', isDefault: false, kind: 'passthrough', baseUrlEnv: 'HELLO_SYSTEM_URL', url: 'http://upstream.test' },
 ]
 
 function view({
@@ -183,14 +183,14 @@ describe('EndpointView', () => {
   it('cross-references namespace usage in a hoverable popover', () => {
     const capturer: EndpointDef = {
       ...endpoint,
-      name: 'capture_ep',
+      slug: 'capture_ep',
       displayName: 'Capture Endpoint',
       profileIdSelector: '$.accountId',
       captureProfileKeys: [{ namespace: 'event-id', keySelector: '$.eventID' }],
     }
     const resolver: EndpointDef = {
       ...endpoint,
-      name: 'resolve_ep',
+      slug: 'resolve_ep',
       displayName: 'Resolve Endpoint',
       profileIdSelector: 'profileKey:event-id:$.eventID',
     }
@@ -285,10 +285,10 @@ describe('EndpointView', () => {
 
   it('uses status color tones by response family', () => {
     const statusScenarios: ScenarioView[] = [
-      { key: 'success', label: 'Success', isDefault: false, kind: 'fixture', json: fixtureJsonWithStatus(200), html: fixtureHtml('success-body') },
-      { key: 'redirect', label: 'Redirect', isDefault: false, kind: 'fixture', json: fixtureJsonWithStatus(302), html: fixtureHtml('redirect-body') },
-      { key: 'client_error', label: 'Client error', isDefault: false, kind: 'fixture', json: fixtureJsonWithStatus(404), html: fixtureHtml('client-error-body') },
-      { key: 'server_error', label: 'Server error', isDefault: false, kind: 'fixture', json: fixtureJsonWithStatus(500), html: fixtureHtml('server-error-body') },
+      { slug: 'success', displayName: 'Success', isDefault: false, kind: 'fixture', json: fixtureJsonWithStatus(200), html: fixtureHtml('success-body') },
+      { slug: 'redirect', displayName: 'Redirect', isDefault: false, kind: 'fixture', json: fixtureJsonWithStatus(302), html: fixtureHtml('redirect-body') },
+      { slug: 'client_error', displayName: 'Client error', isDefault: false, kind: 'fixture', json: fixtureJsonWithStatus(404), html: fixtureHtml('client-error-body') },
+      { slug: 'server_error', displayName: 'Server error', isDefault: false, kind: 'fixture', json: fixtureJsonWithStatus(500), html: fixtureHtml('server-error-body') },
     ]
     const html = view({ scenarios: statusScenarios })
 
@@ -376,12 +376,12 @@ describe('EndpointView', () => {
 
   it('renders global endpoints without a profile selector', () => {
     const globalEndpoint: EndpointDef = {
-      name: 'oauth_token',
+      slug: 'oauth_token',
       displayName: 'OAuth Token',
       method: 'POST',
       path: '/oauth/token',
       mockType: 'global',
-      scenarios: { default: { label: 'Token' } },
+      scenarios: { default: { displayName: 'Token' } },
       resolverScenarios: [],
     }
     const html = view({ endpoint: globalEndpoint })

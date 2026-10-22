@@ -8,26 +8,26 @@ import {
 const catalog: Catalog = {
   systems: [
     {
-      name: 'Hello System',
+      displayName: 'Hello System',
       slug: 'hello-system',
       baseUrlEnv: 'HELLO_SYSTEM_URL',
       endpoints: [
         {
-          name: 'hello_world',
+          slug: 'hello_world',
           displayName: 'Hello World',
           method: 'POST',
           path: '/hello/world',
           profileIdSelector: '$.customerId',
-          scenarios: { default: { label: 'Success' }, failure: { label: 'Failure' }, slow: { label: 'Slow' } },
+          scenarios: { default: { displayName: 'Success' }, failure: { displayName: 'Failure' }, slow: { displayName: 'Slow' } },
           resolverScenarios: [],
         },
         {
-          name: 'resolver_ep',
+          slug: 'resolver_ep',
           displayName: 'Resolver Endpoint',
           method: 'GET',
           path: '/resolver',
           profileIdSelector: '$.customerId',
-          scenarios: { default: { label: 'Success' }, by_amount: { label: 'Routes by amount' } },
+          scenarios: { default: { displayName: 'Success' }, by_amount: { displayName: 'Routes by amount' } },
           resolverScenarios: ['by_amount'],
         },
       ],

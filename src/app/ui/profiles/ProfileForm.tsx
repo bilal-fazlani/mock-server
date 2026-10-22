@@ -83,14 +83,14 @@ export function ProfileForm({
           const endpoints = system.endpoints.filter(isProfiledEndpoint)
           if (endpoints.length === 0) return null
           return (
-          <section key={system.name} className="grid min-w-0 gap-3">
-            <h2 className="mt-1 text-secondary-foreground">{system.name}</h2>
+          <section key={system.displayName} className="grid min-w-0 gap-3">
+            <h2 className="mt-1 text-secondary-foreground">{system.displayName}</h2>
             {endpoints.map((endpoint) => {
-              const selected = profile?.endpointScenarios[endpoint.name]
-              const isStale = endpoint.name in stale
+              const selected = profile?.endpointScenarios[endpoint.slug]
+              const isStale = endpoint.slug in stale
               return (
                 <div
-                  key={endpoint.name}
+                  key={endpoint.slug}
                   className="grid min-w-0 gap-3.5 rounded-lg border border-border bg-card px-5 py-[18px] shadow-sm"
                 >
                   <div className="flex min-w-0 flex-wrap items-center gap-2.5">
@@ -102,28 +102,28 @@ export function ProfileForm({
                   </div>
                   {isStale && (
                     <Alert>
-                      Stale selection &ldquo;{stale[endpoint.name]}&rdquo; no longer valid — pick a
+                      Stale selection &ldquo;{stale[endpoint.slug]}&rdquo; no longer valid — pick a
                       new scenario and save.
                     </Alert>
                   )}
                   <ScenarioConfig
                     system={system.slug}
-                    endpointName={endpoint.name}
+                    endpointSlug={endpoint.slug}
                     endpointDisplayName={endpoint.displayName}
                     scenarios={scenariosWithPassthrough(endpoint, passthroughAsDefault, system, env)}
                     selection={selected}
                     fallback={gapFallback}
-                    servedCount={scenarioProgress[endpoint.name]}
+                    servedCount={scenarioProgress[endpoint.slug]}
                     resetAction={
-                      profile ? resetScenarioProgressAction.bind(null, endpoint.name) : undefined
+                      profile ? resetScenarioProgressAction.bind(null, endpoint.slug) : undefined
                     }
                     resetDynamicAction={
-                      profile ? resetDynamicHistoryAction.bind(null, endpoint.name) : undefined
+                      profile ? resetDynamicHistoryAction.bind(null, endpoint.slug) : undefined
                     }
                   />
                   <div className="-mt-1 flex justify-end">
                     <Link
-                      href={`/ui/catalog/${system.slug}/${endpoint.name}`}
+                      href={`/ui/catalog/${system.slug}/${endpoint.slug}`}
                       className="inline-flex items-center gap-1.5 text-[0.78rem] text-muted-foreground hover:text-foreground hover:no-underline"
                     >
                       <SquareArrowOutUpRight className="size-3" aria-hidden="true" />

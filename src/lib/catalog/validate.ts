@@ -46,7 +46,7 @@ export function validateCatalog(catalog: Catalog, catalogDir: string): Validatio
 
   for (const system of catalog.systems) {
     for (const endpoint of system.endpoints) {
-      const label = `${system.name}/${endpoint.name}`
+      const label = `${system.displayName}/${endpoint.slug}`
 
       let template: PathTemplate | null = null
       try {
@@ -59,7 +59,7 @@ export function validateCatalog(catalog: Catalog, catalogDir: string): Validatio
       const declaredParams = new Set(
         template?.segments.flatMap((s) => (s.type === 'param' ? [s.name] : [])) ?? [],
       )
-      const compiledSchema = schemas.get(schemaKey(system.slug, endpoint.name))
+      const compiledSchema = schemas.get(schemaKey(system.slug, endpoint.slug))
       // Declared parameters keyed by "<location>:<name>", for the
       // optional-parameter fallback lint below (#52). Header names are already
       // lower-cased on both sides — by declaredParams() at compile time and by
@@ -77,7 +77,7 @@ export function validateCatalog(catalog: Catalog, catalogDir: string): Validatio
           }
         }
       }
-      const fnTable = new Set(catalog.resolveFunctions?.(system.slug, endpoint.name).keys() ?? [])
+      const fnTable = new Set(catalog.resolveFunctions?.(system.slug, endpoint.slug).keys() ?? [])
       const mockType = endpoint.mockType ?? 'profiled'
 
       if (mockType === 'global') {
@@ -165,7 +165,7 @@ export function validateCatalog(catalog: Catalog, catalogDir: string): Validatio
       for (const scenario of Object.keys(endpoint.scenarios)) {
         if (scenario === REAL_SCENARIO) continue // already flagged above
         if (endpoint.resolverScenarios.includes(scenario)) continue // backed by <slug>.mjs, not a fixture
-        const file = fixtureFilePath(catalogDir, system.slug, endpoint.name, scenario)
+        const file = fixtureFilePath(catalogDir, system.slug, endpoint.slug, scenario)
         if (!fs.existsSync(file)) {
           errors.push(`${label}: missing fixture for scenario "${scenario}" (${file})`)
           continue
@@ -197,7 +197,7 @@ export function validateCatalog(catalog: Catalog, catalogDir: string): Validatio
           }
         }
         fixtures.set(file, fixture as Fixture)
-        const compiled = schemas.get(schemaKey(system.slug, endpoint.name))
+        const compiled = schemas.get(schemaKey(system.slug, endpoint.slug))
         if (compiled) {
           if (!compiled.hasResponseFor(fixture.status)) {
             errors.push(
@@ -503,12 +503,12 @@ export function validateAppConfig(
     for (const system of catalog.systems) {
       if (!env[system.baseUrlEnv]) {
         errors.push(
-          `system "${system.name}": PASSTHROUGH_AS_DEFAULT=true requires ${system.baseUrlEnv} to be set`,
+          `system "${system.displayName}": PASSTHROUGH_AS_DEFAULT=true requires ${system.baseUrlEnv} to be set`,
         )
       }
       const identity = resolveClientIdentity(system, env)
       if (!identity.ok) {
-        errors.push(`system "${system.name}": PASSTHROUGH_AS_DEFAULT=true requires a client certificate: ${identity.message}`)
+        errors.push(`system "${system.displayName}": PASSTHROUGH_AS_DEFAULT=true requires a client certificate: ${identity.message}`)
       }
     }
   }

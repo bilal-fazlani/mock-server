@@ -37,7 +37,7 @@ export function GlobalMocksForm({
   env: Record<string, string | undefined>
 }) {
   const endpoints = globalEndpoints(catalog)
-  const endpointKeys = new Set(endpoints.map(({ system, endpoint }) => key(system.slug, endpoint.name)))
+  const endpointKeys = new Set(endpoints.map(({ system, endpoint }) => key(system.slug, endpoint.slug)))
   const selectionMap = new Map(selections.map((s) => [key(s.system, s.endpoint), s]))
   const orphans = selections.filter((s) => !endpointKeys.has(key(s.system, s.endpoint)))
   const implicit = implicitScenario(passthroughAsDefault)
@@ -61,9 +61,9 @@ export function GlobalMocksForm({
           if (systemEndpoints.length === 0) return null
           return (
             <section key={system.slug} className="grid min-w-0 gap-3">
-              <h2 className="mt-1 text-secondary-foreground">{system.name}</h2>
+              <h2 className="mt-1 text-secondary-foreground">{system.displayName}</h2>
               {systemEndpoints.map((endpoint) => {
-                const stored = selectionMap.get(key(system.slug, endpoint.name))?.scenario
+                const stored = selectionMap.get(key(system.slug, endpoint.slug))?.scenario
                 const offered = scenariosWithPassthrough(endpoint, passthroughAsDefault, system, env)
                 const { options, unavailable } = scenarioOptionsWithDangling(offered, stored)
                 const stale = unavailable.length > 0
@@ -78,7 +78,7 @@ export function GlobalMocksForm({
                     : null
                 return (
                   <div
-                    key={endpoint.name}
+                    key={endpoint.slug}
                     className="grid min-w-0 gap-3.5 rounded-lg border border-border bg-card px-5 py-[18px] shadow-sm"
                   >
                     <div className="flex min-w-0 flex-wrap items-center gap-2.5">
@@ -116,20 +116,20 @@ export function GlobalMocksForm({
                     )}
                     <GlobalScenarioConfig
                       system={system.slug}
-                      endpointName={endpoint.name}
+                      endpointSlug={endpoint.slug}
                       endpointDisplayName={endpoint.displayName}
-                      fieldName={`scenario:${system.slug}:${endpoint.name}`}
+                      fieldName={`scenario:${system.slug}:${endpoint.slug}`}
                       scenarios={options}
                       selected={selected}
                       unavailable={unavailable}
                       resetDynamicAction={resetGlobalDynamicHistoryAction.bind(
                         null,
                         system.slug,
-                        endpoint.name,
+                        endpoint.slug,
                       )}
                     >
                       <Link
-                        href={`/ui/catalog/${system.slug}/${endpoint.name}`}
+                        href={`/ui/catalog/${system.slug}/${endpoint.slug}`}
                         className="ml-auto inline-flex items-center gap-1.5 text-[0.78rem] text-muted-foreground hover:text-foreground hover:no-underline"
                       >
                         <SquareArrowOutUpRight className="size-3" aria-hidden="true" />

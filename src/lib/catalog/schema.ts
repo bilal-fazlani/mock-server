@@ -11,8 +11,8 @@ export interface SchemaIssue {
 
 export type SchemaRegistry = Map<string, CompiledEndpointSchema>
 
-export function schemaKey(systemSlug: string, endpointName: string): string {
-  return `${systemSlug}/${endpointName}`
+export function schemaKey(systemSlug: string, endpointSlug: string): string {
+  return `${systemSlug}/${endpointSlug}`
 }
 
 const PLACEHOLDER_RE = /\{\{.+?\}\}/
@@ -357,8 +357,8 @@ export function buildSchemaRegistry(catalog: Catalog): {
       if (endpoint.schema === undefined) continue
       try {
         schemas.set(
-          schemaKey(system.slug, endpoint.name),
-          compileEndpointSchema(endpoint.schema, `${system.name}/${endpoint.name}`),
+          schemaKey(system.slug, endpoint.slug),
+          compileEndpointSchema(endpoint.schema, `${system.displayName}/${endpoint.slug}`),
         )
       } catch (err) {
         if (err instanceof SchemaCompileError) errors.push(err.message)

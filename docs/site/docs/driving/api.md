@@ -53,6 +53,14 @@ unknown properties breaks on an upgrade that broke nothing. Existing fields are
 not removed or retyped, and the status code for an existing outcome does not
 change, without a major bump of `info.version`.
 
+!!! warning "Contract 2.0.0 renamed three fields"
+    `GET /ui/api/catalog` returns a system's name as `displayName` (was `name`) and an
+    endpoint's identifier as `slug` (was `name`); the scenario view returns `slug` and
+    `displayName` (were `key` and `label`). The catalog files change the same way:
+    `_system.json` `name`, a fixture's `description` and a resolver's `description`
+    export are now `displayName`, and the old keys fail the startup load naming the
+    new one.
+
 Two things sit outside that promise:
 
 - **Error message text.** The `{ "error": "<message>", "code": "<code>" }`
@@ -110,11 +118,11 @@ bodies.**
   "systems": [
     {
       "slug": "hello-system",
-      "name": "Hello System",
+      "displayName": "Hello System",
       "baseUrlEnv": "HELLO_SYSTEM_URL",
       "endpoints": [
         {
-          "name": "account_balance",
+          "slug": "account_balance",
           "displayName": "Account Balance",
           "method": "POST",
           "path": "/accounts/balance",
@@ -123,7 +131,7 @@ bodies.**
           "scenarios": { "default": "Balance available", "failure": "…", "pending": "…", "dynamic": "dynamic" }
         },
         {
-          "name": "create_order",
+          "slug": "create_order",
           "displayName": "Create Order",
           "method": "POST",
           "path": "/orders",
@@ -140,7 +148,7 @@ bodies.**
 ```
 
 `scenarios` lists every **declared** scenario (fixture- and resolver-backed) as
-`{ slug: label }`. `resolverScenarios` is the subset of those slugs backed by a
+`{ slug: displayName }`. `resolverScenarios` is the subset of those slugs backed by a
 `<slug>.mjs` resolver instead of a `<slug>.json` fixture — see [Code-backed
 scenario resolvers](../building/dynamic.md). The `real` passthrough is always
 implicit and never appears in either list. `mockType` is `"profiled"` or

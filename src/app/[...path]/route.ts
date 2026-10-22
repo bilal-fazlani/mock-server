@@ -30,16 +30,16 @@ async function handle(
         ...input,
         ephemeralTtlSeconds: ownerless ? rt.profileKeyTtlSeconds : null,
       }),
-    advanceScenarioProgress: async (profileId, endpointName, steps) =>
-      advanceScenarioProgress(await getDb(), profileId, endpointName, steps),
-    getDynamicHistory: async (ownerType, ownerKey, endpointName, scenario) =>
-      getDynamicHistory(await getDb(), ownerType, ownerKey, endpointName, scenario),
-    appendDynamicHistory: async (ownerType, ownerKey, endpointName, scenario, slug, ownerless) =>
+    advanceScenarioProgress: async (profileId, endpointSlug, steps) =>
+      advanceScenarioProgress(await getDb(), profileId, endpointSlug, steps),
+    getDynamicHistory: async (ownerType, ownerKey, endpointSlug, scenario) =>
+      getDynamicHistory(await getDb(), ownerType, ownerKey, endpointSlug, scenario),
+    appendDynamicHistory: async (ownerType, ownerKey, endpointSlug, scenario, slug, ownerless) =>
       appendDynamicHistory(
         await getDb(),
         ownerType,
         ownerKey,
-        endpointName,
+        endpointSlug,
         scenario,
         slug,
         rt.resolverHistoryLimit,

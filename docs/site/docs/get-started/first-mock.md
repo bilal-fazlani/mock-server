@@ -47,7 +47,7 @@ next to `_endpoint.json`:
 
 ```json
 {
-  "description": "Balance available",
+  "displayName": "Balance available",
   "status": 200,
   "body": {
     "customerId": "{{$.customerId}}",
@@ -62,7 +62,7 @@ next to `_endpoint.json`:
 
 ```json
 {
-  "description": "Insufficient funds",
+  "displayName": "Insufficient funds",
   "status": 402,
   "headers": { "x-reason": "insufficient_funds" },
   "body": {
@@ -72,8 +72,8 @@ next to `_endpoint.json`:
 }
 ```
 
-The filename (`default`, `insufficient`) is the scenario key. `description` is
-optional and is what shows up as the scenario's label in the UI; without it, the
+The filename (`default`, `insufficient`) is the scenario slug. `displayName` is
+optional and is what shows up as the scenario's name in the UI; without it, the
 UI falls back to the filename. There is never a fixture named `real.json` — that
 scenario proxies to the live upstream instead of reading a file, and its presence
 is a validation error.

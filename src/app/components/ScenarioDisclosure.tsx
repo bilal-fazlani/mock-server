@@ -15,12 +15,12 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from './ui/hover-card'
 // are evicted so Retry actually retries.
 const viewCache = new Map<string, Promise<ScenarioView>>()
 
-function fetchView(system: string, endpointName: string, slug: string): Promise<ScenarioView> {
-  const key = `${system}/${endpointName}/${slug}`
+function fetchView(system: string, endpointSlug: string, slug: string): Promise<ScenarioView> {
+  const key = `${system}/${endpointSlug}/${slug}`
   let pending = viewCache.get(key)
   if (!pending) {
     pending = fetch(
-      `/ui/api/catalog/${encodeURIComponent(system)}/${encodeURIComponent(endpointName)}/scenarios/${encodeURIComponent(slug)}`,
+      `/ui/api/catalog/${encodeURIComponent(system)}/${encodeURIComponent(endpointSlug)}/scenarios/${encodeURIComponent(slug)}`,
     )
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`http_${res.status}`))))
       .then((data: { view: ScenarioView }) => data.view)
@@ -40,7 +40,7 @@ export function ScenarioHoverCardBody({
   return (
     <div className="grid gap-1.5">
       <div className="flex min-w-0 flex-wrap items-center gap-2">
-        <span className="text-[0.9rem] font-semibold text-foreground">{option.label}</span>
+        <span className="text-[0.9rem] font-semibold text-foreground">{option.displayName}</span>
         <StatusPill value={option.status ?? null} />
       </div>
       {option.summary && (
@@ -100,7 +100,7 @@ export function ScenarioResponseModalBody({
   return (
     <div className="grid gap-3">
       <div className="flex min-w-0 flex-wrap items-center gap-2.5 pr-8">
-        <DialogTitle>{option.label}</DialogTitle>
+        <DialogTitle>{option.displayName}</DialogTitle>
         <StatusPill value={option.status ?? null} />
       </div>
       {option.summary && (
@@ -129,7 +129,7 @@ export function ScenarioResponseModalBody({
 
 export function ScenarioDisclosure({
   system,
-  endpointName,
+  endpointSlug,
   endpointDisplayName,
   slug,
   option,
@@ -138,7 +138,7 @@ export function ScenarioDisclosure({
   children,
 }: {
   system: string
-  endpointName: string
+  endpointSlug: string
   endpointDisplayName: string
   slug: string
   option: ScenarioOption
@@ -168,7 +168,7 @@ export function ScenarioDisclosure({
   useEffect(() => {
     if (!dialogOpen || view || failed) return
     let cancelled = false
-    fetchView(system, endpointName, slug)
+    fetchView(system, endpointSlug, slug)
       .then((v) => {
         if (!cancelled) setView(v)
       })
@@ -178,7 +178,7 @@ export function ScenarioDisclosure({
     return () => {
       cancelled = true
     }
-  }, [dialogOpen, view, failed, system, endpointName, slug])
+  }, [dialogOpen, view, failed, system, endpointSlug, slug])
 
   const state: ModalState = view
     ? { kind: 'ready', view }
@@ -210,7 +210,7 @@ export function ScenarioDisclosure({
             <ScenarioResponseModalBody
               state={state}
               option={option}
-              catalogHref={`/ui/catalog/${system}/${endpointName}`}
+              catalogHref={`/ui/catalog/${system}/${endpointSlug}`}
               endpointDisplayName={endpointDisplayName}
             />
           </DialogContent>

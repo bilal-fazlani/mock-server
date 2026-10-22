@@ -16,7 +16,7 @@ import { ScenarioPicker } from '../../components/ScenarioPicker'
  */
 export function GlobalScenarioConfig({
   system,
-  endpointName,
+  endpointSlug,
   endpointDisplayName,
   fieldName,
   scenarios,
@@ -26,7 +26,7 @@ export function GlobalScenarioConfig({
   children,
 }: {
   system: string
-  endpointName: string
+  endpointSlug: string
   endpointDisplayName: string
   /** Radio group name — the form is one big grid, so it is endpoint-scoped. */
   fieldName: string
@@ -51,7 +51,7 @@ export function GlobalScenarioConfig({
       >
         <ScenarioPicker
           system={system}
-          endpointName={endpointName}
+          endpointSlug={endpointSlug}
           endpointDisplayName={endpointDisplayName}
           fieldName={fieldName}
           scenarios={scenarios}

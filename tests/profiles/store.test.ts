@@ -525,7 +525,7 @@ describe('dynamicHistory index reconciliation on upgrade', () => {
     await upgradeDb.collection('dynamicHistory').insertOne({
       ownerType: 'profile',
       ownerKey: 'p1',
-      endpointName: 'ep',
+      endpointSlug: 'ep',
       scenario: 'by-amount',
       history: ['hold'],
     })
@@ -533,7 +533,7 @@ describe('dynamicHistory index reconciliation on upgrade', () => {
       upgradeDb.collection('dynamicHistory').insertOne({
         ownerType: 'profile',
         ownerKey: 'p1',
-        endpointName: 'ep',
+        endpointSlug: 'ep',
         scenario: 'default',
         history: ['success'],
       }),

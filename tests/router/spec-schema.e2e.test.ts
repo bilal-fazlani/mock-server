@@ -28,7 +28,7 @@ afterEach(() => {
   while (tmpDirs.length) fs.rmSync(tmpDirs.pop()!, { recursive: true, force: true })
 })
 
-const SYSTEM_META = { name: 'Test System', baseUrlEnv: 'TEST_URL' }
+const SYSTEM_META = { displayName: 'Test System', baseUrlEnv: 'TEST_URL' }
 // Global mock endpoint (no profile involved) — keeps the test focused on
 // spec-backed request/response schema validation rather than profile wiring.
 const ENDPOINT_META = {
@@ -92,8 +92,8 @@ function handlerWith(dir: string, globalScenario: string | null) {
       headers: { 'x-proxied': '1' },
       bodyBytes: Buffer.from('proxied'),
     }),
-    loadFixture: (systemSlug, endpointName, scenario) =>
-      loadFixture(dir, systemSlug, endpointName, scenario),
+    loadFixture: (systemSlug, endpointSlug, scenario) =>
+      loadFixture(dir, systemSlug, endpointSlug, scenario),
     now: () => NOW,
   }
   return createMockHandler(deps)

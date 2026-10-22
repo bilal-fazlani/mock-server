@@ -6,10 +6,10 @@ export interface ProfileKeyCaptureDef {
 }
 
 export interface ScenarioMeta {
-  /** Friendly name shown for the scenario (a resolver's `description` export
-   * or a fixture's `description`, falling back to the slug). */
-  label: string
-  /** Optional secondary line shown under the label in the catalog detail view
+  /** Friendly name shown for the scenario (a resolver's `displayName` export
+   * or a fixture's `displayName`, falling back to the slug). */
+  displayName: string
+  /** Optional secondary line shown under the name in the catalog detail view
    * (a resolver's `summary` export or a fixture's `summary`); present only when
    * the scenario declares a non-empty summary. */
   summary?: string
@@ -19,7 +19,7 @@ export interface ScenarioMeta {
 }
 
 export interface EndpointDef {
-  name: string
+  slug: string
   displayName: string
   method: string
   path: string
@@ -38,7 +38,7 @@ export interface EndpointDef {
 }
 
 export interface SystemDef {
-  name: string
+  displayName: string
   slug: string
   baseUrlEnv: string
   /** Env var holding the PEM client certificate presented on passthrough.
@@ -57,5 +57,5 @@ export interface Catalog {
   /** Resolves the merged (catalog < system < endpoint, nearest wins) user
    * function table for a given endpoint. Backed by loadFunctions' resolveTable;
    * optional so existing test fixtures of this type keep compiling. */
-  resolveFunctions?: (systemSlug: string, endpointName: string) => ReadonlyMap<string, CompiledFn>
+  resolveFunctions?: (systemSlug: string, endpointSlug: string) => ReadonlyMap<string, CompiledFn>
 }

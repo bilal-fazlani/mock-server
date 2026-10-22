@@ -22,7 +22,7 @@ export function parseEndpointScenarios(
     for (const endpoint of system.endpoints) {
       if (!isProfiledEndpoint(endpoint)) continue
       const selection = parseEndpointSelection(formData, endpoint, implicit)
-      if (selection !== undefined) endpointScenarios[endpoint.name] = selection
+      if (selection !== undefined) endpointScenarios[endpoint.slug] = selection
     }
   }
   return endpointScenarios
@@ -33,7 +33,7 @@ function parseEndpointSelection(
   endpoint: EndpointDef,
   implicit: string,
 ): ScenarioSelection | undefined {
-  const sequenceRaw = formData.get(`scenarioSequence:${endpoint.name}`)
+  const sequenceRaw = formData.get(`scenarioSequence:${endpoint.slug}`)
   if (typeof sequenceRaw === 'string') {
     const steps = parseSequence(endpoint, sequenceRaw)
     for (const step of steps) assertDeclared(endpoint, step)
@@ -42,7 +42,7 @@ function parseEndpointSelection(
     return steps[0] === implicit ? undefined : steps[0]
   }
 
-  const value = formData.get(`scenario:${endpoint.name}`)
+  const value = formData.get(`scenario:${endpoint.slug}`)
   if (typeof value !== 'string' || value === '' || value === implicit) return undefined
   assertDeclared(endpoint, value)
   return value
@@ -53,16 +53,16 @@ function parseSequence(endpoint: EndpointDef, raw: string): string[] {
   try {
     parsed = JSON.parse(raw)
   } catch {
-    throw new Error(`endpoint "${endpoint.name}": scenario sequence is not valid JSON`)
+    throw new Error(`endpoint "${endpoint.slug}": scenario sequence is not valid JSON`)
   }
   if (!Array.isArray(parsed) || !parsed.every((step) => typeof step === 'string')) {
-    throw new Error(`endpoint "${endpoint.name}": scenario sequence must be an array of strings`)
+    throw new Error(`endpoint "${endpoint.slug}": scenario sequence must be an array of strings`)
   }
   return parsed
 }
 
 function assertDeclared(endpoint: EndpointDef, scenario: string): void {
   if (!isScenarioDeclared(endpoint, scenario)) {
-    throw new Error(`endpoint "${endpoint.name}": scenario "${scenario}" is not declared`)
+    throw new Error(`endpoint "${endpoint.slug}": scenario "${scenario}" is not declared`)
   }
 }
