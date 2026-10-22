@@ -41,6 +41,10 @@ reason = "compatibility floor: the oldest server SDK 3.0.0 works against, since 
 pattern = 'server \*\*0\.16\.0'
 reason = "compatibility floor, split across a line break on sdk/testcontainers-client.md, and named as the release that introduced the contract the client targets"
 
+[[exempt]]
+pattern = 'from SDK \*\*3\.0\.0\*\* — the 2\.x line needs \*\*0\.7\.0 to 0\.15\.x\*\*'
+reason = "compatibility floors per SDK line: 3.0.0 is the release that started needing server 0.16.0, and the 2.x line's range ends where 0.16.0 renamed the catalog fields"
+
 # --- Historical facts -----------------------------------------------------
 # "Since X" statements. Rewriting these to the current release inverts their
 # meaning: "safe with virtual threads from 2.1.0" would tell a 2.0.0 user the
