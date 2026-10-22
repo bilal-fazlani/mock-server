@@ -61,6 +61,27 @@ const CATALOG: Catalog = {
           resolverScenarios: [],
         },
         {
+          slug: 'kebab_assessment',
+          displayName: 'Kebab Assessment',
+          method: 'POST',
+          path: '/kebab/assessment',
+          profileIdSelector: "$['assessment-request']['customer-id']",
+          captureProfileKeys: [
+            { namespace: 'transaction-id', keySelector: "$['assessment-request']['transaction-id']" },
+          ],
+          scenarios: { default: { displayName: 'Success' } },
+          resolverScenarios: [],
+        },
+        {
+          slug: 'kebab_callback',
+          displayName: 'Kebab Callback',
+          method: 'POST',
+          path: '/kebab/callback',
+          profileIdSelector: "profileKey:transaction-id:$['assessment-request']['transaction-id']",
+          scenarios: { default: { displayName: 'Success' } },
+          resolverScenarios: [],
+        },
+        {
           slug: 'customer_status',
           displayName: 'Customer Status',
           method: 'GET',
@@ -791,6 +812,75 @@ describe('profile key mappings', () => {
       key: 'evt-404',
       endpoint: 'mapped_callback',
     })
+  })
+})
+
+describe('bracket-key body selectors', () => {
+  const assessment = { 'assessment-request': { 'customer-id': 'c1', 'transaction-id': 'abc-123' } }
+
+  it('resolves the profile, captures the key, and templates through hyphenated keys', async () => {
+    const captures: ProfileKeyMappingCaptureInput[] = []
+    const seenProfileIds: string[] = []
+    const d = deps({
+      getProfile: async (id: string) => {
+        seenProfileIds.push(id)
+        return id === 'c1' ? profile({ profileId: 'c1', endpointScenarios: {} }) : null
+      },
+      captureProfileKeyMapping: async (input: ProfileKeyMappingCaptureInput) => {
+        captures.push(input)
+      },
+    } as Partial<RouterDeps>)
+
+    const res = await routeRequest(post('/kebab/assessment', assessment), d)
+
+    expect(res.status).toBe(200)
+    expect(json(res)).toEqual({ customerId: 'c1', transactionId: 'abc-123' })
+    expect(seenProfileIds).toEqual(['c1'])
+    expect(captures).toEqual([
+      {
+        namespace: 'transaction-id',
+        key: 'abc-123',
+        profileId: 'c1',
+        capturedBy: { system: 'test-system', endpoint: 'kebab_assessment' },
+      },
+    ])
+  })
+
+  it('resolves a later request through profileKey with a bracket-key selector', async () => {
+    const lookups: Array<[string, string]> = []
+    const trace: RouteTrace = {}
+    const d = deps({
+      getProfileKeyMapping: async (namespace: string, key: string) => {
+        lookups.push([namespace, key])
+        return namespace === 'transaction-id' && key === 'abc-123'
+          ? mapping({ namespace: 'transaction-id', key: 'abc-123' })
+          : null
+      },
+      getProfile: withProfile(profile({ profileId: 'c1', endpointScenarios: {} })),
+      trace,
+    } as Partial<RouterDeps>)
+
+    const res = await routeRequest(
+      post('/kebab/callback', { 'assessment-request': { 'transaction-id': 'abc-123' } }),
+      d,
+    )
+
+    expect(res.status).toBe(200)
+    expect(json(res)).toEqual({ ok: true, echo: 'txn ABC-123' })
+    expect(lookups).toEqual([['transaction-id', 'abc-123']])
+    expect(trace.profileId).toBe('c1')
+    expect(trace.profileResolution).toEqual({
+      selector: "profileKey:transaction-id:$['assessment-request']['transaction-id']",
+      value: 'abc-123',
+      via: { namespace: 'transaction-id', key: 'abc-123' },
+    })
+  })
+
+  it('returns 400 naming the bracket selector when the hyphenated key is missing', async () => {
+    const res = await routeRequest(post('/kebab/callback', { 'assessment-request': {} }), deps())
+
+    expect(res.status).toBe(400)
+    expect(json(res).error).toContain("profileKey:transaction-id:$['assessment-request']['transaction-id']")
   })
 })
 

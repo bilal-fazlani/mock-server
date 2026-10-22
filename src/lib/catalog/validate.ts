@@ -18,6 +18,7 @@ import {
   templatesOverlap,
 } from './path-template'
 import {
+  formatBodyPath,
   parseProfileIdSelector,
   parseSelector,
   SelectorParseError,
@@ -223,7 +224,9 @@ export function validateCatalog(catalog: Catalog, catalogDir: string): Validatio
             ast = parseExpr(expr)
           } catch (err) {
             if (err instanceof ExprParseError) {
-              errors.push(`${label}: fixture ${file} has invalid placeholder "{{${expr}}}"`)
+              const prefix = `invalid placeholder "{{${expr}}}": `
+              const reason = err.message.startsWith(prefix) ? err.message.slice(prefix.length) : err.message
+              errors.push(`${label}: fixture ${file} has invalid placeholder "{{${expr}}}": ${reason}`)
               continue
             }
             throw err
@@ -301,7 +304,7 @@ export function validateCatalog(catalog: Catalog, catalogDir: string): Validatio
               sel.selector.source === 'body' &&
               compiled.guaranteesPresence(sel.selector.segments) === false
             ) {
-              const path = bodyPath(sel.selector.segments)
+              const path = formatBodyPath(sel.selector.segments)
               errors.push(
                 `${label}: fixture ${file} placeholder "{{${expr}}}" reads request body field ` +
                   `${path}, which the request schema lets callers omit; a request without it ` +
@@ -361,15 +364,6 @@ export function validateCatalog(catalog: Catalog, catalogDir: string): Validatio
   }
 
   return { errors, fixtures, schemas }
-}
-
-// Render a body selector's segments back as its `$.…` source form for messages:
-// ['a', 'b', 0, 'c'] → "$.a.b[0].c".
-function bodyPath(segments: Array<string | number>): string {
-  return segments.reduce<string>(
-    (acc, seg) => acc + (typeof seg === 'number' ? `[${seg}]` : `.${seg}`),
-    '$',
-  )
 }
 
 function selectorNodes(expr: Expr): Array<Extract<Expr, { kind: 'selector' }>> {

@@ -29,6 +29,45 @@ describe('parseExpr', () => {
     })
   })
 
+  it('parses a bracket-key body selector as a source', () => {
+    expect(parseExpr("$['assessment-request']['transaction-id']")).toEqual({
+      kind: 'selector',
+      raw: "$['assessment-request']['transaction-id']",
+      selector: { source: 'body', segments: ['assessment-request', 'transaction-id'] },
+    })
+  })
+
+  it('keeps ":" and "|" inside a bracket key out of the arg and stage split', () => {
+    expect(parseExpr(`$['a|b'] | upper`)).toEqual({
+      kind: 'call',
+      name: 'upper',
+      args: [{ kind: 'selector', raw: `$['a|b']`, selector: { source: 'body', segments: ['a|b'] } }],
+    })
+    expect(parseExpr(`$.x | default:$["urn:id"]`)).toEqual({
+      kind: 'call',
+      name: 'default',
+      args: [
+        { kind: 'selector', raw: '$.x', selector: { source: 'body', segments: ['x'] } },
+        { kind: 'selector', raw: `$["urn:id"]`, selector: { source: 'body', segments: ['urn:id'] } },
+      ],
+    })
+    expect(parseExpr(`profileKey:event-id:$['a:b|c']`)).toEqual({
+      kind: 'selector',
+      raw: `profileKey:event-id:$['a:b|c']`,
+      selector: {
+        source: 'profileKey',
+        namespace: 'event-id',
+        keySelector: { source: 'body', segments: ['a:b|c'] },
+      },
+    })
+  })
+
+  it('reports a malformed bracket key with the selector parser\'s reason', () => {
+    expect(() => parseExpr("$['a | upper")).toThrow(/unterminated quoted key/)
+    expect(() => parseExpr("$[''] | upper")).toThrow(/empty quoted key/)
+    expect(() => parseExpr("$['a'b']")).toThrow(/expected "\]" after quoted key/)
+  })
+
   it('rejects a blocked header selector at parse time', () => {
     expect(() => parseExpr('header:authorization')).toThrow(ExprParseError)
     expect(() => parseExpr('header:cookie')).toThrow(ExprParseError)

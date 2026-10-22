@@ -41,7 +41,9 @@ const BLOCKED_HEADERS = new Set([
   'set-cookie',
 ])
 const PROFILE_KEY_NAMESPACE_RE = /^[a-z0-9][a-z0-9_-]*$/
-const BODY_TOKEN_RE = /\.([a-zA-Z_][a-zA-Z0-9_]*)|\[(\d+)\]/g
+const BODY_IDENT_RE = /^[a-zA-Z_][a-zA-Z0-9_]*$/
+const BODY_IDENT_AT = /[a-zA-Z_][a-zA-Z0-9_]*/y
+const BODY_INDEX_AT = /(\d+)\]/y
 const BEARER_TOKEN_RE = /^Bearer +([a-zA-Z0-9\-._~+/]+=*)$/i
 
 export function parseProfileIdSelector(raw: string): ProfileIdSelector {
@@ -103,21 +105,53 @@ export function parseSelector(raw: string): Selector {
   )
 }
 
+// Segments: `.ident`, `[n]`, and quoted keys `['k']` / `["k"]`. A quoted key
+// is taken verbatim up to the matching quote — there is no escaping — so a key
+// containing one quote kind is written with the other.
 function parseBodyPath(raw: string): Array<string | number> {
-  const rest = raw.slice(1)
+  const fail = (reason?: string) =>
+    new SelectorParseError(`invalid body selector: ${raw}${reason ? ` (${reason})` : ''}`)
   const segments: Array<string | number> = []
-  let consumed = 0
-  BODY_TOKEN_RE.lastIndex = 0
-  let m: RegExpExecArray | null
-  while ((m = BODY_TOKEN_RE.exec(rest)) !== null) {
-    if (m.index !== consumed) throw new SelectorParseError(`invalid body selector: ${raw}`)
-    segments.push(m[1] !== undefined ? m[1] : Number(m[2]))
-    consumed = BODY_TOKEN_RE.lastIndex
+  let i = 1
+  while (i < raw.length) {
+    if (raw[i] === '.') {
+      BODY_IDENT_AT.lastIndex = i + 1
+      const m = BODY_IDENT_AT.exec(raw)
+      if (!m) throw fail()
+      segments.push(m[0])
+      i = BODY_IDENT_AT.lastIndex
+    } else if (raw[i] === '[') {
+      const quote = raw[i + 1]
+      if (quote === "'" || quote === '"') {
+        const close = raw.indexOf(quote, i + 2)
+        if (close === -1) throw fail('unterminated quoted key')
+        const key = raw.slice(i + 2, close)
+        if (key.length === 0) throw fail('empty quoted key')
+        if (raw[close + 1] !== ']') throw fail('expected "]" after quoted key')
+        segments.push(key)
+        i = close + 2
+      } else {
+        BODY_INDEX_AT.lastIndex = i + 1
+        const m = BODY_INDEX_AT.exec(raw)
+        if (!m) throw fail('expected an index or a quoted key after "["')
+        segments.push(Number(m[1]))
+        i = BODY_INDEX_AT.lastIndex
+      }
+    } else {
+      throw fail()
+    }
   }
-  if (consumed !== rest.length || segments.length === 0) {
-    throw new SelectorParseError(`invalid body selector: ${raw}`)
-  }
+  if (segments.length === 0) throw fail()
   return segments
+}
+
+// The inverse of parseBodyPath, for messages: ['a', 'b-c', 0] → "$.a['b-c'][0]".
+export function formatBodyPath(segments: Array<string | number>): string {
+  return segments.reduce<string>((acc, seg) => {
+    if (typeof seg === 'number') return `${acc}[${seg}]`
+    if (BODY_IDENT_RE.test(seg)) return `${acc}.${seg}`
+    return seg.includes("'") ? `${acc}["${seg}"]` : `${acc}['${seg}']`
+  }, '$')
 }
 
 // Extraction separates "the selector resolved to a value" from "no value is

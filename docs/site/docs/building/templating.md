@@ -30,6 +30,7 @@ substituted at request time:
 | `{{faker:person.fullName}}` | A [fake data value](#generating-fake-data) from Faker (e.g. `Herminia Fadel`) |
 | `{{pick:red:green:blue}}` | One of [your own listed values](#choosing-a-value-from-your-own-list), chosen per caller (e.g. `green`) |
 | `{{$.path.in.body}}` | A value pulled from the request body |
+| `{{$['order-id']}}` | A request-body value whose key the dot form can't spell, such as one with a hyphen |
 | `{{path:name}}` | A path parameter from the URL |
 | `{{query:name}}` | A query-string parameter |
 | `{{header:name}}` | A request header, matched case-insensitively |
@@ -69,7 +70,26 @@ computed in UTC.
 
 Selector placeholders use the reusable body/path/query/header selector grammar,
 so you can echo request data straight into the response (e.g.
-`"customerId": "{{$.customerId}}"`). Bearer selectors are deliberately not
+`"customerId": "{{$.customerId}}"`). Body selectors follow the
+[body path grammar](profiles.md#body-path-grammar), bracket keys included, so a
+request with kebab-case keys echoes back the same way:
+
+```json
+{
+  "status": 200,
+  "body": {
+    "transactionId": "{{$['assessment-request']['transaction-id']}}",
+    "reference": "TXN-{{$['assessment-request']['transaction-id'] | upper}}"
+  }
+}
+```
+
+Characters that are special in a placeholder — `:`, `|`, and `}}` — are
+ordinary text inside a bracket key, so `{{$['urn:id'] | upper}}` reads the key
+`urn:id`. In a fixture file the placeholder sits inside a JSON string, so write
+the single-quoted form, or escape the double quotes: `"{{$[\"order-id\"]}}"`.
+
+Bearer selectors are deliberately not
 available to placeholders, so an authorization credential cannot be echoed into a
 fixture response.
 
@@ -344,8 +364,8 @@ The grammar, in full:
 - **Typed arguments:** a decimal number becomes a number, `true`/`false` become
   booleans, a `'single-quoted'` token is a literal string (quotes stripped —
   and `:` or `|` inside the quotes are literal characters, not separators), a
-  `$.…` token is resolved against the request body, and any other bare token is
-  a string. A quote only opens a literal at the **start** of a token, so an
+  token starting with `$` (`$.status`, `$['order-id']`) is resolved against the
+  request body, and any other bare token is a string. A quote only opens a literal at the **start** of a token, so an
   apostrophe inside a bare word stays ordinary text (`label:it's` is the string
   `it's`); a quote that opens a token and never closes (`pad:'oops`) is a
   catalog error, not a literal. A trailing colon with nothing after it is the

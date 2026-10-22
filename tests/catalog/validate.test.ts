@@ -264,6 +264,59 @@ describe('validateCatalog', () => {
     ).toMatch(/path:eventId.*no matching/)
   })
 
+  it('accepts bracket-key body selectors in every selector position, loaded from disk', () => {
+    const dir = tmpCatalogDir({
+      'test-system/_system.json': { displayName: 'Test System', baseUrlEnv: 'TEST_URL' },
+      'test-system/assess/_endpoint.json': {
+        displayName: 'Assess',
+        method: 'POST',
+        path: '/assess',
+        profileIdSelector: "$['assessment-request']['customer-id']",
+        captureProfileKeys: [
+          { namespace: 'event-id', keySelector: "$['assessment-request']['transaction-id']" },
+        ],
+      },
+      'test-system/assess/default.json': {
+        status: 200,
+        body: { txn: "{{$['assessment-request']['transaction-id']}}" },
+      },
+      'test-system/callback/_endpoint.json': {
+        displayName: 'Callback',
+        method: 'POST',
+        path: '/callback',
+        profileIdSelector: "profileKey:event-id:$['assessment-request']['transaction-id']",
+      },
+      'test-system/callback/default.json': {
+        status: 200,
+        body: { txn: '{{$["assessment-request"]["transaction-id"] | upper}}' },
+      },
+    })
+    expect(validateCatalog(loadCatalog(dir), dir).errors).toEqual([])
+  })
+
+  it('rejects malformed bracket selectors with the reason, wherever they appear', () => {
+    const dir = tmpCatalogDir({ 'test-system/hello_world/default.json': GOOD_FIXTURE })
+    const errorsFor = (overrides: Partial<EndpointDef>) =>
+      validateCatalog(catalog([endpoint(overrides)]), dir).errors.join('\n')
+
+    expect(errorsFor({ profileIdSelector: "$['assessment-request" })).toMatch(
+      /invalid body selector.*unterminated quoted key/,
+    )
+    expect(errorsFor({ profileIdSelector: "profileKey:event-id:$['']" })).toMatch(/empty quoted key/)
+    expect(
+      errorsFor({
+        captureProfileKeys: [{ namespace: 'event-id', keySelector: `$["a']` }],
+      } as Partial<EndpointDef>),
+    ).toMatch(/captureProfileKeys\[0\]\.keySelector.*unterminated quoted key/)
+
+    const fixtureDir = tmpCatalogDir({
+      'test-system/hello_world/default.json': { status: 200, body: { a: "{{$['a'b']}}" } },
+    })
+    expect(validateCatalog(catalog([endpoint()]), fixtureDir).errors.join('\n')).toMatch(
+      /expected "\]" after quoted key/,
+    )
+  })
+
   it('rejects captureProfileKeys on endpoints resolved through profileKey mappings', () => {
     const dir = tmpCatalogDir({ 'test-system/hello_world/default.json': GOOD_FIXTURE })
     expect(
@@ -762,6 +815,13 @@ describe('validateCatalog optional-field lint (#27)', () => {
   it('flags an optional selector in a call-argument position', () => {
     // `{{upper:$.middleName}}` reads $.middleName as upper's argument.
     expect(run({ a: '{{upper:$.middleName}}' }).join('\n')).toMatch(/\$\.middleName.*lets callers omit/)
+  })
+
+  it('flags an optional hyphenated field and names it in bracket form', () => {
+    const kebab = { type: 'object', required: ['customer-id'], properties: { 'customer-id': {}, 'middle-name': {} } }
+    const out = run({ a: "{{$['middle-name']}}", b: '{{$["customer-id"]}}' }, kebab).join('\n')
+    expect(out).toMatch(/\$\['middle-name'\].*lets callers omit/)
+    expect(out).not.toMatch(/customer-id/)
   })
 
   it('does not flag a field absent from a schema (no request schema)', () => {

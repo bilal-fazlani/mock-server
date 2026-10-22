@@ -1,0 +1,7 @@
+{
+  "status": 200,
+  "body": {
+    "customerId": "{{$['assessment-request']['customer-id']}}",
+    "transactionId": "{{$[\"assessment-request\"][\"transaction-id\"]}}"
+  }
+}

@@ -317,6 +317,29 @@ describe('resolveTemplate', () => {
     expect(resolveTemplate({ n: '{{$.name | upper}}' }, c, now)).toEqual({ n: 'BILAL' })
   })
 
+  it('resolves bracket-key placeholders, typed and interpolated', () => {
+    const c = ctx({ body: { 'assessment-request': { 'transaction-id': 'abc-123', 'amount-due': 12.5 } } })
+    expect(
+      resolveTemplate(
+        {
+          id: "{{$['assessment-request']['transaction-id']}}",
+          amount: '{{$["assessment-request"]["amount-due"]}}',
+          label: "txn {{$['assessment-request']['transaction-id'] | upper}}!",
+        },
+        c,
+        now,
+      ),
+    ).toEqual({ id: 'abc-123', amount: 12.5, label: 'txn ABC-123!' })
+  })
+
+  it('does not end a placeholder at "}}" inside a bracket key', () => {
+    const c = ctx({ body: { 'a}}b': 'x' } })
+    expect(resolveTemplate({ v: "{{$['a}}b']}}", w: "<{{$['a}}b']}}>" }, c, now)).toEqual({
+      v: 'x',
+      w: '<x>',
+    })
+  })
+
   it('errors on an unknown function name at resolve time', () => {
     expect(() => resolveTemplate({ n: '{{$.name | bogus}}' }, ctx({ body: { name: 'x' } }), now))
       .toThrow(PlaceholderError)
@@ -331,6 +354,22 @@ describe('listPlaceholders', () => {
       d: 12,
     })
     expect(found.sort()).toEqual(['$.x', 'now:iso', 'path:p'])
+  })
+})
+
+describe('listPlaceholders with bracket keys', () => {
+  it('treats a quoted bracket key as part of its placeholder', () => {
+    expect(listPlaceholders({ a: "{{$['a}}b'] | upper}} and {{$.c}}" })).toEqual([
+      "$['a}}b'] | upper",
+      '$.c',
+    ])
+  })
+
+  it('leaves a literal "[\'" that follows no selector segment alone', () => {
+    expect(listPlaceholders({ a: "{{label:'['}} and {{label:x']}}" })).toEqual([
+      "label:'['",
+      "label:x']",
+    ])
   })
 })
 

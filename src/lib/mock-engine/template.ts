@@ -58,7 +58,10 @@ export interface TemplateOptions {
   timeoutMs?: number
 }
 
-const PLACEHOLDER_RE = /\{\{(.+?)\}\}/g
+// A selector's quoted bracket key is consumed whole, so a key containing "}}"
+// does not end the placeholder. The lookbehind keeps a literal "['" that does
+// not follow a selector segment from being read as one.
+const PLACEHOLDER_RE = /\{\{((?:(?<=[\w$\]])\[(?:'[^']*'|"[^"]*")\]|.)+?)\}\}/g
 
 /**
  * FNV-1a 32-bit hash. Stable across releases (documented) — used only to

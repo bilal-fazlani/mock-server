@@ -30,7 +30,7 @@ Each endpoint directory needs one `_endpoint.json`:
 | `method` | yes | HTTP method (`GET`, `POST`, …). Matched case-insensitively. |
 | `path` | yes | Path template, must start with `/`. Literal segments plus `{param}` placeholders — see [Path templates](#path-templates). |
 | `mockType` | no | `profiled` (default) means scenario selection comes from the resolved profile. `global` means one shared scenario applies to every caller and no profile lookup happens. |
-| `profileIdSelector` | profiled only | How to pull the business ID from the request (body, path, query, or Bearer token). Required for profiled endpoints and forbidden for global endpoints — see [Profiles](profiles.md). |
+| `profileIdSelector` | profiled only | How to pull the business ID from the request (body, path, query, header, Bearer token, or a captured key). Required for profiled endpoints and forbidden for global endpoints — see [Profiles](profiles.md). |
 | `captureProfileKeys` | no | Array of external keys to store against the resolved profile ID before serving the response. Each entry has `namespace` and `keySelector`. Only direct-profile endpoints may capture keys; global endpoints cannot — see [Profile key mappings](profiles.md#profile-key-mappings). |
 
 There is no `scenarios` field to fill in. Scenarios are discovered from the
