@@ -1,5 +1,4 @@
-import fs from 'node:fs'
-import path from 'node:path'
+import { catalogPath, exists, readText } from '../catalog/files'
 
 export interface Fixture {
   displayName?: string
@@ -20,7 +19,7 @@ export function fixtureFilePath(
   endpointSlug: string,
   scenario: string,
 ): string {
-  return path.join(catalogDir, systemSlug, endpointSlug, `${scenario}.json`)
+  return catalogPath(catalogDir, systemSlug, endpointSlug, `${scenario}.json`)
 }
 
 export function loadFixture(
@@ -30,10 +29,10 @@ export function loadFixture(
   scenario: string,
 ): Fixture {
   const file = fixtureFilePath(catalogDir, systemSlug, endpointSlug, scenario)
-  if (!fs.existsSync(file)) {
+  if (!exists(file)) {
     throw new FixtureError(`fixture not found: ${file}`)
   }
-  const parsed = JSON.parse(fs.readFileSync(file, 'utf8')) as Fixture
+  const parsed = JSON.parse(readText(file)) as Fixture
   if (typeof parsed.status !== 'number' || !('body' in parsed)) {
     throw new FixtureError(`invalid fixture (requires numeric "status" and "body"): ${file}`)
   }

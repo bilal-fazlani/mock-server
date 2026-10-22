@@ -1,5 +1,4 @@
-import { existsSync, readFileSync, readdirSync } from 'node:fs'
-import { join } from 'node:path'
+import { catalogPath, exists, listDir, readText } from '../catalog/files'
 import { compileFunctions, CompiledFn } from './functions'
 import { RESERVED_NAMES } from './evaluate'
 
@@ -18,15 +17,15 @@ export function loadFunctions(catalogDir: string): LoadedFunctions {
     // `.ts` authoring was dropped (#26) — probing for it only to fail loudly,
     // because a silently ignored `_functions.ts` would make its functions
     // vanish with nothing but confusing downstream placeholder errors.
-    if (existsSync(join(dir, '_functions.ts'))) {
+    if (exists(catalogPath(dir, '_functions.ts'))) {
       problems.push(`${label}: _functions.ts is no longer supported; rename to _functions.mjs and remove type annotations`)
       return new Map()
     }
-    const mjs = join(dir, '_functions.mjs')
-    if (!existsSync(mjs)) return new Map()
+    const mjs = catalogPath(dir, '_functions.mjs')
+    if (!exists(mjs)) return new Map()
     let compiled: Map<string, CompiledFn>
     try {
-      compiled = compileFunctions(readFileSync(mjs, 'utf8'), `${label}/_functions.mjs`)
+      compiled = compileFunctions(readText(mjs), `${label}/_functions.mjs`)
     } catch (err) {
       // compileFunctions already prefixes its messages with the file label.
       problems.push((err as Error).message)
@@ -46,9 +45,9 @@ export function loadFunctions(catalogDir: string): LoadedFunctions {
   const endpointLevels = new Map<string, Level>() // key `${system}/${endpoint}`
 
   for (const sys of dirsOf(catalogDir)) {
-    systemLevels.set(sys, compileAt(join(catalogDir, sys), sys))
-    for (const ep of dirsOf(join(catalogDir, sys))) {
-      endpointLevels.set(`${sys}/${ep}`, compileAt(join(catalogDir, sys, ep), `${sys}/${ep}`))
+    systemLevels.set(sys, compileAt(catalogPath(catalogDir, sys), sys))
+    for (const ep of dirsOf(catalogPath(catalogDir, sys))) {
+      endpointLevels.set(`${sys}/${ep}`, compileAt(catalogPath(catalogDir, sys, ep), `${sys}/${ep}`))
     }
   }
 
@@ -73,7 +72,7 @@ export function loadFunctions(catalogDir: string): LoadedFunctions {
 
 function dirsOf(dir: string): string[] {
   try {
-    return readdirSync(dir, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name)
+    return listDir(dir).filter((e) => e.isDirectory()).map((e) => e.name)
   } catch {
     return []
   }

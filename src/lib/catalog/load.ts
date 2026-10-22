@@ -1,5 +1,6 @@
-import fs from 'node:fs'
+import type { Dirent } from 'node:fs'
 import path from 'node:path'
+import { catalogPath, exists, listDir, readText } from './files'
 import { loadFunctions } from '../mock-engine/functions-load'
 import { type ParsedSpec, SpecError, findSpecFile, parseSpec, resolveEndpointSchema } from './spec'
 import type { Catalog, EndpointDef, ScenarioMeta, SystemDef } from './types'
@@ -24,7 +25,7 @@ export class CatalogLoadError extends Error {}
 // aggregated into one CatalogLoadError; fixture *content* problems are
 // left to validateCatalog so they land in the startup error list.
 export function loadCatalog(catalogDir: string): Catalog {
-  if (!fs.existsSync(catalogDir)) {
+  if (!exists(catalogDir)) {
     throw new CatalogLoadError(
       `catalog directory not found: ${catalogDir}\n` +
         'Pass the catalog directory as an argument, set CATALOG_PATH, ' +
@@ -42,15 +43,15 @@ export function loadCatalog(catalogDir: string): Catalog {
       continue
     }
     const slug = sysEntry.name
-    const systemDir = path.join(catalogDir, slug)
-    const sysMeta = readMetaFile(path.join(systemDir, SYSTEM_META), problems)
+    const systemDir = catalogPath(catalogDir, slug)
+    const sysMeta = readMetaFile(catalogPath(systemDir, SYSTEM_META), problems)
     if (!sysMeta) continue
 
     let spec: ParsedSpec | null = null
     try {
       const specFile = findSpecFile(systemDir)
       if (specFile) {
-        spec = parseSpec(fs.readFileSync(specFile, 'utf8'), `${slug}/${path.basename(specFile)}`)
+        spec = parseSpec(readText(specFile), `${slug}/${path.basename(specFile)}`)
       }
     } catch (err) {
       if (err instanceof SpecError) problems.push(`${slug}: ${err.message}`)
@@ -67,8 +68,8 @@ export function loadCatalog(catalogDir: string): Catalog {
         continue
       }
       const endpointSlug = epEntry.name
-      const endpointDir = path.join(systemDir, endpointSlug)
-      const epMeta = readMetaFile(path.join(endpointDir, ENDPOINT_META), problems)
+      const endpointDir = catalogPath(systemDir, endpointSlug)
+      const epMeta = readMetaFile(catalogPath(endpointDir, ENDPOINT_META), problems)
       if (!epMeta) continue
 
       const label = `${slug}/${endpointSlug}`
@@ -76,8 +77,8 @@ export function loadCatalog(catalogDir: string): Catalog {
       const method = requireString(epMeta, 'method', label, problems)
       const endpointPath = requireString(epMeta, 'path', label, problems)
 
-      const schemaFile = path.join(endpointDir, SCHEMA_META)
-      const hasSchemaFile = fs.existsSync(schemaFile)
+      const schemaFile = catalogPath(endpointDir, SCHEMA_META)
+      const hasSchemaFile = exists(schemaFile)
       let schemaMeta: Record<string, unknown> | null = null
       if (spec) {
         if (hasSchemaFile) {
@@ -130,7 +131,7 @@ export function loadCatalog(catalogDir: string): Catalog {
           scenarios[scenario] ??= { displayName: scenario }
         } else {
           fixtureSlugs.add(scenario)
-          const meta = parseScenarioFile(path.join(endpointDir, fixEntry.name))
+          const meta = parseScenarioFile(catalogPath(endpointDir, fixEntry.name))
           if (meta.legacyDescription) {
             problems.push(
               `${slug}/${endpointSlug}: ${fixEntry.name} uses "description"; rename it to "displayName"`,
@@ -211,20 +212,19 @@ function optionalProfileIdSelector(
   return typeof value === 'string' && value.length > 0 ? { profileIdSelector: value } : {}
 }
 
-function sortedEntries(dir: string): fs.Dirent[] {
-  return fs
-    .readdirSync(dir, { withFileTypes: true })
+function sortedEntries(dir: string): Dirent[] {
+  return listDir(dir)
     .filter((e) => !e.name.startsWith('.'))
     .sort((a, b) => a.name.localeCompare(b.name))
 }
 
 function readMetaFile(file: string, problems: string[]): Record<string, unknown> | null {
-  if (!fs.existsSync(file)) {
+  if (!exists(file)) {
     problems.push(`missing metadata file: ${file}`)
     return null
   }
   try {
-    const parsed: unknown = JSON.parse(fs.readFileSync(file, 'utf8'))
+    const parsed: unknown = JSON.parse(readText(file))
     if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
       return parsed as Record<string, unknown>
     }
@@ -307,7 +307,7 @@ function parseScenarioFile(file: string): {
   status: number | null
 } {
   try {
-    const parsed: unknown = JSON.parse(fs.readFileSync(file, 'utf8'))
+    const parsed: unknown = JSON.parse(readText(file))
     if (parsed && typeof parsed === 'object') {
       const obj = parsed as {
         displayName?: unknown

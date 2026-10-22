@@ -1,4 +1,4 @@
-import path from 'node:path'
+import { catalogPath } from '../catalog/files'
 import vm from 'node:vm'
 import { transformSync } from 'esbuild'
 
@@ -35,7 +35,7 @@ export function resolverFilePath(
   endpointSlug: string,
   slug: string,
 ): string {
-  return path.join(catalogDir, systemSlug, endpointSlug, `${slug}.mjs`)
+  return catalogPath(catalogDir, systemSlug, endpointSlug, `${slug}.mjs`)
 }
 
 export function compileResolver(source: string, label: string): CompiledResolver {
