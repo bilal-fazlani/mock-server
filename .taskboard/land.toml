@@ -1,0 +1,10 @@
+# How a ticket lands in this repo; read by the taskboard runner's lander.
+default_branch = "main"
+
+# Run in order after the rebase; each must pass.
+test = [
+  "npm ci && npm run typecheck && npm test && npm run lint && npm run build && npm run check:prerender && npm run validate:catalog",
+]
+
+# ff-only, merge or squash
+merge = "ff-only"
