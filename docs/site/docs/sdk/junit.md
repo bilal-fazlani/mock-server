@@ -251,7 +251,7 @@ profile.verify(endpoint("quote").called(never()));
 | `endpoint(name)` | The endpoint the verification is about, by catalog name. |
 | `called(once())` · `times(n)` | Exactly that many matching calls. |
 | `called(atLeast(n))` · `atMost(n)` · `never()` | A bound. With no `called(…)` at all, the expectation is `atLeast(1)`. |
-| `.withBodyPath(path, expected)` | The request body carries a value at a [body path](../building/profiles.md#profile-id-extraction-selectors). |
+| `.withBodyPath(path, expected)` | The request body carries a value at a [body path](../building/profiles.md#body-path-grammar). |
 | `.withQueryParam(name, value)` | The request carried that query parameter. A repeated key matches when any of its values does; values compare after percent-decoding. |
 | `.withHeader(name, value)` | The request carried that header. The name matches case-insensitively; the value does not. |
 
@@ -262,7 +262,9 @@ reading twice:
 charge was never called **with that amount** — not that charge was never called.
 
 `withBodyPath` uses the mock server's own body-path grammar, **not JSONPath**:
-`$` followed by `.key` and `[index]` segments. `$.items[0].sku` is a body path;
+`$` followed by `.key`, `['quoted-key']` and `[index]` segments. `$.items[0].sku` is a body path,
+and so is `withBodyPath("$['transaction-id']", "abc-123")`, the way to reach a key that is
+not a plain identifier, such as one with a hyphen;
 wildcards, filters, and recursive descent are rejected rather than quietly
 matching nothing. Values compare by JSON kind — a body carrying `"100"` does not
 satisfy an expected `100` — and numbers compare **by value**, so `100` matches a
