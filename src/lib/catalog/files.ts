@@ -1,18 +1,13 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-// Build and read catalog paths only through here. Next's output file tracing
-// treats a path.join/resolve it can partly evaluate in server code as a file
-// reference and globs the project for it into .next/standalone (the
-// whole-project-trace warning); it doesn't follow these parameters across the
-// module boundary.
+// Join and read catalog paths only through here. Next's output file tracing
+// treats a path.join it can partly evaluate in server code as a file reference
+// and globs the project for it into .next/standalone (the whole-project-trace
+// warning); it doesn't follow these parameters across the module boundary.
 
 export function catalogPath(...parts: string[]): string {
   return path.join(...parts)
-}
-
-export function resolveCatalogPath(p: string): string {
-  return path.resolve(p)
 }
 
 export function exists(file: string): boolean {
