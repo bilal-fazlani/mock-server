@@ -29,13 +29,6 @@ export interface MockProfile {
 /** A `PUT`'s `ttl`: a duration to (re)start the expiry with, or `false` for none. */
 export type ProfileTtlRequest = string | false
 
-/**
- * A mocked request rewrites `expiresAt` only once it lags `now + ttl` by this
- * much, or by half the ttl when that is shorter — otherwise a ttl of a minute or
- * less would lapse between two throttled writes under steady traffic.
- */
-export const REQUEST_SLIDE_STEP_MS = 60_000
-
 export interface ScenarioProgress {
   profileId: string
   endpointName: string
@@ -289,7 +282,7 @@ export async function getProfile(
     .findOne({ profileId, ...liveProfileFilter(now) }, { projection: { _id: 0 } })
 }
 
-/** A mocked request's profile lookup: also slides the expiry, at most about once a minute. */
+/** A mocked request's profile lookup: also slides the expiry on every request. */
 export async function getProfileForRequest(
   db: Db,
   profileId: string,
@@ -297,26 +290,22 @@ export async function getProfileForRequest(
 ): Promise<MockProfile | null> {
   const profile = await getProfile(db, profileId, now)
   if (profile?.ttl !== undefined) {
-    const step = Math.min(REQUEST_SLIDE_STEP_MS, ttlMs(profile.ttl) / 2)
-    await slideProfileExpiry(db, profile, now, step)
+    await slideProfileExpiry(db, profile, now)
   }
   return profile
 }
 
 /**
- * Restarts a profile's expiry from `now` by its own stored `ttl`, unless that
- * moves it by less than `minStepMs`. Never adds an expiry, never revives an
+ * Restarts a profile's expiry from `now` by its own stored `ttl`. Never adds an expiry, never revives an
  * expired profile, and never pulls an expiry earlier.
  */
 export async function slideProfileExpiry(
   db: Db,
   profile: Pick<MockProfile, 'profileId' | 'ttl' | 'expiresAt'>,
   now = new Date(),
-  minStepMs = 0,
 ): Promise<void> {
   if (profile.ttl === undefined || profile.expiresAt === undefined) return
   const target = new Date(now.getTime() + ttlMs(profile.ttl))
-  if (target.getTime() - profile.expiresAt.getTime() < minStepMs) return
   await db
     .collection<MockProfile>('mockProfiles')
     .updateOne(

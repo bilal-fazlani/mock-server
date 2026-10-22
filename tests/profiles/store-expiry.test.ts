@@ -194,32 +194,24 @@ describe('expired profiles read as absent', () => {
 })
 
 describe('mocked requests slide the expiry', () => {
-  it('writes once the expiry lags now + ttl by a minute or more', async () => {
+  it('restarts the expiry on every request, however soon after the last', async () => {
     await put('p', '1h', T0)
-    await getProfileForRequest(db, 'p', at(MIN))
-    expect((await raw('p'))!.expiresAt).toEqual(at(MIN + HOUR))
+    await getProfileForRequest(db, 'p', at(1))
+    expect((await raw('p'))!.expiresAt).toEqual(at(1 + HOUR))
+    await getProfileForRequest(db, 'p', at(2))
+    expect((await raw('p'))!.expiresAt).toEqual(at(2 + HOUR))
   })
 
-  it('skips the write when the expiry lags by less than a minute', async () => {
-    await put('p', '1h', T0)
-    await getProfileForRequest(db, 'p', at(MIN - 1))
-    expect((await raw('p'))!.expiresAt).toEqual(at(HOUR))
-  })
-
-  it('keeps a profile with the shortest ttl alive under steady traffic', async () => {
+  it('keeps a profile idle for just under its ttl alive, then restarts the full ttl', async () => {
     await put('p', '1m', T0)
-    for (let ms = 5_000; ms <= 5 * MIN; ms += 5_000) {
-      expect(await getProfileForRequest(db, 'p', at(ms))).not.toBeNull()
-    }
-    expect((await raw('p'))!.expiresAt!.getTime()).toBeGreaterThan(at(5 * MIN).getTime())
+    expect(await getProfileForRequest(db, 'p', at(MIN - 1))).not.toBeNull()
+    expect((await raw('p'))!.expiresAt).toEqual(at(MIN - 1 + MIN))
+    expect(await getProfileForRequest(db, 'p', at(2 * MIN - 2))).not.toBeNull()
   })
 
-  it('throttles a ttl under two minutes to half its length', async () => {
+  it('expires a profile idle for its full ttl', async () => {
     await put('p', '1m', T0)
-    await getProfileForRequest(db, 'p', at(29_999))
-    expect((await raw('p'))!.expiresAt).toEqual(at(MIN))
-    await getProfileForRequest(db, 'p', at(30_000))
-    expect((await raw('p'))!.expiresAt).toEqual(at(30_000 + MIN))
+    expect(await getProfileForRequest(db, 'p', at(MIN))).toBeNull()
   })
 
   it('slides by the stored ttl and never adds an expiry', async () => {

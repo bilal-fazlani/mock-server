@@ -143,9 +143,9 @@ up after themselves while the ones you curate by hand stay put.
 
 The expiry **slides**: it restarts from now on every mocked request that resolves
 to the profile, every API `PUT`, every UI save and every reset. A profile in
-steady use never expires; one left idle for its `ttl` does. Under heavy traffic the
-restart is written at most about once a minute per profile, or once per half its
-`ttl` when that is shorter. A `ttl` is a whole number of minutes, hours or days,
+steady use never expires; one left idle for its `ttl` does. Each restart is a
+database write, so every mocked request to an expiring profile costs one; a profile
+without an expiry costs none. A `ttl` is a whole number of minutes, hours or days,
 from `1m` to `365d`. There is no maximum lifetime: a profile in use keeps going
 past its `ttl`.
 
