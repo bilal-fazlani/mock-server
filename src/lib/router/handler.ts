@@ -166,6 +166,7 @@ function requestConsoleSeverity(trace: RouteTrace): ConsoleLogLevel {
   if (trace.error?.code === 'no_match') return 'warn'
   if (trace.outcome === 'error') return 'error'
   if (trace.scenarioSource === 'unmocked_policy') return 'warn'
+  if (trace.scenarioSource === 'unmatched_policy') return 'warn'
   if (trace.validation?.request === 'drift_warning') return 'warn'
   if (trace.validation?.response === 'drift_warning') return 'warn'
   return 'info'
@@ -183,6 +184,7 @@ function formatRequestConsoleLine(input: {
   else if (trace.system) details.push(trace.system)
   if (trace.profileId) details.push(`profile=${trace.profileId}`)
   if (trace.scenario) details.push(`scenario=${trace.scenario}`)
+  if (trace.scenarioSource === 'unmatched_policy') details.push('source=unmatched_policy')
   if (trace.scenarioSource === 'unmocked_policy') {
     details.push('source=unmocked_policy')
     // Only on this branch: elsewhere the selector is noise on a line that is

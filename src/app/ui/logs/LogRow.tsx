@@ -808,6 +808,10 @@ const scenarioSourceViews: Record<ScenarioSource, { label: string; tooltip: stri
     label: 'Unmocked user policy',
     tooltip: 'The profile was not found, so UNMOCKED_USERS chose this scenario.',
   },
+  unmatched_policy: {
+    label: 'Unmatched endpoint policy',
+    tooltip: 'No endpoint matched, so UNMATCHED_ENDPOINTS forwarded the request to the real system.',
+  },
 }
 
 function scenarioSourceView(source: ScenarioSource): { label: string; tooltip: string } {

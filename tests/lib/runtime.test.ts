@@ -87,6 +87,25 @@ describe('getRuntime', () => {
     expect(() => getRuntime()).toThrow(/BIND_ADDRESS must be an IPv4 or IPv6 address.*"my-host"/)
   })
 
+  it('defaults UNMATCHED_ENDPOINTS to ERROR, accepts REAL, and fails startup on anything else', async () => {
+    process.chdir(__dirname + '/../..')
+    process.env = { ...originalEnv }
+    delete process.env.UNMATCHED_ENDPOINTS
+    vi.resetModules()
+    let mod = await import('../../src/lib/runtime')
+    expect(mod.getRuntime().unmatchedEndpoints).toBe('ERROR')
+
+    process.env = { ...originalEnv, UNMATCHED_ENDPOINTS: 'real' }
+    vi.resetModules()
+    mod = await import('../../src/lib/runtime')
+    expect(mod.getRuntime().unmatchedEndpoints).toBe('REAL')
+
+    process.env = { ...originalEnv, UNMATCHED_ENDPOINTS: 'DEFAULT_MOCK' }
+    vi.resetModules()
+    mod = await import('../../src/lib/runtime')
+    expect(() => mod.getRuntime()).toThrow(/UNMATCHED_ENDPOINTS must be one of ERROR, REAL/)
+  })
+
   it('fails startup when PORT is not a port number', async () => {
     process.chdir(__dirname + '/../..')
     process.env = { ...originalEnv, PORT: 'eighty' }

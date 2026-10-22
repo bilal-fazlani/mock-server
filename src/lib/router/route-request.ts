@@ -9,7 +9,7 @@ import {
   RequestContext,
 } from '../catalog/selector'
 import type { Catalog, EndpointDef, SystemDef } from '../catalog/types'
-import type { UnmockedUsers } from '../config'
+import type { UnmatchedEndpoints, UnmockedUsers } from '../config'
 import type { DynamicOwnerType } from '../dynamic/history-store'
 import type { LogOutcome, LogTraceData, ValidationResult } from '../logs/store'
 import { resolveClientIdentity } from '../client-identity'
@@ -66,6 +66,7 @@ export interface RouterDeps {
   schemas?: SchemaRegistry
   passthroughAsDefault: boolean
   unmockedUsers: UnmockedUsers
+  unmatchedEndpoints?: UnmatchedEndpoints
   timeoutMs: number
   env: Record<string, string | undefined>
   getProfile: (profileId: string) => Promise<MockProfile | null>
@@ -136,6 +137,7 @@ export async function routeRequest(
   trace.system = system.slug
   const match = findEndpoint(system, req.method, req.path)
   if (!match) {
+    if (deps.unmatchedEndpoints === 'REAL') return forwardUnmatched(system, req, deps, trace)
     traceError(trace, 'no_match', `no matching endpoint for ${req.method} ${req.path}`)
     return jsonResult(404, {
       error: 'no matching endpoint',
@@ -638,6 +640,59 @@ async function captureProfileKeys(
     }
   }
   return null
+}
+
+async function forwardUnmatched(
+  system: SystemDef,
+  req: IncomingRequest,
+  deps: RouterDeps,
+  trace: RouteTrace,
+): Promise<RouteResult> {
+  trace.scenarioSource = 'unmatched_policy'
+  const baseUrl = deps.env[system.baseUrlEnv]
+  if (!baseUrl) {
+    traceError(trace, 'missing_base_url', `environment variable ${system.baseUrlEnv} is not set`)
+    return jsonResult(502, {
+      error: `environment variable ${system.baseUrlEnv} is not set`,
+      system: system.slug,
+    })
+  }
+  const identity = resolveClientIdentity(system, deps.env)
+  if (!identity.ok) {
+    traceError(trace, identity.code, identity.message)
+    return jsonResult(500, { error: identity.message, system: system.slug })
+  }
+  const targetUrl = `${baseUrl}${req.path}${req.search}`
+  const startedAt = Date.now()
+  let proxied: ProxiedResponse
+  try {
+    proxied = await deps.passthrough({
+      baseUrl,
+      method: req.method,
+      path: req.path,
+      search: req.search,
+      headers: req.headers,
+      rawBody: req.rawBody,
+      timeoutMs: deps.timeoutMs,
+      ...(identity.identity && { clientIdentity: { system: system.slug, ...identity.identity } }),
+    })
+  } catch (err) {
+    const message = passthroughFailureMessage(err)
+    traceError(trace, 'passthrough_failed', `passthrough to ${targetUrl} failed: ${message}`)
+    return jsonResult(502, {
+      error: 'passthrough request failed',
+      system: system.slug,
+      upstream: targetUrl,
+      message,
+    })
+  }
+  trace.outcome = 'passthrough'
+  trace.upstream = {
+    url: targetUrl,
+    status: proxied.status,
+    durationMs: Date.now() - startedAt,
+  }
+  return { status: proxied.status, headers: proxied.headers, bodyBytes: proxied.bodyBytes }
 }
 
 async function proxy(

@@ -1014,6 +1014,79 @@ describe('system scoping', () => {
   })
 })
 
+describe('UNMATCHED_ENDPOINTS', () => {
+  it('ERROR (and unset) answers 404 naming the system and records no_match', async () => {
+    for (const unmatchedEndpoints of [undefined, 'ERROR' as const]) {
+      const trace: RouteTrace = {}
+      const d = deps({ unmatchedEndpoints, trace })
+      const res = await routeRequest(post('/nope', {}), d)
+      expect(res.status).toBe(404)
+      expect(json(res)).toMatchObject({ error: 'no matching endpoint', method: 'POST', path: '/nope' })
+      expect(trace.error?.code).toBe('no_match')
+      expect(d.passthroughCalls).toHaveLength(0)
+    }
+  })
+
+  it('REAL forwards to the system base URL and marks the trace unmatched_policy', async () => {
+    const trace: RouteTrace = {}
+    const d = deps({ unmatchedEndpoints: 'REAL', trace })
+    const res = await routeRequest(post('/nope', { a: 1 }), d)
+    expect(res.status).toBe(299)
+    expect(d.passthroughCalls).toHaveLength(1)
+    expect(d.passthroughCalls[0]).toMatchObject({
+      baseUrl: 'http://real.example',
+      method: 'POST',
+      path: '/nope',
+      timeoutMs: 1000,
+    })
+    expect(trace.scenarioSource).toBe('unmatched_policy')
+    expect(trace.outcome).toBe('passthrough')
+    expect(trace.endpoint).toBeUndefined()
+    expect(trace.error).toBeUndefined()
+    expect(trace.upstream?.url).toBe('http://real.example/nope')
+  })
+
+  it('REAL answers 502 naming the variable when baseUrlEnv is unset', async () => {
+    const trace: RouteTrace = {}
+    const d = deps({ unmatchedEndpoints: 'REAL', env: {}, trace })
+    const res = await routeRequest(post('/nope', {}), d)
+    expect(res.status).toBe(502)
+    expect(json(res).error).toContain('TEST_SYSTEM_URL')
+    expect(d.passthroughCalls).toHaveLength(0)
+    expect(trace.error?.code).toBe('missing_base_url')
+  })
+
+  it('REAL relays the passthrough timeout response (504)', async () => {
+    const d = deps({
+      unmatchedEndpoints: 'REAL',
+      passthrough: async () => ({ status: 504, headers: {}, bodyBytes: Buffer.from('{}') }),
+    })
+    const res = await routeRequest(post('/nope', {}), d)
+    expect(res.status).toBe(504)
+  })
+
+  it('REAL answers 502 when the passthrough throws', async () => {
+    const trace: RouteTrace = {}
+    const d = deps({
+      unmatchedEndpoints: 'REAL',
+      trace,
+      passthrough: async () => {
+        throw new Error('boom')
+      },
+    })
+    const res = await routeRequest(post('/nope', {}), d)
+    expect(res.status).toBe(502)
+    expect(trace.error?.code).toBe('passthrough_failed')
+  })
+
+  it('does not affect a request an endpoint matched', async () => {
+    const d = deps({ unmatchedEndpoints: 'REAL' })
+    const res = await routeRequest(post('/hello/world', { customerId: 'ghost' }), d)
+    expect(d.passthroughCalls).toHaveLength(0)
+    expect(res.status).not.toBe(299)
+  })
+})
+
 describe('malformed requests — always loud, in every configuration', () => {
   it.each(['ERROR', 'DEFAULT_MOCK', 'REAL'] as const)(
     '404s on unknown endpoint (UNMOCKED_USERS=%s)',

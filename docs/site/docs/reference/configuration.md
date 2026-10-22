@@ -22,6 +22,7 @@ name the build the server reports — live in
 | `MONGODB_DB` | Database name<br>(default `mockDB`) | Name of the MongoDB database holding profiles, global mock selections, profile key mappings, and request logs — used whether the connection is an external MongoDB or the embedded in-memory one. |
 | `PASSTHROUGH_AS_DEFAULT` | `false` (default)<br>`true` | Controls what an omitted selection means. `false`: `default` is the implicit scenario, appears first in pickers, and is not stored when selected. `true`: `real` is the implicit scenario, appears first in pickers, and is not stored when selected. Passthrough itself is always allowed. |
 | `UNMOCKED_USERS` | `DEFAULT_MOCK` (default)<br>`ERROR`<br>`REAL` | What happens when a profiled endpoint extracts a profile ID but **no profile exists** for it. `DEFAULT_MOCK`: serve the endpoint's `default` fixture. `ERROR`: loud `404`. `REAL`: proxy to the live upstream — the classic "mock a few curated users, pass everyone else through" setup. |
+| `UNMATCHED_ENDPOINTS` | `ERROR` (default)<br>`REAL` | What a system's port does with a request that matches **none of that system's endpoints**. `ERROR`: `404` with `{ "error": "no matching endpoint", "system", "method", "path" }`, logged as `no_match`. `REAL`: forward to the system's `baseUrlEnv` — with `PASSTHROUGH_TIMEOUT_MS`, the system's client certificate, `504` on timeout and `502` naming the variable when it is unset. There is no schema-drift check, since no endpoint matched. Forwarded requests are marked `unmatched_policy` in the [request log](../driving/request-logs.md) and printed at `warn`. Case-insensitive; anything else fails at boot. |
 | `PASSTHROUGH_TIMEOUT_MS` | Number of milliseconds<br>(default `30000`) | Timeout for `real` upstream requests. A timeout returns `504`. |
 | `MOCK_CONSOLE_LOG_LEVEL` | `info` (default)<br>`warn`<br>`error` | Controls **whether** a console request line is printed. `info` logs every matched or unmatched mock request. `warn` logs warnings and errors. `error` logs only framework/routing/setup failures. See [Console logs](../driving/console-logs.md). |
 | `MOCK_LOG_FORMAT` | `text` (default)<br>`json` | Controls **how** console lines are serialized, independent of the level above. `text` prints the human one-liner built for a terminal. `json` prints one ECS-style object per line (`@timestamp`, `log.level`, `message`, `http.*`, `mock.*`) for Kibana or Datadog. See [Console logs](../driving/console-logs.md#json-format). |
@@ -46,6 +47,17 @@ name the build the server reports — live in
     endpoints. Malformed requests — invalid JSON body, a selector that doesn't
     resolve — are always loud `400`s, in every configuration. Global endpoints do
     not use `UNMOCKED_USERS`.
+
+!!! note "`UNMATCHED_ENDPOINTS` and `UNMOCKED_USERS` combine"
+
+    `UNMATCHED_ENDPOINTS` applies when *no endpoint matched*; `UNMOCKED_USERS`
+    applies after one matched but its profile ID has no profile. They are
+    independent. `UNMATCHED_ENDPOINTS=REAL` with `UNMOCKED_USERS=REAL` forwards
+    everything you haven't mocked explicitly — start a system with no endpoints
+    and mock them one at a time, using the request log's `unmatched_policy`
+    entries as the list of what to mock next. `ERROR` with `ERROR` is a strict
+    suite. There is no `DEFAULT_MOCK` for unmatched requests: with no endpoint,
+    there is no `default` scenario to serve.
 
 !!! note "Why `DEFAULT_MOCK` is the default"
 

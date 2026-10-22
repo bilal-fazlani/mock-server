@@ -15,7 +15,7 @@ and console line whatever happens next. What the engine does with it, in order:
 
 | # | Step | On failure |
 | --- | --- | --- |
-| 1 | Match `method` + `path` against that system's endpoints. | `404` `{ "error": "no matching endpoint", "system", "method", "path" }` |
+| 1 | Match `method` + `path` against that system's endpoints. | [`UNMATCHED_ENDPOINTS`](configuration.md) policy: `ERROR` (default) → `404` `{ "error": "no matching endpoint", "system", "method", "path" }`; `REAL` → forward to the system's `baseUrlEnv`, logged at `warn` as `unmatched_policy` (the later steps don't run) |
 | 2 | If a body is present, parse it as JSON. | `400` always |
 | 3a | For a profiled endpoint, resolve the profile ID. Reusable direct selectors use body/path/query/header values; Bearer selectors use the opaque credential or a top-level JWT claim; `profileKey` selectors first extract the nested body/path/query/header key, then look up `profileKeyMappings`. | Selector missing or malformed → `400`; mapping missing → `404 profile_key_mapping_not_found` |
 | 3b | For a global endpoint, skip profile ID resolution and read the saved shared selection from `globalMockScenarios`. | — |
@@ -53,7 +53,7 @@ entirely.
 ## App-level configuration
 
 App-wide behavior is governed by a handful of environment variables —
-`PASSTHROUGH_AS_DEFAULT`, `UNMOCKED_USERS`, `PASSTHROUGH_TIMEOUT_MS`,
+`PASSTHROUGH_AS_DEFAULT`, `UNMOCKED_USERS`, `UNMATCHED_ENDPOINTS`, `PASSTHROUGH_TIMEOUT_MS`,
 `MOCK_CONSOLE_LOG_LEVEL`, `MOCK_LOG_FORMAT`, and `RESOLVER_HISTORY_LIMIT`. Each
 one's values and
 defaults are documented as settings in
@@ -78,7 +78,8 @@ loud `500` naming the missing env var. Startup catches that earlier only when
 Malformed requests (invalid JSON body, selector that does not resolve) are always
 loud `400`s. A `profileKey` selector whose key is present but has no stored mapping
 is a loud `404` before profile lookup. `UNMOCKED_USERS` applies only after a
-profile ID has been resolved and the profile itself is missing.
+profile ID has been resolved and the profile itself is missing;
+`UNMATCHED_ENDPOINTS` applies only when no endpoint matched at all.
 
 If a mocked endpoint has an `_schema.json`, a request body that does not match its
 request schema is also a loud `400`. Request-schema validation is skipped when the

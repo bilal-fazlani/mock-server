@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Mock Server runtime-control API",
-    "version": "2.3.0",
+    "version": "2.4.0",
     "summary": "Drive a running mock server — flip scenarios, manage profiles, reset sequence progress, and read request logs.",
     "description": "The JSON HTTP API behind the mock server's dashboard, served under `/ui/api/*`.\n\nIt is served on the admin port, which serves no mocks: each catalog system's endpoints answer on that system's own port, listed as `port` in `GET /ui/api/catalog`.\n\n**Local-dev only.** The API is unauthenticated (matching the dashboard) and gives no isolation guarantees — global mocks are a single shared switch that parallel callers can clobber. Use profiles for per-caller isolation. It does not author mocks; you create endpoints and fixtures by writing catalog files.\n\n**Versioning.** `info.version` is this contract's own version, independent of the server build (which `GET /ui/api/health` reports as `version` and `sha`). The contract evolves additively: new routes, new optional request fields, new response fields, and new enum members can appear in any release, so ignore fields you do not recognise. Error bodies are `{ \"error\": string, \"code\": string }` — the envelope is stable and `code` is safe to match on; the `error` message text is not.",
     "license": {
@@ -1001,8 +1001,8 @@
           },
           "scenarioSource": {
             "type": "string",
-            "enum": ["pin", "sequence", "implicit", "global", "unmocked_policy"],
-            "description": "Why that scenario was chosen."
+            "enum": ["pin", "sequence", "implicit", "global", "unmocked_policy", "unmatched_policy"],
+            "description": "Why that scenario was chosen. `unmocked_policy` and `unmatched_policy` mark a request forwarded by UNMOCKED_USERS=REAL or UNMATCHED_ENDPOINTS=REAL."
           },
           "sequence": {
             "type": "object",

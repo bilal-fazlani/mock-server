@@ -80,6 +80,15 @@ export const APP_ENVIRONMENT: EnvironmentDefinition[] = [
     display: true,
   },
   {
+    name: 'UNMATCHED_ENDPOINTS',
+    category: 'Routing',
+    description:
+      "Controls what a system port does with a request that matches none of that system's endpoints: ERROR answers 404, REAL forwards it to the system's base URL.",
+    defaultValue: 'ERROR',
+    possibleValues: ['ERROR', 'REAL'],
+    display: true,
+  },
+  {
     name: 'MOCK_CONSOLE_LOG_LEVEL',
     category: 'System',
     description: 'Console request log threshold.',

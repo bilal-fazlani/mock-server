@@ -3,7 +3,7 @@ import type { SchemaIssue } from '../catalog/schema'
 
 export type LogOutcome = 'fixture' | 'passthrough' | 'error'
 
-export type ScenarioSource = 'pin' | 'sequence' | 'implicit' | 'global' | 'unmocked_policy'
+export type ScenarioSource = 'pin' | 'sequence' | 'implicit' | 'global' | 'unmocked_policy' | 'unmatched_policy'
 
 /**
  * A schema check's outcome for one side of the exchange. Absent means the side

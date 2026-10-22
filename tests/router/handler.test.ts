@@ -294,6 +294,29 @@ describe('mock handler logging', () => {
     expect(written[0].profileId).toBeUndefined()
   })
 
+  it('logs an unmatched request forwarded by UNMATCHED_ENDPOINTS=REAL as a warning and records the marker', async () => {
+    const consoleSpy = spyConsole()
+    const { handle, written } = handlerWith({
+      unmatchedEndpoints: 'REAL',
+      env: { TEST_SYSTEM_URL: 'http://real.example' },
+      passthrough: async () => ({ status: 200, headers: {}, bodyBytes: Buffer.from('ok') }),
+    })
+
+    const res = await handle(new Request('http://localhost:3000/nope', { method: 'GET' }), ['nope'])
+    await settle()
+
+    expect(res.status).toBe(200)
+    expect(consoleSpy.warn).toHaveBeenCalledTimes(1)
+    expect(consoleSpy.warn.mock.calls[0][0]).toMatch(
+      /^\[mock\] GET \/nope -> 200 \d+ms test-system source=unmatched_policy outcome=passthrough$/,
+    )
+    expect(written).toHaveLength(1)
+    expect(written[0].system).toBe('test-system')
+    expect(written[0].endpoint).toBeUndefined()
+    expect(written[0].trace?.scenarioSource).toBe('unmatched_policy')
+    consoleSpy.restore()
+  })
+
   it('does not write request logs for Next.js internal asset paths', async () => {
     const { handle, written } = handlerWith()
 

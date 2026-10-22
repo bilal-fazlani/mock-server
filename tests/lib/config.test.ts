@@ -11,6 +11,7 @@ import {
   parseProfileKeyTtlSeconds,
   profileTtlSeconds,
   parseResolverHistoryTtlSeconds,
+  parseUnmatchedEndpoints,
   parseUnmockedUsers,
 } from '../../src/lib/config'
 
@@ -58,6 +59,22 @@ describe('parseUnmockedUsers', () => {
 
   it('throws ConfigError for an unrecognized value', () => {
     expect(() => parseUnmockedUsers('MAYBE')).toThrow(ConfigError)
+  })
+})
+
+describe('parseUnmatchedEndpoints', () => {
+  it('defaults to ERROR when unset', () => {
+    expect(parseUnmatchedEndpoints(undefined)).toBe('ERROR')
+  })
+
+  it('accepts ERROR and REAL, case-insensitively', () => {
+    expect(parseUnmatchedEndpoints('error')).toBe('ERROR')
+    expect(parseUnmatchedEndpoints('Real')).toBe('REAL')
+  })
+
+  it('throws ConfigError naming the variable for an unrecognized value, including DEFAULT_MOCK', () => {
+    expect(() => parseUnmatchedEndpoints('DEFAULT_MOCK')).toThrow(ConfigError)
+    expect(() => parseUnmatchedEndpoints('MAYBE')).toThrow('UNMATCHED_ENDPOINTS')
   })
 })
 

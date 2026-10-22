@@ -14,10 +14,12 @@ import {
   parseProfileApiTtl,
   parseProfileKeyTtlSeconds,
   parseResolverHistoryTtlSeconds,
+  parseUnmatchedEndpoints,
   parseUnmockedUsers,
   resolveCatalogDir,
   type ConsoleLogLevel,
   type LogFormat,
+  type UnmatchedEndpoints,
   type UnmockedUsers,
 } from './config'
 import { writeConsoleLog } from './logs/console'
@@ -34,6 +36,7 @@ export interface Runtime {
   catalogDir: string
   passthroughAsDefault: boolean
   unmockedUsers: UnmockedUsers
+  unmatchedEndpoints: UnmatchedEndpoints
   consoleLogLevel: ConsoleLogLevel
   logFormat: LogFormat
   timeoutMs: number
@@ -121,6 +124,7 @@ export function getRuntime(): Runtime {
   const adminPort = parseAdminPort(process.env.PORT)
   const passthroughAsDefault = parsePassthroughAsDefault(process.env.PASSTHROUGH_AS_DEFAULT)
   const unmockedUsers = parseUnmockedUsers(process.env.UNMOCKED_USERS)
+  const unmatchedEndpoints = parseUnmatchedEndpoints(process.env.UNMATCHED_ENDPOINTS)
   const consoleLogLevel = parseConsoleLogLevel(process.env.MOCK_CONSOLE_LOG_LEVEL)
   const logFormat = parseLogFormat(process.env.MOCK_LOG_FORMAT)
   const resolverHistoryLimit = parseResolverHistoryLimit(process.env.RESOLVER_HISTORY_LIMIT)
@@ -165,6 +169,7 @@ export function getRuntime(): Runtime {
     catalogDir,
     passthroughAsDefault,
     unmockedUsers,
+    unmatchedEndpoints,
     consoleLogLevel,
     logFormat,
     timeoutMs: Number(process.env.PASSTHROUGH_TIMEOUT_MS ?? 30000),

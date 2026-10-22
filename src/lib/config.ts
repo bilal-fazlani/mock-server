@@ -2,6 +2,7 @@ import path from 'node:path'
 import { BindAddressError, parseBindAddress as parseBindAddressValue } from './bind-address'
 
 export type UnmockedUsers = 'ERROR' | 'DEFAULT_MOCK' | 'REAL'
+export type UnmatchedEndpoints = 'ERROR' | 'REAL'
 export type ConsoleLogLevel = 'info' | 'warn' | 'error'
 export type LogFormat = 'text' | 'json'
 
@@ -15,6 +16,7 @@ export const REAL_SUMMARY = 'Forwards the request to the live upstream service.'
 export class ConfigError extends Error {}
 
 const UNMOCKED_USERS_VALUES: UnmockedUsers[] = ['ERROR', 'DEFAULT_MOCK', 'REAL']
+const UNMATCHED_ENDPOINTS_VALUES: UnmatchedEndpoints[] = ['ERROR', 'REAL']
 const CONSOLE_LOG_LEVEL_VALUES: ConsoleLogLevel[] = ['info', 'warn', 'error']
 const LOG_FORMAT_VALUES: LogFormat[] = ['text', 'json']
 
@@ -68,6 +70,22 @@ export function parseUnmockedUsers(raw: string | undefined): UnmockedUsers {
     )
   }
   return upper as UnmockedUsers
+}
+
+// What a system port does with a request that matches none of its endpoints.
+// ERROR is the default because a quiet call to a real upstream from a test suite
+// is the worst outcome, and there is no `default` scenario to fall back on when
+// no endpoint matched. Separate from UNMOCKED_USERS, which applies only after an
+// endpoint matched.
+export function parseUnmatchedEndpoints(raw: string | undefined): UnmatchedEndpoints {
+  if (raw === undefined) return 'ERROR'
+  const upper = raw.toUpperCase()
+  if (!UNMATCHED_ENDPOINTS_VALUES.includes(upper as UnmatchedEndpoints)) {
+    throw new ConfigError(
+      `UNMATCHED_ENDPOINTS must be one of ${UNMATCHED_ENDPOINTS_VALUES.join(', ')}, got "${raw}"`,
+    )
+  }
+  return upper as UnmatchedEndpoints
 }
 
 export function parseConsoleLogLevel(raw: string | undefined): ConsoleLogLevel {

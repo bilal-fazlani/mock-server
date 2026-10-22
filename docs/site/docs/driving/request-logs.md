@@ -27,13 +27,36 @@ returned }` field records the pick, e.g. `{ slug: "default", returned:
 "hold" }` for a `default.mjs` resolver that routed to `hold`.
 `trace.scenarioSource` is **not** overwritten by the resolver; it keeps
 reporting the original selection mechanism (`pin`, `sequence`, `implicit`,
-`global`, or `unmocked_policy`), so a log entry reads as "source `implicit`,
+`global`, `unmocked_policy`, or `unmatched_policy`), so a log entry reads as "source `implicit`,
 scenario `default → hold`" — strictly more informative than
 overwriting the selection mechanism would be, and a resolver that returns
 `"real"` still shows the upstream URL/status/latency for that call. Without
 `trace.resolver`, a resolver-then-real request would be indistinguishable from
 a bare `real` pin. See [Code-backed scenario resolvers](../building/dynamic.md)
 for the resolver contract.
+
+## Unmatched and forwarded requests
+
+A request that reaches a system's port but matches none of its endpoints is still
+logged against that system, with no `endpoint`. What happens to it is set by
+[`UNMATCHED_ENDPOINTS`](../reference/configuration.md):
+
+| Setting | Response | Log entry |
+| --- | --- | --- |
+| `ERROR` (default) | `404` naming the system, method and path | `outcome: error`, `error.code: no_match` |
+| `REAL` | The upstream's response, forwarded to the system's `baseUrlEnv` | `trace.scenarioSource: unmatched_policy`, `outcome: passthrough`, and the upstream URL, status and latency under `trace.upstream`. Printed at `warn`. |
+
+Filter the log for `no_match` or `unmatched_policy` to get the list of calls you
+have not mocked yet.
+
+### Adopting the mock one endpoint at a time
+
+Start a system with no endpoints, set `UNMATCHED_ENDPOINTS=REAL` and
+`UNMOCKED_USERS=REAL`, and point your application at the system's port. Everything
+is forwarded to the real upstream. Work through the `unmatched_policy` entries,
+adding an endpoint for each call you want to control; everything else keeps
+reaching the real system. When the list is empty, or you want a strict suite,
+switch both back to `ERROR`.
 
 ## Schema validation outcomes
 

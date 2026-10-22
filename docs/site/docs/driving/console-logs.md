@@ -24,7 +24,7 @@ Both are documented as settings in
 | Level | Covers |
 | --- | --- |
 | `info` (default) | Every matched or unmatched mock request. |
-| `warn` | Suspicious-but-served cases: `UNMOCKED_USERS` fallback (the default policy, so expect these until every caller has a profile), schema drift on `real`, failed Mongo request-log writes, and `no_match`. |
+| `warn` | Suspicious-but-served cases: `UNMOCKED_USERS` fallback (the default policy, so expect these until every caller has a profile), schema drift on `real`, failed Mongo request-log writes, `no_match`, and a request forwarded by `UNMATCHED_ENDPOINTS=REAL` (`source=unmatched_policy`). |
 | `error` | Framework, routing, and setup failures. |
 
 Fixture responses are `info` even when the fixture's status is non-2xx — the mock
@@ -116,7 +116,7 @@ an index. **A field is omitted entirely when it does not apply** — absent, nev
 | `mock.profileId` | Resolved profile ID, once one resolved. |
 | `mock.profileSelector` | The endpoint's `profileIdSelector` expression that produced it — e.g. `$.customerId`, `header:x-customer-id`. Carried on every profiled request, not only the `unmocked_policy` one the text line reserves it for. |
 | `mock.scenario` | Served scenario slug — the resolver's return value when the scenario is resolver-backed. |
-| `mock.scenarioSource` | How that scenario was selected: `pin`, `sequence`, `implicit`, `global`, or `unmocked_policy`. |
+| `mock.scenarioSource` | How that scenario was selected: `pin`, `sequence`, `implicit`, `global`, `unmocked_policy`, or `unmatched_policy`. |
 | `mock.outcome` | `fixture`, `passthrough`, or `error`. |
 | `mock.delayMs` | Injected [response delay](../building/fixtures.md#response-delay) in milliseconds, when the fixture declared one. |
 | `mock.validation.request` / `mock.validation.response` | `ok`, `failed`, or `drift_warning`; omitted for a side no schema check reached. The flag only — the issues behind it stay in the [request log](request-logs.md#schema-validation-outcomes). |

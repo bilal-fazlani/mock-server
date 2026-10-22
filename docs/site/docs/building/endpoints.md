@@ -71,7 +71,8 @@ dashboard and the control API:
 - **The whole path belongs to the system.** On a system port, `/ui/…` is an
   ordinary path like any other; a system may declare endpoints under it.
 - **A request matching none of the system's endpoints** answers `404` naming the
-  system:
+  system (the default; [`UNMATCHED_ENDPOINTS=REAL`](../reference/configuration.md)
+  forwards it to the system's `baseUrlEnv` instead):
 
     ```json
     { "error": "no matching endpoint", "system": "hello-system", "method": "GET", "path": "/nope" }

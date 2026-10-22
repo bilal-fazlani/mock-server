@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import type { Catalog } from '../../src/lib/catalog/types'
-import { parseBindAddress, parseUnmockedUsers } from '../../src/lib/config'
+import { parseBindAddress, parseUnmatchedEndpoints, parseUnmockedUsers } from '../../src/lib/config'
 import { buildEnvironmentRows } from '../../src/lib/environment'
 
 const catalog: Catalog = {
@@ -52,6 +52,7 @@ describe('buildEnvironmentRows', () => {
       MONGODB_DB: 'mockDB',
       PASSTHROUGH_AS_DEFAULT: 'true',
       UNMOCKED_USERS: 'REAL',
+      UNMATCHED_ENDPOINTS: 'REAL',
       MOCK_CONSOLE_LOG_LEVEL: 'warn',
       MOCK_LOG_FORMAT: 'json',
       PASSTHROUGH_TIMEOUT_MS: '1000',
@@ -70,6 +71,7 @@ describe('buildEnvironmentRows', () => {
       'MONGODB_DB',
       'PASSTHROUGH_AS_DEFAULT',
       'UNMOCKED_USERS',
+      'UNMATCHED_ENDPOINTS',
       'MOCK_CONSOLE_LOG_LEVEL',
       'MOCK_LOG_FORMAT',
       'PASSTHROUGH_TIMEOUT_MS',
@@ -158,6 +160,15 @@ describe('buildEnvironmentRows', () => {
     })
   })
 
+  it('declares the UNMATCHED_ENDPOINTS default the parser actually applies', () => {
+    const rows = buildEnvironmentRows(catalog, {})
+
+    expect(rows.find((row) => row.name === 'UNMATCHED_ENDPOINTS')).toMatchObject({
+      status: 'default',
+      value: `(default: ${parseUnmatchedEndpoints(undefined)})`,
+    })
+  })
+
   it('declares the BIND_ADDRESS default the parser actually applies', () => {
     const rows = buildEnvironmentRows(catalog, {})
 
@@ -187,6 +198,10 @@ describe('buildEnvironmentRows', () => {
     expect(rows.find((row) => row.name === 'UNMOCKED_USERS')?.possibleValues).toEqual([
       'ERROR',
       'DEFAULT_MOCK',
+      'REAL',
+    ])
+    expect(rows.find((row) => row.name === 'UNMATCHED_ENDPOINTS')?.possibleValues).toEqual([
+      'ERROR',
       'REAL',
     ])
     expect(rows.find((row) => row.name === 'MOCK_CONSOLE_LOG_LEVEL')?.possibleValues).toEqual([
