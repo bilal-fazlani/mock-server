@@ -16,7 +16,7 @@
 server = "0.17.0"
 # The Java SDK's four Maven artifacts, which share one version. Written into
 # every com.bilal-fazlani:<artifact>:<version> coordinate, Gradle and Maven both.
-sdk_java = "3.0.0"
+sdk_java = "4.0.0"
 
 
 # Version-shaped strings that deliberately do not track a release. Every one in
