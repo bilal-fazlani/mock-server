@@ -7,9 +7,9 @@ import {
   parseResolverHistoryLimit,
   parsePassthroughAsDefault,
   parseRequestLogTtlSeconds,
-  durationSeconds,
   parseProfileApiTtl,
   parseProfileKeyTtlSeconds,
+  profileTtlSeconds,
   parseResolverHistoryTtlSeconds,
   parseUnmockedUsers,
 } from '../../src/lib/config'
@@ -205,18 +205,28 @@ describe('parseProfileApiTtl', () => {
   it('rejects anything else, naming itself', () => {
     expect(() => parseProfileApiTtl('0h')).toThrow(ConfigError)
     expect(() => parseProfileApiTtl('forever')).toThrow(/PROFILE_API_TTL_DURATION/)
-    expect(() => parseProfileApiTtl('99999999999999999d')).toThrow(/PROFILE_API_TTL_DURATION/)
+    expect(() => parseProfileApiTtl('30s')).toThrow(/PROFILE_API_TTL_DURATION/)
+    expect(() => parseProfileApiTtl('366d')).toThrow(/PROFILE_API_TTL_DURATION/)
   })
 })
 
-describe('durationSeconds', () => {
-  it('reads the TTL grammar and returns null for anything else', () => {
-    expect(durationSeconds('2h')).toBe(7200)
-    expect(durationSeconds('0h')).toBeNull()
-    expect(durationSeconds('1d12h')).toBeNull()
-    expect(durationSeconds('')).toBeNull()
-    expect(durationSeconds('100000d')).toBe(100_000 * 86400)
-    expect(durationSeconds('100001d')).toBeNull()
-    expect(durationSeconds('99999999999999999d')).toBeNull()
+describe('profileTtlSeconds', () => {
+  it('reads minutes, hours and days from 1m to 365d', () => {
+    expect(profileTtlSeconds('1m')).toBe(60)
+    expect(profileTtlSeconds('2h')).toBe(7200)
+    expect(profileTtlSeconds('365d')).toBe(365 * 86400)
+    expect(profileTtlSeconds('8760h')).toBe(365 * 86400)
+  })
+
+  it('returns null for seconds, anything over 365d, and malformed values', () => {
+    expect(profileTtlSeconds('30s')).toBeNull()
+    expect(profileTtlSeconds('120s')).toBeNull()
+    expect(profileTtlSeconds('366d')).toBeNull()
+    expect(profileTtlSeconds('8761h')).toBeNull()
+    expect(profileTtlSeconds('525601m')).toBeNull()
+    expect(profileTtlSeconds('99999999999999999d')).toBeNull()
+    expect(profileTtlSeconds('0h')).toBeNull()
+    expect(profileTtlSeconds('1d12h')).toBeNull()
+    expect(profileTtlSeconds('')).toBeNull()
   })
 })

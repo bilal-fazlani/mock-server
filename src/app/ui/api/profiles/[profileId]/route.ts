@@ -1,4 +1,4 @@
-import { durationSeconds } from '../../../../../lib/config'
+import { PROFILE_TTL_RULE, profileTtlSeconds } from '../../../../../lib/config'
 import { errorResponse } from '../../../../../lib/control-api/errors'
 import { writeAdminLog } from '../../../../../lib/logs/admin-log'
 import {
@@ -39,9 +39,9 @@ export async function PUT(request: Request, { params }: Ctx): Promise<Response> 
 
   let ttl: ProfileTtlRequest | undefined
   if (raw?.ttl !== undefined) {
-    if (raw.ttl !== false && (typeof raw.ttl !== 'string' || durationSeconds(raw.ttl) === null)) {
+    if (raw.ttl !== false && (typeof raw.ttl !== 'string' || profileTtlSeconds(raw.ttl) === null)) {
       return errorResponse(
-        'ttl must be a positive duration like "30m", "24h" or "7d" (units s|m|h|d, at most 100000d), or false',
+        `ttl must be ${PROFILE_TTL_RULE} like "30m", "24h" or "7d", or false`,
         'invalid_ttl',
         400,
       )

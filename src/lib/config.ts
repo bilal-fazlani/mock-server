@@ -116,16 +116,20 @@ function parseTtlSeconds(name: string, raw: string | undefined, fallbackSeconds:
   return count * TTL_UNIT_SECONDS[match[2]]
 }
 
-// Far past any useful ttl, and far enough inside Date's range that `now + ttl` stays a real date.
-const MAX_DURATION_SECONDS = 100_000 * 86400
+const MAX_PROFILE_TTL_SECONDS = 365 * 86400
 
-/** Seconds in a duration of the TTL grammar ("30m", "24h", "7d"), or null when it isn't one. */
-export function durationSeconds(raw: string): number | null {
-  const match = /^(\d+)(s|m|h|d)$/.exec(raw)
+/**
+ * Seconds in a profile ttl: a positive whole number of minutes, hours or days
+ * ("30m", "24h", "7d") up to 365d. Null for anything else, seconds included.
+ */
+export function profileTtlSeconds(raw: string): number | null {
+  const match = /^(\d+)(m|h|d)$/.exec(raw)
   if (!match || Number(match[1]) < 1) return null
   const seconds = Number(match[1]) * TTL_UNIT_SECONDS[match[2]]
-  return seconds <= MAX_DURATION_SECONDS ? seconds : null
+  return seconds <= MAX_PROFILE_TTL_SECONDS ? seconds : null
 }
+
+export const PROFILE_TTL_RULE = 'a whole number of minutes, hours or days (m|h|d) from 1m to 365d'
 
 // Parse REQUEST_LOG_TTL_DURATION into seconds for the requestLogs TTL index.
 // Unset/empty defaults to one day, matching the pre-config behavior.
@@ -162,9 +166,10 @@ export function parseProfileKeyTtlSeconds(raw: string | undefined): number {
 export function parseProfileApiTtl(raw: string | undefined): string | null {
   if (raw === undefined || raw === '') return '1d'
   if (raw.toLowerCase() === 'off') return null
-  parseTtlSeconds('PROFILE_API_TTL_DURATION', raw, 0)
-  if (durationSeconds(raw) === null) {
-    throw new ConfigError(`PROFILE_API_TTL_DURATION must be at most 100000d, got "${raw}"`)
+  if (profileTtlSeconds(raw) === null) {
+    throw new ConfigError(
+      `PROFILE_API_TTL_DURATION must be ${PROFILE_TTL_RULE} like "30m", "24h" or "7d", or off, got "${raw}"`,
+    )
   }
   return raw
 }

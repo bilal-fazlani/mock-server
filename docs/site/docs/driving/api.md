@@ -89,7 +89,7 @@ response.
 | `scenario_required` | `400` | `PUT /ui/api/global-mocks/{system}/{endpoint}` | `scenario` is missing, empty, or not a string. |
 | `scenario_not_declared` | `400` | `PUT /ui/api/global-mocks/{system}/{endpoint}` | `scenario` isn't declared on the endpoint, and isn't `real`. |
 | `invalid_scenario_selection` | `400` | `PUT /ui/api/profiles/{profileId}` | `endpointScenarios` is malformed: not an object, an unknown endpoint name, a selection that's neither a string nor a string array, or a scenario not declared on its endpoint. `error` says which. |
-| `invalid_ttl` | `400` | `PUT /ui/api/profiles/{profileId}` | `ttl` is neither a duration like `"30m"`, `"24h"` or `"7d"` nor `false`. |
+| `invalid_ttl` | `400` | `PUT /ui/api/profiles/{profileId}` | `ttl` is neither a duration of `1m` to `365d` in minutes, hours or days (`"30m"`, `"24h"`, `"7d"`) nor `false`. |
 | `profile_not_found` | `404` | `GET /ui/api/profiles/{profileId}` | No profile with that ID, or it has expired. |
 | `log_not_found` | `404` | `GET /ui/api/logs/{logId}` | No log entry with that ID. |
 
@@ -236,9 +236,9 @@ period without use. `ttl` is optional and sets that period:
 | `"ttl": "2h"` | Created with `2h` | Switched to `2h`, restarted | Given `2h` |
 | `"ttl": false` | Created with no expiry | Expiry removed | No change |
 
-A `ttl` string uses the same grammar as the TTL settings: a positive whole number
-and a unit, `s`, `m`, `h` or `d`, up to `100000d`. Anything else, `null`
-included, is `400 invalid_ttl`. A profile with an expiry carries `ttl` and `expiresAt` in the
+A `ttl` string is a whole number of minutes, hours or days (`m`, `h` or `d`),
+from `1m` to `365d`. Anything else, including seconds (`30s`), `366d` and `null`,
+is `400 invalid_ttl`. A profile with an expiry carries `ttl` and `expiresAt` in the
 response; a profile with none has neither:
 
 ```json

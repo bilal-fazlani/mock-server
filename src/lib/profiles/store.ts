@@ -1,5 +1,5 @@
 import { Db, MongoClient, MongoServerError } from 'mongodb'
-import { durationSeconds, parseRequestLogTtlSeconds } from '../config'
+import { parseRequestLogTtlSeconds, profileTtlSeconds } from '../config'
 import { pruneOrphanedHistoryOnce } from '../dynamic/prune'
 import { resolveMongoUri } from '../mongo/embedded'
 import { startProfileSweeper } from './sweeper'
@@ -274,7 +274,7 @@ function profileExpired(profile: Pick<MockProfile, 'expiresAt'>, now: Date): boo
 }
 
 function ttlMs(ttl: string): number {
-  const seconds = durationSeconds(ttl)
+  const seconds = profileTtlSeconds(ttl)
   if (seconds === null) throw new Error(`invalid profile ttl "${ttl}"`)
   return seconds * 1000
 }

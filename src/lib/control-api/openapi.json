@@ -281,7 +281,7 @@
             }
           },
           "400": {
-            "description": "The body is not valid JSON (`code: \"invalid_json\"`); or `endpointScenarios` is not an object, an endpoint name is unknown, a selection is neither a string nor an array of strings, or a scenario is not declared on its endpoint (`code: \"invalid_scenario_selection\"` for all four — see `error` for which one); or `ttl` is neither a duration like `\"30m\"`, `\"24h\"` or `\"7d\"` nor `false` (`code: \"invalid_ttl\"`).",
+            "description": "The body is not valid JSON (`code: \"invalid_json\"`); or `endpointScenarios` is not an object, an endpoint name is unknown, a selection is neither a string nor an array of strings, or a scenario is not declared on its endpoint (`code: \"invalid_scenario_selection\"` for all four — see `error` for which one); or `ttl` is neither a duration of `1m` to `365d` in minutes, hours or days (`\"30m\"`, `\"24h\"`, `\"7d\"`) nor `false` (`code: \"invalid_ttl\"`).",
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/Error" }
@@ -830,7 +830,7 @@
           "modifiedAt": { "type": "string", "format": "date-time" },
           "ttl": {
             "type": "string",
-            "pattern": "^0*[1-9][0-9]*[smhd]$",
+            "pattern": "^0*[1-9][0-9]*[mhd]$",
             "description": "The duration this profile's expiry restarts by, as it was given (`\"2h\"`). Absent, together with `expiresAt`, on a profile that never expires.",
             "examples": ["1d", "2h"]
           },
@@ -857,10 +857,10 @@
           },
           "ttl": {
             "oneOf": [
-              { "type": "string", "pattern": "^0*[1-9][0-9]*[smhd]$" },
+              { "type": "string", "pattern": "^0*[1-9][0-9]*[mhd]$" },
               { "const": false }
             ],
-            "description": "How long the profile lives without use: a positive whole number with a unit `s`, `m`, `h` or `d` (`\"30m\"`, `\"24h\"`, `\"7d\"`) up to `100000d`, restarting its expiry from now; or `false` for no expiry. Omit it to keep the profile's current expiry rule, or for a new profile the server default (`PROFILE_API_TTL_DURATION`). Anything else is a `400 invalid_ttl`.",
+            "description": "How long the profile lives without use: a whole number of minutes, hours or days (`m`, `h` or `d`: `\"30m\"`, `\"24h\"`, `\"7d\"`) from `1m` to `365d`, restarting its expiry from now; or `false` for no expiry. Omit it to keep the profile's current expiry rule, or for a new profile the server default (`PROFILE_API_TTL_DURATION`). Anything else is a `400 invalid_ttl`.",
             "examples": ["2h", false]
           }
         }

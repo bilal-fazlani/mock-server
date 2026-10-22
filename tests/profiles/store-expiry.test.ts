@@ -206,20 +206,20 @@ describe('mocked requests slide the expiry', () => {
     expect((await raw('p'))!.expiresAt).toEqual(at(HOUR))
   })
 
-  it('keeps a profile with a ttl under a minute alive under steady traffic', async () => {
-    await put('p', '30s', T0)
+  it('keeps a profile with the shortest ttl alive under steady traffic', async () => {
+    await put('p', '1m', T0)
     for (let ms = 5_000; ms <= 5 * MIN; ms += 5_000) {
       expect(await getProfileForRequest(db, 'p', at(ms))).not.toBeNull()
     }
     expect((await raw('p'))!.expiresAt!.getTime()).toBeGreaterThan(at(5 * MIN).getTime())
   })
 
-  it('throttles a short ttl to half its length', async () => {
-    await put('p', '30s', T0)
-    await getProfileForRequest(db, 'p', at(14_999))
-    expect((await raw('p'))!.expiresAt).toEqual(at(30_000))
-    await getProfileForRequest(db, 'p', at(15_000))
-    expect((await raw('p'))!.expiresAt).toEqual(at(45_000))
+  it('throttles a ttl under two minutes to half its length', async () => {
+    await put('p', '1m', T0)
+    await getProfileForRequest(db, 'p', at(29_999))
+    expect((await raw('p'))!.expiresAt).toEqual(at(MIN))
+    await getProfileForRequest(db, 'p', at(30_000))
+    expect((await raw('p'))!.expiresAt).toEqual(at(30_000 + MIN))
   })
 
   it('slides by the stored ttl and never adds an expiry', async () => {
@@ -325,7 +325,7 @@ describe('key mappings owned by an expired profile', () => {
     })
 
   it('can be claimed by another profile with no conflict', async () => {
-    await upsertProfile(db, { profileId: 'old', endpointScenarios: {}, ttl: '1s' })
+    await upsertProfile(db, { profileId: 'old', endpointScenarios: {}, ttl: '1m' })
     await capture('old')
     await db
       .collection('mockProfiles')
