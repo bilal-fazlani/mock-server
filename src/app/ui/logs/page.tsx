@@ -47,6 +47,7 @@ export default async function LogsPage({
           profiles: profiles.map((p) => ({ profileId: p.profileId, displayName: p.displayName })),
           endpoints,
           systemLabels: Object.fromEntries(runtime.catalog.systems.map((s) => [s.slug, s.displayName])),
+          systemPorts: Object.fromEntries(runtime.catalog.systems.map((s) => [s.slug, s.port])),
           scenarioLabels: Object.fromEntries(
             runtime.catalog.systems.flatMap((s) =>
               s.endpoints.flatMap((e) =>

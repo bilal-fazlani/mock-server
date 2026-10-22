@@ -66,10 +66,12 @@ The full ordered walk is documented in [Request lifecycle](reference/request-lif
 
 !!! note "Where endpoints are served"
 
-    Mock endpoints are served at the **root** of the app origin. The catalog
-    `path` *is* the URL path — an endpoint with `"path": "/hello/world"` answers
-    at `<origin>/hello/world`. (The app's own UI lives under `/ui/*`, kept out of
-    the way.)
+    Each system is served on its **own port**, declared in its `_system.json`, at
+    the root of that origin. The catalog `path` *is* the URL path — with
+    `"port": 4001`, an endpoint with `"path": "/hello/world"` answers at
+    `http://localhost:4001/hello/world`. The dashboard and control API live on a
+    separate admin port (`PORT`, default `3000`) under `/ui`. See [System
+    ports](building/endpoints.md#system-ports).
 
 ## The catalog tree
 
@@ -80,7 +82,7 @@ manifest to edit.
 ```text
 catalog/
   hello-system/                 # system directory; its name IS the system slug
-    _system.json                # { "displayName", "baseUrlEnv" }
+    _system.json                # { "displayName", "baseUrlEnv", "port" }
     _spec.yaml                  # optional — one OpenAPI doc supplying schemas for the whole system, see Schemas (.yml/.json also accepted)
     hello_world/                # endpoint directory; its name IS the endpoint slug
       _endpoint.json            # { "displayName", "method", "path", optional "mockType", "profileIdSelector", "captureProfileKeys" }

@@ -10,8 +10,10 @@ const NOW = new Date('2026-07-02T00:00:00.000Z')
 const CATALOG_DIR = path.join(__dirname, '../../catalog')
 
 function handlerWith(profiles: Record<string, Partial<MockProfile>>, overrides: Partial<RouterDeps> = {}) {
+  const catalog = loadCatalog(CATALOG_DIR)
   const deps: RouterDeps = {
-    catalog: loadCatalog(CATALOG_DIR),
+    catalog,
+    system: catalog.systems[0],
     passthroughAsDefault: false,
     unmockedUsers: 'ERROR',
     timeoutMs: 1000,

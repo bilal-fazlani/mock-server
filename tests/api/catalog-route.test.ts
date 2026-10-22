@@ -10,6 +10,7 @@ vi.mock('../../src/lib/runtime', () => ({
           displayName: 'Hello System',
           slug: 'hello-system',
           baseUrlEnv: 'HELLO_SYSTEM_URL',
+          port: 4001,
           endpoints: [
             {
               slug: 'oauth_token',
@@ -55,6 +56,7 @@ vi.mock('../../src/lib/runtime', () => ({
           displayName: 'Billing',
           slug: 'billing',
           baseUrlEnv: 'BILLING_URL',
+          port: 4002,
           clientCertEnv: 'BILLING_CLIENT_CERT',
           clientKeyEnv: 'BILLING_CLIENT_KEY',
           endpoints: [],
@@ -78,6 +80,7 @@ describe('GET /ui/api/catalog', () => {
     expect(body.systems).toHaveLength(2)
     const [system] = body.systems
     expect(system.slug).toBe('hello-system')
+    expect(body.systems.map((s: { port: number }) => s.port)).toEqual([4001, 4002])
     expect(system.endpoints[0]).toEqual({
       slug: 'oauth_token',
       displayName: 'OAuth Token',

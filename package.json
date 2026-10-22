@@ -31,9 +31,9 @@
     "bin"
   ],
   "scripts": {
-    "dev": "next dev",
+    "dev": "tsx src/server/dev-main.ts",
     "build": "next build && node scripts/build-standalone-entries.mjs",
-    "start": "next start",
+    "start": "cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/ && node .next/standalone/serve.cjs",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

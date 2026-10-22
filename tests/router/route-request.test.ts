@@ -31,6 +31,7 @@ const CATALOG: Catalog = {
       displayName: 'Test System',
       slug: 'test-system',
       baseUrlEnv: 'TEST_SYSTEM_URL',
+      port: 4001,
       endpoints: [
         {
           slug: 'hello_world',
@@ -260,6 +261,7 @@ function deps(overrides: Partial<RouterDeps> = {}): RouterDeps & {
     schemas: buildSchemaRegistry(CATALOG).schemas,
     passthroughCalls,
     ...overrides,
+    system: overrides.system ?? (overrides.catalog ?? CATALOG).systems[0],
   }
 }
 
@@ -949,6 +951,69 @@ describe('global mock path', () => {
   })
 })
 
+describe('system scoping', () => {
+  const twoSystems: Catalog = {
+    systems: (['alpha', 'beta'] as const).map((slug, i) => ({
+      displayName: slug,
+      slug,
+      baseUrlEnv: `${slug.toUpperCase()}_URL`,
+      port: 4101 + i,
+      endpoints: [
+        {
+          slug: 'hello_world',
+          displayName: 'Hello World',
+          method: 'POST',
+          path: '/hello/world',
+          mockType: 'global' as const,
+          scenarios: { default: { displayName: 'Success' } },
+          resolverScenarios: [],
+        },
+      ],
+    })),
+  }
+
+  it('matches only the endpoints of the system the request arrived on', async () => {
+    const loaded: string[] = []
+    for (const system of twoSystems.systems) {
+      const trace: RouteTrace = {}
+      const res = await routeRequest(
+        post('/hello/world', {}),
+        deps({
+          catalog: twoSystems,
+          system,
+          trace,
+          loadFixture: (systemSlug, endpointSlug, scenario) => {
+            loaded.push(`${systemSlug}/${endpointSlug}/${scenario}`)
+            return { status: 200, headers: {}, body: { system: systemSlug } }
+          },
+        }),
+      )
+      expect(json(res)).toEqual({ system: system.slug })
+      expect(trace.system).toBe(system.slug)
+    }
+    expect(loaded).toEqual(['alpha/hello_world/default', 'beta/hello_world/default'])
+  })
+
+  it("does not match another system's endpoint", async () => {
+    const other: Catalog['systems'][number] = { ...twoSystems.systems[1], endpoints: [] }
+    const trace: RouteTrace = {}
+    const res = await routeRequest(
+      post('/hello/world', {}),
+      deps({ catalog: { systems: [twoSystems.systems[0], other] }, system: other, trace }),
+    )
+    expect(res.status).toBe(404)
+    expect(json(res)).toEqual({
+      error: 'no matching endpoint',
+      system: 'beta',
+      method: 'POST',
+      path: '/hello/world',
+    })
+    expect(trace.system).toBe('beta')
+    expect(trace.endpoint).toBeUndefined()
+    expect(trace.error?.code).toBe('no_match')
+  })
+})
+
 describe('malformed requests — always loud, in every configuration', () => {
   it.each(['ERROR', 'DEFAULT_MOCK', 'REAL'] as const)(
     '404s on unknown endpoint (UNMOCKED_USERS=%s)',
@@ -1603,7 +1668,7 @@ describe('user function errors surface as structured 500s, not crashes', () => {
     })
   }
 
-  const SYSTEM_META = { displayName: 'Fn Error System', baseUrlEnv: 'FN_ERROR_URL' }
+  const SYSTEM_META = { displayName: 'Fn Error System', baseUrlEnv: 'FN_ERROR_URL', port: 4002 }
   // Global mock endpoint — no profile machinery needed to exercise the
   // function-call/error path.
   const ENDPOINT_META = { displayName: 'Boom', method: 'GET', path: '/boom', mockType: 'global' }
@@ -1667,7 +1732,7 @@ describe('omit end-to-end (#24)', () => {
       loadFixture: (s, e, sc) => loadFixture(dir, s, e, sc),
     })
   }
-  const SYS = { displayName: 'Echo System', baseUrlEnv: 'ECHO_URL' }
+  const SYS = { displayName: 'Echo System', baseUrlEnv: 'ECHO_URL', port: 4003 }
   const EP = { displayName: 'Echo', method: 'POST', path: '/echo', mockType: 'global' }
   // middleName is optional in the schema, so dropping it leaves a valid response.
   const OPTIONAL_SCHEMA = {
@@ -1744,7 +1809,7 @@ describe('uuid end-to-end (#10)', () => {
 
   const idDir = () =>
     tmpCatalogDir({
-      'sys/_system.json': { displayName: 'Id System', baseUrlEnv: 'ID_URL' },
+      'sys/_system.json': { displayName: 'Id System', baseUrlEnv: 'ID_URL', port: 4004 },
       'sys/new/_endpoint.json': {
         displayName: 'New',
         method: 'POST',
@@ -1780,7 +1845,7 @@ describe('uuid end-to-end (#10)', () => {
 
   const groupDir = () =>
     tmpCatalogDir({
-      'sys/_system.json': { displayName: 'Id System', baseUrlEnv: 'ID_URL' },
+      'sys/_system.json': { displayName: 'Id System', baseUrlEnv: 'ID_URL', port: 4005 },
       'sys/new/_endpoint.json': {
         displayName: 'New',
         method: 'POST',
@@ -1866,7 +1931,7 @@ describe('seeded faker/pick end-to-end (#15)', () => {
 
   const fakerDir = () =>
     tmpCatalogDir({
-      'sys/_system.json': { displayName: 'Faker System', baseUrlEnv: 'FAKER_URL' },
+      'sys/_system.json': { displayName: 'Faker System', baseUrlEnv: 'FAKER_URL', port: 4006 },
       'sys/new/_endpoint.json': {
         displayName: 'New',
         method: 'POST',

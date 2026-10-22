@@ -16,8 +16,8 @@ name the build the server reports — live in
 | Variable | Values | Meaning |
 | --- | --- | --- |
 | `CATALOG_PATH` | Directory path<br>(default `./catalog`) | Where the catalog tree is loaded from. A relative path resolves against the server's working directory; an absolute path is used as-is. The `npx @bilal-fazlani/mock-server [catalogPath]` CLI argument, when given, overrides this variable. The shipped server exits at startup if the directory does not exist or contains no systems (`npm run dev` logs the error and keeps running). In the Docker image, mount a catalog at `/app/catalog`. |
-| `PORT` | Port number<br>(default `3000`) | The port the HTTP server listens on. The CLI's `-p` / `--port` flag, when given, overrides this variable. |
-| `BIND_ADDRESS` | IPv4 or IPv6 address<br>(default `0.0.0.0`) | The network address the HTTP server listens on. Only an IP literal is accepted — `0.0.0.0` (every IPv4 interface), `127.0.0.1` (loopback only), `::`, `::1`. A hostname such as `localhost` is rejected, and so is any other value: the server exits at startup naming the variable and the bad value, before it listens. The CLI's `--bind` flag, when given, overrides this variable; `--bind` with no address is a usage error. The `HOSTNAME` variable that container platforms set to the container's own name is **never** read for this, so a platform-assigned hostname cannot move the listener. Applies to the image and the CLI; `next dev` and `next start` ignore it. Leave it at the default in a container, where any specific address breaks something — see [Container health checks](../get-started/install.md#container-health-checks). |
+| `PORT` | Port number<br>(default `3000`) | The admin port: it serves the dashboard (`/ui`) and the control API (`/ui/api`) only. Each system's mocks are served on the [`port` in its `_system.json`](../building/endpoints.md#system-ports), and no system may use this one — the server exits at startup naming the system. The CLI's `-p` / `--port` flag, when given, overrides this variable. |
+| `BIND_ADDRESS` | IPv4 or IPv6 address<br>(default `0.0.0.0`) | The network address the HTTP server listens on. Only an IP literal is accepted — `0.0.0.0` (every IPv4 interface), `127.0.0.1` (loopback only), `::`, `::1`. A hostname such as `localhost` is rejected, and so is any other value: the server exits at startup naming the variable and the bad value, before it listens. The CLI's `--bind` flag, when given, overrides this variable; `--bind` with no address is a usage error. The `HOSTNAME` variable that container platforms set to the container's own name is **never** read for this, so a platform-assigned hostname cannot move the listener. Applies to the admin port and every system port of the image and the CLI; under `npm run dev` it applies to the system ports only. Leave it at the default in a container, where any specific address breaks something — see [Container health checks](../get-started/install.md#container-health-checks). |
 | `MONGODB_CONNECTION_STRING` | Mongo connection URI<br>(optional) | External MongoDB for profiles, global mock selections, profile key mappings, and request logs. If unset, an in-memory MongoDB starts automatically on first use — data is ephemeral and lost on restart. The published Docker image bakes in a `mongod` binary so this embedded fallback works fully offline. |
 | `MONGODB_DB` | Database name<br>(default `mockDB`) | Name of the MongoDB database holding profiles, global mock selections, profile key mappings, and request logs — used whether the connection is an external MongoDB or the embedded in-memory one. |
 | `PASSTHROUGH_AS_DEFAULT` | `false` (default)<br>`true` | Controls what an omitted selection means. `false`: `default` is the implicit scenario, appears first in pickers, and is not stored when selected. `true`: `real` is the implicit scenario, appears first in pickers, and is not stored when selected. Passthrough itself is always allowed. |
@@ -96,7 +96,8 @@ runs until the tree itself is well-formed:
 - Every entry directly under `catalog/` is a directory (a system) or a
   `_functions.mjs` file — anything else is a stray entry.
 - Every system directory has a `_system.json` that parses as a JSON object with
-  non-empty `name` and `baseUrlEnv` strings. `clientCertEnv` and
+  non-empty `displayName` and `baseUrlEnv` strings and an integer `port` from
+  `1024` to `65535`. No two systems share a port. `clientCertEnv` and
   `clientKeyEnv` are optional, but come as a pair of non-empty strings: one
   without the other is an error.
 - Every entry inside a system directory (other than `_system.json`,
@@ -166,8 +167,9 @@ now-known catalog and reports its own list of errors:
   `_functions.ts` file (`.ts` authoring was removed — rename to `.mjs`) are
   all errors. Like a broken resolver, a broken `_functions` file is caught
   before deploy by [`mock-server validate`](../building/validate.md).
-- No two endpoints of the same method have **overlapping** path templates (which
-  would make matching ambiguous).
+- No two endpoints of the same system and method have **overlapping** path
+  templates (which would make matching ambiguous). Different systems may share
+  paths, since each has its own port.
 - If an endpoint has a `_schema.json`, it must compile as valid JSON Schema, and
   every scenario fixture's `body` must match its status-matched response schema —
   see [Schemas](../building/schemas.md).

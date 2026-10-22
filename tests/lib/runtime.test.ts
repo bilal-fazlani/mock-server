@@ -19,7 +19,7 @@ function tmpProjectDir(files: Record<string, unknown>): string {
   return dir
 }
 
-const SYSTEM_META = { displayName: 'Test System', baseUrlEnv: 'TEST_URL' }
+const SYSTEM_META = { displayName: 'Test System', baseUrlEnv: 'TEST_URL', port: 4001 }
 const ENDPOINT_META = {
   displayName: 'Endpoint',
   method: 'POST',
@@ -85,6 +85,24 @@ describe('getRuntime', () => {
     const { getRuntime } = await import('../../src/lib/runtime')
 
     expect(() => getRuntime()).toThrow(/BIND_ADDRESS must be an IPv4 or IPv6 address.*"my-host"/)
+  })
+
+  it('fails startup when PORT is not a port number', async () => {
+    process.chdir(__dirname + '/../..')
+    process.env = { ...originalEnv, PORT: 'eighty' }
+    vi.resetModules()
+    const { getRuntime } = await import('../../src/lib/runtime')
+
+    expect(() => getRuntime()).toThrow(/PORT must be an integer from 1 to 65535, got "eighty"/)
+  })
+
+  it('fails startup when a system port equals PORT', async () => {
+    process.chdir(__dirname + '/../..')
+    process.env = { ...originalEnv, PORT: '4001' }
+    vi.resetModules()
+    const { getRuntime } = await import('../../src/lib/runtime')
+
+    expect(() => getRuntime()).toThrow(/system "hello-system": port 4001 is the admin port \(PORT\)/)
   })
 
   it('compiles a <slug>.ts resolver and serves it via getCompiledResolver, patching the label', async () => {

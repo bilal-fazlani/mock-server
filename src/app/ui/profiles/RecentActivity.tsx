@@ -14,12 +14,14 @@ export function RecentActivity({
   profileId,
   initialEntries,
   systemLabels,
+  systemPorts,
   scenarioLabels,
   captureSelectorLabels,
 }: {
   profileId: string
   initialEntries: LogSummaryView[]
   systemLabels?: Record<string, string>
+  systemPorts?: Record<string, number>
   scenarioLabels?: Record<string, string>
   captureSelectorLabels?: Record<string, string>
 }) {
@@ -81,6 +83,7 @@ export function RecentActivity({
               key={entry.logId}
               entry={entry}
               systemLabels={systemLabels}
+              systemPorts={systemPorts}
               scenarioLabels={scenarioLabels}
               captureSelectorLabels={captureSelectorLabels}
               timeZone={zone.id}

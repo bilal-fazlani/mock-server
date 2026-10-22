@@ -21,7 +21,7 @@ afterEach(() => {
   while (tmpDirs.length) fs.rmSync(tmpDirs.pop()!, { recursive: true, force: true })
 })
 
-const SYSTEM_META = { displayName: 'Test System', baseUrlEnv: 'TEST_URL' }
+const SYSTEM_META = { displayName: 'Test System', baseUrlEnv: 'TEST_URL', port: 4001 }
 const ENDPOINT_META = {
   displayName: 'Hello World',
   method: 'POST',
@@ -131,7 +131,7 @@ describe('loadCatalog', () => {
 
   it('rejects the retired "name" key in _system.json, naming displayName', () => {
     const dir = tmpCatalogDir({
-      'sys/_system.json': { name: 'Test System', displayName: 'Test System', baseUrlEnv: 'TEST_URL' },
+      'sys/_system.json': { name: 'Test System', displayName: 'Test System', baseUrlEnv: 'TEST_URL', port: 4002 },
       'sys/ep/_endpoint.json': ENDPOINT_META,
       'sys/ep/default.json': FIXTURE,
     })
@@ -163,6 +163,58 @@ describe('loadCatalog', () => {
     }
     expect(message).toMatch(/baseUrlEnv/)
     expect(message).toMatch(/not valid JSON/)
+  })
+
+  it('reads each system\'s port', () => {
+    const dir = tmpCatalogDir({
+      'sys/_system.json': SYSTEM_META,
+      'sys/ep/_endpoint.json': ENDPOINT_META,
+      'sys/ep/default.json': FIXTURE,
+    })
+    expect(loadCatalog(dir).systems[0].port).toBe(4001)
+  })
+
+  it('rejects a system without a port', () => {
+    const dir = tmpCatalogDir({
+      'sys/_system.json': { displayName: 'S', baseUrlEnv: 'S_URL' },
+      'sys/ep/_endpoint.json': ENDPOINT_META,
+      'sys/ep/default.json': FIXTURE,
+    })
+    expect(() => loadCatalog(dir)).toThrow(
+      /sys: missing "port" in _system\.json; every system needs its own port/,
+    )
+  })
+
+  it.each([80, 1023, 65536, 4001.5, '4001', null])('rejects port %j', (port) => {
+    const dir = tmpCatalogDir({
+      'sys/_system.json': { ...SYSTEM_META, port },
+      'sys/ep/_endpoint.json': ENDPOINT_META,
+      'sys/ep/default.json': FIXTURE,
+    })
+    expect(() => loadCatalog(dir)).toThrow(
+      `sys: "port" must be an integer from 1024 to 65535, got ${JSON.stringify(port)}`,
+    )
+  })
+
+  it.each([1024, 65535])('accepts the boundary port %d', (port) => {
+    const dir = tmpCatalogDir({
+      'sys/_system.json': { ...SYSTEM_META, port },
+      'sys/ep/_endpoint.json': ENDPOINT_META,
+      'sys/ep/default.json': FIXTURE,
+    })
+    expect(loadCatalog(dir).systems[0].port).toBe(port)
+  })
+
+  it('rejects two systems sharing a port, naming both', () => {
+    const dir = tmpCatalogDir({
+      'a/_system.json': SYSTEM_META,
+      'a/ep/_endpoint.json': ENDPOINT_META,
+      'a/ep/default.json': FIXTURE,
+      'b/_system.json': SYSTEM_META,
+      'b/ep/_endpoint.json': ENDPOINT_META,
+      'b/ep/default.json': FIXTURE,
+    })
+    expect(() => loadCatalog(dir)).toThrow(/systems a, b share port 4001; each system needs its own/)
   })
 
   it('loads a system declaring clientCertEnv and clientKeyEnv', () => {

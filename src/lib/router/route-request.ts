@@ -61,6 +61,8 @@ export interface RouteTrace extends LogTraceData {
 
 export interface RouterDeps {
   catalog: Catalog
+  /** The system whose port the request arrived on; only its endpoints match. */
+  system: SystemDef
   schemas?: SchemaRegistry
   passthroughAsDefault: boolean
   unmockedUsers: UnmockedUsers
@@ -130,13 +132,19 @@ export async function routeRequest(
   deps: RouterDeps,
 ): Promise<RouteResult> {
   const trace = deps.trace ?? {}
-  const match = findEndpoint(deps.catalog, req.method, req.path)
+  const { system } = deps
+  trace.system = system.slug
+  const match = findEndpoint(system, req.method, req.path)
   if (!match) {
     traceError(trace, 'no_match', `no matching endpoint for ${req.method} ${req.path}`)
-    return jsonResult(404, { error: 'no matching endpoint', method: req.method, path: req.path })
+    return jsonResult(404, {
+      error: 'no matching endpoint',
+      system: system.slug,
+      method: req.method,
+      path: req.path,
+    })
   }
-  const { system, endpoint, pathParams } = match
-  trace.system = system.slug
+  const { endpoint, pathParams } = match
   trace.endpoint = endpoint.slug
   const ctx: RequestContext = {
     body: null,
@@ -756,16 +764,14 @@ function checkResponseSchemaDrift(
 }
 
 function findEndpoint(
-  catalog: Catalog,
+  system: SystemDef,
   method: string,
   path: string,
-): { system: SystemDef; endpoint: EndpointDef; pathParams: Record<string, string> } | null {
-  for (const system of catalog.systems) {
-    for (const endpoint of system.endpoints) {
-      if (endpoint.method.toUpperCase() !== method.toUpperCase()) continue
-      const pathParams = matchPath(parsePathTemplate(endpoint.path), path)
-      if (pathParams) return { system, endpoint, pathParams }
-    }
+): { endpoint: EndpointDef; pathParams: Record<string, string> } | null {
+  for (const endpoint of system.endpoints) {
+    if (endpoint.method.toUpperCase() !== method.toUpperCase()) continue
+    const pathParams = matchPath(parsePathTemplate(endpoint.path), path)
+    if (pathParams) return { endpoint, pathParams }
   }
   return null
 }

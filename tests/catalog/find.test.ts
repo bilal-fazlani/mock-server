@@ -8,6 +8,7 @@ const catalog: Catalog = {
       displayName: 'Hello System',
       slug: 'hello-system',
       baseUrlEnv: 'HELLO_SYSTEM_URL',
+      port: 4001,
       endpoints: [
         {
           slug: 'hello_world',

@@ -2,9 +2,9 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Mock Server runtime-control API",
-    "version": "2.2.0",
+    "version": "2.3.0",
     "summary": "Drive a running mock server — flip scenarios, manage profiles, reset sequence progress, and read request logs.",
-    "description": "The JSON HTTP API behind the mock server's dashboard, served under `/ui/api/*`.\n\nMock endpoints answer at the root (`/…`), so the control API cannot live there without colliding with a mocked route; `/ui` is the reserved admin namespace.\n\n**Local-dev only.** The API is unauthenticated (matching the dashboard) and gives no isolation guarantees — global mocks are a single shared switch that parallel callers can clobber. Use profiles for per-caller isolation. It does not author mocks; you create endpoints and fixtures by writing catalog files.\n\n**Versioning.** `info.version` is this contract's own version, independent of the server build (which `GET /ui/api/health` reports as `version` and `sha`). The contract evolves additively: new routes, new optional request fields, new response fields, and new enum members can appear in any release, so ignore fields you do not recognise. Error bodies are `{ \"error\": string, \"code\": string }` — the envelope is stable and `code` is safe to match on; the `error` message text is not.",
+    "description": "The JSON HTTP API behind the mock server's dashboard, served under `/ui/api/*`.\n\nIt is served on the admin port, which serves no mocks: each catalog system's endpoints answer on that system's own port, listed as `port` in `GET /ui/api/catalog`.\n\n**Local-dev only.** The API is unauthenticated (matching the dashboard) and gives no isolation guarantees — global mocks are a single shared switch that parallel callers can clobber. Use profiles for per-caller isolation. It does not author mocks; you create endpoints and fixtures by writing catalog files.\n\n**Versioning.** `info.version` is this contract's own version, independent of the server build (which `GET /ui/api/health` reports as `version` and `sha`). The contract evolves additively: new routes, new optional request fields, new response fields, and new enum members can appear in any release, so ignore fields you do not recognise. Error bodies are `{ \"error\": string, \"code\": string }` — the envelope is stable and `code` is safe to match on; the `error` message text is not.",
     "license": {
       "name": "MIT",
       "identifier": "MIT"
@@ -587,6 +587,12 @@
             "type": "string",
             "description": "Name of the environment variable holding the real upstream base URL that the `real` passthrough scenario proxies to."
           },
+          "port": {
+            "type": "integer",
+            "minimum": 1024,
+            "maximum": 65535,
+            "description": "The port this system's mocked API is served on, from its `_system.json`. Each system has its own; the admin port serves only `/ui` and `/ui/api`."
+          },
           "clientCertEnv": {
             "type": "string",
             "description": "Name of the environment variable holding the PEM client certificate presented to an upstream that requires mutual TLS. Present only when the system declares one, always together with `clientKeyEnv`. The value is never exposed."
@@ -600,7 +606,7 @@
             "items": { "$ref": "#/components/schemas/CatalogEndpoint" }
           }
         },
-        "required": ["slug", "displayName", "baseUrlEnv", "endpoints"]
+        "required": ["slug", "displayName", "baseUrlEnv", "port", "endpoints"]
       },
       "CatalogEndpoint": {
         "type": "object",

@@ -14,6 +14,7 @@ function toCatalogView(catalog: Catalog) {
       slug: system.slug,
       displayName: system.displayName,
       baseUrlEnv: system.baseUrlEnv,
+      port: system.port,
       ...(system.clientCertEnv !== undefined && { clientCertEnv: system.clientCertEnv }),
       ...(system.clientKeyEnv !== undefined && { clientKeyEnv: system.clientKeyEnv }),
       endpoints: system.endpoints.map((endpoint) => ({

@@ -35,8 +35,8 @@ the endpoint name) and no scenario list — scenarios are just the `<scenario>.j
 files you drop in next, not something declared up front. There's also no `real`
 entry to write — passthrough is implicit on every endpoint. Every field is
 explained in the [Endpoints](../building/endpoints.md) reference. (If this is a
-brand-new system, first create its directory with a `_system.json` — see
-[Endpoints](../building/endpoints.md).)
+brand-new system, first create its directory with a `_system.json`, including a
+`port` of its own — see [Endpoints](../building/endpoints.md).)
 
 ## 2. Write a fixture for each scenario
 
@@ -109,11 +109,12 @@ build`, or from a source checkout — are in
 
 ## 4. Call it
 
-Start the server and send the request. Nothing else is set up yet — that is the
-point:
+Start the server and send the request to the system's port — `4001` for
+`hello-system`, from the `port` in its `_system.json`. Nothing else is set up yet
+— that is the point:
 
 ```bash
-curl -s -X POST <origin>/wallet/balance \
+curl -s -X POST http://localhost:4001/wallet/balance \
   -H 'content-type: application/json' \
   -d '{"customerId":"customer-123"}'
 ```

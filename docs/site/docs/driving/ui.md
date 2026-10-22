@@ -4,7 +4,7 @@ description: "The management dashboard at /ui: profiles, global mocks, catalog b
 
 # The dashboard
 
-The management UI at `<origin>/ui` is the human control surface for a running
+The management UI at `/ui` on the admin port (`http://localhost:3000/ui` by default) is the human control surface for a running
 mock server — the same operations the [Runtime-control API](api.md) exposes to
 scripts, plus live views the API doesn't render. It is served by the mock server
 itself under the reserved `/ui` namespace, so it can never collide with a mocked
@@ -112,7 +112,8 @@ endpoints, and per endpoint a card for every scenario. A fixture-backed
 scenario's card shows its name, its `summary` when one is set, and the fixture
 JSON itself; a resolver-backed scenario's card shows the resolver's JavaScript
 source, syntax-highlighted. A **Copy as cURL** button builds a runnable sample
-request for the endpoint — including a placeholder `authorization` header when
+request for the endpoint, addressed to the system's port on the host you're
+browsing — including a placeholder `authorization` header when
 the endpoint is profiled by a [Bearer selector](../building/profiles.md).
 
 Use it to answer "what can I even pick?" without reading catalog files — it is

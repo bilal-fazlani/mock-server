@@ -104,7 +104,7 @@ credential becomes the profile ID directly:
 ```
 
 ```bash
-curl <origin>/accounts/balance \
+curl http://localhost:4001/accounts/balance \
   -H 'authorization: Bearer customer-123'
 ```
 

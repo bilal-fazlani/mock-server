@@ -20,9 +20,9 @@ exists for local development and automated tests (see
 
 ## Why `/ui/api`
 
-Mock endpoints are served at the root (`/…`), so the control API cannot live
-there without colliding with a mocked route. `/ui` is the reserved admin
-namespace; every control route lives under `/ui/api/*`. Error responses are
+The control API lives on the admin port, which serves no mocks — each system's
+endpoints are on [its own port](../building/endpoints.md#system-ports). On that
+port `/ui` is the admin namespace; every control route lives under `/ui/api/*`. Error responses are
 `{ "error": "<message>", "code": "<code>" }` — `error` is wording for humans,
 `code` is a stable identifier for scripts (see [Error codes](#error-codes)) —
 except `GET /ui/api/health`, whose `503` keeps the health body shape and adds a
@@ -121,6 +121,7 @@ bodies.**
       "slug": "hello-system",
       "displayName": "Hello System",
       "baseUrlEnv": "HELLO_SYSTEM_URL",
+      "port": 4001,
       "endpoints": [
         {
           "slug": "account_balance",
@@ -154,6 +155,9 @@ bodies.**
 scenario resolvers](../building/dynamic.md). The `real` passthrough is always
 implicit and never appears in either list. `mockType` is `"profiled"` or
 `"global"`.
+
+Every system carries the `port` its mocked endpoints are served on, from its
+`_system.json` — see [System ports](../building/endpoints.md#system-ports).
 
 On a system, `clientCertEnv` and `clientKeyEnv` are present only when its
 `_system.json` declares a [client certificate](../building/scenarios.md#upstreams-that-require-mtls),

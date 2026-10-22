@@ -43,7 +43,7 @@ export function validateCatalog(catalog: Catalog, catalogDir: string): Validatio
   const fixtures = new Map<string, Fixture>()
   const { schemas, errors: schemaErrors } = buildSchemaRegistry(catalog)
   errors.push(...schemaErrors)
-  const parsed: Array<{ method: string; template: PathTemplate; label: string }> = []
+  const parsed: Array<{ system: string; method: string; template: PathTemplate; label: string }> = []
 
   for (const system of catalog.systems) {
     for (const endpoint of system.endpoints) {
@@ -52,7 +52,7 @@ export function validateCatalog(catalog: Catalog, catalogDir: string): Validatio
       let template: PathTemplate | null = null
       try {
         template = parsePathTemplate(endpoint.path)
-        parsed.push({ method: endpoint.method.toUpperCase(), template, label })
+        parsed.push({ system: system.slug, method: endpoint.method.toUpperCase(), template, label })
       } catch (err) {
         if (err instanceof PathTemplateError) errors.push(`${label}: ${err.message}`)
         else throw err
@@ -353,6 +353,7 @@ export function validateCatalog(catalog: Catalog, catalogDir: string): Validatio
   for (let i = 0; i < parsed.length; i++) {
     for (let j = i + 1; j < parsed.length; j++) {
       if (
+        parsed[i].system === parsed[j].system &&
         parsed[i].method === parsed[j].method &&
         templatesOverlap(parsed[i].template, parsed[j].template)
       ) {

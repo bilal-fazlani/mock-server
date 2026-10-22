@@ -8,6 +8,7 @@ const system: SystemDef = {
   displayName: 'Hello System',
   slug: 'hello-system',
   baseUrlEnv: 'HELLO_SYSTEM_URL',
+  port: 4001,
   endpoints: [],
 }
 

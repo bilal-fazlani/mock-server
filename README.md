@@ -27,21 +27,23 @@ isn't set, an in-memory MongoDB starts automatically (data is ephemeral).
 npx @bilal-fazlani/mock-server ./catalog
 
 # or via Docker
-docker run --rm -p 3000:3000 -v "$(pwd)/catalog:/app/catalog:ro" ghcr.io/bilal-fazlani/mock-server:latest
+docker run --rm -p 3000:3000 -p 4001:4001 -v "$(pwd)/catalog:/app/catalog:ro" ghcr.io/bilal-fazlani/mock-server:latest
 
 # check a catalog without starting anything (exit 0 clean, 1 on any error)
 npx @bilal-fazlani/mock-server validate ./catalog
 ```
 
-Mock endpoints answer at the **root** — an endpoint whose catalog `path` is
-`/hello/world` responds at `http://localhost:3000/hello/world`; the management UI
-is at `http://localhost:3000/ui`. The repo has an example system
+Each catalog system is served on its own port, declared in its `_system.json`,
+at the **root** — the example `hello-system` declares `4001`, so its endpoint
+whose catalog `path` is `/hello/world` responds at
+`http://localhost:4001/hello/world`. The management UI and control API are on the
+admin port, at `http://localhost:3000/ui`. The repo has an example system
 (`catalog/hello-system/`) to call and edit — the guide shows how to
 [download it](https://mock-server.bilal-fazlani.com/get-started/install/#get-a-catalog-to-try).
 With it serving:
 
 ```bash
-curl -s -X POST http://localhost:3000/hello/world \
+curl -s -X POST http://localhost:4001/hello/world \
   -H 'content-type: application/json' \
   -d '{"customerId":"customer-123"}'
 ```

@@ -12,6 +12,7 @@ vi.mock('../../src/lib/runtime', () => ({
           displayName: 'Test System',
           slug: 'test-system',
           baseUrlEnv: 'TEST_SYSTEM_URL',
+          port: 4001,
           endpoints: [
             {
               slug: 'hello_world',

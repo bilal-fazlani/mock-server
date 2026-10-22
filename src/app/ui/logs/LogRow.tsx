@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { MethodBadge } from '../../components/MethodBadge'
 import { formatTimestamp } from '../../../lib/format'
 import type { ValidationIssues, ValidationResult } from '../../../lib/logs/store'
+import { systemOrigin } from '../system-origin'
 import { profileWasMissing } from './profile-presence'
 import type { LogBodyHtml, LogDetailResponse, LogEntryView, LogSummaryView } from './types'
 
@@ -22,6 +23,7 @@ const curlButtonClass =
 export function LogRow({
   entry,
   systemLabels = {},
+  systemPorts = {},
   scenarioLabels = {},
   captureSelectorLabels = {},
   defaultExpanded = false,
@@ -31,6 +33,8 @@ export function LogRow({
 }: {
   entry: LogSummaryView
   systemLabels?: Record<string, string>
+  /** Each system's port, by slug, so a copied cURL targets the port the request arrived on. */
+  systemPorts?: Record<string, number>
   scenarioLabels?: Record<string, string>
   captureSelectorLabels?: Record<string, string>
   defaultExpanded?: boolean
@@ -186,6 +190,7 @@ export function LogRow({
             copied={copied}
             setCopied={setCopied}
             captureSelectorLabels={captureSelectorLabels}
+            port={entry.system ? systemPorts[entry.system] : undefined}
           />
         ) : (
           <div className="px-3.5 py-2.5 text-xs text-muted-foreground">
@@ -202,12 +207,14 @@ function LogDetail({
   copied,
   setCopied,
   captureSelectorLabels,
+  port,
 }: {
   entry: LogEntryView
   bodyHtml?: LogBodyHtml
   copied: boolean
   setCopied: (v: boolean) => void
   captureSelectorLabels: Record<string, string>
+  port: number | undefined
 }) {
   const trace = entry.trace
   const sourceView = trace.scenarioSource ? scenarioSourceView(trace.scenarioSource) : null
@@ -375,7 +382,7 @@ function LogDetail({
             type="button"
             className={curlButtonClass}
             onClick={() => {
-              void navigator.clipboard.writeText(buildCurl(entry)).then(() => {
+              void navigator.clipboard.writeText(buildCurl(entry, port)).then(() => {
                 setCopied(true)
                 setTimeout(() => setCopied(false), 1500)
               })
@@ -708,8 +715,8 @@ function PayloadBlock({
   )
 }
 
-function buildCurl(entry: LogEntryView): string {
-  const parts = [`curl -X ${entry.method ?? 'GET'} '${window.location.origin}${entry.path}${entry.query ?? ''}'`]
+function buildCurl(entry: LogEntryView, port: number | undefined): string {
+  const parts = [`curl -X ${entry.method ?? 'GET'} '${systemOrigin(port)}${entry.path}${entry.query ?? ''}'`]
   const contentType = entry.request?.headers['content-type']
   if (contentType) parts.push(`-H 'content-type: ${contentType}'`)
   if (entry.request?.body != null) {

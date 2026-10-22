@@ -12,6 +12,7 @@ const CATALOG: Catalog = {
       displayName: 'Test System',
       slug: 'test-system',
       baseUrlEnv: 'TEST_SYSTEM_URL',
+      port: 4001,
       endpoints: [
         {
           slug: 'hello',
@@ -62,6 +63,7 @@ function handlerWith(
       written.push(entry)
     },
     ...overrides,
+    system: overrides.system ?? (overrides.catalog ?? CATALOG).systems[0],
   }
   return { handle: createMockHandler(deps), written }
 }
@@ -157,7 +159,7 @@ describe('mock handler logging', () => {
     expect(consoleSpy.info).not.toHaveBeenCalled()
     expect(consoleSpy.warn).toHaveBeenCalledTimes(1)
     expect(consoleSpy.warn.mock.calls[0][0]).toMatch(
-      /^\[mock\] GET \/nope\?x=1 -> 404 \d+ms outcome=error error=no_match$/,
+      /^\[mock\] GET \/nope\?x=1 -> 404 \d+ms test-system outcome=error error=no_match$/,
     )
     expect(consoleSpy.error).not.toHaveBeenCalled()
     consoleSpy.restore()

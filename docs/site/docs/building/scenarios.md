@@ -61,6 +61,7 @@ that upstream. Declare it on the system:
 {
   "displayName": "Payments",
   "baseUrlEnv": "PAYMENTS_URL",
+  "port": 4002,
   "clientCertEnv": "PAYMENTS_CLIENT_CERT",
   "clientKeyEnv": "PAYMENTS_CLIENT_KEY"
 }

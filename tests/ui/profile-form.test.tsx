@@ -10,6 +10,7 @@ const catalog: Catalog = {
       displayName: 'Hello System',
       slug: 'hello-system',
       baseUrlEnv: 'HELLO_SYSTEM_URL',
+      port: 4001,
       endpoints: [
         {
           slug: 'hello_world',
@@ -262,6 +263,7 @@ describe('ProfileForm', () => {
           displayName: 'Ops System',
           slug: 'ops-system',
           baseUrlEnv: 'OPS_SYSTEM_URL',
+          port: 4002,
           endpoints: [
             {
               slug: 'health_check',

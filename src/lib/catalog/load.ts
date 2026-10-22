@@ -174,10 +174,13 @@ export function loadCatalog(catalogDir: string): Catalog {
       displayName: requireString(sysMeta, 'displayName', slug, problems),
       slug,
       baseUrlEnv: requireString(sysMeta, 'baseUrlEnv', slug, problems),
+      port: requirePort(sysMeta, slug, problems),
       ...optionalClientIdentity(sysMeta, slug, problems),
       endpoints,
     })
   }
+
+  problems.push(...sharedPortProblems(systems))
 
   const fns = loadFunctions(catalogDir)
   problems.push(...fns.problems)
@@ -245,6 +248,35 @@ function requireString(
   if (typeof value === 'string' && value.length > 0) return value
   problems.push(`${label}: missing or invalid "${field}"`)
   return ''
+}
+
+export const MIN_SYSTEM_PORT = 1024
+export const MAX_SYSTEM_PORT = 65535
+
+function requirePort(meta: Record<string, unknown>, label: string, problems: string[]): number {
+  const value = meta.port
+  if (value === undefined) {
+    problems.push(`${label}: missing "port" in ${SYSTEM_META}; every system needs its own port`)
+    return 0
+  }
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < MIN_SYSTEM_PORT || value > MAX_SYSTEM_PORT) {
+    problems.push(
+      `${label}: "port" must be an integer from ${MIN_SYSTEM_PORT} to ${MAX_SYSTEM_PORT}, got ${JSON.stringify(value)}`,
+    )
+    return 0
+  }
+  return value
+}
+
+function sharedPortProblems(systems: SystemDef[]): string[] {
+  const byPort = new Map<number, string[]>()
+  for (const system of systems) {
+    if (system.port === 0) continue
+    byPort.set(system.port, [...(byPort.get(system.port) ?? []), system.slug])
+  }
+  return [...byPort]
+    .filter(([, slugs]) => slugs.length > 1)
+    .map(([port, slugs]) => `systems ${slugs.join(', ')} share port ${port}; each system needs its own`)
 }
 
 function optionalClientIdentity(

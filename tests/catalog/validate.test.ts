@@ -37,7 +37,7 @@ function endpoint(overrides: Partial<EndpointDef> = {}): EndpointDef {
 }
 
 function catalog(endpoints: EndpointDef[]): Catalog {
-  return { systems: [{ displayName: 'Test System', slug: 'test-system', baseUrlEnv: 'TEST_URL', endpoints }] }
+  return { systems: [{ displayName: 'Test System', slug: 'test-system', baseUrlEnv: 'TEST_URL', port: 4001, endpoints }] }
 }
 
 function validateCatalogWith(
@@ -47,7 +47,7 @@ function validateCatalogWith(
   const sys = 'test-system'
   const ep = 'hello_world'
   const files: Record<string, unknown> = {
-    [`${sys}/_system.json`]: { displayName: 'Test System', baseUrlEnv: 'TEST_URL' },
+    [`${sys}/_system.json`]: { displayName: 'Test System', baseUrlEnv: 'TEST_URL', port: 4002 },
     [`${sys}/${ep}/_endpoint.json`]: {
       displayName: 'Hello World',
       method: 'POST',
@@ -266,7 +266,7 @@ describe('validateCatalog', () => {
 
   it('accepts bracket-key body selectors in every selector position, loaded from disk', () => {
     const dir = tmpCatalogDir({
-      'test-system/_system.json': { displayName: 'Test System', baseUrlEnv: 'TEST_URL' },
+      'test-system/_system.json': { displayName: 'Test System', baseUrlEnv: 'TEST_URL', port: 4003 },
       'test-system/assess/_endpoint.json': {
         displayName: 'Assess',
         method: 'POST',
@@ -349,6 +349,24 @@ describe('validateCatalog', () => {
       dir2,
     )
     expect(errors.join('\n')).toMatch(/ambiguous endpoints/)
+  })
+
+  it('lets two systems declare the same method and path, global endpoints included', () => {
+    const dir = tmpCatalogDir({
+      'test-system/a/default.json': GOOD_FIXTURE,
+      'other-system/a/default.json': GOOD_FIXTURE,
+    })
+    const shared = endpoint({ slug: 'a', path: '/customers/{id}', mockType: 'global' })
+    const { errors } = validateCatalog(
+      {
+        systems: [
+          { displayName: 'Test System', slug: 'test-system', baseUrlEnv: 'TEST_URL', port: 4001, endpoints: [shared] },
+          { displayName: 'Other System', slug: 'other-system', baseUrlEnv: 'OTHER_URL', port: 4002, endpoints: [shared] },
+        ],
+      },
+      dir,
+    )
+    expect(errors.join('\n')).not.toMatch(/ambiguous endpoints/)
   })
 
   it('flags scenarios missing the required "default" key', () => {
@@ -942,7 +960,7 @@ describe('validateCatalog optional-parameter lint (#52)', () => {
 })
 
 describe('validateAppConfig', () => {
-  const system = { displayName: 'Test System', slug: 'test-system', baseUrlEnv: 'TEST_URL', endpoints: [endpoint()] }
+  const system = { displayName: 'Test System', slug: 'test-system', baseUrlEnv: 'TEST_URL', port: 4004, endpoints: [endpoint()] }
   const cat: Catalog = { systems: [system] }
 
   it('passes when PASSTHROUGH_AS_DEFAULT is false, regardless of env', () => {
@@ -998,7 +1016,7 @@ describe('validateAppConfig', () => {
 
 describe('schema path parameters vs endpoint path', () => {
   const files = (endpointPath: string): Record<string, unknown> => ({
-    'sys/_system.json': { displayName: 'Sys', baseUrlEnv: 'TEST_URL' },
+    'sys/_system.json': { displayName: 'Sys', baseUrlEnv: 'TEST_URL', port: 4005 },
     'sys/ep/_endpoint.json': {
       displayName: 'Ep',
       method: 'GET',

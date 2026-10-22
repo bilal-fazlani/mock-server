@@ -10,9 +10,43 @@ Requirements: **Node.js 22+**. MongoDB is optional — if
 selections, mappings, and request logs across restarts. For when to use each, see
 [Using it in dev & CI](../driving/dev-and-ci.md#ephemeral-vs-persistent-data).
 
-Mock endpoints are served at the **root** of the origin — an endpoint whose
-catalog `path` is `/hello/world` answers at `http://localhost:3000/hello/world`.
-The management UI lives under `http://localhost:3000/ui`.
+## Ports
+
+The server listens on **one admin port plus one port per catalog system**:
+
+| Port | Set by | Serves |
+| --- | --- | --- |
+| Admin | [`PORT`](../reference/configuration.md) or `--port` (default `3000`) | The dashboard (`/ui`) and the [runtime-control API](../driving/api.md) (`/ui/api`), nothing else. |
+| One per system | The [`port`](../building/endpoints.md#endpoint-fields) in that system's `_system.json` | That system's mocked endpoints, at the **root** of its origin. |
+
+With the example catalog, whose `hello-system` declares `"port": 4001`, an
+endpoint whose catalog `path` is `/hello/world` answers at
+`http://localhost:4001/hello/world`, and the dashboard lives at
+`http://localhost:3000/ui`. At startup the server prints each address:
+
+```text
+mock-server: admin UI and control API on http://0.0.0.0:3000/ui
+mock-server: system hello-system on http://0.0.0.0:4001
+```
+
+Every port has to be reachable by whoever calls it, so publish each one: `-p` per
+port with Docker, one `ports:` entry each in Compose, one port each on a
+Kubernetes Service.
+
+!!! warning "Hosting platforms that expose a single port"
+
+    Platforms that route one port per service (Railway, Render, Cloud Run and
+    similar) can serve the dashboard but no mocked traffic. Run the server
+    somewhere you can publish every port.
+
+!!! note "Upgrading from a single-port release"
+
+    Earlier releases served every system on the admin port. Now each
+    `_system.json` must declare a `port` — the server and `mock-server validate`
+    both reject a catalog with a system that has none — and callers point at the
+    system's port instead of the admin port. A mocked path sent to the admin port
+    answers `404` with a body listing each system's slug and port. Two systems may
+    now declare the same method and path.
 
 ## Ways to run it
 
@@ -68,7 +102,8 @@ Arguments:
                          Overrides the CATALOG_PATH environment variable.
 
 Options:
-  -p, --port <number>    Port to listen on (default: 3000, or $PORT).
+  -p, --port <number>    Admin port, for /ui and /ui/api (default: 3000, or
+                         $PORT). Each system listens on its own catalog port.
   --bind <address>       IP address to listen on (default: 0.0.0.0, or
                          $BIND_ADDRESS). IPv4 or IPv6; a hostname is rejected.
   -h, --help             Show this help and exit.
@@ -89,12 +124,13 @@ listing](https://github.com/bilal-fazlani/mock-server/pkgs/container/mock-server
 `GET /ui/api/health`.
 
 ```bash
-docker run --rm -p 3000:3000 \
+docker run --rm -p 3000:3000 -p 4001:4001 \
   -v "$(pwd)/catalog:/app/catalog:ro" \
   ghcr.io/bilal-fazlani/mock-server:latest
 ```
 
-The image contains no catalog, so this mounts yours at `/app/catalog`. Without one
+The `-p 4001:4001` publishes the example system's port; add one `-p` for each
+system in your catalog ([Ports](#ports)). The image contains no catalog, so this mounts yours at `/app/catalog`. Without one
 the container exits with a `catalog directory not found` error rather than serving
 nothing. A mount whose host path doesn't exist is created as an empty directory by
 Docker, which exits with a `contains no systems` error in the same way. To try it first, [download the example catalog](#get-a-catalog-to-try).
@@ -104,7 +140,7 @@ in-memory MongoDB (ephemeral — lost when the container stops). Pass a connecti
 string for a real, persistent MongoDB instead:
 
 ```bash
-docker run --rm -p 3000:3000 \
+docker run --rm -p 3000:3000 -p 4001:4001 \
   -v "$(pwd)/catalog:/app/catalog:ro" \
   -e MONGODB_CONNECTION_STRING='mongodb://host.docker.internal:27017' \
   ghcr.io/bilal-fazlani/mock-server:latest
@@ -118,7 +154,7 @@ Mount your catalog at `/app/catalog`. Nothing is built, so an edit is one
 container restart away:
 
 ```bash
-docker run --rm -p 3000:3000 \
+docker run --rm -p 3000:3000 -p 4001:4001 \
   -v "$(pwd)/catalog:/app/catalog:ro" \
   ghcr.io/bilal-fazlani/mock-server:latest
 ```
@@ -147,7 +183,7 @@ RUN mock-server validate
 
 ```bash
 docker build -t my-mocks:1.4.0 .
-docker run --rm -p 3000:3000 my-mocks:1.4.0
+docker run --rm -p 3000:3000 -p 4001:4001 my-mocks:1.4.0
 ```
 
 The `--chown=nextjs:nodejs` matters: the image drops to the unprivileged `nextjs`
@@ -183,7 +219,7 @@ Then run the image with the CA file named in the query string of
 `tls=true`:
 
 ```bash
-docker run --rm -p 3000:3000 \
+docker run --rm -p 3000:3000 -p 4001:4001 \
   -e MONGODB_CONNECTION_STRING='mongodb://user:pass@db.example.com:27017/?tls=true&tlsCAFile=/app/global-bundle.pem' \
   my-mocks:1.4.0
 ```
@@ -222,7 +258,7 @@ The repository ships a small example system (`catalog/hello-system/`) so you hav
 something to call and edit right away:
 
 ```bash
-curl -s -X POST http://localhost:3000/hello/world \
+curl -s -X POST http://localhost:4001/hello/world \
   -H 'content-type: application/json' \
   -d '{"customerId":"customer-123"}'
 ```
@@ -233,7 +269,9 @@ catalog against the checkout's own environment — see
 
 ## Health check
 
-`GET /ui/api/health` returns `200 {"status":"ok","mongo":"up",…}` when MongoDB
+`GET /ui/api/health` is served on the admin port. Every system port is
+accepting connections before it can answer at all, so a healthy answer means the
+mocks are reachable too. It returns `200 {"status":"ok","mongo":"up",…}` when MongoDB
 is reachable, or `503 {"status":"error","mongo":"down",…}` otherwise. It also
 answers `503` with `"mongo":"unchecked"` when the server could not load its
 configuration or catalog; a normally started server exits in that case, so you

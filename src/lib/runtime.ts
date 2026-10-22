@@ -4,6 +4,7 @@ import { type SchemaRegistry } from './catalog/schema'
 import type { Catalog } from './catalog/types'
 import { validateAppConfig, validateCatalog } from './catalog/validate'
 import {
+  parseAdminPort,
   parseBindAddress,
   parseConsoleLogLevel,
   parseLogFormat,
@@ -20,6 +21,7 @@ import {
   type UnmockedUsers,
 } from './config'
 import { writeConsoleLog } from './logs/console'
+import { adminPortConflicts } from './system-ports'
 import { fixtureFilePath, FixtureError, loadFixture, type Fixture } from './mock-engine/fixtures'
 import {
   compileResolver,
@@ -116,6 +118,7 @@ export function getRuntime(): Runtime {
   // src/server/serve-main.ts); checked here too so `next dev` and any other
   // path that skips that entry point fails the same way.
   parseBindAddress(process.env.BIND_ADDRESS)
+  const adminPort = parseAdminPort(process.env.PORT)
   const passthroughAsDefault = parsePassthroughAsDefault(process.env.PASSTHROUGH_AS_DEFAULT)
   const unmockedUsers = parseUnmockedUsers(process.env.UNMOCKED_USERS)
   const consoleLogLevel = parseConsoleLogLevel(process.env.MOCK_CONSOLE_LOG_LEVEL)
@@ -143,7 +146,12 @@ export function getRuntime(): Runtime {
   const { errors: catalogErrors, fixtures, schemas } = validateCatalog(catalog, catalogDir)
   const configErrors = validateAppConfig(catalog, process.env, passthroughAsDefault)
   const { resolvers, errors: resolverErrors } = compileResolvers(catalog, catalogDir)
-  const errors = [...catalogErrors, ...configErrors, ...resolverErrors]
+  const errors = [
+    ...adminPortConflicts(catalog, adminPort),
+    ...catalogErrors,
+    ...configErrors,
+    ...resolverErrors,
+  ]
   if (errors.length > 0) {
     throw new Error(`catalog validation failed:\n - ${errors.join('\n - ')}`)
   }

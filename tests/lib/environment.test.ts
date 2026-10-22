@@ -11,24 +11,28 @@ const catalog: Catalog = {
       displayName: 'Hello System',
       slug: 'hello-system',
       baseUrlEnv: 'HELLO_SYSTEM_URL',
+      port: 4001,
       endpoints: [],
     },
     {
       displayName: 'Orders',
       slug: 'orders',
       baseUrlEnv: 'ORDERS_URL',
+      port: 4002,
       endpoints: [],
     },
     {
       displayName: 'Orders Duplicate',
       slug: 'orders-duplicate',
       baseUrlEnv: 'ORDERS_URL',
+      port: 4003,
       endpoints: [],
     },
     {
       displayName: 'Billing',
       slug: 'billing',
       baseUrlEnv: 'BILLING_URL',
+      port: 4004,
       clientCertEnv: 'BILLING_CLIENT_CERT',
       clientKeyEnv: 'BILLING_CLIENT_KEY',
       endpoints: [],
@@ -60,6 +64,7 @@ describe('buildEnvironmentRows', () => {
 
     expect(rows.map((row) => row.name)).toEqual([
       'CATALOG_PATH',
+      'PORT',
       'BIND_ADDRESS',
       'MONGODB_CONNECTION_STRING',
       'MONGODB_DB',
@@ -133,8 +138,8 @@ describe('buildEnvironmentRows', () => {
   it('hides a variable that one system uses as a base URL and another as a client key', () => {
     const shared: Catalog = {
       systems: [
-        { displayName: 'A', slug: 'a', baseUrlEnv: 'SHARED', endpoints: [] },
-        { displayName: 'B', slug: 'b', baseUrlEnv: 'B_URL', clientCertEnv: 'B_CERT', clientKeyEnv: 'SHARED', endpoints: [] },
+        { displayName: 'A', slug: 'a', baseUrlEnv: 'SHARED', port: 4005, endpoints: [] },
+        { displayName: 'B', slug: 'b', baseUrlEnv: 'B_URL', port: 4006, clientCertEnv: 'B_CERT', clientKeyEnv: 'SHARED', endpoints: [] },
       ],
     }
     const row = buildEnvironmentRows(shared, { SHARED: KEY_PEM }).find((r) => r.name === 'SHARED')

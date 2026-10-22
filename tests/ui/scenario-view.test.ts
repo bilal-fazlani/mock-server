@@ -12,6 +12,7 @@ const system: SystemDef = {
   displayName: 'Test System',
   slug: 'test-system',
   baseUrlEnv: 'TEST_SYSTEM_URL',
+  port: 4001,
   endpoints: [],
 }
 

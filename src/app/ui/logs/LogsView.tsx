@@ -48,6 +48,7 @@ export interface LogFilterOptions {
   profiles: ProfileOption[]
   endpoints: EndpointOption[]
   systemLabels?: Record<string, string>
+  systemPorts?: Record<string, number>
   scenarioLabels?: Record<string, string>
   captureSelectorLabels?: Record<string, string>
 }
@@ -302,6 +303,7 @@ export function LogsView({
               key={entry.logId}
               entry={entry}
               systemLabels={options.systemLabels}
+              systemPorts={options.systemPorts}
               scenarioLabels={options.scenarioLabels}
               captureSelectorLabels={options.captureSelectorLabels}
               timeZone={zone.id}

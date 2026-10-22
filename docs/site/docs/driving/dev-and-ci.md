@@ -34,8 +34,10 @@ anything else.
 
 ## Local development
 
-Run the server (`npx @bilal-fazlani/mock-server ./catalog`), set your app's
-upstream URL to `http://localhost:3000`, and pick scenarios in `/ui`. Switch an
+Run the server (`npx @bilal-fazlani/mock-server ./catalog`), set each of your
+app's upstream URLs to its system's port (`http://localhost:4001` for the example
+`hello-system` — see [System ports](../building/endpoints.md#system-ports)), and
+pick scenarios in `/ui` on the admin port, `http://localhost:3000`. Switch an
 endpoint to the `real` scenario when you want that one call to hit the live
 upstream — handy for migrating off real dependencies one endpoint at a time.
 
@@ -76,8 +78,11 @@ jobs:
       - name: Run tests
         run: npm test
         env:
-          HELLO_SYSTEM_URL: http://localhost:3000
+          HELLO_SYSTEM_URL: http://localhost:4001
 ```
+
+The health check and every control call go to the admin port (`3000`); the app
+under test calls each system on its own port.
 
 The health response also carries the running build's `version` and `sha`, so a CI
 step can log or assert exactly which image it is testing against — and a build

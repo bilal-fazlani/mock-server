@@ -6,16 +6,17 @@ description: "Every received request with its full decision trace, plus querying
 
 ## What is recorded
 
-Every request the mock server receives — *including* ones that match no endpoint
-or fail profile resolution — is written to a request log with its full **decision
-trace**: how the profile was resolved (directly or via a profile key lookup),
+Every request a [system port](../building/endpoints.md#system-ports) receives —
+*including* ones that match no endpoint or fail profile resolution — is written to
+a request log against that system, with its full **decision trace**: how the profile was resolved (directly or via a profile key lookup),
 which scenario was chosen and why (profile pin, sequence step, implicit default,
 global pick, or `UNMOCKED_USERS` policy), captured profile keys, placeholder
 resolutions, schema-validation results, any injected [response
 delay](../building/fixtures.md#response-delay) (recorded as `trace.delayMs` and
 folded into the entry's total `durationMs`), and — for `real` passthrough — the
-upstream URL, status, and latency. The one exception is Next.js internal asset
-noise: request paths beginning with `/_next/` are ignored by the request log.
+upstream URL, status, and latency. The one exception: request paths beginning with `/_next/` are ignored by the
+request log. Mocked paths sent to the admin port, which answer `404`, are not
+recorded either.
 Profile saves, sequence progress resets, and resolver history resets appear in
 the same stream as admin events.
 

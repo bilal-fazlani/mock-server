@@ -67,7 +67,7 @@ export function EndpointView({
           )}
           {endpoint.schema && <SchemaBadge />}
           <span className="inline-flex ml-auto">
-            <CopyCurlButton example={buildEndpointRequestExample(endpoint)} />
+            <CopyCurlButton example={buildEndpointRequestExample(endpoint)} port={system.port} />
           </span>
         </div>
       </StickyPageHeader>

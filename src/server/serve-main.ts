@@ -11,15 +11,19 @@
 //   that name's address and refuse connections to localhost. `BIND_ADDRESS`
 //   decides instead and is copied over `HOSTNAME` here; a bad value stops the
 //   process before anything listens.
+// - One listener per catalog system (see system-listeners.ts), which needs the
+//   catalog's ports before Next takes the admin port.
 //
 // Everything that starts the server starts this file: `bin/mock-server.js`, the
 // image's CMD, and the `docker/mock-server` shim.
 
 import { applyBindAddress, BindAddressError } from '../lib/bind-address'
 import { installUpgradeGuard } from './ignore-unsupported-upgrades'
+import { prepareSystemListeners, SystemStartError } from './system-start'
 
+let address: string
 try {
-  applyBindAddress(process.env)
+  address = applyBindAddress(process.env)
 } catch (err) {
   if (!(err instanceof BindAddressError)) throw err
   process.stderr.write(`mock-server: ${err.message}\n`)
@@ -28,8 +32,19 @@ try {
 
 installUpgradeGuard()
 
-// Next's standalone entry, which only exists once `next build` has run — hence
-// external at bundle time, resolved next to this file at runtime. It takes over
-// the process from here: reads PORT and the HOSTNAME set above, listens, and never returns.
-// eslint-disable-next-line @typescript-eslint/no-require-imports -- CJS bundle; a static import would be hoisted above installUpgradeGuard()
-require('./server.js')
+// System listeners bind before Next starts, so /ui/api/health can't report
+// healthy while one of them is still missing.
+prepareSystemListeners(process.env, address).then(
+  () => {
+    // Next's standalone entry, which only exists once `next build` has run — hence
+    // external at bundle time, resolved next to this file at runtime. It takes over
+    // the process from here: reads PORT and the HOSTNAME set above, listens, and never returns.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- CJS bundle; a static import would be hoisted above installUpgradeGuard()
+    require('./server.js')
+  },
+  (err: unknown) => {
+    if (!(err instanceof SystemStartError)) throw err
+    process.stderr.write(`mock-server: cannot start: ${err.message}\n`)
+    process.exit(1)
+  },
+)

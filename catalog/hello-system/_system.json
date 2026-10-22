@@ -1,4 +1,5 @@
 {
   "displayName": "Hello System",
-  "baseUrlEnv": "HELLO_SYSTEM_URL"
+  "baseUrlEnv": "HELLO_SYSTEM_URL",
+  "port": 4001
 }

@@ -52,6 +52,7 @@ const CATALOG: Catalog = {
       displayName: 'Secure System',
       slug: 'secure-system',
       baseUrlEnv: 'SECURE_SYSTEM_URL',
+      port: 4001,
       clientCertEnv: 'SECURE_CLIENT_CERT',
       clientKeyEnv: 'SECURE_CLIENT_KEY',
       endpoints: [
@@ -72,6 +73,7 @@ const CATALOG: Catalog = {
 function deps(env: Record<string, string>, trace: RouteTrace): RouterDeps {
   return {
     catalog: CATALOG,
+    system: CATALOG.systems[0],
     passthroughAsDefault: true,
     unmockedUsers: 'ERROR',
     timeoutMs: 5000,

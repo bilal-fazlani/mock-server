@@ -34,10 +34,18 @@ export const APP_ENVIRONMENT: EnvironmentDefinition[] = [
     display: true,
   },
   {
+    name: 'PORT',
+    category: 'System',
+    description:
+      "Admin port: serves the UI (/ui) and the control API (/ui/api) only. Each catalog system's mocked API listens on the port in its _system.json.",
+    defaultValue: '3000',
+    display: true,
+  },
+  {
     name: 'BIND_ADDRESS',
     category: 'System',
     description:
-      'IP address the server listens on (IPv4 or IPv6). The platform-set HOSTNAME is ignored. Applies to the shipped server, CLI and image, not next dev or next start.',
+      'IP address the server listens on (IPv4 or IPv6). The platform-set HOSTNAME is ignored. Applies to the admin port and every system port of the shipped server, CLI and image; under npm run dev, to the system ports only.',
     defaultValue: '0.0.0.0',
     display: true,
   },

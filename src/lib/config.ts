@@ -29,6 +29,17 @@ export function parseBindAddress(raw: string | undefined): string {
   }
 }
 
+export const DEFAULT_ADMIN_PORT = 3000
+
+export function parseAdminPort(raw: string | undefined): number {
+  if (raw === undefined || raw.trim() === '') return DEFAULT_ADMIN_PORT
+  const n = Number(raw)
+  if (!Number.isInteger(n) || n < 1 || n > 65535) {
+    throw new ConfigError(`PORT must be an integer from 1 to 65535, got "${raw}"`)
+  }
+  return n
+}
+
 export function parsePassthroughAsDefault(raw: string | undefined): boolean {
   if (raw === undefined) return false
   const upper = raw.toUpperCase()

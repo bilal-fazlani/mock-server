@@ -12,6 +12,7 @@ A system directory needs one `_system.json`:
 | --- | --- | --- |
 | `displayName` | yes | Human-readable system name (e.g. `"Hello System"`), used in the UI and in log/error labels. The **slug** used in paths and lookups is the directory name itself (e.g. `hello-system`), not derived from this field. |
 | `baseUrlEnv` | yes | Name of the environment variable that holds this system's real upstream base URL, used for `real` passthrough. |
+| `port` | yes | The port this system's endpoints are served on — see [System ports](#system-ports). An integer from `1024` to `65535`, unique across systems, and not the admin `PORT`. |
 | `clientCertEnv` | with `clientKeyEnv` | Name of the environment variable that holds the PEM client certificate presented to an upstream that requires mutual TLS. Set it together with `clientKeyEnv` or not at all — one without the other fails validation. See [Upstreams that require mTLS](scenarios.md#upstreams-that-require-mtls). |
 | `clientKeyEnv` | with `clientCertEnv` | Name of the environment variable that holds the unencrypted PEM private key for that certificate. |
 
@@ -50,6 +51,50 @@ To create a profile-less endpoint, set `"mockType": "global"` and omit
 its active scenario is edited on the separate `/ui/global-mocks` page instead of
 inside each profile.
 
+## System ports
+
+Every system is served on its own port, and the admin port serves only the
+dashboard and the control API:
+
+```json
+{
+  "displayName": "Hello System",
+  "baseUrlEnv": "HELLO_SYSTEM_URL",
+  "port": 4001
+}
+```
+
+- **Each port is its own path space.** A request on a system's port is matched
+  against that system's endpoints only, so two systems may both declare
+  `GET /health` or `POST /v1/customers/{id}`. The [overlap
+  check](#path-templates) applies within one system.
+- **The whole path belongs to the system.** On a system port, `/ui/…` is an
+  ordinary path like any other; a system may declare endpoints under it.
+- **A request matching none of the system's endpoints** answers `404` naming the
+  system:
+
+    ```json
+    { "error": "no matching endpoint", "system": "hello-system", "method": "GET", "path": "/nope" }
+    ```
+
+- **A mocked path sent to the admin port** answers `404` with a body listing
+  where each system lives:
+
+    ```json
+    {
+      "error": "not a mocked API port",
+      "message": "This port serves only the admin UI (/ui) and the control API (/ui/api). Each catalog system's mocked API is served on its own port.",
+      "systems": [{ "slug": "hello-system", "port": 4001 }]
+    }
+    ```
+
+The port is checked when the catalog loads, so [`mock-server
+validate`](validate.md) catches a missing, out-of-range or shared one. The server
+also refuses to start when a system's port equals `PORT`, or when the port is
+already in use, naming the system and the port either way. Ports below `1024`
+are rejected because the image runs as an unprivileged user that cannot bind
+them. How to publish the ports is on [Install & run](../get-started/install.md#ports).
+
 ## Path templates
 
 A template is `/`-separated segments. Each segment is either a **literal**
@@ -64,4 +109,7 @@ selectors and `{{path:name}}` placeholders.
 ```
 
 There are no wildcard or catch-all segments — every position is a literal or a
-single named param.
+single named param. Within one system, no two endpoints of the same method may
+have templates that can match the same path; validation rejects them as
+ambiguous. Endpoints of different systems never clash, because each system has
+[its own port](#system-ports).

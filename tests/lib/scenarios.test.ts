@@ -18,7 +18,7 @@ const ep = (over: Partial<EndpointDef> = {}): EndpointDef => ({
 })
 
 const sys = (over: Partial<SystemDef> = {}): SystemDef => ({
-  displayName: 'Sys', slug: 'sys', baseUrlEnv: 'SYS_URL', endpoints: [],
+  displayName: 'Sys', slug: 'sys', baseUrlEnv: 'SYS_URL', port: 4001, endpoints: [],
   ...over,
 })
 

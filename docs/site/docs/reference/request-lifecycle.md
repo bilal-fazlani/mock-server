@@ -9,11 +9,13 @@ How an incoming request is resolved to a response, as implemented in
 
 ## The ordered walk
 
-What the engine does for every incoming request, in order:
+Each request arrives on one system's [port](../building/endpoints.md#system-ports),
+and that system is the only one considered: it is recorded on the request log
+and console line whatever happens next. What the engine does with it, in order:
 
 | # | Step | On failure |
 | --- | --- | --- |
-| 1 | Match `method` + `path` against the catalog. | `404 no matching endpoint` |
+| 1 | Match `method` + `path` against that system's endpoints. | `404` `{ "error": "no matching endpoint", "system", "method", "path" }` |
 | 2 | If a body is present, parse it as JSON. | `400` always |
 | 3a | For a profiled endpoint, resolve the profile ID. Reusable direct selectors use body/path/query/header values; Bearer selectors use the opaque credential or a top-level JWT claim; `profileKey` selectors first extract the nested body/path/query/header key, then look up `profileKeyMappings`. | Selector missing or malformed → `400`; mapping missing → `404 profile_key_mapping_not_found` |
 | 3b | For a global endpoint, skip profile ID resolution and read the saved shared selection from `globalMockScenarios`. | — |
@@ -132,11 +134,18 @@ The server builds its configuration and catalog once, as it starts, and does not
 begin serving if that fails: it prints the error and exits with a non-zero status.
 Under `npm run dev` it logs the same error and keeps running instead, so you can
 fix the catalog without restarting; `GET /ui/api/health` answers `503` and mock
-and dashboard requests fail until it loads. MongoDB is not part of this check.
+and dashboard requests fail until it loads. The exception is a catalog that can't
+be loaded at all when `npm run dev` starts — a missing or invalid `port`, a
+missing `_system.json` field, unreadable metadata: the system ports are read
+before anything listens, so the dev server exits with the error instead. MongoDB is not part of this check.
 
 Startup fails hard if any of:
 
 - the catalog directory does not exist or contains no systems;
+- a system has no `port`, one outside `1024`–`65535`, one another system also
+  declares, or one equal to `PORT`;
+- a system's port can't be bound (already in use, or the address isn't
+  available) — the message names the system and the port;
 - existing catalog/fixture checks fail: path templates, selectors, fixture shape,
   placeholders, ambiguous endpoints, schemas;
 - a scenario slug has both `<slug>.json` and `<slug>.mjs`;

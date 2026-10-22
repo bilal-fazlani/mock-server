@@ -11,14 +11,28 @@ import {
 import { createMockHandler } from '../../lib/router/handler'
 import { passthrough } from '../../lib/router/passthrough'
 import { getRuntime } from '../../lib/runtime'
+import {
+  adminPortNotFoundBody,
+  resolveSystemRequest,
+  SYSTEM_TOKEN_ENV,
+  SYSTEM_TOKEN_HEADER,
+} from '../../lib/system-ports'
 
 async function handle(
   request: Request,
   { params }: { params: Promise<{ path: string[] }> },
 ): Promise<Response> {
   const rt = getRuntime()
+  const target = resolveSystemRequest(
+    rt.catalog,
+    (await params).path,
+    request.headers.get(SYSTEM_TOKEN_HEADER) ?? undefined,
+    process.env[SYSTEM_TOKEN_ENV],
+  )
+  if (!target) return Response.json(adminPortNotFoundBody(rt.catalog), { status: 404 })
   const handler = createMockHandler({
     ...rt,
+    system: target.system,
     env: process.env,
     getProfile: async (profileId) => getProfileForRequest(await getDb(), profileId),
     getGlobalMockScenario: async (system, endpoint) =>
@@ -48,7 +62,7 @@ async function handle(
     passthrough,
     writeLog: async (entry) => insertLogEntry(await getDb(), entry),
   })
-  return handler(request, (await params).path)
+  return handler(request, target.segments)
 }
 
 export { handle as GET, handle as POST, handle as PUT, handle as PATCH, handle as DELETE }

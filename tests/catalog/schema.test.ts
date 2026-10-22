@@ -211,6 +211,7 @@ describe('buildSchemaRegistry', () => {
           displayName: 'Test System',
           slug: 'test-system',
           baseUrlEnv: 'TEST_URL',
+          port: 4001,
           endpoints: [
             {
               slug: 'hello_world',

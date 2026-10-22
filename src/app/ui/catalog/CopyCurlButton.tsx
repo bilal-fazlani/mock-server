@@ -3,15 +3,16 @@
 import { useState } from 'react'
 import { Check, Copy } from 'lucide-react'
 import type { EndpointRequestExample } from '../../../lib/catalog/request-example'
+import { systemOrigin } from '../system-origin'
 
-export function CopyCurlButton({ example }: { example: EndpointRequestExample }) {
+export function CopyCurlButton({ example, port }: { example: EndpointRequestExample; port: number }) {
   const [copied, setCopied] = useState(false)
   return (
     <button
       type="button"
       className="inline-flex items-center gap-1.5 bg-card px-[11px] py-[5px] text-[0.8rem] text-secondary-foreground hover:border-muted-foreground hover:text-foreground"
       onClick={() => {
-        void navigator.clipboard.writeText(buildCurl(example)).then(() => {
+        void navigator.clipboard.writeText(buildCurl(example, port)).then(() => {
           setCopied(true)
           setTimeout(() => setCopied(false), 1500)
         })
@@ -27,9 +28,9 @@ export function CopyCurlButton({ example }: { example: EndpointRequestExample })
   )
 }
 
-function buildCurl(example: EndpointRequestExample): string {
+function buildCurl(example: EndpointRequestExample, port: number): string {
   const parts = [
-    `curl -X ${example.method} '${window.location.origin}${example.path}${example.search}'`,
+    `curl -X ${example.method} '${systemOrigin(port)}${example.path}${example.search}'`,
   ]
   for (const [name, value] of Object.entries(example.headers)) {
     parts.push(`-H '${name}: ${value}'`)

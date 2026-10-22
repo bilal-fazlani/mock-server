@@ -64,6 +64,7 @@ export default async function ProfileDetailPage({
         profileId={profile.profileId}
         initialEntries={recentLogs.map(toLogSummaryView)}
         systemLabels={Object.fromEntries(runtime.catalog.systems.map((s) => [s.slug, s.displayName]))}
+        systemPorts={Object.fromEntries(runtime.catalog.systems.map((s) => [s.slug, s.port]))}
         scenarioLabels={Object.fromEntries(
           runtime.catalog.systems.flatMap((s) =>
             s.endpoints.flatMap((e) =>

@@ -56,7 +56,7 @@ catalog/hello-system/customer_status/
 ```
 
 ```bash
-curl -s <origin>/customers/customer-123/status
+curl -s http://localhost:4001/customers/customer-123/status
 # → profile ID "customer-123" comes straight from the path
 ```
 
@@ -148,9 +148,13 @@ logs it at `warn` with `source=unmocked_policy selector=path:customerId`. Give
 - **Bearer JWT selectors decode; they do not verify.** `bearer:sub` reads a
   top-level string/number claim for mock routing only. Missing or malformed
   credentials return `400`, and persisted `Authorization` headers are redacted.
-- **Avoid ambiguous paths.** For a given method, don't declare both
+- **Avoid ambiguous paths.** Within one system and method, don't declare both
   `/orders/{id}` and `/orders/latest` — a param position overlaps any literal, and
-  validation will reject it.
+  validation will reject it. Two *systems* may share a path: each is matched only
+  on [its own port](../building/endpoints.md#system-ports).
+- **Mocks are not on the admin port.** Calling a mocked path on `PORT` (default
+  `3000`) answers `404 not a mocked API port`, whose body lists each system's
+  port. Point the caller at the system's port instead.
 - **Placeholders are written as strings, but they don't stay strings.** A
   placeholder must sit inside a quoted JSON string (`"{{$.amount}}"`) — that's
   syntax, not the result. When the string is *exactly one* placeholder the value

@@ -28,7 +28,7 @@ afterEach(() => {
   while (tmpDirs.length) fs.rmSync(tmpDirs.pop()!, { recursive: true, force: true })
 })
 
-const SYSTEM_META = { displayName: 'Test System', baseUrlEnv: 'TEST_URL' }
+const SYSTEM_META = { displayName: 'Test System', baseUrlEnv: 'TEST_URL', port: 4001 }
 // Global mock endpoint (no profile involved) — keeps the test focused on
 // spec-backed request/response schema validation rather than profile wiring.
 const ENDPOINT_META = {
@@ -74,6 +74,7 @@ function handlerWith(dir: string, globalScenario: string | null) {
   const { schemas } = buildSchemaRegistry(catalog)
   const deps: RouterDeps = {
     catalog,
+    system: catalog.systems[0],
     schemas,
     passthroughAsDefault: false,
     unmockedUsers: 'ERROR',

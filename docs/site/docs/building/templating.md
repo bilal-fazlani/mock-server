@@ -320,7 +320,7 @@ correlation ID back to the caller — in the body, in a response header, or both
 ```
 
 ```bash
-curl <origin>/accounts/balance -H 'X-Request-Id: req-42'
+curl http://localhost:4001/accounts/balance -H 'X-Request-Id: req-42'
 ```
 
 Header names are matched **case-insensitively**, so `{{header:x-request-id}}` and

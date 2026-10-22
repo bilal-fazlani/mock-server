@@ -41,6 +41,8 @@ export interface SystemDef {
   displayName: string
   slug: string
   baseUrlEnv: string
+  /** The port this system's mocked API listens on, separate from the admin `PORT`. */
+  port: number
   /** Env var holding the PEM client certificate presented on passthrough.
    * Always declared together with `clientKeyEnv`. */
   clientCertEnv?: string

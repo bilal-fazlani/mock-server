@@ -28,7 +28,7 @@ afterEach(() => {
   while (tmpDirs.length) fs.rmSync(tmpDirs.pop()!, { recursive: true, force: true })
 })
 
-const SYSTEM_META = { displayName: 'Test System', baseUrlEnv: 'TEST_URL' }
+const SYSTEM_META = { displayName: 'Test System', baseUrlEnv: 'TEST_URL', port: 4001 }
 const ENDPOINT_META = {
   displayName: 'Customer Status',
   method: 'GET',
@@ -114,6 +114,7 @@ describe('dynamic resolver end-to-end (real compileResolver + real history store
 
     const deps: RouterDeps = {
       catalog,
+      system: catalog.systems[0],
       passthroughAsDefault: false,
       unmockedUsers: 'ERROR',
       timeoutMs: 1000,
@@ -178,6 +179,7 @@ describe('dynamic resolver end-to-end (real compileResolver + real history store
 
     const deps: RouterDeps = {
       catalog,
+      system: catalog.systems[0],
       passthroughAsDefault: false,
       unmockedUsers: 'DEFAULT_MOCK',
       timeoutMs: 1000,

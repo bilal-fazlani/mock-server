@@ -2,6 +2,7 @@ import type { ConsoleLogLevel, LogFormat } from '../config'
 import { writeConsoleLog } from '../logs/console'
 import { newLogId, type LogEntry, type LogPayload } from '../logs/store'
 import { extractTraceId, type TraceContext } from '../logs/trace-context'
+import { SYSTEM_TOKEN_HEADER } from '../system-ports'
 import { IncomingRequest, routeRequest, RouterDeps, type RouteTrace } from './route-request'
 
 export interface MockHandlerDeps extends RouterDeps {
@@ -21,7 +22,7 @@ export function createMockHandler(deps: MockHandlerDeps) {
       method: request.method,
       path: '/' + pathSegments.join('/'),
       search: url.search,
-      headers: Object.fromEntries(request.headers),
+      headers: withoutSystemToken(Object.fromEntries(request.headers)),
       rawBody: raw.length > 0 ? raw : null,
     }
     const logId = newLogId()
@@ -80,6 +81,11 @@ export function createMockHandler(deps: MockHandlerDeps) {
       headers,
     })
   }
+}
+
+function withoutSystemToken(headers: Record<string, string>): Record<string, string> {
+  delete headers[SYSTEM_TOKEN_HEADER]
+  return headers
 }
 
 function shouldWriteRequestLog(path: string): boolean {
@@ -174,6 +180,7 @@ function formatRequestConsoleLine(input: {
   const { incoming, status, durationMs, trace } = input
   const details: string[] = []
   if (trace.system && trace.endpoint) details.push(`${trace.system}/${trace.endpoint}`)
+  else if (trace.system) details.push(trace.system)
   if (trace.profileId) details.push(`profile=${trace.profileId}`)
   if (trace.scenario) details.push(`scenario=${trace.scenario}`)
   if (trace.scenarioSource === 'unmocked_policy') {
