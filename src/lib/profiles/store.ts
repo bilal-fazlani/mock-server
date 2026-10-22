@@ -29,7 +29,11 @@ export interface MockProfile {
 /** A `PUT`'s `ttl`: a duration to (re)start the expiry with, or `false` for none. */
 export type ProfileTtlRequest = string | false
 
-/** A mocked request rewrites `expiresAt` only once it lags `now + ttl` by this much. */
+/**
+ * A mocked request rewrites `expiresAt` only once it lags `now + ttl` by this
+ * much, or by half the ttl when that is shorter — otherwise a ttl of a minute or
+ * less would lapse between two throttled writes under steady traffic.
+ */
 export const REQUEST_SLIDE_STEP_MS = 60_000
 
 export interface ScenarioProgress {
@@ -292,7 +296,10 @@ export async function getProfileForRequest(
   now = new Date(),
 ): Promise<MockProfile | null> {
   const profile = await getProfile(db, profileId, now)
-  if (profile) await slideProfileExpiry(db, profile, now, REQUEST_SLIDE_STEP_MS)
+  if (profile?.ttl !== undefined) {
+    const step = Math.min(REQUEST_SLIDE_STEP_MS, ttlMs(profile.ttl) / 2)
+    await slideProfileExpiry(db, profile, now, step)
+  }
   return profile
 }
 
@@ -416,7 +423,9 @@ async function purgeExpiredProfile(db: Db, profileId: string, now: Date): Promis
     .collection<MockProfile>('mockProfiles')
     .deleteOne({ profileId, expiresAt: { $lte: now } })
   if (deletedCount === 0) return false
-  await deleteProfileState(db, profileId)
+  // A PUT may have recreated the profile since the delete; its state is new, not the expired one's.
+  const recreated = await db.collection<MockProfile>('mockProfiles').countDocuments({ profileId })
+  if (recreated === 0) await deleteProfileState(db, profileId)
   return true
 }
 

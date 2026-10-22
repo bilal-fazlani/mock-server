@@ -146,7 +146,7 @@ describe('PUT /ui/api/profiles/{id} ttl', () => {
     )
   })
 
-  it.each([['forever'], ['0h'], ['1d12h'], [''], [null], [true], [3600], [{}]])(
+  it.each([['forever'], ['0h'], ['1d12h'], ['99999999999999999d'], [''], [null], [true], [3600], [{}]])(
     '400s on ttl %j without saving',
     async (ttl) => {
       const res = await route.PUT(jsonReq('PUT', { ttl }), params('c1'))

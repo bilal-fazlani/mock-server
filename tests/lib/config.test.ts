@@ -205,6 +205,7 @@ describe('parseProfileApiTtl', () => {
   it('rejects anything else, naming itself', () => {
     expect(() => parseProfileApiTtl('0h')).toThrow(ConfigError)
     expect(() => parseProfileApiTtl('forever')).toThrow(/PROFILE_API_TTL_DURATION/)
+    expect(() => parseProfileApiTtl('99999999999999999d')).toThrow(/PROFILE_API_TTL_DURATION/)
   })
 })
 
@@ -214,5 +215,8 @@ describe('durationSeconds', () => {
     expect(durationSeconds('0h')).toBeNull()
     expect(durationSeconds('1d12h')).toBeNull()
     expect(durationSeconds('')).toBeNull()
+    expect(durationSeconds('100000d')).toBe(100_000 * 86400)
+    expect(durationSeconds('100001d')).toBeNull()
+    expect(durationSeconds('99999999999999999d')).toBeNull()
   })
 })

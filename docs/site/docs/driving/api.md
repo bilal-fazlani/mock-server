@@ -237,8 +237,8 @@ period without use. `ttl` is optional and sets that period:
 | `"ttl": false` | Created with no expiry | Expiry removed | No change |
 
 A `ttl` string uses the same grammar as the TTL settings: a positive whole number
-and a unit, `s`, `m`, `h` or `d`. Anything else, `null` included, is
-`400 invalid_ttl`. A profile with an expiry carries `ttl` and `expiresAt` in the
+and a unit, `s`, `m`, `h` or `d`, up to `100000d`. Anything else, `null`
+included, is `400 invalid_ttl`. A profile with an expiry carries `ttl` and `expiresAt` in the
 response; a profile with none has neither:
 
 ```json

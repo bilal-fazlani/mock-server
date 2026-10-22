@@ -206,6 +206,22 @@ describe('mocked requests slide the expiry', () => {
     expect((await raw('p'))!.expiresAt).toEqual(at(HOUR))
   })
 
+  it('keeps a profile with a ttl under a minute alive under steady traffic', async () => {
+    await put('p', '30s', T0)
+    for (let ms = 5_000; ms <= 5 * MIN; ms += 5_000) {
+      expect(await getProfileForRequest(db, 'p', at(ms))).not.toBeNull()
+    }
+    expect((await raw('p'))!.expiresAt!.getTime()).toBeGreaterThan(at(5 * MIN).getTime())
+  })
+
+  it('throttles a short ttl to half its length', async () => {
+    await put('p', '30s', T0)
+    await getProfileForRequest(db, 'p', at(14_999))
+    expect((await raw('p'))!.expiresAt).toEqual(at(30_000))
+    await getProfileForRequest(db, 'p', at(15_000))
+    expect((await raw('p'))!.expiresAt).toEqual(at(45_000))
+  })
+
   it('slides by the stored ttl and never adds an expiry', async () => {
     await put('p', '2h', T0)
     await put('none', false, T0)
@@ -256,6 +272,34 @@ describe('saving over an expired, unswept profile', () => {
       expiresAt: at(4 * HOUR),
       createdAt: at(2 * HOUR),
     })
+  })
+
+  it('leaves a recreated profile state alone when a PUT lands mid-sweep', async () => {
+    await put('p', '1h', T0)
+    await seedState('p')
+    // Lands the PUT between the sweeper's profile delete and its state cascade.
+    const racing = new Proxy(db, {
+      get(target, prop) {
+        if (prop !== 'collection') return Reflect.get(target, prop)
+        return (name: string) => {
+          const collection = target.collection(name)
+          if (name !== 'mockProfiles') return collection
+          return new Proxy(collection, {
+            get(c, key) {
+              if (key !== 'deleteOne') return Reflect.get(c, key)
+              return async (...args: Parameters<typeof c.deleteOne>) => {
+                const result = await c.deleteOne(...args)
+                await c.insertOne({ profileId: 'p', endpointScenarios: {}, createdAt: T0, modifiedAt: T0 })
+                return result
+              }
+            },
+          })
+        }
+      },
+    })
+
+    expect(await sweepExpiredProfiles(racing, at(2 * HOUR))).toBe(1)
+    expect(await getScenarioProgress(db, 'p')).toHaveLength(1)
   })
 
   it('takes the server default when no ttl is given, not the expired profile ttl', async () => {

@@ -43,9 +43,10 @@ export async function resetScenarioProgressAction(
   const profileId = String(formData.get('profileId') ?? '').trim()
   if (!profileId || !endpointSlug) throw new Error('profileId and endpoint are required')
 
-  await resetScenarioProgress(await getDb(), profileId, endpointSlug)
-  await slideProfileExpiryById(await getDb(), profileId)
-  await writeAdminLog(await getDb(), profileId, 'progress_reset', endpointSlug)
+  const db = await getDb()
+  await resetScenarioProgress(db, profileId, endpointSlug)
+  await slideProfileExpiryById(db, profileId)
+  await writeAdminLog(db, profileId, 'progress_reset', endpointSlug)
   revalidatePath(`/ui/profiles/${encodeURIComponent(profileId)}`)
 }
 
@@ -56,8 +57,9 @@ export async function resetDynamicHistoryAction(
   const profileId = String(formData.get('profileId') ?? '').trim()
   if (!profileId || !endpointSlug) throw new Error('profileId and endpoint are required')
 
-  await resetDynamicHistory(await getDb(), 'profile', profileId, endpointSlug)
-  await slideProfileExpiryById(await getDb(), profileId)
-  await writeAdminLog(await getDb(), profileId, 'progress_reset', endpointSlug)
+  const db = await getDb()
+  await resetDynamicHistory(db, 'profile', profileId, endpointSlug)
+  await slideProfileExpiryById(db, profileId)
+  await writeAdminLog(db, profileId, 'progress_reset', endpointSlug)
   revalidatePath(`/ui/profiles/${encodeURIComponent(profileId)}`)
 }

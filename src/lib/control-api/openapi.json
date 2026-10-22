@@ -860,7 +860,7 @@
               { "type": "string", "pattern": "^0*[1-9][0-9]*[smhd]$" },
               { "const": false }
             ],
-            "description": "How long the profile lives without use: a positive whole number with a unit `s`, `m`, `h` or `d` (`\"30m\"`, `\"24h\"`, `\"7d\"`), restarting its expiry from now; or `false` for no expiry. Omit it to keep the profile's current expiry rule, or for a new profile the server default (`PROFILE_API_TTL_DURATION`). Anything else is a `400 invalid_ttl`.",
+            "description": "How long the profile lives without use: a positive whole number with a unit `s`, `m`, `h` or `d` (`\"30m\"`, `\"24h\"`, `\"7d\"`) up to `100000d`, restarting its expiry from now; or `false` for no expiry. Omit it to keep the profile's current expiry rule, or for a new profile the server default (`PROFILE_API_TTL_DURATION`). Anything else is a `400 invalid_ttl`.",
             "examples": ["2h", false]
           }
         }

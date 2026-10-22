@@ -144,8 +144,9 @@ up after themselves while the ones you curate by hand stay put.
 The expiry **slides**: it restarts from now on every mocked request that resolves
 to the profile, every API `PUT`, every UI save and every reset. A profile in
 steady use never expires; one left idle for its `ttl` does. Under heavy traffic the
-restart is written at most about once a minute per profile. There is no maximum
-lifetime.
+restart is written at most about once a minute per profile, or once per half its
+`ttl` when that is shorter. There is no maximum lifetime, though a single `ttl` is
+at most `100000d`.
 
 Each profile stores the `ttl` it was given and always restarts by that, so
 changing `PROFILE_API_TTL_DURATION` affects only profiles created afterwards. A UI

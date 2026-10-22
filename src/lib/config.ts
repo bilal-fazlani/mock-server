@@ -116,11 +116,15 @@ function parseTtlSeconds(name: string, raw: string | undefined, fallbackSeconds:
   return count * TTL_UNIT_SECONDS[match[2]]
 }
 
+// Far past any useful ttl, and far enough inside Date's range that `now + ttl` stays a real date.
+const MAX_DURATION_SECONDS = 100_000 * 86400
+
 /** Seconds in a duration of the TTL grammar ("30m", "24h", "7d"), or null when it isn't one. */
 export function durationSeconds(raw: string): number | null {
   const match = /^(\d+)(s|m|h|d)$/.exec(raw)
   if (!match || Number(match[1]) < 1) return null
-  return Number(match[1]) * TTL_UNIT_SECONDS[match[2]]
+  const seconds = Number(match[1]) * TTL_UNIT_SECONDS[match[2]]
+  return seconds <= MAX_DURATION_SECONDS ? seconds : null
 }
 
 // Parse REQUEST_LOG_TTL_DURATION into seconds for the requestLogs TTL index.
@@ -159,6 +163,9 @@ export function parseProfileApiTtl(raw: string | undefined): string | null {
   if (raw === undefined || raw === '') return '1d'
   if (raw.toLowerCase() === 'off') return null
   parseTtlSeconds('PROFILE_API_TTL_DURATION', raw, 0)
+  if (durationSeconds(raw) === null) {
+    throw new ConfigError(`PROFILE_API_TTL_DURATION must be at most 100000d, got "${raw}"`)
+  }
   return raw
 }
 

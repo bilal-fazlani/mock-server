@@ -41,7 +41,7 @@ export async function PUT(request: Request, { params }: Ctx): Promise<Response> 
   if (raw?.ttl !== undefined) {
     if (raw.ttl !== false && (typeof raw.ttl !== 'string' || durationSeconds(raw.ttl) === null)) {
       return errorResponse(
-        'ttl must be a positive duration like "30m", "24h" or "7d" (units s|m|h|d), or false',
+        'ttl must be a positive duration like "30m", "24h" or "7d" (units s|m|h|d, at most 100000d), or false',
         'invalid_ttl',
         400,
       )
