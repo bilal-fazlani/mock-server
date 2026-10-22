@@ -29,8 +29,12 @@ they can never drift apart.
 
 ## One-time setup
 
-- [x] **`NPM_TOKEN` secret** — npm automation token with publish rights for `@bilal-fazlani/*`.
-      Used by `publish-npm.yml`. *(done)*
+- [x] **npm trusted publisher** — on npmjs.com, `@bilal-fazlani/mock-server` → Settings →
+      Trusted Publisher: GitHub Actions, repository `bilal-fazlani/mock-server`, workflow
+      `publish-npm.yml`. `publish-npm.yml` authenticates through GitHub's OIDC token
+      (`id-token: write`), so there is no npm token to rotate. It replaced the `NPM_TOKEN` secret
+      after that token hit npm's 90-day cap on write tokens and 0.16.0 failed to publish with a
+      `404` on `PUT`.
 - [x] **`RELEASE_PLEASE_TOKEN` secret** — **required for automation to publish anything.**
       A Release created with the default `GITHUB_TOKEN` does **not** trigger other workflows
       (GitHub blocks `GITHUB_TOKEN`-initiated events from starting new runs), so the publish
@@ -119,8 +123,10 @@ embedded `mongod` launches (log shows the embedded-Mongo notice and serves a req
   against the tag.
 - **No release PR appears** — there are no releasing commits since the last release (only
   `docs:`/`chore:`/etc.), or a commit message isn't valid Conventional Commits.
-- **npm publish fails `403`/`EEXIST`** — version already published, or `NPM_TOKEN` lacks rights for
-  the `@bilal-fazlani` scope.
+- **npm publish fails `403`/`EEXIST`** — version already published.
+- **npm publish fails `404` on `PUT`** — npm didn't accept the run's identity: the trusted
+  publisher on npmjs.com is missing, or names a different repository or workflow file than the
+  one that ran (renaming `publish-npm.yml` breaks it).
 - **Provenance error** — `publish-npm.yml` needs `id-token: write` (present) and `package.json`
   needs a `repository` field (present); provenance requires a public repo.
 - **Wrong/missing image tags (e.g. no `latest`)** — the Release was marked pre-release, the tag
