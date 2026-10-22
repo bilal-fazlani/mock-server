@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   extractValue,
   extractProfileIdValue,
+  formatBodyPath,
   parseProfileIdSelector,
   parseSelector,
   RequestContext,
@@ -19,6 +20,60 @@ describe('parseSelector', () => {
     expect(parseSelector('$.items[0].customerId')).toEqual({
       source: 'body',
       segments: ['items', 0, 'customerId'],
+    })
+  })
+
+  it('parses quoted bracket keys, mixed freely with dot and index segments', () => {
+    expect(parseSelector("$['assessment-request']['transaction-id']")).toEqual({
+      source: 'body',
+      segments: ['assessment-request', 'transaction-id'],
+    })
+    expect(parseSelector('$["assessment-request"].id')).toEqual({
+      source: 'body',
+      segments: ['assessment-request', 'id'],
+    })
+    expect(parseSelector("$.a['b-c'][0].d")).toEqual({ source: 'body', segments: ['a', 'b-c', 0, 'd'] })
+    expect(parseSelector("$[0]['x y']")).toEqual({ source: 'body', segments: [0, 'x y'] })
+  })
+
+  it('takes a quoted key verbatim up to the matching quote, with no escaping', () => {
+    expect(parseSelector(`$["it's"]`)).toEqual({ source: 'body', segments: ["it's"] })
+    expect(parseSelector(`$['say "hi"']`)).toEqual({ source: 'body', segments: ['say "hi"'] })
+    expect(parseSelector(`$['a.b[0]:c|d}}']`)).toEqual({ source: 'body', segments: ['a.b[0]:c|d}}'] })
+    expect(parseSelector(String.raw`$['a\b']`)).toEqual({ source: 'body', segments: [String.raw`a\b`] })
+  })
+
+  it('keeps a quoted numeric key a string, distinct from an index', () => {
+    expect(parseSelector("$['0']")).toEqual({ source: 'body', segments: ['0'] })
+    expect(parseSelector('$[0]')).toEqual({ source: 'body', segments: [0] })
+  })
+
+  it('rejects malformed bracket segments with the reason', () => {
+    const cases: Array<[string, RegExp]> = [
+      ["$['a", /unterminated quoted key/],
+      ["$['a\"]", /unterminated quoted key/],
+      [`$["a']`, /unterminated quoted key/],
+      ["$['']", /empty quoted key/],
+      ['$[""]', /empty quoted key/],
+      ["$['a'", /expected "\]" after quoted key/],
+      ["$['a'b']", /expected "\]" after quoted key/],
+      ["$['a'].", /invalid body selector/],
+      ["$[ 'a' ]", /expected an index or a quoted key/],
+      ['$[a-b]', /expected an index or a quoted key/],
+      ['$[-1]', /expected an index or a quoted key/],
+      ["$.['a']", /invalid body selector/],
+    ]
+    for (const [bad, reason] of cases) {
+      expect(() => parseSelector(bad), bad).toThrow(SelectorParseError)
+      expect(() => parseSelector(bad), bad).toThrow(reason)
+    }
+  })
+
+  it('parses a profile key selector whose nested body selector uses bracket keys', () => {
+    expect(parseSelector("profileKey:event-id:$['assessment-request']['transaction-id']")).toEqual({
+      source: 'profileKey',
+      namespace: 'event-id',
+      keySelector: { source: 'body', segments: ['assessment-request', 'transaction-id'] },
     })
   })
 
@@ -101,6 +156,24 @@ describe('parseSelector', () => {
   })
 })
 
+describe('formatBodyPath', () => {
+  it('renders identifiers as dot segments and everything else in brackets', () => {
+    expect(formatBodyPath(['a', 'b', 0, 'c'])).toBe('$.a.b[0].c')
+    expect(formatBodyPath(['assessment-request', 'transaction-id'])).toBe(
+      "$['assessment-request']['transaction-id']",
+    )
+    expect(formatBodyPath(["it's", '0'])).toBe(`$["it's"]['0']`)
+  })
+
+  it('round-trips through parseSelector', () => {
+    for (const raw of ['$.a.b[0].c', "$['a-b'][2].c", `$["it's"]`]) {
+      const parsed = parseSelector(raw)
+      if (parsed.source !== 'body') throw new Error('expected a body selector')
+      expect(formatBodyPath(parsed.segments)).toBe(raw)
+    }
+  })
+})
+
 describe('parseProfileIdSelector', () => {
   it('parses opaque bearer tokens and top-level JWT claims', () => {
     expect(parseProfileIdSelector('bearer')).toEqual({ source: 'bearer' })
@@ -123,6 +196,27 @@ describe('extractValue', () => {
     const c = ctx({ body: { customer: { id: 'cus-1' }, items: [{ n: 7 }] } })
     expect(extractValue(parseSelector('$.customer.id'), c)).toEqual({ found: true, value: 'cus-1' })
     expect(extractValue(parseSelector('$.items[0].n'), c)).toEqual({ found: true, value: 7 })
+  })
+
+  it('extracts through hyphenated keys addressed with bracket segments', () => {
+    const body = { 'assessment-request': { 'transaction-id': 'abc-123', items: [{ 'line-no': 7 }] } }
+    expect(
+      extractValue(parseSelector("$['assessment-request']['transaction-id']"), ctx({ body })),
+    ).toEqual({ found: true, value: 'abc-123' })
+    expect(
+      extractValue(parseSelector(`$["assessment-request"].items[0]['line-no']`), ctx({ body })),
+    ).toEqual({ found: true, value: 7 })
+    expect(extractValue(parseSelector("$['assessment-request']['missing']"), ctx({ body }))).toEqual({
+      found: false,
+    })
+  })
+
+  it('reads a quoted numeric key from an object, never from an array', () => {
+    expect(extractValue(parseSelector("$['0']"), ctx({ body: { '0': 'obj' } }))).toEqual({
+      found: true,
+      value: 'obj',
+    })
+    expect(extractValue(parseSelector("$['0']"), ctx({ body: ['arr'] }))).toEqual({ found: false })
   })
 
   it('carries booleans, JSON null, objects, and arrays as found values', () => {

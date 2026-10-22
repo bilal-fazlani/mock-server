@@ -136,9 +136,11 @@ logs it at `warn` with `source=unmocked_policy selector=path:customerId`. Give
   plain HTTP. To pass its calls through to an upstream that requires mutual TLS,
   give the system a client certificate — see
   [Upstreams that require mTLS](../building/scenarios.md#upstreams-that-require-mtls).
-- **Body selectors don't allow hyphens** in keys; path/query/header names do.
-  `$.customer-id` is invalid — the JSON key would need to be `customer_id` (or use
-  a path/query/header selector).
+- **A hyphenated body key needs the bracket form.** `$.customer-id` is a catalog
+  error, because `.key` accepts only letters, digits, and underscores. Write
+  `$['customer-id']` instead — see
+  [Body path grammar](../building/profiles.md#body-path-grammar). Path, query, and
+  header names allow hyphens without quoting.
 - **Credential headers can't be read by a `header:` selector.** `authorization`,
   `proxy-authorization`, `cookie`, and `set-cookie` are rejected at startup, so a
   fixture can never echo a credential back. Route on a Bearer token with

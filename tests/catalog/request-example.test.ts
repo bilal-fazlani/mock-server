@@ -47,6 +47,15 @@ describe('buildEndpointRequestExample', () => {
     expect(example.body).toEqual({ orderId: '<orderId>' })
   })
 
+  it('builds hyphenated keys from bracket-key selectors', () => {
+    const example = buildEndpointRequestExample(
+      endpoint({
+        profileIdSelector: "profileKey:event-id:$['assessment-request']['transaction-id']",
+      }),
+    )
+    expect(example.body).toEqual({ 'assessment-request': { 'transaction-id': '<transaction-id>' } })
+  })
+
   it('fills path template params with placeholders', () => {
     const example = buildEndpointRequestExample(
       endpoint({

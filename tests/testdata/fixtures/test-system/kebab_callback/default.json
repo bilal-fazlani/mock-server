@@ -1,0 +1,4 @@
+{
+  "status": 200,
+  "body": { "ok": true, "echo": "txn {{$['assessment-request']['transaction-id'] | upper}}" }
+}

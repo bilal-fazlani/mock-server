@@ -123,7 +123,10 @@ now-known catalog and reports its own list of errors:
 - Profiled endpoints must declare `profileIdSelector`; global endpoints must not
   declare `profileIdSelector` or `captureProfileKeys`.
 - Every profiled `profileIdSelector` is valid. It may use body/path/query/header,
-  a `profileKey` lookup, `bearer`, or `bearer:<claim>`. Bearer claim names match
+  a `profileKey` lookup, `bearer`, or `bearer:<claim>`. A body selector follows
+  the [body path grammar](../building/profiles.md#body-path-grammar); a malformed
+  bracket key — unterminated, empty, or not closed by `]` — is rejected with the
+  reason, here and in `keySelector` and fixture placeholders alike. Bearer claim names match
   `[a-zA-Z_][a-zA-Z0-9_-]*`. A `path:` selector, including one nested inside
   `profileKey`, must reference a `{param}` that exists in the template. A
   `header:` selector naming a credential header — `authorization`,

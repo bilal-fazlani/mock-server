@@ -20,27 +20,79 @@ Profile-ID selectors have five request sources, chosen by prefix:
 
 | Form | Reads from | Examples |
 | --- | --- | --- |
-| `$.…` | Parsed JSON request body | `$.customerId`, `$.data.customer.id`, `$.items[0].id` |
+| `$.…`<br>`$['…']` | Parsed JSON request body | `$.customerId`, `$.items[0].id`, `$['assessment-request']['transaction-id']` |
 | `path:name` | A path parameter | `path:customerId` (requires `{customerId}` in the template) |
 | `query:name` | A query-string parameter | `query:customerId` → `?customerId=…` |
 | `header:name` | A request header, matched case-insensitively | `header:x-customer-id` → `X-Customer-Id: customer-123` |
 | `bearer`<br>`bearer:<claim>` | The `Authorization: Bearer …` header | `bearer` uses the opaque token itself; `bearer:sub` reads the top-level `sub` claim from a JWT |
 
-**Body path grammar.** Starts with `$`, then a chain of `.key` and `[index]`
-tokens. Object keys must match `[a-zA-Z_][a-zA-Z0-9_]*` (letters, digits,
-underscore — *no hyphens*). Array indices are numeric: `$.orders[0].id`.
+!!! note "Must resolve to a string or number"
 
-**Path / query / header names** may additionally contain hyphens
-(`[a-zA-Z_][a-zA-Z0-9_-]*`).
+    Extraction returns the value only if it's a string or number; anything else
+    (object, array, boolean, missing), a missing/malformed Bearer header, an
+    invalid JWT, or a missing/non-scalar JWT claim counts as "did not resolve" and
+    returns a `400`. The extracted value is coerced to a string for the profile
+    lookup, so numeric IDs work too.
 
-**Header selectors** match the header name case-insensitively, so
+### Body path grammar
+
+This grammar applies wherever a body selector is accepted: `profileIdSelector`,
+`captureProfileKeys[].keySelector`, the selector nested in
+`profileKey:<namespace>:…`, and `{{$…}}`
+[placeholders](templating.md#placeholder-expressions) in fixtures.
+
+A body selector starts with `$`, then a chain of one or more segments, mixed in
+any order:
+
+| Segment | Selects | Rules |
+| --- | --- | --- |
+| `.key` | An object key | The key must match `[a-zA-Z_][a-zA-Z0-9_]*` — letters, digits, underscore. |
+| `['key']`<br>`["key"]` | An object key | Any key at all, including hyphens, dots, spaces, and `:` — everything up to the matching quote. |
+| `[n]` | An array element | `n` is a non-negative integer: `$.orders[0].id`. |
+
+Use the bracket form for any key the dot form can't spell. For a request body
+whose keys are kebab-case:
+
+```json
+{ "assessment-request": { "transaction-id": "abc-123" } }
+```
+
+`$['assessment-request']['transaction-id']` resolves to `abc-123`. The forms mix
+freely, so `$.data['line-items'][0].sku` is valid too.
+
+The quoted key is taken **verbatim**, with no escape sequences — a backslash is
+an ordinary character. To use one quote character in a key, quote with the
+other: `$["customer's-id"]`, `$['say "hi"']`. A key containing both quote
+characters can't be addressed.
+
+A quoted key always names an object key, never an array position: `$['0']`
+reads the key `"0"` of an object, while `$[0]` reads the first element of an
+array.
+
+These are catalog errors at startup, each reported with the reason:
+
+- an unterminated key — `$['assessment-request`
+- an empty key — `$['']`
+- a key not closed by `]` right after its quote — `$['a'b']`
+- anything else inside `[ ]` that is neither a quoted key nor an index —
+  `$[a-b]`, `$[ 'a' ]`, `$[-1]`
+
+### Path, query, and header selectors
+
+Path, query, and header names match `[a-zA-Z_][a-zA-Z0-9_-]*` — the `.key`
+characters plus hyphens — so `path:customer-id` and `header:x-customer-id` need
+no quoting.
+
+Header selectors match the header name case-insensitively, so
 `header:x-customer-id` resolves whatever casing the caller sent. Credential
 headers — `authorization`, `proxy-authorization`, `cookie`, and `set-cookie` —
 are rejected wherever a header selector is accepted, and using one is a catalog
 error at startup. Read a Bearer credential with `bearer` / `bearer:<claim>`
 instead, which is purpose-built for it.
 
-**Bearer selectors.** The authorization scheme is matched case-insensitively and
+### Bearer selectors
+
+The authorization scheme is matched case-insensitively and
 the credential after `Bearer` must match `[a-zA-Z0-9\-._~+/]+=*` (one or more
 token characters, with optional trailing `=` padding). With `bearer`, that
 credential becomes the profile ID directly:
@@ -77,14 +129,6 @@ must be a string or number.
     token may still capture other body/path/query/header keys. The catalog page's
     **Copy as cURL** action includes a placeholder authorization header for
     Bearer-profiled endpoints.
-
-!!! note "Must resolve to a string or number"
-
-    Extraction returns the value only if it's a string or number; anything else
-    (object, array, boolean, missing), a missing/malformed Bearer header, an
-    invalid JWT, or a missing/non-scalar JWT claim counts as "did not resolve" and
-    returns a `400`. The extracted value is coerced to a string for the profile
-    lookup, so numeric IDs work too.
 
 ## Callers with no profile
 
@@ -210,7 +254,10 @@ Later callback: resolve the profile ID through the stored order mapping:
     request body, and validation rejects same-method path overlaps as ambiguous.
 
 The nested selector after `profileKey:<namespace>:` uses the reusable direct
-selector grammar: body, path, query, or header. Bearer selectors are
+selector grammar: body, path, query, or header. Both `profileIdSelector` and
+`keySelector` accept the [bracket form](#body-path-grammar), so a callback whose
+body keys are kebab-case resolves through
+`"profileKey:event-id:$['assessment-request']['transaction-id']"`. Bearer selectors are
 profile-ID-only and cannot be nested here. Namespaces must match `[a-z0-9][a-z0-9_-]*`. The mapping is
 stored in MongoDB in `profileKeyMappings` with `namespace`, `key`, `profileId`,
 `capturedBy`, `createdAt`, and `modifiedAt`.

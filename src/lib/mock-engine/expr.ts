@@ -82,23 +82,35 @@ function parseCall(stage: string, raw: string): CallExpr {
 }
 
 // Split on a separator, except inside a single-quoted segment — quotes
-// suspend both ':' (args) and '|' (stages). `unterminated` reports a quote that
-// opened and never closed, which callers turn into a parse error.
+// suspend both ':' (args) and '|' (stages). A selector's quoted bracket key
+// (`$['a:b']`, `$["a|b"]`) suspends them too, so the selector parser sees the
+// key whole. `unterminated` reports a literal quote that opened and never
+// closed, which callers turn into a parse error; an unclosed bracket key is
+// left for the selector parser to report.
 function splitOutsideQuotes(input: string, sep: ':' | '|'): { parts: string[]; unterminated: boolean } {
   const parts: string[] = []
   let cur = ''
+  let token = ''
   let inQuote = false
+  let bracketQuote: string | null = null
   for (const ch of input) {
-    if (ch === "'") {
-      if (inQuote) inQuote = false
-      else if (opensQuote(cur)) inQuote = true
+    if (bracketQuote) {
+      if (ch === bracketQuote) bracketQuote = null
+    } else if (ch === "'" && inQuote) {
+      inQuote = false
+    } else if (!inQuote && (ch === "'" || ch === '"') && token.endsWith('[') && token.trimStart().startsWith('$')) {
+      bracketQuote = ch
+    } else if (ch === "'" && opensQuote(cur)) {
+      inQuote = true
     }
-    if (ch === sep && !inQuote) {
+    const quoted = inQuote || bracketQuote !== null
+    if (ch === sep && !quoted) {
       parts.push(cur)
       cur = ''
     } else {
       cur += ch
     }
+    token = (ch === ':' || ch === '|') && !quoted ? '' : token + ch
   }
   parts.push(cur)
   return { parts, unterminated: inQuote }
