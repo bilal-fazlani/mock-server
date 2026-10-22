@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.17.0](https://github.com/bilal-fazlani/mock-server/compare/v0.16.0...v0.17.0) (2026-10-22)
+
+
+### ⚠ BREAKING CHANGES
+
+* every _system.json must declare a "port" (1024-65535, unique, not PORT), and mocked endpoints are no longer reachable on the admin port. Hosting platforms that expose a single port can no longer serve mocked traffic.
+
+### Features
+
+* add UNMATCHED_ENDPOINTS to forward or reject unmatched requests ([d23e686](https://github.com/bilal-fazlani/mock-server/commit/d23e686a02e729e1c337af2179bd31997bf44190))
+* **selector:** accept quoted bracket keys in body selectors ([4aa4951](https://github.com/bilal-fazlani/mock-server/commit/4aa49515ce1f4eac23fd6cbe9f2bf9c4d4430c34))
+* serve each catalog system on its own port ([e06e785](https://github.com/bilal-fazlani/mock-server/commit/e06e785d0f2f734b1cee43053b74a955d97eb96b))
+
+
+### Bug Fixes
+
+* **build:** stop next tracing the whole project into the standalone output ([fc7443a](https://github.com/bilal-fazlani/mock-server/commit/fc7443ad3f989070a6d46f4a8378c4994cc66308))
+
 ## [0.16.0](https://github.com/bilal-fazlani/mock-server/compare/v0.15.0...v0.16.0) (2026-10-22)
 
 
