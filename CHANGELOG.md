@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.16.0](https://github.com/bilal-fazlani/mock-server/compare/v0.15.0...v0.16.0) (2026-10-22)
+
+
+### ⚠ BREAKING CHANGES
+
+* a profile created through the control API without a "ttl" now expires after a day without use. Send "ttl": false to keep it, or set PROFILE_API_TTL_DURATION=off to restore the old default.
+* `_system.json` `name`, a fixture's `description` and a resolver's `description` export are now `displayName`; the old keys fail the catalog load. `GET /ui/api/catalog` returns `displayName` on systems and `slug` on endpoints, and the scenario view returns `slug` and `displayName`. The OpenAPI contract is now 2.0.0.
+
+### Features
+
+* expire api-created profiles after a sliding ttl ([637031b](https://github.com/bilal-fazlani/mock-server/commit/637031b433dd21e88f36a7e6642ce5024be0677a))
+* unify id and display-name fields across catalog, api and ui ([99016dd](https://github.com/bilal-fazlani/mock-server/commit/99016ddc8fd8b14ed3b23e3296bf72ef4a72c63e))
+
+
+### Bug Fixes
+
+* keep short-ttl profiles alive under traffic and reject oversized ttls ([98a9a91](https://github.com/bilal-fazlani/mock-server/commit/98a9a91ccbdc010da816f9d0d94a341301cff4db))
+* limit profile ttls to minutes, hours or days up to 365d ([3a1e25a](https://github.com/bilal-fazlani/mock-server/commit/3a1e25a7b94c589d167745f8bd6681d92c456d42))
+* restart a profile's expiry on every mocked request ([48155a8](https://github.com/bilal-fazlani/mock-server/commit/48155a81794ff64588c5a9cfa25fdc5c343ff318))
+* reword api warning to pass docs version check and finish displayName rename ([6e49a37](https://github.com/bilal-fazlani/mock-server/commit/6e49a371c47ec86dd97bc2b4637758ae015600f0))
+
 ## [0.15.0](https://github.com/bilal-fazlani/mock-server/compare/v0.14.0...v0.15.0) (2026-10-09)
 
 
