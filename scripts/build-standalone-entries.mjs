@@ -22,7 +22,7 @@
 // runtime, resolved next to itself.
 
 import { build } from 'esbuild'
-import { existsSync, mkdirSync, rmSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -35,8 +35,15 @@ const entries = [
 ]
 
 mkdirSync(outDir, { recursive: true })
-// File tracing copies the sample catalog in via cwd-relative reads; neither the image nor the package ships one.
-rmSync(path.join(outDir, 'catalog'), { recursive: true, force: true })
+
+// Anything else here was swept in by Next's file tracing and would ship in the
+// image and the npm package — see src/lib/catalog/files.ts.
+const expected = new Set(['.next', 'node_modules', 'package.json', 'server.js', ...entries.map((e) => e.outfile)])
+const stray = readdirSync(outDir).filter((name) => !expected.has(name))
+if (stray.length > 0) {
+  console.error(`build-standalone-entries: unexpected files traced into .next/standalone: ${stray.join(', ')}`)
+  process.exit(1)
+}
 
 for (const entry of entries) {
   const outfile = path.join(outDir, entry.outfile)

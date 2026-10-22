@@ -1,4 +1,4 @@
-import fs from 'node:fs'
+import { readText } from './catalog/files'
 import { loadCatalog } from './catalog/load'
 import { type SchemaRegistry } from './catalog/schema'
 import type { Catalog } from './catalog/types'
@@ -74,10 +74,7 @@ export function compileResolvers(
       for (const slug of endpoint.resolverScenarios) {
         const label = `${system.slug}/${endpoint.slug}/${slug}.mjs`
         try {
-          const source = fs.readFileSync(
-            resolverFilePath(catalogDir, system.slug, endpoint.slug, slug),
-            'utf8',
-          )
+          const source = readText(resolverFilePath(catalogDir, system.slug, endpoint.slug, slug))
           const compiled = compileResolver(source, label)
           resolvers.set(resolverKey(system.slug, endpoint.slug, slug), compiled)
           const meta = (endpoint.scenarios[slug] ??= { displayName: slug })
@@ -106,7 +103,7 @@ function devCompileResolver(
     .find((s) => s.slug === systemSlug)
     ?.endpoints.find((e) => e.slug === endpointSlug)
   if (!endpoint?.resolverScenarios.includes(slug)) return null
-  const source = fs.readFileSync(resolverFilePath(catalogDir, systemSlug, endpointSlug, slug), 'utf8')
+  const source = readText(resolverFilePath(catalogDir, systemSlug, endpointSlug, slug))
   return compileResolver(source, `${systemSlug}/${endpointSlug}/${slug}.mjs`)
 }
 

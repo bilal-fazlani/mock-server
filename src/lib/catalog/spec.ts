@@ -1,6 +1,5 @@
-import fs from 'node:fs'
-import path from 'node:path'
 import { parse as parseYaml } from 'yaml'
+import { catalogPath, exists } from './files'
 
 export class SpecError extends Error {}
 
@@ -128,13 +127,13 @@ export function parseSpec(text: string, label: string): ParsedSpec {
 const SPEC_NAMES = ['_spec.yaml', '_spec.yml', '_spec.json']
 
 export function findSpecFile(systemDir: string): string | null {
-  const present = SPEC_NAMES.filter((name) => fs.existsSync(path.join(systemDir, name)))
+  const present = SPEC_NAMES.filter((name) => exists(catalogPath(systemDir, name)))
   if (present.length > 1) {
     throw new SpecError(
       `system spec: multiple spec files (${present.join(', ')}) — keep only one`,
     )
   }
-  return present.length === 1 ? path.join(systemDir, present[0]) : null
+  return present.length === 1 ? catalogPath(systemDir, present[0]) : null
 }
 
 // OpenAPI allows `parameters` on the path item, shared by all its operations;

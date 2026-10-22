@@ -1,4 +1,3 @@
-import fs from 'node:fs'
 import { resolveClientIdentity } from '../client-identity'
 import { DurationError, parseDelayMs } from '../mock-engine/duration'
 import {
@@ -25,6 +24,7 @@ import {
   type DirectSelector,
   type ProfileIdSelector,
 } from './selector'
+import { exists, readText } from './files'
 import { buildSchemaRegistry, schemaKey, type SchemaRegistry } from './schema'
 import type { Catalog } from './types'
 
@@ -167,13 +167,13 @@ export function validateCatalog(catalog: Catalog, catalogDir: string): Validatio
         if (scenario === REAL_SCENARIO) continue // already flagged above
         if (endpoint.resolverScenarios.includes(scenario)) continue // backed by <slug>.mjs, not a fixture
         const file = fixtureFilePath(catalogDir, system.slug, endpoint.slug, scenario)
-        if (!fs.existsSync(file)) {
+        if (!exists(file)) {
           errors.push(`${label}: missing fixture for scenario "${scenario}" (${file})`)
           continue
         }
         let fixture: { status?: unknown; headers?: unknown; body?: unknown; delay?: unknown }
         try {
-          fixture = JSON.parse(fs.readFileSync(file, 'utf8'))
+          fixture = JSON.parse(readText(file))
         } catch {
           errors.push(`${label}: fixture ${file} is not valid JSON`)
           continue

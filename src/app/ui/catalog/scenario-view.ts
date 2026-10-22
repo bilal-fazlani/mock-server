@@ -1,4 +1,4 @@
-import fs from 'node:fs'
+import { readText } from '../../../lib/catalog/files'
 import type { EndpointDef, SystemDef } from '../../../lib/catalog/types'
 import { unsetClientIdentityEnv } from '../../../lib/client-identity'
 import { REAL_LABEL } from '../../../lib/config'
@@ -29,10 +29,7 @@ export async function buildScenarioView(
   const isDefault = slug === 'default'
   if (endpoint.resolverScenarios.includes(slug)) {
     try {
-      const code = fs.readFileSync(
-        resolverFilePath(catalogDir, system.slug, endpoint.slug, slug),
-        'utf8',
-      )
+      const code = readText(resolverFilePath(catalogDir, system.slug, endpoint.slug, slug))
       return { slug, displayName, ...(summary ? { summary } : {}), isDefault, kind: 'resolver' as const, code, html: await highlight(code, 'javascript') }
     } catch (err) {
       return { slug, displayName, ...(summary ? { summary } : {}), isDefault, kind: 'error' as const, message: (err as Error).message }
