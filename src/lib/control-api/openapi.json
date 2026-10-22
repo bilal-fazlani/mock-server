@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Mock Server runtime-control API",
-    "version": "2.0.0",
+    "version": "2.1.0",
     "summary": "Drive a running mock server — flip scenarios, manage profiles, reset sequence progress, and read request logs.",
     "description": "The JSON HTTP API behind the mock server's dashboard, served under `/ui/api/*`.\n\nMock endpoints answer at the root (`/…`), so the control API cannot live there without colliding with a mocked route; `/ui` is the reserved admin namespace.\n\n**Local-dev only.** The API is unauthenticated (matching the dashboard) and gives no isolation guarantees — global mocks are a single shared switch that parallel callers can clobber. Use profiles for per-caller isolation. It does not author mocks; you create endpoints and fixtures by writing catalog files.\n\n**Versioning.** `info.version` is this contract's own version, independent of the server build (which `GET /ui/api/health` reports as `version` and `sha`). The contract evolves additively: new routes, new optional request fields, new response fields, and new enum members can appear in any release, so ignore fields you do not recognise. Error bodies are `{ \"error\": string, \"code\": string }` — the envelope is stable and `code` is safe to match on; the `error` message text is not.",
     "license": {
@@ -227,6 +227,7 @@
         "operationId": "getProfile",
         "tags": ["Profiles"],
         "summary": "Fetch a profile",
+        "description": "A profile whose `expiresAt` has passed is gone: this answers `404` for it even before the server's once-a-minute sweep deletes it.",
         "parameters": [{ "$ref": "#/components/parameters/ProfileId" }],
         "responses": {
           "200": {
@@ -238,7 +239,7 @@
             }
           },
           "404": {
-            "description": "No profile with that ID. `code` is `\"profile_not_found\"`.",
+            "description": "No profile with that ID, or it has expired. `code` is `\"profile_not_found\"`.",
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/Error" },
@@ -252,7 +253,7 @@
         "operationId": "upsertProfile",
         "tags": ["Profiles"],
         "summary": "Create or replace a profile",
-        "description": "`endpointScenarios` is replaced wholesale, so omitting it — or sending `{}` — clears every selection on the profile. Each key is validated against the catalog, and the write is all-or-nothing: one unknown endpoint name or undeclared scenario rejects the whole request.\n\nSelections are normalised on the way in: a selection equal to the implicit scenario is dropped, a one-step sequence collapses to a plain string, and an empty sequence is dropped. The response is the stored profile, exactly as `GET` would return it.\n\nA successful write also records a `profile_saved` admin entry in the request log.",
+        "description": "`endpointScenarios` is replaced wholesale, so omitting it — or sending `{}` — clears every selection on the profile. Each key is validated against the catalog, and the write is all-or-nothing: one unknown endpoint name or undeclared scenario rejects the whole request.\n\nSelections are normalised on the way in: a selection equal to the implicit scenario is dropped, a one-step sequence collapses to a plain string, and an empty sequence is dropped. The response is the stored profile, exactly as `GET` would return it.\n\nA successful write also records a `profile_saved` admin entry in the request log.\n\n**Expiry.** A profile created here expires after `PROFILE_API_TTL_DURATION` (default `1d`; `off` for none) unless `ttl` says otherwise. The profile stores the `ttl` it was given and restarts its expiry by it on every mocked request that resolves to it, on every `PUT`, and on a reset. With no `ttl` in the body a new profile takes the server default, an expiring one restarts its expiry, and one with no expiry keeps none. `\"ttl\": \"2h\"` sets the duration and restarts the expiry; `\"ttl\": false` removes any expiry. Once it expires the profile is treated as absent everywhere, and a `PUT` for its ID creates a fresh profile with no sequence progress, key mappings or resolver history from the old one. Profiles created in the dashboard never expire.",
         "parameters": [{ "$ref": "#/components/parameters/ProfileId" }],
         "requestBody": {
           "required": true,
@@ -264,7 +265,8 @@
                 "endpointScenarios": {
                   "charge": "card_declined",
                   "refund": ["pending", "settled"]
-                }
+                },
+                "ttl": "2h"
               }
             }
           }
@@ -279,7 +281,7 @@
             }
           },
           "400": {
-            "description": "The body is not valid JSON (`code: \"invalid_json\"`); or `endpointScenarios` is not an object, an endpoint name is unknown, a selection is neither a string nor an array of strings, or a scenario is not declared on its endpoint (`code: \"invalid_scenario_selection\"` for all four — see `error` for which one).",
+            "description": "The body is not valid JSON (`code: \"invalid_json\"`); or `endpointScenarios` is not an object, an endpoint name is unknown, a selection is neither a string nor an array of strings, or a scenario is not declared on its endpoint (`code: \"invalid_scenario_selection\"` for all four — see `error` for which one); or `ttl` is neither a duration like `\"30m\"`, `\"24h\"` or `\"7d\"` nor `false` (`code: \"invalid_ttl\"`).",
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/Error" }
@@ -304,7 +306,7 @@
         "operationId": "resetProfileProgress",
         "tags": ["Profiles"],
         "summary": "Reset scenario-sequence progress",
-        "description": "Clears sequence progress and resolver history so the next call starts from the first step. With an `endpoint`, only that endpoint resets; with no body — or a malformed one — the whole profile resets. Always answers `204`, and records a `progress_reset` admin entry in the request log.",
+        "description": "Clears sequence progress and resolver history so the next call starts from the first step. With an `endpoint`, only that endpoint resets; with no body — or a malformed one — the whole profile resets. Always answers `204`, and records a `progress_reset` admin entry in the request log. A profile with an expiry has it restarted by its stored `ttl`.",
         "parameters": [{ "$ref": "#/components/parameters/ProfileId" }],
         "requestBody": {
           "required": false,
@@ -552,7 +554,7 @@
           },
           "code": {
             "type": "string",
-            "description": "Stable, machine-readable identifier for the failure. Safe to match on. The current values are `invalid_json`, `unknown_endpoint`, `unknown_scenario`, `endpoint_not_global`, `scenario_required`, `scenario_not_declared`, `invalid_scenario_selection`, `profile_not_found`, and `log_not_found` — see the response description on the operation that returned this body for which ones apply there. Not modelled as an enum: new values can be added in additive releases, so treat one you don't recognise as a generic failure rather than rejecting the response."
+            "description": "Stable, machine-readable identifier for the failure. Safe to match on. The current values are `invalid_json`, `unknown_endpoint`, `unknown_scenario`, `endpoint_not_global`, `scenario_required`, `scenario_not_declared`, `invalid_scenario_selection`, `invalid_ttl`, `profile_not_found`, and `log_not_found` — see the response description on the operation that returned this body for which ones apply there. Not modelled as an enum: new values can be added in additive releases, so treat one you don't recognise as a generic failure rather than rejecting the response."
           }
         },
         "required": ["error", "code"]
@@ -825,7 +827,18 @@
             "description": "Endpoint name → selection, holding only endpoints this profile pins. Endpoints left on the implicit scenario are absent, so an empty object means the profile pins nothing."
           },
           "createdAt": { "type": "string", "format": "date-time" },
-          "modifiedAt": { "type": "string", "format": "date-time" }
+          "modifiedAt": { "type": "string", "format": "date-time" },
+          "ttl": {
+            "type": "string",
+            "pattern": "^0*[1-9][0-9]*[smhd]$",
+            "description": "The duration this profile's expiry restarts by, as it was given (`\"2h\"`). Absent, together with `expiresAt`, on a profile that never expires.",
+            "examples": ["1d", "2h"]
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the profile expires unless something restarts it first. Absent on a profile that never expires."
+          }
         },
         "required": ["profileId", "endpointScenarios", "createdAt", "modifiedAt"]
       },
@@ -841,6 +854,14 @@
             "type": "object",
             "additionalProperties": { "$ref": "#/components/schemas/ScenarioSelection" },
             "description": "Endpoint name → selection. Replaces the stored map wholesale; omit it, or send `{}`, to clear every selection."
+          },
+          "ttl": {
+            "oneOf": [
+              { "type": "string", "pattern": "^0*[1-9][0-9]*[smhd]$" },
+              { "const": false }
+            ],
+            "description": "How long the profile lives without use: a positive whole number with a unit `s`, `m`, `h` or `d` (`\"30m\"`, `\"24h\"`, `\"7d\"`), restarting its expiry from now; or `false` for no expiry. Omit it to keep the profile's current expiry rule, or for a new profile the server default (`PROFILE_API_TTL_DURATION`). Anything else is a `400 invalid_ttl`.",
+            "examples": ["2h", false]
           }
         }
       },

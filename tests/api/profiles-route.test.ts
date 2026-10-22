@@ -17,6 +17,7 @@ vi.mock('../../src/lib/logs/admin-log', () => ({
 vi.mock('../../src/lib/runtime', () => ({
   getRuntime: () => ({
     passthroughAsDefault: false,
+    profileApiTtl: '1d',
     catalog: {
       systems: [
         {
@@ -80,11 +81,16 @@ describe('PUT /ui/api/profiles/{id}', () => {
       params('c1'),
     )
     expect(res.status).toBe(200)
-    expect(upsertProfileMock).toHaveBeenCalledWith(expect.anything(), {
-      profileId: 'c1',
-      displayName: 'run',
-      endpointScenarios: { hello_world: 'failure' },
-    })
+    expect(upsertProfileMock).toHaveBeenCalledWith(
+      expect.anything(),
+      {
+        profileId: 'c1',
+        displayName: 'run',
+        endpointScenarios: { hello_world: 'failure' },
+        ttl: undefined,
+      },
+      { defaultTtl: '1d' },
+    )
     expect(writeAdminLogMock).toHaveBeenCalledWith(expect.anything(), 'c1', 'profile_saved')
     expect((await res.json()).endpointScenarios).toEqual({ hello_world: 'failure' })
   })
@@ -122,7 +128,40 @@ describe('PUT /ui/api/profiles/{id}', () => {
     expect(upsertProfileMock).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({ endpointScenarios: {} }),
+      { defaultTtl: '1d' },
     )
+  })
+})
+
+describe('PUT /ui/api/profiles/{id} ttl', () => {
+  it.each([['2h'], [false]])('passes ttl %j through to the store', async (ttl) => {
+    upsertProfileMock.mockResolvedValue(undefined)
+    getProfileMock.mockResolvedValue({ profileId: 'c1', endpointScenarios: {} })
+    const res = await route.PUT(jsonReq('PUT', { ttl }), params('c1'))
+    expect(res.status).toBe(200)
+    expect(upsertProfileMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ ttl }),
+      { defaultTtl: '1d' },
+    )
+  })
+
+  it.each([['forever'], ['0h'], ['1d12h'], [''], [null], [true], [3600], [{}]])(
+    '400s on ttl %j without saving',
+    async (ttl) => {
+      const res = await route.PUT(jsonReq('PUT', { ttl }), params('c1'))
+      expect(res.status).toBe(400)
+      expect((await res.json()).code).toBe('invalid_ttl')
+      expect(upsertProfileMock).not.toHaveBeenCalled()
+    },
+  )
+
+  it('returns the stored ttl and expiresAt', async () => {
+    const expiresAt = new Date('2026-10-23T12:00:00Z')
+    upsertProfileMock.mockResolvedValue(undefined)
+    getProfileMock.mockResolvedValue({ profileId: 'c1', endpointScenarios: {}, ttl: '1d', expiresAt })
+    const body = await (await route.PUT(jsonReq('PUT', {}), params('c1'))).json()
+    expect(body).toMatchObject({ ttl: '1d', expiresAt: expiresAt.toISOString() })
   })
 })
 

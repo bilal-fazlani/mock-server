@@ -71,6 +71,7 @@ describe('buildEnvironmentRows', () => {
       'RESOLVER_HISTORY_LIMIT',
       'RESOLVER_HISTORY_TTL_DURATION',
       'PROFILE_KEY_TTL_DURATION',
+      'PROFILE_API_TTL_DURATION',
       'REQUEST_LOG_TTL_DURATION',
       'HELLO_SYSTEM_URL',
       'ORDERS_URL',
@@ -235,6 +236,11 @@ describe('buildEnvironmentRows', () => {
       category: 'Routing',
     })
     expect(rows.find((r) => r.name === 'PROFILE_KEY_TTL_DURATION')).toMatchObject({
+      value: '(default: 1d)',
+      status: 'default',
+      category: 'Routing',
+    })
+    expect(rows.find((r) => r.name === 'PROFILE_API_TTL_DURATION')).toMatchObject({
       value: '(default: 1d)',
       status: 'default',
       category: 'Routing',

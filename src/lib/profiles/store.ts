@@ -1,7 +1,8 @@
 import { Db, MongoClient, MongoServerError } from 'mongodb'
-import { parseRequestLogTtlSeconds } from '../config'
+import { durationSeconds, parseRequestLogTtlSeconds } from '../config'
 import { pruneOrphanedHistoryOnce } from '../dynamic/prune'
 import { resolveMongoUri } from '../mongo/embedded'
+import { startProfileSweeper } from './sweeper'
 
 /**
  * A profile's scenario selection for one endpoint: a single scenario key, or
@@ -16,7 +17,20 @@ export interface MockProfile {
   endpointScenarios: Record<string, ScenarioSelection>
   createdAt: Date
   modifiedAt: Date
+  /**
+   * The duration this profile slides by ("2h"), stored so a changed
+   * PROFILE_API_TTL_DURATION never moves an existing profile. Absent, together
+   * with `expiresAt`, on a profile that never expires.
+   */
+  ttl?: string
+  expiresAt?: Date
 }
+
+/** A `PUT`'s `ttl`: a duration to (re)start the expiry with, or `false` for none. */
+export type ProfileTtlRequest = string | false
+
+/** A mocked request rewrites `expiresAt` only once it lags `now + ttl` by this much. */
+export const REQUEST_SLIDE_STEP_MS = 60_000
 
 export interface ScenarioProgress {
   profileId: string
@@ -118,6 +132,7 @@ async function connectClient(): Promise<MongoClient> {
   await connected.connect()
   await ensureIndexes(connected.db(dbName()))
   await pruneOrphanedHistoryOnce(connected.db(dbName()))
+  startProfileSweeper(connected.db(dbName()), sweepExpiredProfiles)
   return connected
 }
 
@@ -129,8 +144,15 @@ export async function ensureIndexes(
   db: Db,
   requestLogTtlSeconds = parseRequestLogTtlSeconds(process.env.REQUEST_LOG_TTL_DURATION),
 ): Promise<void> {
-  // Deliberately no TTL index: profiles are curated and never expire.
   await db.collection('mockProfiles').createIndex({ profileId: 1 }, { unique: true })
+  // Not a TTL index: an expired profile is removed by the sweeper (sweeper.ts) so
+  // its key mappings, progress and history go with it, which a TTL monitor can't do.
+  await db
+    .collection('mockProfiles')
+    .createIndex(
+      { expiresAt: 1 },
+      { name: 'mockProfiles_expiresAt', partialFilterExpression: { expiresAt: { $exists: true } } },
+    )
   await db.collection('profileKeyMappings').createIndex({ namespace: 1, key: 1 }, { unique: true })
   await db.collection('profileKeyMappings').createIndex({ profileId: 1 })
   // Mappings captured for a profile ID that has no profile document carry an
@@ -237,31 +259,119 @@ async function ensureDynamicHistoryIndex(db: Db): Promise<void> {
   await collection.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 })
 }
 
-export async function getProfile(db: Db, profileId: string): Promise<MockProfile | null> {
-  return db
-    .collection<MockProfile>('mockProfiles')
-    .findOne({ profileId }, { projection: { _id: 0 } })
+// The sweeper removes an expired profile within about a minute; until then every
+// read treats it as already gone.
+function liveProfileFilter(now: Date) {
+  return { $or: [{ expiresAt: { $exists: false } }, { expiresAt: { $gt: now } }] }
 }
 
+function profileExpired(profile: Pick<MockProfile, 'expiresAt'>, now: Date): boolean {
+  return profile.expiresAt !== undefined && profile.expiresAt.getTime() <= now.getTime()
+}
+
+function ttlMs(ttl: string): number {
+  const seconds = durationSeconds(ttl)
+  if (seconds === null) throw new Error(`invalid profile ttl "${ttl}"`)
+  return seconds * 1000
+}
+
+export async function getProfile(
+  db: Db,
+  profileId: string,
+  now = new Date(),
+): Promise<MockProfile | null> {
+  return db
+    .collection<MockProfile>('mockProfiles')
+    .findOne({ profileId, ...liveProfileFilter(now) }, { projection: { _id: 0 } })
+}
+
+/** A mocked request's profile lookup: also slides the expiry, at most about once a minute. */
+export async function getProfileForRequest(
+  db: Db,
+  profileId: string,
+  now = new Date(),
+): Promise<MockProfile | null> {
+  const profile = await getProfile(db, profileId, now)
+  if (profile) await slideProfileExpiry(db, profile, now, REQUEST_SLIDE_STEP_MS)
+  return profile
+}
+
+/**
+ * Restarts a profile's expiry from `now` by its own stored `ttl`, unless that
+ * moves it by less than `minStepMs`. Never adds an expiry, never revives an
+ * expired profile, and never pulls an expiry earlier.
+ */
+export async function slideProfileExpiry(
+  db: Db,
+  profile: Pick<MockProfile, 'profileId' | 'ttl' | 'expiresAt'>,
+  now = new Date(),
+  minStepMs = 0,
+): Promise<void> {
+  if (profile.ttl === undefined || profile.expiresAt === undefined) return
+  const target = new Date(now.getTime() + ttlMs(profile.ttl))
+  if (target.getTime() - profile.expiresAt.getTime() < minStepMs) return
+  await db
+    .collection<MockProfile>('mockProfiles')
+    .updateOne(
+      { profileId: profile.profileId, ttl: profile.ttl, expiresAt: { $gt: now } },
+      { $max: { expiresAt: target } },
+    )
+}
+
+export async function slideProfileExpiryById(
+  db: Db,
+  profileId: string,
+  now = new Date(),
+): Promise<void> {
+  const profile = await getProfile(db, profileId, now)
+  if (profile) await slideProfileExpiry(db, profile, now)
+}
+
+/**
+ * Creates or replaces a profile. Its expiry follows `input.ttl` when given
+ * (`false` removes it), else the profile's own stored `ttl`, else — for a new
+ * profile — `defaultTtl`. A UI save passes neither, so it slides an existing
+ * expiry and never adds one. An expired profile the sweeper hasn't reached yet
+ * is purged first, so the save starts a new profile rather than reviving the old
+ * one's progress, mappings and history.
+ */
 export async function upsertProfile(
   db: Db,
   input: {
     profileId: string
     displayName?: string
     endpointScenarios: Record<string, ScenarioSelection>
+    ttl?: ProfileTtlRequest
   },
+  options: { defaultTtl?: string | null; now?: Date } = {},
 ): Promise<void> {
-  const now = new Date()
+  const now = options.now ?? new Date()
+  const collection = db.collection<MockProfile>('mockProfiles')
+  let existing = await collection.findOne({ profileId: input.profileId })
+  if (existing && profileExpired(existing, now)) {
+    await purgeExpiredProfile(db, input.profileId, now)
+    existing = null
+  }
+  const ttl =
+    input.ttl === false
+      ? null
+      : (input.ttl ?? (existing ? (existing.ttl ?? null) : (options.defaultTtl ?? null)))
+
   const set: Record<string, unknown> = {
     endpointScenarios: input.endpointScenarios,
     modifiedAt: now,
   }
   if (input.displayName !== undefined) set.displayName = input.displayName
-  await db.collection<MockProfile>('mockProfiles').updateOne(
+  if (ttl !== null) {
+    set.ttl = ttl
+    set.expiresAt = new Date(now.getTime() + ttlMs(ttl))
+  }
+  await collection.updateOne(
     { profileId: input.profileId },
     {
       $set: set,
       $setOnInsert: { profileId: input.profileId, createdAt: now },
+      ...(ttl === null ? { $unset: { ttl: '', expiresAt: '' } } : {}),
     },
     { upsert: true },
   )
@@ -277,10 +387,10 @@ export async function upsertProfile(
     )
 }
 
-export async function listProfiles(db: Db, limit = 20): Promise<MockProfile[]> {
+export async function listProfiles(db: Db, limit = 20, now = new Date()): Promise<MockProfile[]> {
   return db
     .collection<MockProfile>('mockProfiles')
-    .find({}, { projection: { _id: 0 } })
+    .find(liveProfileFilter(now), { projection: { _id: 0 } })
     .sort({ modifiedAt: -1 })
     .limit(limit)
     .toArray()
@@ -288,10 +398,39 @@ export async function listProfiles(db: Db, limit = 20): Promise<MockProfile[]> {
 
 export async function deleteProfile(db: Db, profileId: string): Promise<void> {
   await db.collection<MockProfile>('mockProfiles').deleteOne({ profileId })
+  await deleteProfileState(db, profileId)
+  await db.collection('requestLogs').deleteMany({ profileId })
+}
+
+async function deleteProfileState(db: Db, profileId: string): Promise<void> {
   await db.collection<ProfileKeyMapping>('profileKeyMappings').deleteMany({ profileId })
   await db.collection<ScenarioProgress>('scenarioProgress').deleteMany({ profileId })
-  await db.collection('requestLogs').deleteMany({ profileId })
   await db.collection('dynamicHistory').deleteMany({ ownerType: 'profile', ownerKey: profileId })
+}
+
+// The delete is conditional on the profile still being expired, so a sweeper in
+// another instance, or a PUT that already recreated it, makes this a no-op.
+// Request logs are kept: they age out through REQUEST_LOG_TTL_DURATION.
+async function purgeExpiredProfile(db: Db, profileId: string, now: Date): Promise<boolean> {
+  const { deletedCount } = await db
+    .collection<MockProfile>('mockProfiles')
+    .deleteOne({ profileId, expiresAt: { $lte: now } })
+  if (deletedCount === 0) return false
+  await deleteProfileState(db, profileId)
+  return true
+}
+
+/** Deletes every expired profile with its mappings, progress and history; returns how many. */
+export async function sweepExpiredProfiles(db: Db, now = new Date()): Promise<number> {
+  const expired = await db
+    .collection<MockProfile>('mockProfiles')
+    .find({ expiresAt: { $lte: now } }, { projection: { _id: 0, profileId: 1 } })
+    .toArray()
+  let swept = 0
+  for (const { profileId } of expired) {
+    if (await purgeExpiredProfile(db, profileId, now)) swept++
+  }
+  return swept
 }
 
 /**
@@ -414,10 +553,15 @@ export async function captureProfileKeyMapping(
     })
   }
 
-  // Rejects only a *live* mapping held by someone else; an expired one is
-  // claimable, exactly as if the TTL monitor had already removed it.
-  const rejectIfHeld = (doc: ProfileKeyMapping): void => {
-    if (doc.profileId !== input.profileId && !mappingExpired(doc, now)) {
+  // Rejects only a *live* mapping held by someone else; an expired one, or one
+  // whose owning profile has expired, is claimable, exactly as if the TTL
+  // monitor or the profile sweeper had already removed it.
+  const rejectIfHeld = async (doc: ProfileKeyMapping): Promise<void> => {
+    if (doc.profileId === input.profileId || mappingExpired(doc, now)) return
+    const owner = await db
+      .collection<MockProfile>('mockProfiles')
+      .findOne({ profileId: doc.profileId }, { projection: { _id: 0, expiresAt: 1 } })
+    if (!owner || !profileExpired(owner, now)) {
       throw new ProfileKeyMappingConflictError(
         input.namespace,
         input.key,
@@ -429,7 +573,7 @@ export async function captureProfileKeyMapping(
 
   const existing = await collection.findOne(filter, { projection: { _id: 0 } })
   if (existing) {
-    rejectIfHeld(existing)
+    await rejectIfHeld(existing)
     await claim(existing.profileId)
     return
   }
@@ -448,7 +592,7 @@ export async function captureProfileKeyMapping(
     if (!(err instanceof MongoServerError) || err.code !== 11000) throw err
     const raced = await collection.findOne(filter, { projection: { _id: 0 } })
     if (!raced) throw err
-    rejectIfHeld(raced)
+    await rejectIfHeld(raced)
     await claim(raced.profileId)
   }
 }

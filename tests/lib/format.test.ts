@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatTimeZoneLabel, formatTimestamp, formatUtc } from '../../src/lib/format'
+import { formatExpiresIn, formatTimeZoneLabel, formatTimestamp, formatUtc } from '../../src/lib/format'
 
 describe('formatUtc', () => {
   it('formats as YYYY-MM-DD HH:mm UTC', () => {
@@ -51,5 +51,19 @@ describe('formatTimeZoneLabel', () => {
     const winter = formatTimeZoneLabel('America/New_York', new Date('2026-01-04T12:00:00.000Z'))
     expect(summer).toBe('America/New_York (GMT-4)')
     expect(winter).toBe('America/New_York (GMT-5)')
+  })
+})
+
+describe('formatExpiresIn', () => {
+  const now = new Date('2026-10-22T12:00:00Z')
+  const after = (ms: number) => new Date(now.getTime() + ms)
+
+  it('names the time left in its largest unit, rounded to the nearest', () => {
+    expect(formatExpiresIn(after(30_000), now)).toBe('Expires in under a minute')
+    expect(formatExpiresIn(after(59 * 60_000), now)).toBe('Expires in 59m')
+    expect(formatExpiresIn(after(2 * 3600_000 - 5_000), now)).toBe('Expires in 2h')
+    expect(formatExpiresIn(after(3.4 * 3600_000), now)).toBe('Expires in 3h')
+    expect(formatExpiresIn(after(23.6 * 3600_000), now)).toBe('Expires in 1d')
+    expect(formatExpiresIn(after(7 * 24 * 3600_000 - 5_000), now)).toBe('Expires in 7d')
   })
 })

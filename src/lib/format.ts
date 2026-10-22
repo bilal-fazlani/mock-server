@@ -2,6 +2,16 @@ export function formatUtc(date: Date): string {
   return `${date.toISOString().slice(0, 16).replace('T', ' ')} UTC`
 }
 
+/** `Expires in 3h`: the time left in its largest unit, rounded to the nearest. */
+export function formatExpiresIn(expiresAt: Date, now: Date): string {
+  const minutes = Math.floor((expiresAt.getTime() - now.getTime()) / 60_000)
+  if (minutes < 1) return 'Expires in under a minute'
+  if (minutes < 60) return `Expires in ${minutes}m`
+  const hours = Math.round(minutes / 60)
+  if (hours < 24) return `Expires in ${hours}h`
+  return `Expires in ${Math.round(minutes / (24 * 60))}d`
+}
+
 /**
  * `YYYY-MM-DD HH:mm:ss.SSS` rendered in `timeZone`, defaulting to UTC.
  *

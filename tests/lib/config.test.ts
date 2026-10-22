@@ -7,6 +7,8 @@ import {
   parseResolverHistoryLimit,
   parsePassthroughAsDefault,
   parseRequestLogTtlSeconds,
+  durationSeconds,
+  parseProfileApiTtl,
   parseProfileKeyTtlSeconds,
   parseResolverHistoryTtlSeconds,
   parseUnmockedUsers,
@@ -181,5 +183,36 @@ describe('parseProfileKeyTtlSeconds', () => {
 
   it('names itself in the error message, not a sibling TTL var', () => {
     expect(() => parseProfileKeyTtlSeconds('7w')).toThrow(/PROFILE_KEY_TTL_DURATION/)
+  })
+})
+
+describe('parseProfileApiTtl', () => {
+  it('defaults to 1d when unset or empty', () => {
+    expect(parseProfileApiTtl(undefined)).toBe('1d')
+    expect(parseProfileApiTtl('')).toBe('1d')
+  })
+
+  it('returns a valid duration as given', () => {
+    expect(parseProfileApiTtl('30m')).toBe('30m')
+    expect(parseProfileApiTtl('7d')).toBe('7d')
+  })
+
+  it('returns null for off, in any case', () => {
+    expect(parseProfileApiTtl('off')).toBeNull()
+    expect(parseProfileApiTtl('OFF')).toBeNull()
+  })
+
+  it('rejects anything else, naming itself', () => {
+    expect(() => parseProfileApiTtl('0h')).toThrow(ConfigError)
+    expect(() => parseProfileApiTtl('forever')).toThrow(/PROFILE_API_TTL_DURATION/)
+  })
+})
+
+describe('durationSeconds', () => {
+  it('reads the TTL grammar and returns null for anything else', () => {
+    expect(durationSeconds('2h')).toBe(7200)
+    expect(durationSeconds('0h')).toBeNull()
+    expect(durationSeconds('1d12h')).toBeNull()
+    expect(durationSeconds('')).toBeNull()
   })
 })

@@ -118,6 +118,11 @@ logs it at `warn` with `source=unmocked_policy selector=path:customerId`. Give
   `PROFILE_KEY_TTL_DURATION` (default `1d`) instead. Creating the profile clears the
   expiry on mappings already captured for its ID. See [Retention for callers with no
   profile](../building/profiles.md#retention-for-callers-with-no-profile).
+- **Profiles created through the API expire; profiles created in the UI don't.**
+  An API `PUT` with no `ttl` gives a new profile `PROFILE_API_TTL_DURATION`
+  (default `1d`), restarted on every use. Leave a test suite's profile idle for a
+  day and it is gone: its next request is handled as a caller with no profile. Send
+  `"ttl": false` to keep one. See [Profile expiry](../building/profiles.md#profile-expiry).
 - **Changing what `default` does = editing `default.json`.** The change applies
   anywhere the endpoint resolves to `default` — that's the design, so make it a
   reviewed change.

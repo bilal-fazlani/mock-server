@@ -116,6 +116,13 @@ function parseTtlSeconds(name: string, raw: string | undefined, fallbackSeconds:
   return count * TTL_UNIT_SECONDS[match[2]]
 }
 
+/** Seconds in a duration of the TTL grammar ("30m", "24h", "7d"), or null when it isn't one. */
+export function durationSeconds(raw: string): number | null {
+  const match = /^(\d+)(s|m|h|d)$/.exec(raw)
+  if (!match || Number(match[1]) < 1) return null
+  return Number(match[1]) * TTL_UNIT_SECONDS[match[2]]
+}
+
 // Parse REQUEST_LOG_TTL_DURATION into seconds for the requestLogs TTL index.
 // Unset/empty defaults to one day, matching the pre-config behavior.
 export function parseRequestLogTtlSeconds(raw: string | undefined): number {
@@ -142,6 +149,17 @@ export function parseResolverHistoryTtlSeconds(raw: string | undefined): number 
 // kept indefinitely; see src/lib/profiles/store.ts.
 export function parseProfileKeyTtlSeconds(raw: string | undefined): number {
   return parseTtlSeconds('PROFILE_KEY_TTL_DURATION', raw, 86400)
+}
+
+// Parse PROFILE_API_TTL_DURATION: the expiry a profile created through the control
+// API starts with when its PUT names none. Returns the duration as given, because
+// each profile stores its own and slides by it; `off` returns null (no expiry).
+// Profiles created in the UI never take this default.
+export function parseProfileApiTtl(raw: string | undefined): string | null {
+  if (raw === undefined || raw === '') return '1d'
+  if (raw.toLowerCase() === 'off') return null
+  parseTtlSeconds('PROFILE_API_TTL_DURATION', raw, 0)
+  return raw
 }
 
 // Resolve the catalog directory from CATALOG_PATH. A relative value is

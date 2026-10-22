@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation'
-import { formatUtc } from '../../../../lib/format'
+import { formatExpiresIn, formatUtc } from '../../../../lib/format'
 import { listLogSummaries } from '../../../../lib/logs/store'
 import { getDb, getProfile, getScenarioProgress } from '../../../../lib/profiles/store'
 import type { MockProfile, ScenarioProgress } from '../../../../lib/profiles/store'
@@ -21,7 +21,8 @@ export default async function ProfileDetailPage({
   const { profileId } = await params
   const db = await getDb()
   const runtime = getRuntime()
-  const profile = await getProfile(db, decodeURIComponent(profileId))
+  const now = new Date()
+  const profile = await getProfile(db, decodeURIComponent(profileId), now)
   if (!profile) notFound()
   const [progress, recentLogs] = await Promise.all([
     getScenarioProgress(db, profile.profileId),
@@ -44,7 +45,11 @@ export default async function ProfileDetailPage({
       <ProfilePageHeader
         title={profile.displayName ?? profile.profileId}
         profileId={profile.profileId}
-        meta={`Created ${formatUtc(profile.createdAt)} · Modified ${formatUtc(profile.modifiedAt)}`}
+        meta={[
+          `Created ${formatUtc(profile.createdAt)}`,
+          `Modified ${formatUtc(profile.modifiedAt)}`,
+          ...(profile.expiresAt ? [formatExpiresIn(profile.expiresAt, now)] : []),
+        ].join(' · ')}
         formId={profileFormId}
       />
       <ProfileForm

@@ -2,7 +2,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const upsertProfileMock = vi.fn()
 const deleteProfileMock = vi.fn()
+const slideProfileExpiryByIdMock = vi.fn()
+const resetScenarioProgressMock = vi.fn()
 vi.mock('../../src/lib/profiles/store', () => ({
+  resetScenarioProgress: (...args: unknown[]) => resetScenarioProgressMock(...args),
+  slideProfileExpiryById: (...args: unknown[]) => slideProfileExpiryByIdMock(...args),
   getDb: vi.fn(async () => ({})),
   upsertProfile: (...args: unknown[]) => upsertProfileMock(...args),
   deleteProfile: (...args: unknown[]) => deleteProfileMock(...args),
@@ -54,7 +58,9 @@ vi.mock('../../src/lib/runtime', () => ({
 
 const { saveProfile } = await import('../../src/app/ui/profiles/actions')
 const { deleteProfileAction } = await import('../../src/app/ui/profiles/actions')
-const { resetDynamicHistoryAction } = await import('../../src/app/ui/profiles/actions')
+const { resetDynamicHistoryAction, resetScenarioProgressAction } = await import(
+  '../../src/app/ui/profiles/actions'
+)
 
 function formData(fields: Record<string, string>): FormData {
   const fd = new FormData()
@@ -65,6 +71,7 @@ function formData(fields: Record<string, string>): FormData {
 beforeEach(() => {
   upsertProfileMock.mockClear()
   deleteProfileMock.mockClear()
+  slideProfileExpiryByIdMock.mockClear()
   resetDynamicHistoryMock.mockClear()
   redirectMock.mockClear()
   revalidatePathMock.mockClear()
@@ -80,6 +87,13 @@ describe('saveProfile', () => {
       expect.anything(),
       expect.objectContaining({ endpointScenarios: {} }),
     )
+  })
+
+  it('never names a ttl or a default, so a UI save can only slide an existing expiry', async () => {
+    await expect(saveProfile(formData({ profileId: 'c1' }))).rejects.toThrow('REDIRECT:')
+    const [, input, options] = upsertProfileMock.mock.calls[0]
+    expect(input).not.toHaveProperty('ttl')
+    expect(options).toBeUndefined()
   })
 
   it('stores an explicit non-default pin', async () => {
@@ -174,10 +188,23 @@ describe('resetDynamicHistoryAction', () => {
     expect(revalidatePathMock).toHaveBeenCalledWith('/ui/profiles/c1')
   })
 
+  it('slides the profile expiry', async () => {
+    await resetDynamicHistoryAction('hello_world', formData({ profileId: 'c1' }))
+    expect(slideProfileExpiryByIdMock).toHaveBeenCalledWith(expect.anything(), 'c1')
+  })
+
   it('requires a profileId before resetting', async () => {
     await expect(
       resetDynamicHistoryAction('hello_world', formData({ profileId: ' ' })),
     ).rejects.toThrow(/profileId and endpoint are required/)
     expect(resetDynamicHistoryMock).not.toHaveBeenCalled()
+  })
+})
+
+describe('resetScenarioProgressAction', () => {
+  it('resets the endpoint progress and slides the profile expiry', async () => {
+    await resetScenarioProgressAction('hello_world', formData({ profileId: 'c1' }))
+    expect(resetScenarioProgressMock).toHaveBeenCalledWith(expect.anything(), 'c1', 'hello_world')
+    expect(slideProfileExpiryByIdMock).toHaveBeenCalledWith(expect.anything(), 'c1')
   })
 })

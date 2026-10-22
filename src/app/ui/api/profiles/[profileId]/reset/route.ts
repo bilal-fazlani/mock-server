@@ -1,6 +1,10 @@
 import { resetDynamicHistory } from '../../../../../../lib/dynamic/history-store'
 import { writeAdminLog } from '../../../../../../lib/logs/admin-log'
-import { getDb, resetScenarioProgress } from '../../../../../../lib/profiles/store'
+import {
+  getDb,
+  resetScenarioProgress,
+  slideProfileExpiryById,
+} from '../../../../../../lib/profiles/store'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,6 +24,7 @@ export async function POST(request: Request, { params }: Ctx): Promise<Response>
   const db = await getDb()
   await resetScenarioProgress(db, profileId, endpoint)
   await resetDynamicHistory(db, 'profile', profileId, endpoint)
+  await slideProfileExpiryById(db, profileId)
   await writeAdminLog(db, profileId, 'progress_reset', endpoint)
   return new Response(null, { status: 204 })
 }

@@ -1,10 +1,17 @@
+import { durationSeconds } from '../../../../../lib/config'
 import { errorResponse } from '../../../../../lib/control-api/errors'
 import { writeAdminLog } from '../../../../../lib/logs/admin-log'
 import {
   InvalidScenarioSelectionError,
   parseEndpointScenariosFromJson,
 } from '../../../../../lib/profiles/api-scenarios'
-import { deleteProfile, getDb, getProfile, upsertProfile } from '../../../../../lib/profiles/store'
+import {
+  deleteProfile,
+  getDb,
+  getProfile,
+  upsertProfile,
+  type ProfileTtlRequest,
+} from '../../../../../lib/profiles/store'
 import { getRuntime } from '../../../../../lib/runtime'
 import { implicitScenario } from '../../../../../lib/scenarios'
 
@@ -28,9 +35,21 @@ export async function PUT(request: Request, { params }: Ctx): Promise<Response> 
   } catch {
     return errorResponse('request body is not valid JSON', 'invalid_json', 400)
   }
-  const raw = body as { displayName?: unknown; endpointScenarios?: unknown } | null
+  const raw = body as { displayName?: unknown; endpointScenarios?: unknown; ttl?: unknown } | null
 
-  const { catalog, passthroughAsDefault } = getRuntime()
+  let ttl: ProfileTtlRequest | undefined
+  if (raw?.ttl !== undefined) {
+    if (raw.ttl !== false && (typeof raw.ttl !== 'string' || durationSeconds(raw.ttl) === null)) {
+      return errorResponse(
+        'ttl must be a positive duration like "30m", "24h" or "7d" (units s|m|h|d), or false',
+        'invalid_ttl',
+        400,
+      )
+    }
+    ttl = raw.ttl
+  }
+
+  const { catalog, passthroughAsDefault, profileApiTtl } = getRuntime()
   const implicit = implicitScenario(passthroughAsDefault)
 
   let endpointScenarios
@@ -53,7 +72,11 @@ export async function PUT(request: Request, { params }: Ctx): Promise<Response> 
       : undefined
 
   const db = await getDb()
-  await upsertProfile(db, { profileId, displayName, endpointScenarios })
+  await upsertProfile(
+    db,
+    { profileId, displayName, endpointScenarios, ttl },
+    { defaultTtl: profileApiTtl },
+  )
   await writeAdminLog(db, profileId, 'profile_saved')
   return Response.json(await getProfile(db, profileId))
 }

@@ -89,7 +89,8 @@ response.
 | `scenario_required` | `400` | `PUT /ui/api/global-mocks/{system}/{endpoint}` | `scenario` is missing, empty, or not a string. |
 | `scenario_not_declared` | `400` | `PUT /ui/api/global-mocks/{system}/{endpoint}` | `scenario` isn't declared on the endpoint, and isn't `real`. |
 | `invalid_scenario_selection` | `400` | `PUT /ui/api/profiles/{profileId}` | `endpointScenarios` is malformed: not an object, an unknown endpoint name, a selection that's neither a string nor a string array, or a scenario not declared on its endpoint. `error` says which. |
-| `profile_not_found` | `404` | `GET /ui/api/profiles/{profileId}` | No profile with that ID. |
+| `invalid_ttl` | `400` | `PUT /ui/api/profiles/{profileId}` | `ttl` is neither a duration like `"30m"`, `"24h"` or `"7d"` nor `false`. |
+| `profile_not_found` | `404` | `GET /ui/api/profiles/{profileId}` | No profile with that ID, or it has expired. |
 | `log_not_found` | `404` | `GET /ui/api/logs/{logId}` | No log entry with that ID. |
 
 ## Endpoints
@@ -101,7 +102,7 @@ response.
 | `PUT /ui/api/global-mocks/{system}/{endpoint}` | `{ "scenario": "<key>" }` | `200 { system, endpoint, scenario }` | `404 unknown_endpoint` · `400 endpoint_not_global` / `scenario_required` / `scenario_not_declared` / `invalid_json` |
 | `DELETE /ui/api/global-mocks/{system}/{endpoint}` | — | `204` (idempotent) | `404 unknown_endpoint` |
 | `GET /ui/api/profiles/{profileId}` | — | `200` profile | `404 profile_not_found` |
-| `PUT /ui/api/profiles/{profileId}` | `{ displayName?, endpointScenarios }` | `200` stored profile | `400 invalid_scenario_selection` / `invalid_json` |
+| `PUT /ui/api/profiles/{profileId}` | `{ displayName?, endpointScenarios, ttl? }` | `200` stored profile | `400 invalid_scenario_selection` / `invalid_ttl` / `invalid_json` |
 | `DELETE /ui/api/profiles/{profileId}` | — | `204` (cascades) | — |
 | `POST /ui/api/profiles/{profileId}/reset` | `{ endpoint? }` | `204` | — |
 | `GET /ui/api/logs` | — (query params below) | `200 { "entries": … }` | — |
@@ -203,7 +204,8 @@ and is idempotent — clearing an unset override still returns `204`.
 ## `GET /ui/api/profiles/{profileId}` · `PUT` · `DELETE`
 
 `GET` returns the stored profile, or
-`404 { "error": "not_found", "code": "profile_not_found" }`.
+`404 { "error": "not_found", "code": "profile_not_found" }` when there is none or
+it has [expired](../building/profiles.md#profile-expiry).
 
 `PUT` upserts a profile:
 
@@ -213,7 +215,8 @@ and is idempotent — clearing an unset override still returns `204`.
   "endpointScenarios": {
     "charge": "card_declined",
     "refund": ["pending", "settled"]
-  }
+  },
+  "ttl": "2h"
 }
 ```
 
@@ -224,8 +227,35 @@ unknown endpoint name or a scenario that isn't declared (the same rule the UI
 uses) returns `400`. `displayName` is optional. The response is the stored profile,
 as `GET` would return it.
 
+A profile created here [expires](../building/profiles.md#profile-expiry) after a
+period without use. `ttl` is optional and sets that period:
+
+| Profile before → | Doesn't exist | Has an expiry | No expiry |
+| --- | --- | --- | --- |
+| no `ttl` | Created with `PROFILE_API_TTL_DURATION` (default `1d`; none if `off`) | Expiry restarts | Kept with no expiry |
+| `"ttl": "2h"` | Created with `2h` | Switched to `2h`, restarted | Given `2h` |
+| `"ttl": false` | Created with no expiry | Expiry removed | No change |
+
+A `ttl` string uses the same grammar as the TTL settings: a positive whole number
+and a unit, `s`, `m`, `h` or `d`. Anything else, `null` included, is
+`400 invalid_ttl`. A profile with an expiry carries `ttl` and `expiresAt` in the
+response; a profile with none has neither:
+
+```json
+{
+  "profileId": "agent-run-42",
+  "displayName": "agent-run-42",
+  "endpointScenarios": { "charge": "card_declined" },
+  "createdAt": "2026-10-22T12:00:00.000Z",
+  "modifiedAt": "2026-10-22T12:00:00.000Z",
+  "ttl": "2h",
+  "expiresAt": "2026-10-22T14:00:00.000Z"
+}
+```
+
 `DELETE` removes the profile and cascades to its mappings, sequence progress,
-resolver history, and logs (`204`).
+resolver history, and logs (`204`). An expired profile is removed the same way,
+except its logs are kept.
 
 ## `POST /ui/api/profiles/{profileId}/reset`
 

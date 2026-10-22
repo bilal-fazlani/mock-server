@@ -126,6 +126,46 @@ matched and selected `default`" long after the run. See
     optimises for a catalog you are still writing, this setting for one you are
     relying on.
 
+## Profile expiry
+
+A profile created through the [Runtime-control API](../driving/api.md#get-uiapiprofilesprofileid-put-delete)
+expires after a day without use; a profile created in the UI never expires. Test
+suites create a profile per run and rarely clean up, so API-created profiles clean
+up after themselves while the ones you curate by hand stay put.
+
+| How the profile was created | Expiry |
+| --- | --- |
+| UI (`/ui/profiles/new`) | None |
+| API `PUT` with no `ttl` | [`PROFILE_API_TTL_DURATION`](../reference/configuration.md) (default `1d`; `off` for none) |
+| API `PUT` with `"ttl": "2h"` | `2h` |
+| API `PUT` with `"ttl": false` | None |
+| Before the server supported expiry | None — existing profiles are never given one |
+
+The expiry **slides**: it restarts from now on every mocked request that resolves
+to the profile, every API `PUT`, every UI save and every reset. A profile in
+steady use never expires; one left idle for its `ttl` does. Under heavy traffic the
+restart is written at most about once a minute per profile. There is no maximum
+lifetime.
+
+Each profile stores the `ttl` it was given and always restarts by that, so
+changing `PROFILE_API_TTL_DURATION` affects only profiles created afterwards. A UI
+save or reset keeps the profile's `ttl` and never adds an expiry to a profile
+without one. To change it, `PUT` the profile with a new `ttl`, or with
+`"ttl": false` to keep it for good. The dashboard shows the remaining time
+("Expires in 3h") on the profile list and in the profile's header.
+
+**An expired profile is gone.** From the moment it expires, the profile reads as
+absent everywhere: a request for it is handled like any [caller with no
+profile](#callers-with-no-profile), `GET` answers `404`, and it drops out of the
+dashboard. A sweep that runs at startup and once a minute then deletes it, with its
+[key mappings](#profile-key-mappings), sequence progress and resolver history. Its
+request logs are kept and age out through `REQUEST_LOG_TTL_DURATION`. A key
+captured by an expired profile can be captured by another profile straight away,
+with no `409`.
+
+A `PUT` for the ID of an expired profile creates a new one. Nothing carries over
+from the old profile: no sequence progress, no key mappings, no resolver history.
+
 ## Profile key mappings
 
 Some workflows have an early request that contains both the canonical profile ID
@@ -190,7 +230,7 @@ would `404` and those policies would silently not apply to `profileKey` endpoint
 A mapping captured for an ID with no profile expires after
 `PROFILE_KEY_TTL_DURATION` (default `1d`), and the clock restarts each time that
 key is captured again. A mapping owned by a real profile carries no expiry and is
-kept until you delete the profile.
+kept until the profile is deleted or [expires](#profile-expiry).
 
 This matters more than storage: `namespace` + `key` is unique, so a mapping left
 by a throwaway caller would otherwise hold that key forever and answer a real

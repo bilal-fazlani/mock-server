@@ -119,6 +119,14 @@ export const APP_ENVIRONMENT: EnvironmentDefinition[] = [
     display: true,
   },
   {
+    name: 'PROFILE_API_TTL_DURATION',
+    category: 'Routing',
+    description:
+      'Expiry a profile created through the control API starts with when its PUT names no ttl; restarts on every use. off: no expiry. UI-created profiles never expire.',
+    defaultValue: '1d',
+    display: true,
+  },
+  {
     name: 'REQUEST_LOG_TTL_DURATION',
     category: 'System',
     description: 'How long request logs are retained before MongoDB expires them.',

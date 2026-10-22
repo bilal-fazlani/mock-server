@@ -3,10 +3,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const resetScenarioProgressMock = vi.fn()
 const resetDynamicHistoryMock = vi.fn()
 const writeAdminLogMock = vi.fn()
+const slideProfileExpiryByIdMock = vi.fn()
 
 vi.mock('../../src/lib/profiles/store', () => ({
   getDb: vi.fn(async () => ({})),
   resetScenarioProgress: (...a: unknown[]) => resetScenarioProgressMock(...a),
+  slideProfileExpiryById: (...a: unknown[]) => slideProfileExpiryByIdMock(...a),
 }))
 vi.mock('../../src/lib/dynamic/history-store', () => ({
   resetDynamicHistory: (...a: unknown[]) => resetDynamicHistoryMock(...a),
@@ -22,6 +24,7 @@ beforeEach(() => {
   resetScenarioProgressMock.mockReset()
   resetDynamicHistoryMock.mockReset()
   writeAdminLogMock.mockReset()
+  slideProfileExpiryByIdMock.mockReset()
 })
 
 describe('POST /ui/api/profiles/{id}/reset', () => {
@@ -46,5 +49,13 @@ describe('POST /ui/api/profiles/{id}/reset', () => {
     const res = await route.POST(new Request('http://x', { method: 'POST', body: '{bad' }), params('c1'))
     expect(res.status).toBe(204)
     expect(resetScenarioProgressMock).toHaveBeenCalledWith(expect.anything(), 'c1', undefined)
+  })
+})
+
+describe('POST /ui/api/profiles/{id}/reset expiry', () => {
+  it('slides the profile expiry', async () => {
+    const res = await route.POST(new Request('http://x', { method: 'POST' }), params('c1'))
+    expect(res.status).toBe(204)
+    expect(slideProfileExpiryByIdMock).toHaveBeenCalledWith(expect.anything(), 'c1')
   })
 })

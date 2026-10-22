@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { Button } from '@/app/components/ui/button'
-import { formatUtc } from '../../lib/format'
+import { formatExpiresIn, formatUtc } from '../../lib/format'
 import { staleScenarios } from '../../lib/profiles/stale'
 import { getDb, listProfiles } from '../../lib/profiles/store'
 import { getRuntime } from '../../lib/runtime'
@@ -8,7 +8,8 @@ import { getRuntime } from '../../lib/runtime'
 export const dynamic = 'force-dynamic'
 
 export default async function HomePage() {
-  const profiles = await listProfiles(await getDb())
+  const now = new Date()
+  const profiles = await listProfiles(await getDb(), 20, now)
   const { catalog } = getRuntime()
   return (
     <main className="grid gap-5">
@@ -36,6 +37,9 @@ export default async function HomePage() {
                 </th>
                 <th className="border-b border-border px-4 py-3 text-left text-[0.78rem] font-semibold tracking-[0.04em] text-muted-foreground uppercase">
                   Modified
+                </th>
+                <th className="border-b border-border px-4 py-3 text-left text-[0.78rem] font-semibold tracking-[0.04em] text-muted-foreground uppercase">
+                  Expiry
                 </th>
               </tr>
             </thead>
@@ -76,6 +80,9 @@ export default async function HomePage() {
                     <td className="border-b border-border px-4 py-3">{p.displayName ?? '—'}</td>
                     <td className="border-b border-border px-4 py-3 font-mono text-[0.8rem] text-secondary-foreground">
                       {formatUtc(p.modifiedAt)}
+                    </td>
+                    <td className="border-b border-border px-4 py-3 text-secondary-foreground">
+                      {p.expiresAt ? formatExpiresIn(p.expiresAt, now) : '—'}
                     </td>
                   </tr>
                 )

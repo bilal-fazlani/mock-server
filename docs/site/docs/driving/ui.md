@@ -24,7 +24,9 @@ Five pages, all reachable from the header:
 ## Profiles (`/ui`)
 
 The home page lists every stored [profile](../building/profiles.md) — ID,
-display name, last modified — with a **Create new profile** button. A profile
+display name, last modified, and for a profile created through the API, when it
+[expires](../building/profiles.md#profile-expiry) ("Expires in 3h") — with a
+**Create new profile** button. A profile created here never expires. A profile
 whose saved picks reference scenarios the catalog no longer declares is flagged
 with a "needs updating" badge, so catalog drift is visible from the list rather
 than discovered on a `500`.
@@ -79,7 +81,8 @@ Profiles store **deltas**: leaving an endpoint on the implicit scenario stores
 nothing. A pick that has gone stale (its scenario file was removed) is shown as
 a disabled `<slug> — unavailable` entry with no hover card or modal to
 disclose, and the editor blocks saving until a valid scenario is chosen. The
-page also carries a copy-the-profile-ID button, a
+header shows when the profile was created and modified, and when it expires if
+it has an expiry. The page also carries a copy-the-profile-ID button, a
 **Recent activity** card (that profile's slice of the
 [request log](request-logs.md)), and **Delete profile**, which cascades to the
 profile's mappings, sequence progress, resolver history, and logs.

@@ -9,6 +9,7 @@ import {
   deleteProfile,
   getDb,
   resetScenarioProgress,
+  slideProfileExpiryById,
   upsertProfile,
 } from '../../../lib/profiles/store'
 import { getRuntime } from '../../../lib/runtime'
@@ -43,6 +44,7 @@ export async function resetScenarioProgressAction(
   if (!profileId || !endpointSlug) throw new Error('profileId and endpoint are required')
 
   await resetScenarioProgress(await getDb(), profileId, endpointSlug)
+  await slideProfileExpiryById(await getDb(), profileId)
   await writeAdminLog(await getDb(), profileId, 'progress_reset', endpointSlug)
   revalidatePath(`/ui/profiles/${encodeURIComponent(profileId)}`)
 }
@@ -55,6 +57,7 @@ export async function resetDynamicHistoryAction(
   if (!profileId || !endpointSlug) throw new Error('profileId and endpoint are required')
 
   await resetDynamicHistory(await getDb(), 'profile', profileId, endpointSlug)
+  await slideProfileExpiryById(await getDb(), profileId)
   await writeAdminLog(await getDb(), profileId, 'progress_reset', endpointSlug)
   revalidatePath(`/ui/profiles/${encodeURIComponent(profileId)}`)
 }

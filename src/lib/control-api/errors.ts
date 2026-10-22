@@ -9,7 +9,7 @@
  * body shape and adds a bare `error` field, not this envelope — so it builds
  * its response directly rather than through this helper.
  *
- * Naming rule for new codes, verified to hold for all nine below:
+ * Naming rule for new codes, verified to hold for all ten below:
  * `unknown_*` is a 404 from looking up a URL path segment (system, endpoint,
  * scenario slug) against the catalog; `*_not_found` is a 404 from looking up
  * an opaque store ID (profileId, logId) against Mongo. Every code maps to
@@ -23,6 +23,7 @@ export type ControlApiErrorCode =
   | 'scenario_required'
   | 'scenario_not_declared'
   | 'invalid_scenario_selection'
+  | 'invalid_ttl'
   | 'profile_not_found'
   | 'log_not_found'
 

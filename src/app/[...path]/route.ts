@@ -5,7 +5,7 @@ import {
   captureProfileKeyMapping,
   getDb,
   getGlobalMockScenario,
-  getProfile,
+  getProfileForRequest,
   getProfileKeyMapping,
 } from '../../lib/profiles/store'
 import { createMockHandler } from '../../lib/router/handler'
@@ -20,7 +20,7 @@ async function handle(
   const handler = createMockHandler({
     ...rt,
     env: process.env,
-    getProfile: async (profileId) => getProfile(await getDb(), profileId),
+    getProfile: async (profileId) => getProfileForRequest(await getDb(), profileId),
     getGlobalMockScenario: async (system, endpoint) =>
       (await getGlobalMockScenario(await getDb(), system, endpoint))?.scenario ?? null,
     getProfileKeyMapping: async (namespace, key) =>
