@@ -24,7 +24,7 @@ const seqScenarios: Record<string, ScenarioOption> = {
 // enclosing button. Available steps are hover-card triggers, so Radix injects
 // its own attributes (`data-slot`, `data-state`, …) ahead of `type`/`class` —
 // return the whole tag rather than assuming any attribute order.
-function triggerTagForLabel(html: string, label: string): string {
+function triggerTagForName(html: string, label: string): string {
   const labelIndex = html.indexOf(`>${label}<`)
   if (labelIndex === -1) throw new Error(`label ${label} not found`)
   const start = html.lastIndexOf('<button', labelIndex)
@@ -32,8 +32,8 @@ function triggerTagForLabel(html: string, label: string): string {
   return html.slice(start, html.indexOf('>', start) + 1)
 }
 
-function triggerClassForLabel(html: string, label: string): string {
-  const match = triggerTagForLabel(html, label).match(/class="([^"]*)"/)
+function triggerClassForName(html: string, label: string): string {
+  const match = triggerTagForName(html, label).match(/class="([^"]*)"/)
   if (!match) throw new Error(`trigger class for ${label} not found`)
   return match[1]
 }
@@ -101,9 +101,9 @@ describe('ScenarioConfig', () => {
     // One-line label: only the human-readable name is shown, never the raw key.
     expect(html).not.toMatch(/>timeout</)
     // Scenario-kind color coding on each step's trigger button.
-    expect(triggerClassForLabel(html, 'Timeout')).toContain('var(--warning-border)') // nonDefault
-    expect(triggerClassForLabel(html, 'Passthrough')).toContain('#d92d20') // real
-    expect(triggerClassForLabel(html, 'Success')).toContain('var(--success)') // default
+    expect(triggerClassForName(html, 'Timeout')).toContain('var(--warning-border)') // nonDefault
+    expect(triggerClassForName(html, 'Passthrough')).toContain('#d92d20') // real
+    expect(triggerClassForName(html, 'Success')).toContain('var(--success)') // default
   })
 
   it('falls back to the scenario key as the label when no name exists', () => {
@@ -257,11 +257,11 @@ describe('ScenarioConfig', () => {
       />,
     )
     // The declared step is a hover-card trigger…
-    expect(triggerTagForLabel(html, 'Success')).toContain('data-state="closed"')
+    expect(triggerTagForName(html, 'Success')).toContain('data-state="closed"')
     // …but a dangling pin has no catalog entry — its view route 404s, so the
     // trigger must stay bare rather than offer a permanently-failing modal.
-    expect(triggerTagForLabel(html, 'gone — unavailable')).not.toContain('data-state')
-    expect(triggerTagForLabel(html, 'gone — unavailable')).not.toContain('hover-card-trigger')
+    expect(triggerTagForName(html, 'gone — unavailable')).not.toContain('data-state')
+    expect(triggerTagForName(html, 'gone — unavailable')).not.toContain('hover-card-trigger')
   })
 })
 

@@ -53,7 +53,7 @@ unknown properties breaks on an upgrade that broke nothing. Existing fields are
 not removed or retyped, and the status code for an existing outcome does not
 change, without a major bump of `info.version`.
 
-!!! warning "Contract 2.0.0 renamed three fields"
+!!! warning "The contract major bump renamed three fields"
     `GET /ui/api/catalog` returns a system's name as `displayName` (was `name`) and an
     endpoint's identifier as `slug` (was `name`); the scenario view returns `slug` and
     `displayName` (were `key` and `label`). The catalog files change the same way:

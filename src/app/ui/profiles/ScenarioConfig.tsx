@@ -473,7 +473,7 @@ function ScenarioSelect({
           endpointSlug={endpointSlug}
           endpointDisplayName={endpointDisplayName}
           slug={value}
-          option={scenarios[value] ?? { label: value, kind: 'fixture' }}
+          option={scenarios[value] ?? { displayName: value, kind: 'fixture' }}
           suppressed={open}
         >
           {trigger}
