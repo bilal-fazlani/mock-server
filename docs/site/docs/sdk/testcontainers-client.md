@@ -129,7 +129,7 @@ new MockServerContainer(MockServerContainer.DEFAULT_IMAGE_NAME.withTag("0.16.0")
 
 Pick the tag from the
 [releases](https://github.com/bilal-fazlani/mock-server/releases) — every release
-is published as an image tag, and nothing else is. The SDK needs server **0.7.0
+is published as an image tag, and nothing else is. The SDK needs server **0.16.0
 or newer** — see [Compatibility](index.md#compatibility).
 
 !!! warning "The catalog must be world-readable"
@@ -207,12 +207,38 @@ client.profile("customer-123")
 
 Order decides one thing only: repeat a call and the later one wins — a second
 selection for the same endpoint replaces the first, as does a second
-`displayName()`.
+`displayName()`, and `ttl(…)` and `noTtl()` replace each other.
+
+#### Profiles expire by default
+
+A profile the client creates [expires](../building/profiles.md#profile-expiry)
+once nothing has used it for the server's `PROFILE_API_TTL_DURATION`, a day by
+default. Every mocked request that resolves to it, and every write, restarts that
+clock, so a profile in use stays alive. Stage `ttl(…)` to choose the duration, or
+`noTtl()` for one that never expires:
+
+```java
+client.profile("customer-123")
+      .ttl(Duration.ofHours(2))
+      .endpoint("payments", "charge").serves("card_declined")
+      .apply();
+
+client.profile("curated-demo").noTtl().apply();
+```
+
+With neither, `apply()` sends no `ttl`: a new profile gets the server default and
+an existing one keeps the expiry it has. A `ttl` must be a whole number of
+minutes, from one minute to 365 days. Anything else, `Duration.ofSeconds(90)`
+included, throws `IllegalArgumentException` before a request is sent. The stored
+profile reports its `ttl()` and `expiresAt()`, both empty on a profile that never
+expires. The [JUnit extension](junit.md) deletes the profile it hands each test,
+so expiry only matters for profiles you create with the client yourself.
 
 | Call | What it does |
 | --- | --- |
 | `get()` | The stored profile, or empty when none has been written under this ID. |
 | `clearScenarios()` | Stages the removal of every selection the *stored* profile holds, so `apply()` writes only what this handle staged. Chain position is irrelevant. With nothing else staged, it empties the profile's selections and keeps the profile. |
+| `ttl(duration)` / `noTtl()` | Stages how long the profile lives without use, or that it never expires. With neither, the server's rules apply. |
 | `apply()` | Commits the staged selections and returns the stored profile. The server normalises on the way in, so what comes back may differ from what was staged. |
 | `reset()` / `reset(endpoint)` | Rewinds sequence progress and resolver history. Leaves selections in place. |
 | `delete()` | Removes the profile and everything keyed to it — mappings, sequence progress, resolver history, request logs. Idempotent. |
@@ -320,9 +346,12 @@ server to come up.
 
 ## Forward compatibility
 
-The client targets contract version `1.0.0` of the runtime-control API, and the
-contract [evolves additively](../driving/api.md#stability-machine-readable-spec).
-So the client never rejects a response for carrying something it does not
+The client targets contract version `2.1.0` of the runtime-control API, which
+server **0.16.0** introduced: `2.0.0` renamed the catalog's `name` fields to
+`displayName` and `slug` with no aliases, and `2.1.0` added the profile `ttl`.
+Above that floor the contract
+[evolves additively](../driving/api.md#stability-machine-readable-spec), so the
+client never rejects a response for carrying something it does not
 recognise: unknown JSON properties are ignored, and an unrecognised member of a
 response-side enum reads as that enum's `UNKNOWN` constant.
 

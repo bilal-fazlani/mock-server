@@ -108,7 +108,7 @@ above it, so a test suite declares exactly one — the highest it needs.
 
 | Requirement | Version |
 | --- | --- |
-| Mock server | **0.7.0 or newer** — the SDK targets the runtime-control contract as of that release, and uses newer contract features only where the server's [additive evolution rules](../driving/api.md#stability-machine-readable-spec) make an older server degrade rather than break. That is a floor, not a recommendation: pin the image to a current [release](https://github.com/bilal-fazlani/mock-server/releases), which is what every `withTag` example on these pages does. |
+| Mock server | **0.16.0 or newer** — the SDK targets the runtime-control contract as of that release, which renamed the catalog's `name` fields with no aliases, so an older server is not supported. That is a floor, not a recommendation: pin the image to a current [release](https://github.com/bilal-fazlani/mock-server/releases), which is what every `withTag` example on these pages does. |
 | Java | **21 (LTS) or newer**, from SDK **2.0.0** — the earlier 1.x line runs on **Java 17**. |
 | JUnit | Jupiter 6.x (the SDK brings `junit-jupiter-api` with it) |
 | Spring Boot | **4.1.0**, for `mock-server-spring-boot-test` only — the exact release the module is compiled and tested against, not a range across 4.x |

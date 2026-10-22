@@ -34,12 +34,12 @@ sdk_java = "3.0.0"
 # dropped support for every release below the newest one.
 
 [[exempt]]
-pattern = '\*\*0\.7\.0 or newer\*\*'
-reason = "compatibility floor: the oldest server the SDK targets, not the newest"
+pattern = '\*\*0\.16\.0 or newer\*\*'
+reason = "compatibility floor: the oldest server SDK 3.0.0 works against, since 0.16.0 renamed the catalog fields with no aliases; not the newest"
 
 [[exempt]]
-pattern = 'server \*\*0\.7\.0'
-reason = "compatibility floor, split across a line break on sdk/testcontainers-client.md"
+pattern = 'server \*\*0\.16\.0'
+reason = "compatibility floor, split across a line break on sdk/testcontainers-client.md, and named as the release that introduced the contract the client targets"
 
 # --- Historical facts -----------------------------------------------------
 # "Since X" statements. Rewriting these to the current release inverts their
@@ -78,7 +78,7 @@ reason = "third-party pin and floor: the Jackson version the SDK resolves, and t
 # --- Other version lines --------------------------------------------------
 
 [[exempt]]
-pattern = 'contract version `1\.0\.0`'
+pattern = 'contract version `2\.1\.0`|`2\.0\.0` renamed the catalog|`2\.1\.0` added the profile'
 reason = "the runtime-control API contract, versioned independently in src/lib/control-api/openapi.json; AGENTS.md requires it move with the handler it describes, which is a stronger guarantee than syncing here would give"
 
 # --- Illustrative samples -------------------------------------------------

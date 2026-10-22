@@ -116,7 +116,7 @@ against](junit.md#what-withcatalog-resolves-against).
     The constructor argument is a **whole image reference**, so
     `new MockServerContainer("0.16.0")` looks for a repository named `0.16.0`.
     Compose the tag onto `DEFAULT_IMAGE_NAME` as above. The SDK needs server
-    **0.7.0 or newer** — see [Compatibility](index.md#compatibility).
+    **0.16.0 or newer** — see [Compatibility](index.md#compatibility).
 
 Everything the [JUnit 5 guide](junit.md) documents — `serves`, `servesSequence`,
 `verify`, `await`, `@SchemaCheck`, `@UsesGlobalMocks` — works unchanged inside

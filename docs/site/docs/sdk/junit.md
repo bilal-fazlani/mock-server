@@ -107,7 +107,7 @@ MockServer.container()
     is up — see [What a started container
     reports](testcontainers-client.md#what-a-started-container-reports).
 
-    The SDK needs server **0.7.0 or newer** — see
+    The SDK needs server **0.16.0 or newer** — see
     [Compatibility](index.md#compatibility).
 
 ### What `withCatalog` resolves against
