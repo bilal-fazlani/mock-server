@@ -103,6 +103,10 @@ function visibleText(html: string): string {
 }
 
 describe('EndpointView', () => {
+  it('links back to the catalog with this system selected', () => {
+    expect(view()).toContain('href="/ui/catalog?system=hello-system"')
+  })
+
   it('renders configuration fields with visible row labels', () => {
     const html = view()
     expect(html).toContain('$.customerId')

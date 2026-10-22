@@ -14,6 +14,7 @@ import { Button } from '../../components/ui/button'
 import { MethodBadge } from '../../components/MethodBadge'
 import { StickyPageHeader } from '../../components/StickyPageHeader'
 import { SchemaBadge } from '../../components/SchemaBadge'
+import { catalogSystemHref } from './CatalogView'
 import { CopyCurlButton } from './CopyCurlButton'
 import { EndpointScenarios } from './EndpointScenarios'
 import type { ScenarioView } from './scenario-view'
@@ -54,7 +55,7 @@ export function EndpointView({
     <main className="flex flex-col gap-5">
       <StickyPageHeader className="mb-0.5">
         <Button asChild variant="secondary">
-          <Link href="/ui/catalog">← Catalog</Link>
+          <Link href={catalogSystemHref(system.slug)}>← Catalog</Link>
         </Button>
         <div className="flex min-w-0 flex-[1_1_420px] flex-wrap items-center gap-3">
           <MethodBadge method={endpoint.method} />
