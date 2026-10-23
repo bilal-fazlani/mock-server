@@ -107,8 +107,21 @@ names the variable at fault, never its value.
 
 ## Catalog (`/ui/catalog`)
 
-A read-only view of everything the catalog declares: each system with its
-endpoints, and per endpoint a card for every scenario. A fixture-backed
+A read-only view of everything the catalog declares. The page opens with a list
+of systems on the left; each entry shows the
+[port](../building/endpoints.md#system-ports) that system listens on and the
+base URL it forwards passthrough and unmatched requests to — the value of its
+`baseUrlEnv` variable. An entry reads **base URL not set** when that variable is
+unset, and the selected system then shows a note naming the variable to set;
+a lock icon marks a system that presents a client certificate when forwarding.
+
+Selecting a system lists its endpoints. The selection lives in the query string
+(`/ui/catalog?system=hello-system`), so it survives a reload and can be shared
+as a link; without `system`, or with a slug the catalog doesn't declare, the
+first system is selected. The **← Catalog** link on an endpoint page returns to
+that endpoint's system.
+
+Each endpoint page shows a card for every scenario. A fixture-backed
 scenario's card shows its name, its `summary` when one is set, and the fixture
 JSON itself; a resolver-backed scenario's card shows the resolver's JavaScript
 source, syntax-highlighted. A **Copy as cURL** button builds a runnable sample

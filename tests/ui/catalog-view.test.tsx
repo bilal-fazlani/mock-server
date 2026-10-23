@@ -27,6 +27,10 @@ const catalog: Catalog = {
 
 const env = { HELLO_SYSTEM_URL: 'http://upstream.test' }
 
+function currentHref(html: string): string | undefined {
+  return html.match(/<a [^>]*aria-current="page"[^>]*>/)?.[0].match(/href="([^"]+)"/)?.[1]
+}
+
 describe('CatalogView', () => {
   it('renders each endpoint with method, path, and display name', () => {
     const html = renderToStaticMarkup(<CatalogView catalog={catalog} env={env} passthroughAsDefault={false} />)
@@ -87,6 +91,95 @@ describe('CatalogView', () => {
   it('shows a not-set marker when the base URL env is missing', () => {
     const html = renderToStaticMarkup(<CatalogView catalog={catalog} env={{}} passthroughAsDefault={false} />)
     expect(html).toContain('not set')
+  })
+
+  describe('system nav', () => {
+    const twoSystems: Catalog = {
+      systems: [
+        catalog.systems[0],
+        {
+          displayName: 'Payments Gateway',
+          slug: 'payments-gateway',
+          baseUrlEnv: 'PAYMENTS_GATEWAY_URL',
+          port: 4002,
+          clientCertEnv: 'PAYMENTS_CERT',
+          clientKeyEnv: 'PAYMENTS_KEY',
+          endpoints: [
+            {
+              slug: 'authorize',
+              displayName: 'Authorize Payment',
+              method: 'POST',
+              path: '/payments/authorize',
+              scenarios: { default: { displayName: 'Approved' } },
+              resolverScenarios: [],
+            },
+          ],
+        },
+      ],
+    }
+    const twoEnv = { HELLO_SYSTEM_URL: 'http://upstream.test', PAYMENTS_GATEWAY_URL: 'https://payments.test' }
+
+    function render(selectedSystem?: string): string {
+      return renderToStaticMarkup(
+        <CatalogView
+          catalog={twoSystems}
+          env={twoEnv}
+          passthroughAsDefault={false}
+          selectedSystem={selectedSystem}
+        />,
+      )
+    }
+
+    it('lists every system with its port and base URL, linking by query string', () => {
+      const html = render()
+      expect(html).toContain('href="/ui/catalog?system=hello-system"')
+      expect(html).toContain('href="/ui/catalog?system=payments-gateway"')
+      expect(html).toContain(':4001')
+      expect(html).toContain(':4002')
+      expect(html).toContain('http://upstream.test')
+      expect(html).toContain('https://payments.test')
+    })
+
+    it('shows only the selected system\'s endpoints and marks it current', () => {
+      const html = render('payments-gateway')
+      expect(html).toContain('Authorize Payment')
+      expect(html).not.toContain('Hello World')
+      expect(currentHref(html)).toBe('/ui/catalog?system=payments-gateway')
+    })
+
+    it('selects the first system when the slug is missing or unknown', () => {
+      for (const html of [render(), render('no-such-system')]) {
+        expect(html).toContain('Hello World')
+        expect(html).not.toContain('Authorize Payment')
+        expect(currentHref(html)).toBe('/ui/catalog?system=hello-system')
+      }
+    })
+
+    it('marks a system that presents a client certificate', () => {
+      expect(render()).toContain('Presents a client certificate when forwarding')
+    })
+
+    it('names the missing base URL env var for the selected system only', () => {
+      const html = renderToStaticMarkup(
+        <CatalogView
+          catalog={twoSystems}
+          env={{ HELLO_SYSTEM_URL: 'http://upstream.test' }}
+          passthroughAsDefault={false}
+          selectedSystem="hello-system"
+        />,
+      )
+      expect(html).toContain('base URL not set')
+      expect(html).not.toContain('PAYMENTS_GATEWAY_URL')
+      const selectedMissing = renderToStaticMarkup(
+        <CatalogView
+          catalog={twoSystems}
+          env={{ HELLO_SYSTEM_URL: 'http://upstream.test' }}
+          passthroughAsDefault={false}
+          selectedSystem="payments-gateway"
+        />,
+      )
+      expect(selectedMissing).toContain('PAYMENTS_GATEWAY_URL')
+    })
   })
 
   it('renders an empty state when there are no endpoints', () => {
