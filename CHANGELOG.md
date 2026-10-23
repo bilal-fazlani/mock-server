@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.19.0](https://github.com/bilal-fazlani/mock-server/compare/v0.18.0...v0.19.0) (2026-10-23)
+
+
+### ⚠ BREAKING CHANGES
+
+* the dashboard is served at / and every runtime-control route at /api/* instead of /ui and /ui/api/*. Update hard-coded URLs and health checks (GET /api/health); Java SDK 4.x does not work against this release.
+
+### Features
+
+* serve the dashboard at / and the control api at /api ([da79327](https://github.com/bilal-fazlani/mock-server/commit/da7932781683aee73f2eb7a90bb1514698daa6e9))
+
 ## [0.18.0](https://github.com/bilal-fazlani/mock-server/compare/v0.17.0...v0.18.0) (2026-10-23)
 
 
