@@ -6,7 +6,10 @@ name: Publish container image
 #   - Manual runs are supported for re-publishing a release: dispatch this
 #     workflow against a tag ref (v*) so the semver tags resolve.
 #
-# `latest` follows the newest release, not the trigger. It used to be gated on
+# `latest` and the major tag follow the highest release by semver, not the
+# trigger and not the newest-created release, so a backport cannot take them.
+#
+# (history) `latest` used to follow the trigger. It used to be gated on
 # `github.event_name == 'release'`, so a manual re-publish produced the semver
 # tags and silently skipped `latest` — which is how `latest` came to sit on 0.9.0
 # for the whole of the 0.10.0 line (#80). Since `latest` is the default for both
@@ -42,46 +45,39 @@ jobs:
           echo "::error::Dispatch this workflow against a release tag (v*), not ${{ github.ref }}."
           exit 1
 
-      # Does this run own `latest`? A release event knows from its own payload; a
-      # manual run has to ask, because re-publishing an older tag must never pull
-      # `latest` back onto an older image. `GET /releases/latest` ignores drafts
-      # and prereleases, so both branches agree on what "newest" means.
-      - name: Decide whether to move the latest tag
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github/scripts
+
+      # `latest` and the major tag belong to the highest published release, by
+      # semver. A backport (0.16.1 after 0.19.0) keeps its own version and
+      # major.minor tags and moves neither. Prereleases never move them.
+      - name: Decide whether to move latest and the major tag
         id: latest
         env:
           GH_TOKEN: ${{ github.token }}
-          EVENT_NAME: ${{ github.event_name }}
           IS_PRERELEASE: ${{ github.event.release.prerelease }}
           REF_NAME: ${{ github.ref_name }}
         run: |
           set -euo pipefail
-          if [ "$EVENT_NAME" = "release" ]; then
-            if [ "$IS_PRERELEASE" = "true" ]; then
-              move=false
-              why="this release is a prerelease"
-            else
-              move=true
-              why="$REF_NAME was just published as a release"
-            fi
+          .github/scripts/release-order.sh "$REF_NAME" >> "$RUNNER_TEMP/order"
+          . "$RUNNER_TEMP/order"
+          if [ "$IS_PRERELEASE" = "true" ]; then
+            move=false
+            why="this release is a prerelease"
+          elif [ "$is_highest" = true ]; then
+            move=true
+            why="$REF_NAME is the highest release"
           else
-            # No releases yet: nothing to be newer than, so nothing to move.
-            newest=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq '.tag_name' 2>/dev/null || true)
-            if [ -z "$newest" ]; then
-              move=false
-              why="the repository has no published release to compare $REF_NAME against"
-            elif [ "$REF_NAME" = "$newest" ]; then
-              move=true
-              why="$REF_NAME is the newest release"
-            else
-              move=false
-              why="$REF_NAME is not the newest release ($newest is)"
-            fi
+            move=false
+            why="$REF_NAME is not the highest release ($highest is)"
           fi
           echo "move=$move" >> "$GITHUB_OUTPUT"
           if [ "$move" = true ]; then
-            echo "\`latest\` **will** be moved to this build — $why." >> "$GITHUB_STEP_SUMMARY"
+            echo "\`latest\` and the major tag **will** be moved to this build — $why." >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "\`latest\` will **not** be moved — $why." >> "$GITHUB_STEP_SUMMARY"
+            echo "\`latest\` and the major tag will **not** be moved — $why." >> "$GITHUB_STEP_SUMMARY"
           fi
 
   # One native runner per platform: emulating arm64 under QEMU took ~8 min, and
@@ -164,7 +160,7 @@ jobs:
           pattern: digests-*
           merge-multiple: true
 
-      # a release/tag v1.2.0 -> 1.2.0, 1.2, 1, and latest when this run owns it.
+      # a release/tag v1.2.0 -> 1.2.0, 1.2, and 1 and latest when this run owns them.
       - name: Compute tags
         id: meta
         uses: docker/metadata-action@v6
@@ -174,7 +170,7 @@ jobs:
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
+            type=semver,pattern={{major}},enable=${{ needs.prepare.outputs.move_latest == 'true' }}
             type=raw,value=latest,enable=${{ needs.prepare.outputs.move_latest == 'true' }}
 
       - name: Set up Docker Buildx
