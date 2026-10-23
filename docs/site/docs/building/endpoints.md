@@ -48,7 +48,7 @@ shown beneath it on the catalog page, and each resolver may export equivalent
 
 To create a profile-less endpoint, set `"mockType": "global"` and omit
 `profileIdSelector` and `captureProfileKeys`. It still appears in the catalog, but
-its active scenario is edited on the separate `/ui/global-mocks` page instead of
+its active scenario is edited on the separate `/global-mocks` page instead of
 inside each profile.
 
 ## System ports
@@ -68,8 +68,9 @@ dashboard and the control API:
   against that system's endpoints only, so two systems may both declare
   `GET /health` or `POST /v1/customers/{id}`. The [overlap
   check](#path-templates) applies within one system.
-- **The whole path belongs to the system.** On a system port, `/ui/…` is an
-  ordinary path like any other; a system may declare endpoints under it.
+- **The whole path belongs to the system.** On a system port, `/api/…` and
+  `/catalog` are ordinary paths like any other; a system may declare endpoints
+  under them.
 - **A request matching none of the system's endpoints** answers `404` naming the
   system (the default; [`UNMATCHED_ENDPOINTS=REAL`](../reference/configuration.md)
   forwards it to the system's `baseUrlEnv` instead):
@@ -84,7 +85,7 @@ dashboard and the control API:
     ```json
     {
       "error": "not a mocked API port",
-      "message": "This port serves only the admin UI (/ui) and the control API (/ui/api). Each catalog system's mocked API is served on its own port.",
+      "message": "This port serves only the admin UI (/) and the control API (/api). Each catalog system's mocked API is served on its own port.",
       "systems": [{ "slug": "hello-system", "port": 4001 }]
     }
     ```

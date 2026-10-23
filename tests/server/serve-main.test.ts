@@ -109,7 +109,7 @@ describe('serve.cjs entry point', () => {
     expect(result.status).toBe(0)
     const lines = result.stdout.trim().split('\n')
     expect(lines).toEqual([
-      'mock-server: admin UI and control API on http://127.0.0.1:3999/ui',
+      'mock-server: admin UI and control API on http://127.0.0.1:3999/',
       `mock-server: system alpha on http://127.0.0.1:${ports[0]}`,
       `mock-server: system beta on http://127.0.0.1:${ports[1]}`,
       'HOSTNAME=127.0.0.1 token=64',

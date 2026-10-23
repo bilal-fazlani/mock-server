@@ -103,7 +103,7 @@ export function LogsView({
         params.set('before', extra.before)
         params.set('limit', String(OLDER_PAGE_SIZE))
       }
-      return `/ui/api/logs?${params}`
+      return `/api/logs?${params}`
     },
     [profile, endpoint, errorsOnly, logIdQuery],
   )

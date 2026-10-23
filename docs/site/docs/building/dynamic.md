@@ -108,7 +108,7 @@ This is the one rule everything else follows from:
   beneath the name — the resolver counterpart of the fixture `summary` field,
   also read at compile time. It appears on the catalog viewer's endpoint page
   and in the scenario pickers (a chip's hover card, and a sequence step's
-  dropdown — see [The dashboard](../driving/ui.md#profiles-ui)); it still does
+  dropdown — see [The dashboard](../driving/ui.md#profiles)); it still does
   not appear in logs, and an empty string is treated as absent:
 
   ```js
@@ -312,13 +312,13 @@ the same tone rules (`default` green, other slugs amber, `real` red — a
 tone's color once selected). Hovering, or tabbing to focus, the chip opens a
 card with its `summary` and a "View resolver code →" link, which opens a
 modal with the resolver's syntax-highlighted source and an `Open <endpoint> in
-the catalog` link — see [The dashboard](../driving/ui.md#profiles-ui). Selecting
+the catalog` link — see [The dashboard](../driving/ui.md#profiles). Selecting
 it and saving means every future call to that endpoint, for that profile, runs
 the resolver; once selected, a **Reset resolver history** button appears. The
 same icon, hover card, and reset button are available on the **global mocks**
 form for global endpoints.
 
-On the `/ui/catalog` endpoint page, a resolver-backed scenario card shows its
+On the `/catalog` endpoint page, a resolver-backed scenario card shows its
 **JavaScript source**, syntax-highlighted, in place of the JSON body a fixture
 card shows — far more useful than a one-line "resolved at request time"
 placeholder, especially with self-describing slugs.

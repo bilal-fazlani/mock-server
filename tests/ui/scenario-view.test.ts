@@ -3,8 +3,8 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { EndpointDef, SystemDef } from '../../src/lib/catalog/types'
-import { buildScenarioViews, type ScenarioView } from '../../src/app/ui/catalog/scenario-view'
-import { buildScenarioView } from '../../src/app/ui/catalog/scenario-view'
+import { buildScenarioViews, type ScenarioView } from '../../src/app/(ui)/catalog/scenario-view'
+import { buildScenarioView } from '../../src/app/(ui)/catalog/scenario-view'
 
 const fixturesDir = path.join(__dirname, '../testdata/fixtures')
 

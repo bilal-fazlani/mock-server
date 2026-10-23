@@ -4,7 +4,7 @@ description: "Per-caller scenario selections, and the selectors that extract a p
 
 # Profiles
 
-Profiles are edited in the UI at `/ui`, and can also be read, created, updated,
+Profiles are edited in the UI at `/`, and can also be read, created, updated,
 and deleted programmatically over the
 [Runtime-control API](../driving/api.md) — the way automated tests set up a
 caller's scenarios before exercising the code under test.
@@ -172,14 +172,14 @@ matched and selected `default`" long after the run. See
 
 ## Profile expiry
 
-A profile created through the [Runtime-control API](../driving/api.md#get-uiapiprofilesprofileid-put-delete)
+A profile created through the [Runtime-control API](../driving/api.md#get-apiprofilesprofileid-put-delete)
 expires after a day without use; a profile created in the UI never expires. Test
 suites create a profile per run and rarely clean up, so API-created profiles clean
 up after themselves while the ones you curate by hand stay put.
 
 | How the profile was created | Expiry |
 | --- | --- |
-| UI (`/ui/profiles/new`) | None |
+| UI (`/profiles/new`) | None |
 | API `PUT` with no `ttl` | [`PROFILE_API_TTL_DURATION`](../reference/configuration.md) (default `1d`; `off` for none) |
 | API `PUT` with `"ttl": "2h"` | `2h` |
 | API `PUT` with `"ttl": false` | None |

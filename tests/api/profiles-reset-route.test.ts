@@ -17,7 +17,7 @@ vi.mock('../../src/lib/logs/admin-log', () => ({
   writeAdminLog: (...a: unknown[]) => writeAdminLogMock(...a),
 }))
 
-const route = await import('../../src/app/ui/api/profiles/[profileId]/reset/route')
+const route = await import('../../src/app/(ui)/api/profiles/[profileId]/reset/route')
 const params = (profileId: string) => ({ params: Promise.resolve({ profileId }) })
 
 beforeEach(() => {
@@ -27,7 +27,7 @@ beforeEach(() => {
   slideProfileExpiryByIdMock.mockReset()
 })
 
-describe('POST /ui/api/profiles/{id}/reset', () => {
+describe('POST /api/profiles/{id}/reset', () => {
   it('resets a single endpoint when given one', async () => {
     const req = new Request('http://x', { method: 'POST', body: JSON.stringify({ endpoint: 'hello_world' }) })
     const res = await route.POST(req, params('c1'))
@@ -52,7 +52,7 @@ describe('POST /ui/api/profiles/{id}/reset', () => {
   })
 })
 
-describe('POST /ui/api/profiles/{id}/reset expiry', () => {
+describe('POST /api/profiles/{id}/reset expiry', () => {
   it('slides the profile expiry', async () => {
     const res = await route.POST(new Request('http://x', { method: 'POST' }), params('c1'))
     expect(res.status).toBe(204)

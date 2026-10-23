@@ -122,7 +122,7 @@ answer differently over time:
 - **State transitions** — `review_hold → default`: an assessment that is referred
   once, then accepted forever after.
 
-Sequences are configured in the profile editor at `/ui`: switch an endpoint's card
+Sequences are configured in the profile editor at `/`: switch an endpoint's card
 from **Single** to **Sequence**, pick a scenario per step, reorder or remove
 steps, and save. Any declared scenario is a valid step, including `real` — so
 "first call hits the live upstream, later calls are mocked" (or the reverse) is
@@ -150,7 +150,7 @@ Mechanics worth knowing:
   test suites that create a new profile per test case never see stale progress.
   Reset also happens via the UI button, by saving a changed sequence, by
   recreating the profile, or over the
-  [Runtime-control API](../driving/api.md) (`POST /ui/api/profiles/{id}/reset`).
+  [Runtime-control API](../driving/api.md) (`POST /api/profiles/{id}/reset`).
 - **The step is consumed at scenario-resolution time.** A call that later fails
   (e.g. schema validation of the request body) still advances the sequence.
 - **Profiled endpoints only.** Global endpoints (`mockType: "global"`) have a

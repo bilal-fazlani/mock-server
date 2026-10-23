@@ -20,7 +20,7 @@ vi.mock('../../src/lib/profiles/store', async () => {
   return { ...actual, getDb: async () => db }
 })
 
-const route = await import('../../src/app/ui/api/logs/route')
+const route = await import('../../src/app/(ui)/api/logs/route')
 
 beforeAll(async () => {
   mongod = await MongoMemoryServer.create()
@@ -55,9 +55,9 @@ function entry(overrides: Partial<LogEntry> = {}): LogEntry {
 }
 
 const get = (query: string): Promise<Response> =>
-  route.GET(new Request(`http://x/ui/api/logs${query}`))
+  route.GET(new Request(`http://x/api/logs${query}`))
 
-describe('GET /ui/api/logs long-poll, end to end', () => {
+describe('GET /api/logs long-poll, end to end', () => {
   it('answers when the awaited call lands mid-request', async () => {
     const write = setTimeout(() => void insertLogEntry(db, entry()), 120)
 

@@ -15,7 +15,7 @@ Arguments:
                          Overrides the CATALOG_PATH environment variable.
 
 Options:
-  -p, --port <number>    Admin port, for /ui and /ui/api (default: 3000, or
+  -p, --port <number>    Admin port, for the UI and /api (default: 3000, or
                          $PORT). Each system listens on its own catalog port.
   --bind <address>       IP address to listen on (default: 0.0.0.0, or
                          $BIND_ADDRESS). IPv4 or IPv6; a hostname is rejected.

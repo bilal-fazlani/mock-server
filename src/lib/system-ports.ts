@@ -2,7 +2,7 @@ import { timingSafeEqual } from 'node:crypto'
 import type { Catalog, SystemDef } from './catalog/types'
 
 // A system listener forwards each request to the admin port under this first
-// path segment, so Next's own routes (/ui, /_next, /) never see mocked traffic
+// path segment, so Next's own routes (the UI, /api, /_next) never see mocked traffic
 // and every system request lands in the catch-all route.
 export const SYSTEM_PATH_SEGMENT = '__mock-system__'
 export const SYSTEM_TOKEN_HEADER = 'x-mock-server-system-token'
@@ -50,7 +50,7 @@ export function adminPortNotFoundBody(catalog: Catalog): Record<string, unknown>
   return {
     error: 'not a mocked API port',
     message:
-      "This port serves only the admin UI (/ui) and the control API (/ui/api). Each catalog system's mocked API is served on its own port.",
+      "This port serves only the admin UI (/) and the control API (/api). Each catalog system's mocked API is served on its own port.",
     systems: catalog.systems.map((system) => ({ slug: system.slug, port: system.port })),
   }
 }

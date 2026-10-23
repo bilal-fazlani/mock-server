@@ -1,8 +1,8 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import type { Catalog, EndpointDef, SystemDef } from '../../src/lib/catalog/types'
-import type { ScenarioView } from '../../src/app/ui/catalog/scenario-view'
-import { EndpointView } from '../../src/app/ui/catalog/EndpointView'
+import type { ScenarioView } from '../../src/app/(ui)/catalog/scenario-view'
+import { EndpointView } from '../../src/app/(ui)/catalog/EndpointView'
 
 const system: SystemDef = {
   displayName: 'Hello System',
@@ -104,7 +104,7 @@ function visibleText(html: string): string {
 
 describe('EndpointView', () => {
   it('links back to the catalog with this system selected', () => {
-    expect(view()).toContain('href="/ui/catalog?system=hello-system"')
+    expect(view()).toContain('href="/catalog?system=hello-system"')
   })
 
   it('renders configuration fields with visible row labels', () => {
@@ -208,10 +208,10 @@ describe('EndpointView', () => {
     expect(text).toContain('Correlation key event-id')
     expect(text).toContain('Captured by')
     expect(text).toContain('Capture Endpoint')
-    expect(html).toContain('/ui/catalog/hello-system/capture_ep')
+    expect(html).toContain('/catalog/hello-system/capture_ep')
     expect(text).toContain('Resolves profile for')
     expect(text).toContain('this endpoint')
-    expect(html).not.toContain(`href="/ui/catalog/hello-system/resolve_ep"`)
+    expect(html).not.toContain(`href="/catalog/hello-system/resolve_ep"`)
   })
 
   it('segments path and query profile selectors but keeps body selectors neutral', () => {

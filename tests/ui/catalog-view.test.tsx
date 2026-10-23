@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import type { Catalog } from '../../src/lib/catalog/types'
-import { CatalogView } from '../../src/app/ui/catalog/CatalogView'
+import { CatalogView } from '../../src/app/(ui)/catalog/CatalogView'
 
 const catalog: Catalog = {
   systems: [
@@ -42,7 +42,7 @@ describe('CatalogView', () => {
 
   it('links to the endpoint detail page using the system slug', () => {
     const html = renderToStaticMarkup(<CatalogView catalog={catalog} env={env} passthroughAsDefault={false} />)
-    expect(html).toContain('href="/ui/catalog/hello-system/hello_world"')
+    expect(html).toContain('href="/catalog/hello-system/hello_world"')
   })
 
   it('shows the default scenario label and scenario count', () => {
@@ -132,8 +132,8 @@ describe('CatalogView', () => {
 
     it('lists every system with its port and base URL, linking by query string', () => {
       const html = render()
-      expect(html).toContain('href="/ui/catalog?system=hello-system"')
-      expect(html).toContain('href="/ui/catalog?system=payments-gateway"')
+      expect(html).toContain('href="/catalog?system=hello-system"')
+      expect(html).toContain('href="/catalog?system=payments-gateway"')
       expect(html).toContain(':4001')
       expect(html).toContain(':4002')
       expect(html).toContain('http://upstream.test')
@@ -144,14 +144,14 @@ describe('CatalogView', () => {
       const html = render('payments-gateway')
       expect(html).toContain('Authorize Payment')
       expect(html).not.toContain('Hello World')
-      expect(currentHref(html)).toBe('/ui/catalog?system=payments-gateway')
+      expect(currentHref(html)).toBe('/catalog?system=payments-gateway')
     })
 
     it('selects the first system when the slug is missing or unknown', () => {
       for (const html of [render(), render('no-such-system')]) {
         expect(html).toContain('Hello World')
         expect(html).not.toContain('Authorize Payment')
-        expect(currentHref(html)).toBe('/ui/catalog?system=hello-system')
+        expect(currentHref(html)).toBe('/catalog?system=hello-system')
       }
     })
 

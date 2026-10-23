@@ -16,7 +16,7 @@ name the build the server reports — live in
 | Variable | Values | Meaning |
 | --- | --- | --- |
 | `CATALOG_PATH` | Directory path<br>(default `./catalog`) | Where the catalog tree is loaded from. A relative path resolves against the server's working directory; an absolute path is used as-is. The `npx @bilal-fazlani/mock-server [catalogPath]` CLI argument, when given, overrides this variable. The shipped server exits at startup if the directory does not exist or contains no systems (`npm run dev` logs the error and keeps running). In the Docker image, mount a catalog at `/app/catalog`. |
-| `PORT` | Port number<br>(default `3000`) | The admin port: it serves the dashboard (`/ui`) and the control API (`/ui/api`) only. Each system's mocks are served on the [`port` in its `_system.json`](../building/endpoints.md#system-ports), and no system may use this one — the server exits at startup naming the system. The CLI's `-p` / `--port` flag, when given, overrides this variable. |
+| `PORT` | Port number<br>(default `3000`) | The admin port: it serves the dashboard (`/`) and the control API (`/api`) only. Each system's mocks are served on the [`port` in its `_system.json`](../building/endpoints.md#system-ports), and no system may use this one — the server exits at startup naming the system. The CLI's `-p` / `--port` flag, when given, overrides this variable. |
 | `BIND_ADDRESS` | IPv4 or IPv6 address<br>(default `0.0.0.0`) | The network address the HTTP server listens on. Only an IP literal is accepted — `0.0.0.0` (every IPv4 interface), `127.0.0.1` (loopback only), `::`, `::1`. A hostname such as `localhost` is rejected, and so is any other value: the server exits at startup naming the variable and the bad value, before it listens. The CLI's `--bind` flag, when given, overrides this variable; `--bind` with no address is a usage error. The `HOSTNAME` variable that container platforms set to the container's own name is **never** read for this, so a platform-assigned hostname cannot move the listener. Applies to the admin port and every system port of the image and the CLI; under `npm run dev` it applies to the system ports only. Leave it at the default in a container, where any specific address breaks something — see [Container health checks](../get-started/install.md#container-health-checks). |
 | `MONGODB_CONNECTION_STRING` | Mongo connection URI<br>(optional) | External MongoDB for profiles, global mock selections, profile key mappings, and request logs. If unset, an in-memory MongoDB starts automatically on first use — data is ephemeral and lost on restart. The published Docker image bakes in a `mongod` binary so this embedded fallback works fully offline. |
 | `MONGODB_DB` | Database name<br>(default `mockDB`) | Name of the MongoDB database holding profiles, global mock selections, profile key mappings, and request logs — used whether the connection is an external MongoDB or the embedded in-memory one. |
@@ -89,7 +89,7 @@ name the build the server reports — live in
 Beyond the settings above, each system's `_system.json` names its own variables,
 which the server reads at request time:
 
-| Field in `_system.json` | Its variable holds | Shown on `/ui/environment` |
+| Field in `_system.json` | Its variable holds | Shown on `/environment` |
 | --- | --- | --- |
 | `baseUrlEnv` | The real upstream base URL for `real` passthrough. | Value |
 | `clientCertEnv` | The PEM client certificate presented to an upstream that requires mutual TLS. | Set / unset only |

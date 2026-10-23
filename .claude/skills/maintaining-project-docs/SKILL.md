@@ -20,7 +20,7 @@ work.** Do not ask whether the docs should be updated — update them. The only 
 worth raising with the user is a genuine *editorial* one (see "When to surface something").
 
 Applies to: new or changed catalog fields, scenario/fixture/resolver behavior, env vars,
-CLI flags, `/ui/api/*` routes, UI capabilities, install or packaging changes, and anything
+CLI flags, `/api/*` routes, UI capabilities, install or packaging changes, and anything
 that changes what a user writes or observes. Does not apply to: internal refactors with no
 behavior change, test-only edits, or styling with no functional effect.
 

@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-import { ProfilePageHeader } from '../../src/app/ui/profiles/ProfilePageHeader'
+import { ProfilePageHeader } from '../../src/app/(ui)/profiles/ProfilePageHeader'
 
 describe('ProfilePageHeader', () => {
   it('renders profile metadata and a header delete icon button for existing profiles', () => {

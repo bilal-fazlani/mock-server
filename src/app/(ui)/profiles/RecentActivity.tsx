@@ -40,7 +40,7 @@ export function RecentActivity({
       // No `include=full`, so the endpoint answers with the summary projection:
       // no request payload, response reduced to `{ status }`. That is all a
       // collapsed LogRow reads — it fetches the full entry itself on expand.
-      fetch(`/ui/api/logs?${params}`)
+      fetch(`/api/logs?${params}`)
         .then((res) => res.json())
         .then((data: { entries: LogSummaryView[] }) => {
           if (data.entries.length === 0) return
@@ -68,7 +68,7 @@ export function RecentActivity({
           </span>
         </div>
         <Button asChild variant="secondary" size="sm">
-          <Link href={`/ui/logs?profile=${encodeURIComponent(profileId)}`}>View all logs</Link>
+          <Link href={`/logs?profile=${encodeURIComponent(profileId)}`}>View all logs</Link>
         </Button>
       </div>
       {entries.length === 0 ? (

@@ -1,5 +1,5 @@
 import type { ScenarioKind } from '../../lib/scenarios'
-import type { ScenarioView } from '../ui/catalog/scenario-view'
+import type { ScenarioView } from '../(ui)/catalog/scenario-view'
 
 /** Ragged line widths, so the placeholder reads as code rather than as a bar chart. */
 const CODE_LINES = [

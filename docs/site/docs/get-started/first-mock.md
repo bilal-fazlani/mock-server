@@ -151,7 +151,7 @@ fix, not an error. Set `UNMOCKED_USERS=ERROR` if you would rather this case be a
 else — here, how `customer-123` gets `insufficient` while everyone else keeps
 seeing a balance.
 
-Open [the dashboard](../driving/ui.md) at `/ui`, create a profile whose ID is
+Open [the dashboard](../driving/ui.md) at `/`, create a profile whose ID is
 `customer-123`, pick **Insufficient funds** for **Wallet Balance**, and save.
 Repeat the same curl:
 
@@ -171,4 +171,4 @@ profile simply follows the catalog. Only picks that differ from `default`
 an endpoint can also be given an ordered
 [scenario sequence](../building/scenarios.md#scenario-sequences) served
 call-by-call. You can browse all declared endpoints and their scenarios at
-`/ui/catalog`.
+`/catalog`.

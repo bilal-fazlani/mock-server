@@ -50,7 +50,7 @@ export async function prepareSystemListeners(
   }
 
   const host = bindAddress.includes(':') ? `[${bindAddress}]` : bindAddress
-  writeConsoleLog('info', `mock-server: admin UI and control API on http://${host}:${adminPort}/ui`, {
+  writeConsoleLog('info', `mock-server: admin UI and control API on http://${host}:${adminPort}/`, {
     level,
     format,
     fields: { 'event.action': 'admin_listening', 'server.port': adminPort },

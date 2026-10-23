@@ -1,8 +1,8 @@
-// Post-build guard: no /ui route may be statically prerendered.
+// Post-build guard: no admin route may be statically prerendered.
 //
-// Every /ui page and API route serves runtime state (env via getRuntime(), the
+// Every admin page and API route serves runtime state (env via getRuntime(), the
 // runtime catalog, MongoDB), so a prerendered one silently serves build-time
-// values in production — /ui/profiles/new shipped that way and ignored runtime
+// values in production — /profiles/new shipped that way and ignored runtime
 // PASSTHROUGH_AS_DEFAULT (#32). tests/ui/force-dynamic.test.ts guards the
 // source; this script asserts the same invariant on the actual build output
 // (.next/prerender-manifest.json), which is the ground truth. It reads routes
@@ -10,6 +10,9 @@
 // `npm run build`.
 import fs from 'node:fs'
 import path from 'node:path'
+
+// Routes Next itself prerenders, which hold no runtime state.
+const NEXT_STATIC = new Set(['/_global-error', '/_not-found', '/favicon.ico'])
 
 const manifestPath = path.join(process.cwd(), '.next', 'prerender-manifest.json')
 if (!fs.existsSync(manifestPath)) {
@@ -19,11 +22,11 @@ if (!fs.existsSync(manifestPath)) {
 
 const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
 const prerendered = Object.keys(manifest.routes ?? {})
-const offending = prerendered.filter((route) => route === '/ui' || route.startsWith('/ui/'))
+const offending = prerendered.filter((route) => !NEXT_STATIC.has(route))
 
 if (offending.length > 0) {
   console.error(
-    'check-ui-prerender: these /ui routes were statically prerendered at build time,\n' +
+    'check-ui-prerender: these admin routes were statically prerendered at build time,\n' +
       'so they would serve build-time env/catalog instead of runtime state:\n' +
       offending.map((r) => `  - ${r}`).join('\n') +
       "\nAdd `export const dynamic = 'force-dynamic'` to the page.tsx or route.ts" +
@@ -32,4 +35,4 @@ if (offending.length > 0) {
   process.exit(1)
 }
 
-console.log(`check-ui-prerender: ok — no /ui routes prerendered (${prerendered.length} static routes total)`)
+console.log(`check-ui-prerender: ok — no admin routes prerendered (${prerendered.length} static routes total)`)

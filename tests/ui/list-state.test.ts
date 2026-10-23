@@ -8,8 +8,8 @@ import {
   mergeTail,
   PENDING_CAP,
   TAIL_CAP,
-} from '../../src/app/ui/logs/list-state'
-import type { LogSummaryView } from '../../src/app/ui/logs/types'
+} from '../../src/app/(ui)/logs/list-state'
+import type { LogSummaryView } from '../../src/app/(ui)/logs/types'
 
 function row(logId: string): LogSummaryView {
   return {

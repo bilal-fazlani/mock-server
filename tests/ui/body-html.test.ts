@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildBodyHtml } from '../../src/app/ui/logs/body-html'
+import { buildBodyHtml } from '../../src/app/(ui)/logs/body-html'
 
 describe('buildBodyHtml', () => {
   it('highlights a structured body on each side', async () => {

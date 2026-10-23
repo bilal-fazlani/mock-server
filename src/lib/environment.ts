@@ -37,7 +37,7 @@ export const APP_ENVIRONMENT: EnvironmentDefinition[] = [
     name: 'PORT',
     category: 'System',
     description:
-      "Admin port: serves the UI (/ui) and the control API (/ui/api) only. Each catalog system's mocked API listens on the port in its _system.json.",
+      "Admin port: serves the UI (/) and the control API (/api) only. Each catalog system's mocked API listens on the port in its _system.json.",
     defaultValue: '3000',
     display: true,
   },

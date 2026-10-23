@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { ScenarioContent } from '../../src/app/components/ScenarioContent'
-import type { ScenarioView } from '../../src/app/ui/catalog/scenario-view'
+import type { ScenarioView } from '../../src/app/(ui)/catalog/scenario-view'
 
 describe('ScenarioContent', () => {
   it('renders fixture header pills and the highlighted body html', () => {

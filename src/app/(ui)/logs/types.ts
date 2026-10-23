@@ -17,7 +17,7 @@ export interface LogBodyHtml {
   response?: string
 }
 
-/** What `/ui/api/logs/[logId]` returns. */
+/** What `/api/logs/[logId]` returns. */
 export interface LogDetailResponse {
   entry: LogEntryView
   bodyHtml?: LogBodyHtml

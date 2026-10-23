@@ -19,7 +19,7 @@ freely whenever it applies, without asking.
 ## Verify before committing — CI does not lint
 
 `.github/workflows/ci.yml` runs `npm run typecheck`, `npm test`, `npm run build`, and
-`npm run check:prerender` (no `/ui` route may be statically prerendered — see #32) on a PR.
+`npm run check:prerender` (no admin route may be statically prerendered — see #32) on a PR.
 **`npm run lint` is never run by CI**, so a lint error merges clean. Run all four yourself
 before committing:
 
@@ -27,7 +27,7 @@ before committing:
 npm run typecheck # tsc --noEmit; the only thing that reads types in tests/ — keep it at zero errors
 npm test          # vitest (includes tests/ui/force-dynamic.test.ts, the source-level twin of check:prerender)
 npm run lint      # eslint — the one CI can't catch for you
-npm run build     # next build; follow with `npm run check:prerender` if /ui pages changed
+npm run build     # next build; follow with `npm run check:prerender` if admin pages changed
 ```
 
 `typecheck` is gated in CI as of #47, so it must stay at zero errors — a tolerated baseline
@@ -45,7 +45,7 @@ failure. A mixed code+docs change still runs.
 
 Test files are **not** colocated. `tests/` mirrors the source tree, so
 `src/lib/mock-engine/template.ts` is tested by `tests/mock-engine/template.test.ts`, and
-`src/app/ui/**` by `tests/ui/**`. Put new tests in the mirrored location rather than
+`src/app/(ui)/**` by `tests/ui/**`. Put new tests in the mirrored location rather than
 alongside the file under test.
 
 ## Use Conventional Commits
@@ -129,21 +129,21 @@ a workaround; the list is the record of what was decided.
 `versions.toml` itself is moved by `.github/workflows/sync-docs-versions.yml`, not by hand.
 See `docs/superpowers/specs/2026-08-14-docs-version-sync-design.md`.
 
-## A `/ui/api/*` change updates the OpenAPI spec in the same commit
+## A `/api/*` change updates the OpenAPI spec in the same commit
 
 `src/lib/control-api/openapi.json` is the published contract for the runtime-control API,
-served at `GET /ui/api/openapi.json`. **Any change to a `/ui/api/*` surface — a new route, a
+served at `GET /api/openapi.json`. **Any change to a `/api/*` surface — a new route, a
 new or renamed field, a changed status code, a new query parameter, a widened enum — must
 update that document in the same commit.** Nothing generates it from the handlers.
 
 `tests/ui/openapi.test.ts` only holds the *route and method* lists in step (it walks
-`src/app/ui/api/**`), so a new route fails loudly but a stale field or status code merges
+`src/app/(ui)/api/**`), so a new route fails loudly but a stale field or status code merges
 clean. Field-level accuracy is on you and on review.
 
 Bump `info.version` with the change — minor for anything additive, which is what the
 [stability policy](docs/site/docs/driving/api.md#stability--machine-readable-spec) promises
 callers. It versions the contract and is deliberately independent of `package.json`;
-`GET /ui/api/health` is what reports the build.
+`GET /api/health` is what reports the build.
 
 ## A new env var lands in four places, not one
 
@@ -151,7 +151,7 @@ Adding a config variable means adding it **everywhere it is surfaced**, in the s
 
 1. **The parser** in `src/lib/config.ts`, validated at the startup gate in `src/lib/runtime.ts`
    so a bad value fails loudly at boot rather than mid-request.
-2. **`APP_ENVIRONMENT`** in `src/lib/environment.ts` — this is what the `/ui/environment`
+2. **`APP_ENVIRONMENT`** in `src/lib/environment.ts` — this is what the `/environment`
    page renders. A variable missing here is invisible to anyone operating the server, and
    nothing fails: the page just silently doesn't mention it. Set `category`, a one-line
    `description`, `defaultValue` when there is one, and `possibleValues` for an enum.

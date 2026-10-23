@@ -247,7 +247,7 @@ export async function listLogSummaries(db: Db, options: ListLogsOptions): Promis
  * the same `buildLogFilter` as the listing paths, so every filter — including
  * the keyset cursors — narrows the count exactly as it narrows a page.
  *
- * The bound is the point: this runs on a tick while `GET /ui/api/logs` waits
+ * The bound is the point: this runs on a tick while `GET /api/logs` waits
  * for a threshold, where "has it reached `cap` yet" is the whole question and
  * the true total beyond it is wasted work.
  */

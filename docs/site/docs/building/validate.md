@@ -68,7 +68,7 @@ for a reason that has nothing to do with the edit.
     With `PASSTHROUGH_AS_DEFAULT=true` and a system whose `baseUrlEnv` is unset,
     `validate` passes and startup still fails. That check belongs to the
     environment the server runs in, so it happens where that environment exists.
-    Point a health check at `/ui/api/health` after deploy; see
+    Point a health check at `/api/health` after deploy; see
     [Using it in dev & CI](../driving/dev-and-ci.md).
 
 ## Ways to validate

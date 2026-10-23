@@ -32,7 +32,7 @@ try {
 
 installUpgradeGuard()
 
-// System listeners bind before Next starts, so /ui/api/health can't report
+// System listeners bind before Next starts, so /api/health can't report
 // healthy while one of them is still missing.
 prepareSystemListeners(process.env, address).then(
   () => {

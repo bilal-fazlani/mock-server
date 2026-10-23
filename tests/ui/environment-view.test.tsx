@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-import { EnvironmentView } from '../../src/app/ui/environment/EnvironmentView'
+import { EnvironmentView } from '../../src/app/(ui)/environment/EnvironmentView'
 import type { EnvironmentRow } from '../../src/lib/environment'
 
 const rows: EnvironmentRow[] = [

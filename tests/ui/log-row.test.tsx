@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-import { LogRow } from '../../src/app/ui/logs/LogRow'
-import type { LogEntryView } from '../../src/app/ui/logs/types'
+import { LogRow } from '../../src/app/(ui)/logs/LogRow'
+import type { LogEntryView } from '../../src/app/(ui)/logs/types'
 
 function entry(overrides: Partial<LogEntryView> = {}): LogEntryView {
   return {
@@ -46,7 +46,7 @@ describe('LogRow', () => {
     )
     expect(html).toContain('POST')
     expect(html).toContain('Hello System')
-    expect(html).toContain('href="/ui/catalog/hello-system/hello_world"')
+    expect(html).toContain('href="/catalog/hello-system/hello_world"')
     expect(html).toContain('/request-transfer-assessment')
     expect(html).toContain('customer-123')
     expect(html).toContain('Failure')
@@ -96,7 +96,7 @@ describe('LogRow', () => {
 
   it('links the profile ID when the profile exists', () => {
     const html = renderToStaticMarkup(<LogRow entry={entry()} />)
-    expect(html).toContain('href="/ui/profiles/customer-123"')
+    expect(html).toContain('href="/profiles/customer-123"')
   })
 
   it('does not link a profile the unmocked-user policy stood in for', () => {
@@ -106,7 +106,7 @@ describe('LogRow', () => {
       trace: { scenario: 'default', scenarioSource: 'unmocked_policy' },
     })
     const html = renderToStaticMarkup(<LogRow entry={missing} />)
-    expect(html).not.toContain('href="/ui/profiles/test1"')
+    expect(html).not.toContain('href="/profiles/test1"')
     expect(html).toContain('test1')
     expect(html).toContain('No profile &quot;test1&quot; exists')
   })
@@ -130,7 +130,7 @@ describe('LogRow', () => {
       error: { code: 'profile_not_found', message: 'profile "test1" not found' },
     })
     const html = renderToStaticMarkup(<LogRow entry={rejected} />)
-    expect(html).not.toContain('href="/ui/profiles/test1"')
+    expect(html).not.toContain('href="/profiles/test1"')
   })
 
   it('marks the resolved profile in the trace, but not the selector that found it', () => {
@@ -183,7 +183,7 @@ describe('LogRow', () => {
   it('falls back to the system slug when no label is available', () => {
     const html = renderToStaticMarkup(<LogRow entry={entry()} />)
     expect(html).toContain('hello-system')
-    expect(html).toContain('href="/ui/catalog/hello-system/hello_world"')
+    expect(html).toContain('href="/catalog/hello-system/hello_world"')
   })
 
   it('marks error entries with the error code', () => {

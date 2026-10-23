@@ -6,7 +6,7 @@ import { SchemaBadge } from '../../components/SchemaBadge'
 
 /** The catalog page address that opens with `slug` selected in the system nav. */
 export function catalogSystemHref(slug: string): string {
-  return `/ui/catalog?system=${encodeURIComponent(slug)}`
+  return `/catalog?system=${encodeURIComponent(slug)}`
 }
 
 export function CatalogView({
@@ -150,7 +150,7 @@ function SystemEndpoints({
           {system.endpoints.map((endpoint) => (
             <Link
               key={endpoint.slug}
-              href={`/ui/catalog/${system.slug}/${endpoint.slug}`}
+              href={`/catalog/${system.slug}/${endpoint.slug}`}
               className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-border px-4 py-3.5 text-foreground no-underline last:border-b-0 hover:bg-muted hover:no-underline"
             >
               <MethodBadge method={endpoint.method} />

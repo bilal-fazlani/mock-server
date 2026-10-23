@@ -18,14 +18,14 @@ exists for local development and automated tests (see
     can clobber. Use profiles for per-caller isolation. It does **not** author
     mocks; you create endpoints and fixtures by writing catalog files.
 
-## Why `/ui/api`
+## Where it lives
 
-The control API lives on the admin port, which serves no mocks — each system's
-endpoints are on [its own port](../building/endpoints.md#system-ports). On that
-port `/ui` is the admin namespace; every control route lives under `/ui/api/*`. Error responses are
+The control API lives under `/api/*` on the admin port, beside the
+[dashboard](ui.md). That port serves no mocks — each system's endpoints are on
+[its own port](../building/endpoints.md#system-ports). Error responses are
 `{ "error": "<message>", "code": "<code>" }` — `error` is wording for humans,
 `code` is a stable identifier for scripts (see [Error codes](#error-codes)) —
-except `GET /ui/api/health`, whose `503` keeps the health body shape and adds a
+except `GET /api/health`, whose `503` keeps the health body shape and adds a
 bare `error` field to it, with no `code`.
 
 ## Stability & machine-readable spec
@@ -34,7 +34,7 @@ The whole contract is published as an OpenAPI 3.1 document, served by the runnin
 server:
 
 ```bash
-curl -s http://localhost:3000/ui/api/openapi.json
+curl -s http://localhost:3000/api/openapi.json
 ```
 
 Point a client generator or a request-validating proxy at it instead of
@@ -43,7 +43,7 @@ hand-writing calls — or, on the JVM, use the hand-written one in the
 tracks this contract and ignores what it does not recognise. It covers every
 route below, plus the ones the dashboard uses internally, and it carries its own
 `info.version` — the version of the *contract*, not of the build. The build is
-what `GET /ui/api/health` reports as `version` and `sha`, which a build from
+what `GET /api/health` reports as `version` and `sha`, which a build from
 source can [set for itself](../get-started/install.md#naming-your-own-build).
 
 The API **evolves additively**. New routes, new optional request fields, new
@@ -53,8 +53,13 @@ unknown properties breaks on an upgrade that broke nothing. Existing fields are
 not removed or retyped, and the status code for an existing outcome does not
 change, without a major bump of `info.version`.
 
-!!! warning "The contract major bump renamed three fields"
-    `GET /ui/api/catalog` returns a system's name as `displayName` (was `name`) and an
+!!! warning "The latest contract major bump moved every route"
+    Every route moved from `/ui/api/*` to `/api/*`, and the dashboard moved from
+    `/ui` to `/`. Nothing answers on the old paths: a request there gets the admin
+    port's `404`. Update any hard-coded URL, health checks included.
+
+!!! warning "An earlier major bump renamed three fields"
+    `GET /api/catalog` returns a system's name as `displayName` (was `name`) and an
     endpoint's identifier as `slug` (was `name`); the scenario view returns `slug` and
     `displayName` (were `key` and `label`). The catalog files change the same way:
     `_system.json` `name`, a fixture's `description` and a resolver's `description`
@@ -68,48 +73,48 @@ Two things sit outside that promise:
   humans and changes freely between releases.
 - **Presentation fields** — the log detail's `bodyHtml`, and the `html` carried
   by a scenario view (the spec's dashboard-internal
-  `GET /ui/api/catalog/{system}/{endpoint}/scenarios/{slug}`). They exist for
+  `GET /api/catalog/{system}/{endpoint}/scenarios/{slug}`). They exist for
   the dashboard, and everything they show is also available structurally in the
   same response.
 
 ### Error codes
 
-Every non-2xx `/ui/api/*` response carries one of these codes, except
-`GET /ui/api/health`'s `503`, which has no `code` (see
-[Why `/ui/api`](#why-uiapi)). A code not in this table may still appear in an
+Every non-2xx `/api/*` response carries one of these codes, except
+`GET /api/health`'s `503`, which has no `code` (see
+[Where it lives](#where-it-lives)). A code not in this table may still appear in an
 additive release — ignore ones you don't recognise rather than rejecting the
 response.
 
 | Code | Status | Route(s) | When |
 |---|---|---|---|
-| `invalid_json` | `400` | `PUT /ui/api/global-mocks/{system}/{endpoint}`<br>`PUT /ui/api/profiles/{profileId}` | The request body doesn't parse as JSON. |
-| `unknown_endpoint` | `404` | `GET /ui/api/catalog/{system}/{endpoint}/scenarios/{slug}`<br>`PUT`/`DELETE /ui/api/global-mocks/{system}/{endpoint}` | No such `system`/`endpoint`. |
-| `unknown_scenario` | `404` | `GET /ui/api/catalog/{system}/{endpoint}/scenarios/{slug}` | `slug` isn't a scenario declared on the endpoint. |
-| `endpoint_not_global` | `400` | `PUT /ui/api/global-mocks/{system}/{endpoint}` | The endpoint's `mockType` isn't `"global"`. |
-| `scenario_required` | `400` | `PUT /ui/api/global-mocks/{system}/{endpoint}` | `scenario` is missing, empty, or not a string. |
-| `scenario_not_declared` | `400` | `PUT /ui/api/global-mocks/{system}/{endpoint}` | `scenario` isn't declared on the endpoint, and isn't `real`. |
-| `invalid_scenario_selection` | `400` | `PUT /ui/api/profiles/{profileId}` | `endpointScenarios` is malformed: not an object, an unknown endpoint name, a selection that's neither a string nor a string array, or a scenario not declared on its endpoint. `error` says which. |
-| `invalid_ttl` | `400` | `PUT /ui/api/profiles/{profileId}` | `ttl` is neither a duration of `1m` to `365d` in minutes, hours or days (`"30m"`, `"24h"`, `"7d"`) nor `false`. |
-| `profile_not_found` | `404` | `GET /ui/api/profiles/{profileId}` | No profile with that ID, or it has expired. |
-| `log_not_found` | `404` | `GET /ui/api/logs/{logId}` | No log entry with that ID. |
+| `invalid_json` | `400` | `PUT /api/global-mocks/{system}/{endpoint}`<br>`PUT /api/profiles/{profileId}` | The request body doesn't parse as JSON. |
+| `unknown_endpoint` | `404` | `GET /api/catalog/{system}/{endpoint}/scenarios/{slug}`<br>`PUT`/`DELETE /api/global-mocks/{system}/{endpoint}` | No such `system`/`endpoint`. |
+| `unknown_scenario` | `404` | `GET /api/catalog/{system}/{endpoint}/scenarios/{slug}` | `slug` isn't a scenario declared on the endpoint. |
+| `endpoint_not_global` | `400` | `PUT /api/global-mocks/{system}/{endpoint}` | The endpoint's `mockType` isn't `"global"`. |
+| `scenario_required` | `400` | `PUT /api/global-mocks/{system}/{endpoint}` | `scenario` is missing, empty, or not a string. |
+| `scenario_not_declared` | `400` | `PUT /api/global-mocks/{system}/{endpoint}` | `scenario` isn't declared on the endpoint, and isn't `real`. |
+| `invalid_scenario_selection` | `400` | `PUT /api/profiles/{profileId}` | `endpointScenarios` is malformed: not an object, an unknown endpoint name, a selection that's neither a string nor a string array, or a scenario not declared on its endpoint. `error` says which. |
+| `invalid_ttl` | `400` | `PUT /api/profiles/{profileId}` | `ttl` is neither a duration of `1m` to `365d` in minutes, hours or days (`"30m"`, `"24h"`, `"7d"`) nor `false`. |
+| `profile_not_found` | `404` | `GET /api/profiles/{profileId}` | No profile with that ID, or it has expired. |
+| `log_not_found` | `404` | `GET /api/logs/{logId}` | No log entry with that ID. |
 
 ## Endpoints
 
 | Method & path | Request body | Success | Errors |
 |---|---|---|---|
-| `GET /ui/api/catalog` | — | `200` catalog projection | — |
-| `GET /ui/api/global-mocks` | — | `200 { "scenarios": [ … ] }` | — |
-| `PUT /ui/api/global-mocks/{system}/{endpoint}` | `{ "scenario": "<key>" }` | `200 { system, endpoint, scenario }` | `404 unknown_endpoint` · `400 endpoint_not_global` / `scenario_required` / `scenario_not_declared` / `invalid_json` |
-| `DELETE /ui/api/global-mocks/{system}/{endpoint}` | — | `204` (idempotent) | `404 unknown_endpoint` |
-| `GET /ui/api/profiles/{profileId}` | — | `200` profile | `404 profile_not_found` |
-| `PUT /ui/api/profiles/{profileId}` | `{ displayName?, endpointScenarios, ttl? }` | `200` stored profile | `400 invalid_scenario_selection` / `invalid_ttl` / `invalid_json` |
-| `DELETE /ui/api/profiles/{profileId}` | — | `204` (cascades) | — |
-| `POST /ui/api/profiles/{profileId}/reset` | `{ endpoint? }` | `204` | — |
-| `GET /ui/api/logs` | — (query params below) | `200 { "entries": … }` | — |
-| `GET /ui/api/logs/{logId}` | — | `200 { "entry": …, "bodyHtml": … }` | `404 log_not_found` |
-| `GET /ui/api/health` | — | `200 { status, mongo, version, sha }` | `503` Mongo down, or the configuration or catalog failed to load (same fields, plus `error`, no `code`; `mongo` is `down` or `unchecked`) |
+| `GET /api/catalog` | — | `200` catalog projection | — |
+| `GET /api/global-mocks` | — | `200 { "scenarios": [ … ] }` | — |
+| `PUT /api/global-mocks/{system}/{endpoint}` | `{ "scenario": "<key>" }` | `200 { system, endpoint, scenario }` | `404 unknown_endpoint` · `400 endpoint_not_global` / `scenario_required` / `scenario_not_declared` / `invalid_json` |
+| `DELETE /api/global-mocks/{system}/{endpoint}` | — | `204` (idempotent) | `404 unknown_endpoint` |
+| `GET /api/profiles/{profileId}` | — | `200` profile | `404 profile_not_found` |
+| `PUT /api/profiles/{profileId}` | `{ displayName?, endpointScenarios, ttl? }` | `200` stored profile | `400 invalid_scenario_selection` / `invalid_ttl` / `invalid_json` |
+| `DELETE /api/profiles/{profileId}` | — | `204` (cascades) | — |
+| `POST /api/profiles/{profileId}/reset` | `{ endpoint? }` | `204` | — |
+| `GET /api/logs` | — (query params below) | `200 { "entries": … }` | — |
+| `GET /api/logs/{logId}` | — | `200 { "entry": …, "bodyHtml": … }` | `404 log_not_found` |
+| `GET /api/health` | — | `200 { status, mongo, version, sha }` | `503` Mongo down, or the configuration or catalog failed to load (same fields, plus `error`, no `code`; `mongo` is `down` or `unchecked`) |
 
-## `GET /ui/api/catalog`
+## `GET /api/catalog`
 
 Read-only discovery: systems → endpoints → declared scenarios. **No fixture
 bodies.**
@@ -184,14 +189,14 @@ Above, `account_balance` has neither field (`global`); `create_order` declares
 both, matching `catalog/hello-system/create_order/_endpoint.json` in this
 repo's demo catalog.
 
-## `GET /ui/api/global-mocks` · `PUT` · `DELETE`
+## `GET /api/global-mocks` · `PUT` · `DELETE`
 
-`GET /ui/api/global-mocks` returns the overrides in force as
+`GET /api/global-mocks` returns the overrides in force as
 `{ "scenarios": [ … ] }` — one `{ system, endpoint, scenario, createdAt,
 modifiedAt }` record per endpoint that has one, most recently changed first.
 Endpoints sitting on their implicit default are absent.
 
-`PUT /ui/api/global-mocks/{system}/{endpoint}` sets a global scenario. Body:
+`PUT /api/global-mocks/{system}/{endpoint}` sets a global scenario. Body:
 
 ```json
 { "scenario": "failure" }
@@ -202,10 +207,10 @@ be selectable on it — any declared scenario (fixture- or resolver-backed) or
 `real` (otherwise `400`). An unknown `system`/`endpoint` is `404`. On success it
 returns `{ system, endpoint, scenario }`.
 
-`DELETE /ui/api/global-mocks/{system}/{endpoint}` reverts to the implicit default
+`DELETE /api/global-mocks/{system}/{endpoint}` reverts to the implicit default
 and is idempotent — clearing an unset override still returns `204`.
 
-## `GET /ui/api/profiles/{profileId}` · `PUT` · `DELETE`
+## `GET /api/profiles/{profileId}` · `PUT` · `DELETE`
 
 `GET` returns the stored profile, or
 `404 { "error": "not_found", "code": "profile_not_found" }` when there is none or
@@ -261,7 +266,7 @@ response; a profile with none has neither:
 resolver history, and logs (`204`). An expired profile is removed the same way,
 except its logs are kept.
 
-## `POST /ui/api/profiles/{profileId}/reset`
+## `POST /api/profiles/{profileId}/reset`
 
 Resets [scenario sequence](../building/scenarios.md#scenario-sequences) progress
 (and resolver history) so the next call starts from the first step. Body is
@@ -276,7 +281,7 @@ malformed JSON), the whole profile resets. Always `204`.
 
 ## Request logs
 
-`GET /ui/api/logs` returns log entries as `{ "entries": [ … ] }` — each a
+`GET /api/logs` returns log entries as `{ "entries": [ … ] }` — each a
 `LogSummary` by default, or a full `LogEntry` (captured request and response
 bodies included) when the request sets `include=full`. It can also
 [wait for entries to arrive](#awaiting-calls), in which case the body carries a
@@ -305,7 +310,7 @@ a client-side polling loop:
 
 ```bash
 # Answer as soon as "charge" has been called 3 times, giving up after 5s
-curl -sf 'http://localhost:3000/ui/api/logs?profile=customer-123&endpoint=charge&minCount=3&waitMs=5000'
+curl -sf 'http://localhost:3000/api/logs?profile=customer-123&endpoint=charge&minCount=3&waitMs=5000'
 ```
 
 ```json
@@ -342,7 +347,7 @@ query](../sdk/testcontainers-client.md#request-logs), which send exactly these t
 parameters.
 
 Fetch one full entry by ID (with the decision trace and captured
-request/response) via `GET /ui/api/logs/{logId}`, which answers
+request/response) via `GET /api/logs/{logId}`, which answers
 `{ "entry": { … }, "bodyHtml": { … } }`, or
 `404 { "error": "not_found", "code": "log_not_found" }` if no entry has that ID
 — it may have aged out of the log's TTL window. See

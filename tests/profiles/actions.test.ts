@@ -57,10 +57,10 @@ vi.mock('../../src/lib/runtime', () => ({
   }),
 }))
 
-const { saveProfile } = await import('../../src/app/ui/profiles/actions')
-const { deleteProfileAction } = await import('../../src/app/ui/profiles/actions')
+const { saveProfile } = await import('../../src/app/(ui)/profiles/actions')
+const { deleteProfileAction } = await import('../../src/app/(ui)/profiles/actions')
 const { resetDynamicHistoryAction, resetScenarioProgressAction } = await import(
-  '../../src/app/ui/profiles/actions'
+  '../../src/app/(ui)/profiles/actions'
 )
 
 function formData(fields: Record<string, string>): FormData {
@@ -166,7 +166,7 @@ describe('deleteProfileAction', () => {
       'REDIRECT:',
     )
     expect(deleteProfileMock).toHaveBeenCalledWith(expect.anything(), 'c1')
-    expect(redirectMock).toHaveBeenCalledWith('/ui')
+    expect(redirectMock).toHaveBeenCalledWith('/')
   })
 
   it('requires a profileId before deleting', async () => {
@@ -186,7 +186,7 @@ describe('resetDynamicHistoryAction', () => {
       'c1',
       'hello_world',
     )
-    expect(revalidatePathMock).toHaveBeenCalledWith('/ui/profiles/c1')
+    expect(revalidatePathMock).toHaveBeenCalledWith('/profiles/c1')
   })
 
   it('slides the profile expiry', async () => {

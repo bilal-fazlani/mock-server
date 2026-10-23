@@ -81,14 +81,14 @@ JSON pointers (`/amount`) or location-prefixed [parameter
 paths](../building/schemas.md#request-parameters) (`query/limit`,
 `header/x-priority`).
 
-In `/ui/logs` a collapsed row carries a compact badge — **req failed**, **res
+In `/logs` a collapsed row carries a compact badge — **req failed**, **res
 drift** — whenever either side failed or drifted, so problems stand out while
 scanning a list; a passing or unchecked request stays unbadged. Expanding the
 row colours each side's outcome and lists its issues, so a drifting `real`
 request finally says which field drifted rather than only that something did.
 
 To pull up every entry in one state, filter the log API by outcome —
-`GET /ui/api/logs?validation=drift` and friends, documented under [Request
+`GET /api/logs?validation=drift` and friends, documented under [Request
 logs](api.md#request-logs).
 
 !!! note
@@ -113,13 +113,13 @@ When the calling service carries a [W3C Trace
 Context](https://www.w3.org/TR/trace-context/) `traceparent` header, the server
 records the trace ID it names as a top-level `traceId` on the log entry, prints
 it on the [console line](console-logs.md) as `trace.id`, and shows it beside the
-log ID in the `/ui` detail panel. That gives the mock server's own lines a join
+log ID in the `/logs` detail panel. That gives the mock server's own lines a join
 key against every other service's lines for the same request, with no
 cooperation from the caller — search one trace ID in your aggregator and the
 mock server's account of what the fake upstream returned, and why, comes back
 with the rest of the trace.
 
-Pull up every entry for one trace with `GET /ui/api/logs?traceId=<id>` (exact
+Pull up every entry for one trace with `GET /api/logs?traceId=<id>` (exact
 match, unlike the log-ID filter's prefix search), documented under [Request
 logs](api.md#request-logs).
 
@@ -168,7 +168,7 @@ and the full JSON field mapping are documented in
 
 ## Browsing and retention
 
-Browse and filter the log at `/ui/logs` (live-updating; filter by profile,
+Browse and filter the log at `/logs` (live-updating; filter by profile,
 endpoint, errors, or log ID — and by [schema validation
 outcome](#schema-validation-outcomes) through the API), or from a profile page's
 **Recent activity** card.
@@ -176,7 +176,7 @@ New requests stream in at the top; scroll down to load older entries on demand.
 While you are scrolled into history, new arrivals are held behind a **"N new"**
 button instead of jumping the list — click it to return to the live view.
 Expanding an entry shows its captured request and response bodies with **JSON
-syntax highlighting**, in the same palette the [catalog](ui.md#catalog-uicatalog)
+syntax highlighting**, in the same palette the [catalog](ui.md#catalog-catalog)
 uses for fixtures. Bodies stored as a raw string — XML, form-encoded, plain text —
 are shown as-is rather than coloured with the wrong grammar.
 Every logged request response carries an `x-mock-log-id` header naming its entry —

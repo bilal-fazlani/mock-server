@@ -74,7 +74,7 @@ upstream.
 | `withCatalog(String \| Path)` | Bind-mounts the directory read-only and points `CATALOG_PATH` at it. Reads the `port` of every `<system>/_system.json` under it, and exposes those ports together with the admin port. A **filesystem path, not a classpath resource**: a relative one resolves against the JVM's working directory, which Gradle and Maven both default to the module directory. Throws `IllegalArgumentException` at this call — not at `start()` — if the path is not an existing directory. |
 | `withBuiltInCatalog(Consumer<CatalogPorts>)` | For an image with the catalog copied in, where there is no folder to read ports from: `ports -> ports.server(3000).system("payments", 9001)`. `server(…)` is optional and defaults to 3000; every system must be declared. Replaces whatever was exposed before. See [A catalog built into the image](#a-catalog-built-into-the-image). |
 | `withStartupTimeout(Duration)` | Inherited. How long to wait for health; `DEFAULT_STARTUP_TIMEOUT` is 2 minutes. Applies only to a server that is still running: one that exits fails at once instead of waiting this out. |
-| `baseUrl()` | The **admin** URL, `http://host:mappedPort` — no trailing slash, no path. It serves `/ui` and `/ui/api` only. |
+| `baseUrl()` | The **admin** URL, `http://host:mappedPort` — no trailing slash, no path. It serves `/` and `/api` only. |
 | `systemBaseUrl(String slug)` | One system's URL, built from the mapped port of the system's own port — what the code under test calls. Throws `IllegalArgumentException` for a slug the catalog does not have. |
 | `client()` | A `MockServerClient` bound to `baseUrl()`, created on first call and cached with its catalog. |
 
@@ -83,7 +83,7 @@ Calling both fails at the second call with an `IllegalStateException`. Calling
 neither leaves the server with no catalog, and it exits with `catalog directory
 not found`; the default image contains none.
 
-`start()` does not return until `GET /ui/api/health` answers `200`, which the
+`start()` does not return until `GET /api/health` answers `200`, which the
 server reports only once every system's port is listening. The container's
 port opens before its MongoDB connection is established, so a listening socket
 alone does not mean a mocked call can be served yet.
@@ -174,7 +174,7 @@ new MockServerContainer(MockServerContainer.DEFAULT_IMAGE_NAME.withTag("0.18.0")
 
 Pick the tag from the
 [releases](https://github.com/bilal-fazlani/mock-server/releases) — every release
-is published as an image tag, and nothing else is. The SDK needs server **0.17.0
+is published as an image tag, and nothing else is. The SDK needs server **0.19.0
 or newer** — see [Compatibility](index.md#compatibility).
 
 !!! warning "The catalog must be world-readable"

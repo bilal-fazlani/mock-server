@@ -2,7 +2,7 @@ import type { Db } from 'mongodb'
 import { countLogEntries, type ListLogsOptions } from './store'
 
 /**
- * The bounded wait behind `GET /ui/api/logs`'s `minCount`/`waitMs`. A caller
+ * The bounded wait behind `GET /api/logs`'s `minCount`/`waitMs`. A caller
  * asking "has this endpoint been called N times yet?" spends one request here
  * instead of a client-side polling loop; the `since` cursor remains the way to
  * ask the same question without holding a connection.

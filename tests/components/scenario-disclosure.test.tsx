@@ -6,7 +6,7 @@ import {
   ScenarioResponseModalBody,
 } from '../../src/app/components/ScenarioDisclosure'
 import { Dialog } from '../../src/app/components/ui/dialog'
-import type { ScenarioView } from '../../src/app/ui/catalog/scenario-view'
+import type { ScenarioView } from '../../src/app/(ui)/catalog/scenario-view'
 
 const frozen = { displayName: 'Frozen', summary: 'Account is frozen', status: 403, kind: 'fixture' as const }
 
@@ -104,13 +104,13 @@ describe('ScenarioResponseModalBody', () => {
       <ScenarioResponseModalBody
         state={{ kind: 'ready', view }}
         option={frozen}
-        catalogHref="/ui/catalog/hello-system/customer_status"
+        catalogHref="/catalog/hello-system/customer_status"
         endpointDisplayName="Customer Status"
       />,
     )
     expect(html).toContain('HTTP 403 Forbidden')
     expect(html).toContain('shiki')
-    expect(html).toContain('href="/ui/catalog/hello-system/customer_status"')
+    expect(html).toContain('href="/catalog/hello-system/customer_status"')
     expect(html).toContain('Open Customer Status in the catalog')
     // The label is the dialog's accessible name, not a plain heading.
     expect(html).toMatch(/data-slot="dialog-title"[^>]*>Frozen</)

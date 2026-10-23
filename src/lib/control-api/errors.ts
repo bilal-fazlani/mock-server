@@ -1,11 +1,11 @@
 /**
- * Every /ui/api/* error response shares one JSON envelope:
+ * Every /api/* error response shares one JSON envelope:
  * `{ "error": "<message>", "code": "<code>" }`. `error` is a human-readable
  * message and may change wording between releases; `code` is the stable,
  * machine-readable identifier a caller can safely match on. Both are
  * documented in the OpenAPI spec (openapi.json) and the API guide.
  *
- * `GET /ui/api/health`'s `503` is the one exception — it keeps the health
+ * `GET /api/health`'s `503` is the one exception — it keeps the health
  * body shape and adds a bare `error` field, not this envelope — so it builds
  * its response directly rather than through this helper.
  *
@@ -27,7 +27,7 @@ export type ControlApiErrorCode =
   | 'profile_not_found'
   | 'log_not_found'
 
-/** Builds the `{ error, code }` JSON response for a /ui/api/* error path. */
+/** Builds the `{ error, code }` JSON response for a /api/* error path. */
 export function errorResponse(
   message: string,
   code: ControlApiErrorCode,

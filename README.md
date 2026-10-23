@@ -37,7 +37,7 @@ Each catalog system is served on its own port, declared in its `_system.json`,
 at the **root** — the example `hello-system` declares `4001`, so its endpoint
 whose catalog `path` is `/hello/world` responds at
 `http://localhost:4001/hello/world`. The management UI and control API are on the
-admin port, at `http://localhost:3000/ui`. The repo has an example system
+admin port, at `http://localhost:3000/`. The repo has an example system
 (`catalog/hello-system/`) to call and edit — the guide shows how to
 [download it](https://mock-server.bilal-fazlani.com/get-started/install/#get-a-catalog-to-try).
 With it serving:

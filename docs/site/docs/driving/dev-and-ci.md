@@ -37,7 +37,7 @@ anything else.
 Run the server (`npx @bilal-fazlani/mock-server ./catalog`), set each of your
 app's upstream URLs to its system's port (`http://localhost:4001` for the example
 `hello-system` — see [System ports](../building/endpoints.md#system-ports)), and
-pick scenarios in `/ui` on the admin port, `http://localhost:3000`. Switch an
+pick scenarios in `/` on the admin port, `http://localhost:3000`. Switch an
 endpoint to the `real` scenario when you want that one call to hit the live
 upstream — handy for migrating off real dependencies one endpoint at a time.
 
@@ -50,7 +50,7 @@ mistakes before that restart with
 In CI the in-memory MongoDB is enough — each run starts clean and ephemeral data
 is exactly what you want. Validate the catalog first so a bad edit fails in a
 second instead of as a mysterious startup crash, then start the server, wait for
-`/ui/api/health`, and drive it from your tests over the API.
+`/api/health`, and drive it from your tests over the API.
 
 ```yaml
 name: test
@@ -71,7 +71,7 @@ jobs:
       - name: Wait for health
         run: |
           for i in $(seq 1 30); do
-            curl -sf http://localhost:3000/ui/api/health && exit 0
+            curl -sf http://localhost:3000/api/health && exit 0
             sleep 1
           done
           echo "mock server did not become healthy" >&2; exit 1
@@ -90,7 +90,7 @@ from source can [name itself](../get-started/install.md#naming-your-own-build),
 so the string you assert on is the tag you published:
 
 ```bash
-curl -sf http://localhost:3000/ui/api/health | jq '{version, sha}'
+curl -sf http://localhost:3000/api/health | jq '{version, sha}'
 ```
 
 ### A worked control loop
@@ -99,27 +99,27 @@ Force a scenario, exercise your code, assert the call happened, clean up:
 
 ```bash
 # 1. Force "charge" to the card_declined scenario for this caller
-curl -sf -X PUT http://localhost:3000/ui/api/profiles/customer-123 \
+curl -sf -X PUT http://localhost:3000/api/profiles/customer-123 \
   -H 'content-type: application/json' \
   -d '{"endpointScenarios":{"charge":"card_declined"}}'
 
 # 2. ... run the code under test, which calls the mock as customer-123 ...
 
 # 3. Assert your code actually called the endpoint
-curl -sf 'http://localhost:3000/ui/api/logs?profile=customer-123&endpoint=charge'
+curl -sf 'http://localhost:3000/api/logs?profile=customer-123&endpoint=charge'
 
 # 3b. If the call happens asynchronously, wait for it instead of sleeping:
 #     this answers as soon as the entry lands, or after 5s with "matched": false
-curl -sf 'http://localhost:3000/ui/api/logs?profile=customer-123&endpoint=charge&minCount=1&waitMs=5000'
+curl -sf 'http://localhost:3000/api/logs?profile=customer-123&endpoint=charge&minCount=1&waitMs=5000'
 
 # 4. Clean up
-curl -sf -X DELETE http://localhost:3000/ui/api/profiles/customer-123
+curl -sf -X DELETE http://localhost:3000/api/profiles/customer-123
 ```
 
 Use a **profile** (as above) for a profiled endpoint, or
-`PUT /ui/api/global-mocks/{system}/{endpoint}` for a global one. Reset
+`PUT /api/global-mocks/{system}/{endpoint}` for a global one. Reset
 [sequence](../building/scenarios.md#scenario-sequences) progress between tests
-with `POST /ui/api/profiles/{id}/reset`. Prefer the bounded wait in step 3b to a
+with `POST /api/profiles/{id}/reset`. Prefer the bounded wait in step 3b to a
 `sleep` whenever the call under test is asynchronous — it returns the moment the
 call lands, and [Awaiting calls](api.md#awaiting-calls) covers its rules. Full
 route details are in the

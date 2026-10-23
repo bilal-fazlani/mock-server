@@ -41,7 +41,7 @@ vi.mock('../../src/lib/runtime', () => ({
   }),
 }))
 
-const route = await import('../../src/app/ui/api/profiles/[profileId]/route')
+const route = await import('../../src/app/(ui)/api/profiles/[profileId]/route')
 const params = (profileId: string) => ({ params: Promise.resolve({ profileId }) })
 const jsonReq = (method: string, body: unknown) =>
   new Request('http://x', { method, body: JSON.stringify(body) })
@@ -53,7 +53,7 @@ beforeEach(() => {
   writeAdminLogMock.mockReset()
 })
 
-describe('GET /ui/api/profiles/{id}', () => {
+describe('GET /api/profiles/{id}', () => {
   it('returns the profile', async () => {
     getProfileMock.mockResolvedValue({ profileId: 'c1', endpointScenarios: {} })
     const res = await route.GET(new Request('http://x'), params('c1'))
@@ -69,7 +69,7 @@ describe('GET /ui/api/profiles/{id}', () => {
   })
 })
 
-describe('PUT /ui/api/profiles/{id}', () => {
+describe('PUT /api/profiles/{id}', () => {
   it('upserts a validated profile, writes an admin log, and returns the stored profile', async () => {
     upsertProfileMock.mockResolvedValue(undefined)
     getProfileMock.mockResolvedValue({
@@ -134,7 +134,7 @@ describe('PUT /ui/api/profiles/{id}', () => {
   })
 })
 
-describe('PUT /ui/api/profiles/{id} ttl', () => {
+describe('PUT /api/profiles/{id} ttl', () => {
   it.each([['1m'], ['2h'], ['365d'], [false]])('passes ttl %j through to the store', async (ttl) => {
     upsertProfileMock.mockResolvedValue(undefined)
     getProfileMock.mockResolvedValue({ profileId: 'c1', endpointScenarios: {} })
@@ -166,7 +166,7 @@ describe('PUT /ui/api/profiles/{id} ttl', () => {
   })
 })
 
-describe('DELETE /ui/api/profiles/{id}', () => {
+describe('DELETE /api/profiles/{id}', () => {
   it('deletes and returns 204', async () => {
     deleteProfileMock.mockResolvedValue(undefined)
     const res = await route.DELETE(new Request('http://x', { method: 'DELETE' }), params('c1'))

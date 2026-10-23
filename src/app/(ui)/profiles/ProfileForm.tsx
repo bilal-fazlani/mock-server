@@ -123,7 +123,7 @@ export function ProfileForm({
                   />
                   <div className="-mt-1 flex justify-end">
                     <Link
-                      href={`/ui/catalog/${system.slug}/${endpoint.slug}`}
+                      href={`/catalog/${system.slug}/${endpoint.slug}`}
                       className="inline-flex items-center gap-1.5 text-[0.78rem] text-muted-foreground hover:text-foreground hover:no-underline"
                     >
                       <SquareArrowOutUpRight className="size-3" aria-hidden="true" />

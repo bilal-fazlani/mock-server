@@ -74,7 +74,7 @@ When the test ends the profile is deleted, and that delete
 and log entries go with it. Nothing a test did is visible to the next one, and
 tests are safe to run in parallel.
 
-The exception is a [global mock](../driving/ui.md#global-mocks-uiglobal-mocks),
+The exception is a [global mock](../driving/ui.md#global-mocks-global-mocks),
 which is one switch every caller shares. Driving it from a test requires
 [`@UsesGlobalMocks`](junit.md#global-mocks), which serialises those tests against
 each other and restores the switch afterwards.
@@ -108,7 +108,7 @@ above it, so a test suite declares exactly one — the highest it needs.
 
 | Requirement | Version |
 | --- | --- |
-| Mock server | **0.17.0 or newer**, from SDK **4.0.0** — the 3.x line needs **0.16.x**, and the 2.x line **0.7.0 to 0.15.x**. 0.17.0 is the release that serves every catalog system on its own port, which SDK 4 depends on, so an older server is not supported. That is a floor, not a recommendation: pin the image to a current [release](https://github.com/bilal-fazlani/mock-server/releases), which is what every `withTag` example on these pages does. |
+| Mock server | **0.19.0 or newer**, from SDK **5.0.0** — the 4.x line needs **0.17.x or 0.18.x**, the 3.x line **0.16.x**, and the 2.x line **0.7.0 to 0.15.x**. 0.19.0 is the release that moved the control API from `/ui/api` to `/api`, which SDK 5 calls, so an older server answers every call with `404`. That is a floor, not a recommendation: pin the image to a current [release](https://github.com/bilal-fazlani/mock-server/releases), which is what every `withTag` example on these pages does. |
 | Java | **21 (LTS) or newer**, from SDK **2.0.0** — the earlier 1.x line runs on **Java 17**. |
 | JUnit | Jupiter 6.x (the SDK brings `junit-jupiter-api` with it) |
 | Spring Boot | **4.1.0**, for `mock-server-spring-boot-test` only — the exact release the module is compiled and tested against, not a range across 4.x |
@@ -161,6 +161,14 @@ guide](junit.md#registering-the-extension).
     21–23 — safe under Spring Boot's `spring.threads.virtual.enabled=true` or
     JUnit's parallel test execution. `MockServerClient` also implements
     `AutoCloseable` as of 2.0.0.
+
+## Upgrading from SDK 4.x
+
+SDK **5.0.0** needs mock server **0.19.0 or newer**, which serves the dashboard
+at `/` and the control API at `/api` instead of `/ui` and `/ui/api`. The SDK builds
+every URL itself, so your tests change in one place: pin the image to **0.19.0 or
+newer**. A health check or a hand-written call against the old paths gets the
+admin port's `404`, and the links in failure messages now point at `/logs`.
 
 ## Upgrading from SDK 3.x
 

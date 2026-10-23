@@ -92,7 +92,7 @@ RUN set -eu; \
   # gnupg only verifies the repo key; curl stays on purpose. Orchestrator health
   # checks (ECS task definitions, compose `healthcheck:`, Kubernetes `exec`
   # probes) ignore HEALTHCHECK below and usually run
-  # `curl -f http://localhost:3000/ui/api/health`. It was installed explicitly
+  # `curl -f http://localhost:3000/api/health`. It was installed explicitly
   # above, so it is marked manual and `autoremove` leaves it alone.
   && apt-get purge -y gnupg \
   && apt-get autoremove -y \
@@ -121,7 +121,7 @@ EXPOSE 3000
 # PID 1 so it forwards SIGTERM to node for graceful shutdown and reaps the mongod
 # child that the embedded fallback spawns.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/ui/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 ENTRYPOINT ["tini", "--"]
 # serve.cjs, not Next's server.js: it installs the unsupported-upgrade guard
 # (#72) before loading server.js. See src/server/serve-main.ts.

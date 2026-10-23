@@ -33,8 +33,8 @@ vi.mock('../../src/lib/logs/long-poll', async () => {
   return { ...actual, awaitLogCount: (...a: unknown[]) => awaitLogCountMock(...a) }
 })
 
-const listRoute = await import('../../src/app/ui/api/logs/route')
-const entryRoute = await import('../../src/app/ui/api/logs/[logId]/route')
+const listRoute = await import('../../src/app/(ui)/api/logs/route')
+const entryRoute = await import('../../src/app/(ui)/api/logs/[logId]/route')
 
 const TS = new Date('2026-07-07T09:00:00.000Z')
 
@@ -72,9 +72,9 @@ beforeEach(() => {
   awaitLogCountMock.mockReset().mockResolvedValue(true)
 })
 
-describe('GET /ui/api/logs', () => {
+describe('GET /api/logs', () => {
   it('defaults to the summary projection', async () => {
-    const res = await listRoute.GET(new Request('http://x/ui/api/logs'))
+    const res = await listRoute.GET(new Request('http://x/api/logs'))
     expect(res.status).toBe(200)
     const body = await res.json()
 
@@ -88,7 +88,7 @@ describe('GET /ui/api/logs', () => {
     listLogSummariesMock.mockResolvedValue([
       { logId: 'lg_2', ts: TS, kind: 'request', outcome: 'fixture', trace: {} },
     ])
-    const res = await listRoute.GET(new Request('http://x/ui/api/logs'))
+    const res = await listRoute.GET(new Request('http://x/api/logs'))
     expect(res.status).toBe(200)
     expect(await res.json()).toEqual({
       entries: [{ logId: 'lg_2', ts: TS.toISOString(), kind: 'request', outcome: 'fixture', trace: {} }],
@@ -96,7 +96,7 @@ describe('GET /ui/api/logs', () => {
   })
 
   it('carries full request/response payloads when include=full', async () => {
-    const res = await listRoute.GET(new Request('http://x/ui/api/logs?include=full'))
+    const res = await listRoute.GET(new Request('http://x/api/logs?include=full'))
     expect(res.status).toBe(200)
     const body = await res.json()
 
@@ -118,7 +118,7 @@ describe('GET /ui/api/logs', () => {
   })
 
   it('ignores an unrecognised include value and keeps the summary projection', async () => {
-    const res = await listRoute.GET(new Request('http://x/ui/api/logs?include=everything'))
+    const res = await listRoute.GET(new Request('http://x/api/logs?include=everything'))
     expect(res.status).toBe(200)
     const body = await res.json()
 
@@ -128,7 +128,7 @@ describe('GET /ui/api/logs', () => {
   })
 
   it('passes traceId through as an exact-match option', async () => {
-    await listRoute.GET(new Request('http://x/ui/api/logs?traceId=0af7651916cd43dd8448eb211c80319c'))
+    await listRoute.GET(new Request('http://x/api/logs?traceId=0af7651916cd43dd8448eb211c80319c'))
 
     expect(listLogSummariesMock).toHaveBeenCalledWith(
       expect.anything(),
@@ -139,7 +139,7 @@ describe('GET /ui/api/logs', () => {
   it('wires traceId through on the include=full path too', async () => {
     await listRoute.GET(
       new Request(
-        'http://x/ui/api/logs?include=full&traceId=0af7651916cd43dd8448eb211c80319c',
+        'http://x/api/logs?include=full&traceId=0af7651916cd43dd8448eb211c80319c',
       ),
     )
 
@@ -150,9 +150,9 @@ describe('GET /ui/api/logs', () => {
   })
 })
 
-describe('GET /ui/api/logs long-poll', () => {
+describe('GET /api/logs long-poll', () => {
   it('does not wait, and reports no `matched`, on an ordinary listing', async () => {
-    const res = await listRoute.GET(new Request('http://x/ui/api/logs?profile=c1'))
+    const res = await listRoute.GET(new Request('http://x/api/logs?profile=c1'))
 
     expect(awaitLogCountMock).not.toHaveBeenCalled()
     expect(await res.json()).toEqual({ entries: [{ ...summary(), ts: TS.toISOString() }] })
@@ -160,7 +160,7 @@ describe('GET /ui/api/logs long-poll', () => {
 
   it('waits for the threshold and reports that it was reached', async () => {
     const res = await listRoute.GET(
-      new Request('http://x/ui/api/logs?endpoint=charge&minCount=3&waitMs=5000'),
+      new Request('http://x/api/logs?endpoint=charge&minCount=3&waitMs=5000'),
     )
     const body = await res.json()
 
@@ -176,7 +176,7 @@ describe('GET /ui/api/logs long-poll', () => {
 
   it('reports matched=false when the window ran out, still returning what matched', async () => {
     awaitLogCountMock.mockResolvedValue(false)
-    const res = await listRoute.GET(new Request('http://x/ui/api/logs?minCount=9&waitMs=50'))
+    const res = await listRoute.GET(new Request('http://x/api/logs?minCount=9&waitMs=50'))
     const body = await res.json()
 
     expect(res.status).toBe(200)
@@ -185,7 +185,7 @@ describe('GET /ui/api/logs long-poll', () => {
   })
 
   it('treats waitMs alone as a long-poll for a single new entry', async () => {
-    await listRoute.GET(new Request('http://x/ui/api/logs?since=lg_1&waitMs=2500'))
+    await listRoute.GET(new Request('http://x/api/logs?since=lg_1&waitMs=2500'))
 
     expect(awaitLogCountMock).toHaveBeenCalledWith(
       expect.anything(),
@@ -206,13 +206,13 @@ describe('GET /ui/api/logs long-poll', () => {
       return [summary()]
     })
 
-    await listRoute.GET(new Request('http://x/ui/api/logs?minCount=2'))
+    await listRoute.GET(new Request('http://x/api/logs?minCount=2'))
 
     expect(order).toEqual(['wait', 'list'])
   })
 
   it('waits on the include=full path too', async () => {
-    const res = await listRoute.GET(new Request('http://x/ui/api/logs?include=full&minCount=2'))
+    const res = await listRoute.GET(new Request('http://x/api/logs?include=full&minCount=2'))
 
     expect(awaitLogCountMock).toHaveBeenCalledTimes(1)
     expect(listLogEntriesMock).toHaveBeenCalledTimes(1)
@@ -220,7 +220,7 @@ describe('GET /ui/api/logs long-poll', () => {
   })
 })
 
-describe('GET /ui/api/logs/{logId}', () => {
+describe('GET /api/logs/{logId}', () => {
   it('returns the entry', async () => {
     getLogEntryMock.mockResolvedValue(fullEntry())
     const res = await entryRoute.GET(new Request('http://x'), params('lg_1'))

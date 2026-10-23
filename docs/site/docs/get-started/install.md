@@ -16,16 +16,16 @@ The server listens on **one admin port plus one port per catalog system**:
 
 | Port | Set by | Serves |
 | --- | --- | --- |
-| Admin | [`PORT`](../reference/configuration.md) or `--port` (default `3000`) | The dashboard (`/ui`) and the [runtime-control API](../driving/api.md) (`/ui/api`), nothing else. |
+| Admin | [`PORT`](../reference/configuration.md) or `--port` (default `3000`) | The dashboard (`/`) and the [runtime-control API](../driving/api.md) (`/api`), nothing else. |
 | One per system | The [`port`](../building/endpoints.md#endpoint-fields) in that system's `_system.json` | That system's mocked endpoints, at the **root** of its origin. |
 
 With the example catalog, whose `hello-system` declares `"port": 4001`, an
 endpoint whose catalog `path` is `/hello/world` answers at
 `http://localhost:4001/hello/world`, and the dashboard lives at
-`http://localhost:3000/ui`. At startup the server prints each address:
+`http://localhost:3000/`. At startup the server prints each address:
 
 ```text
-mock-server: admin UI and control API on http://0.0.0.0:3000/ui
+mock-server: admin UI and control API on http://0.0.0.0:3000/
 mock-server: system hello-system on http://0.0.0.0:4001
 ```
 
@@ -102,7 +102,7 @@ Arguments:
                          Overrides the CATALOG_PATH environment variable.
 
 Options:
-  -p, --port <number>    Admin port, for /ui and /ui/api (default: 3000, or
+  -p, --port <number>    Admin port, for the UI and /api (default: 3000, or
                          $PORT). Each system listens on its own catalog port.
   --bind <address>       IP address to listen on (default: 0.0.0.0, or
                          $BIND_ADDRESS). IPv4 or IPv6; a hostname is rejected.
@@ -121,7 +121,7 @@ Tags track the [releases](https://github.com/bilal-fazlani/mock-server/releases)
 one-for-one, so that page — or the [package
 listing](https://github.com/bilal-fazlani/mock-server/pkgs/container/mock-server)
 — is what to pin to. A server already running reports its own version at
-`GET /ui/api/health`.
+`GET /api/health`.
 
 ```bash
 docker run --rm -p 3000:3000 -p 4001:4001 \
@@ -269,7 +269,7 @@ catalog against the checkout's own environment — see
 
 ## Health check
 
-`GET /ui/api/health` is served on the admin port. Every system port is
+`GET /api/health` is served on the admin port. Every system port is
 accepting connections before it can answer at all, so a healthy answer means the
 mocks are reachable too. It returns `200 {"status":"ok","mongo":"up",…}` when MongoDB
 is reachable, or `503 {"status":"error","mongo":"down",…}` otherwise. It also
@@ -279,7 +279,7 @@ see this under `npm run dev`. It is useful as
 a readiness probe when scripting startup (see
 [Using it in dev & CI](../driving/dev-and-ci.md)). Both bodies also carry the
 running build's `version` and `sha`, the same pair the dashboard footer and the
-[Environment page](../driving/ui.md#environment-uienvironment) show.
+[Environment page](../driving/ui.md#environment-environment) show.
 
 ### Container health checks
 
@@ -287,7 +287,7 @@ The image declares its own `HEALTHCHECK`, which `docker run` and Docker Compose
 honour. It asks the endpoint above from inside the container with Node:
 
 ```bash
-node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/ui/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 ```
 
 Orchestrators usually run a check of their own instead — an ECS task
@@ -296,7 +296,7 @@ image's. `curl` is installed in the image for exactly that, so the usual form
 works as it is:
 
 ```bash
-curl -f http://localhost:3000/ui/api/health
+curl -f http://localhost:3000/api/health
 ```
 
 Use your own port in place of `3000` if you changed `PORT`. `-f` makes `curl` exit non-zero on the `503` the endpoint returns when MongoDB is

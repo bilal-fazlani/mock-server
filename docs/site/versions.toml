@@ -38,12 +38,16 @@ pattern = 'server \*\*0\.16\.0'
 reason = "compatibility floor, split across a line break on sdk/testcontainers-client.md, and named as the release that introduced the contract the client targets"
 
 [[exempt]]
-pattern = '\*\*0\.17\.0 or newer\*\*, from SDK \*\*4\.0\.0\*\* — the 3\.x line needs \*\*0\.16\.x\*\*'
-reason = "compatibility floors per SDK line: 4.0.0 is the release that started needing server 0.17.0, the first to serve each system on its own port, and the 3.x line's range ends where that release began"
+pattern = '\*\*0\.19\.0 or newer\*\*, from SDK \*\*5\.0\.0\*\* — the 4\.x line needs \*\*0\.17\.x or 0\.18\.x\*\*'
+reason = "compatibility floors per SDK line: 5.0.0 is the release that started needing server 0.19.0, the first to serve the control API at /api, and the 4.x line's range ends where that release began"
+
+[[exempt]]
+pattern = '\*\*0\.19\.0 or newer\*\*|server \*\*0\.19\.0|to \*\*0\.19\.0 or$'
+reason = "compatibility floor: the oldest server SDK 5.0.0 works against, since 0.19.0 serves the control API at /api; not the newest. The last two forms are split across a line break"
 
 [[exempt]]
 pattern = '\*\*0\.17\.0 or newer\*\*|server \*\*0\.17\.0'
-reason = "compatibility floor: the oldest server SDK 4.0.0 works against, since 0.17.0 serves each system on its own port; not the newest. The second form is split across a line break on sdk/testcontainers-client.md"
+reason = "compatibility floor, kept in the SDK 3.x upgrade notes: the oldest server SDK 4.0.0 works against, since 0.17.0 serves each system on its own port; not the newest. The second form is split across a line break on sdk/testcontainers-client.md"
 
 # --- Historical facts -----------------------------------------------------
 # "Since X" statements. Rewriting these to the current release inverts their

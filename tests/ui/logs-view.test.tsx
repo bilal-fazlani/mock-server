@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-import { LogsView } from '../../src/app/ui/logs/LogsView'
-import type { LogSummaryView } from '../../src/app/ui/logs/types'
+import { LogsView } from '../../src/app/(ui)/logs/LogsView'
+import type { LogSummaryView } from '../../src/app/(ui)/logs/types'
 
 function summary(logId: string): LogSummaryView {
   return {

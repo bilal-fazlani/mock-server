@@ -8,14 +8,14 @@ vi.mock('../../src/lib/profiles/store', () => ({
   getDb: vi.fn(async () => ({ command: pingMock })),
 }))
 
-const { GET } = await import('../../src/app/ui/api/health/route')
+const { GET } = await import('../../src/app/(ui)/api/health/route')
 
 beforeEach(() => {
   getRuntimeMock.mockReset().mockReturnValue({})
   pingMock.mockReset().mockResolvedValue({ ok: 1 })
 })
 
-describe('GET /ui/api/health', () => {
+describe('GET /api/health', () => {
   it('returns 200 when the runtime is built and MongoDB answers', async () => {
     const res = await GET()
     expect(res.status).toBe(200)

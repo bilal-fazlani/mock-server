@@ -36,7 +36,7 @@ export async function saveGlobalMocks(formData: FormData): Promise<void> {
     }
   }
 
-  redirect('/ui/global-mocks')
+  redirect('/global-mocks')
 }
 
 export async function resetGlobalDynamicHistoryAction(
@@ -46,5 +46,5 @@ export async function resetGlobalDynamicHistoryAction(
   if (!systemSlug || !endpointSlug) throw new Error('system and endpoint are required')
 
   await resetDynamicHistory(await getDb(), 'global', systemSlug, endpointSlug)
-  revalidatePath('/ui/global-mocks')
+  revalidatePath('/global-mocks')
 }

@@ -134,7 +134,7 @@ saved sequence restarts its progress on the next request. See
 The server builds its configuration and catalog once, as it starts, and does not
 begin serving if that fails: it prints the error and exits with a non-zero status.
 Under `npm run dev` it logs the same error and keeps running instead, so you can
-fix the catalog without restarting; `GET /ui/api/health` answers `503` and mock
+fix the catalog without restarting; `GET /api/health` answers `503` and mock
 and dashboard requests fail until it loads. The exception is a catalog that can't
 be loaded at all when `npm run dev` starts — a missing or invalid `port`, a
 missing `_system.json` field, unreadable metadata: the system ports are read

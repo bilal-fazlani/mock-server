@@ -7,7 +7,7 @@ export default function UiLayout({ children }: Readonly<{ children: React.ReactN
     <>
       <header className="z-10 flex items-center gap-6 border-b border-border bg-card px-6 py-3">
         <div className="flex items-baseline gap-1.5">
-          <Link href="/ui" className="text-base font-bold tracking-tight text-foreground hover:no-underline">
+          <Link href="/" className="text-base font-bold tracking-tight text-foreground hover:no-underline">
             Mock Server
           </Link>
           <span
@@ -19,11 +19,11 @@ export default function UiLayout({ children }: Readonly<{ children: React.ReactN
           </span>
         </div>
         <nav className="flex gap-4 text-sm">
-          <Link href="/ui" className="text-muted-foreground hover:text-foreground hover:no-underline">Profiles</Link>
-          <Link href="/ui/global-mocks" className="text-muted-foreground hover:text-foreground hover:no-underline">Global mocks</Link>
-          <Link href="/ui/catalog" className="text-muted-foreground hover:text-foreground hover:no-underline">Catalog</Link>
-          <Link href="/ui/logs" className="text-muted-foreground hover:text-foreground hover:no-underline">Logs</Link>
-          <Link href="/ui/environment" className="text-muted-foreground hover:text-foreground hover:no-underline">Environment</Link>
+          <Link href="/" className="text-muted-foreground hover:text-foreground hover:no-underline">Profiles</Link>
+          <Link href="/global-mocks" className="text-muted-foreground hover:text-foreground hover:no-underline">Global mocks</Link>
+          <Link href="/catalog" className="text-muted-foreground hover:text-foreground hover:no-underline">Catalog</Link>
+          <Link href="/logs" className="text-muted-foreground hover:text-foreground hover:no-underline">Logs</Link>
+          <Link href="/environment" className="text-muted-foreground hover:text-foreground hover:no-underline">Environment</Link>
         </nav>
         <div className="ml-auto">
           <ThemeToggle />

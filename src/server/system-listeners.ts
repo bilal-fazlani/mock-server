@@ -5,8 +5,8 @@
 // A forwarded request differs from the one received in exactly these ways:
 //
 // - its path gains the reserved `/__mock-system__/<slug>` prefix, so it reaches
-//   the catch-all route instead of whatever Next serves at that path (`/ui`,
-//   `/_next`, `/`), and a Location pointing under that prefix is mapped back;
+//   the catch-all route instead of whatever Next serves at that path (`/`,
+//   `/api`, `/_next`), and a Location pointing under that prefix is mapped back;
 // - it carries this boot's token, which is what lets the app tell a forwarded
 //   request from one sent straight to the admin port;
 // - `x-forwarded-for` and `x-forwarded-port` are filled in when absent, with the

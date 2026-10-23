@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { SquareArrowOutUpRight, TriangleAlert } from 'lucide-react'
 import type { ScenarioOption } from '../../lib/scenarios'
-import type { ScenarioView } from '../ui/catalog/scenario-view'
+import type { ScenarioView } from '../(ui)/catalog/scenario-view'
 import { ScenarioContent, ScenarioContentSkeleton } from './ScenarioContent'
 import { StatusPill } from './StatusPill'
 import { Dialog, DialogContent, DialogTitle } from './ui/dialog'
@@ -20,7 +20,7 @@ function fetchView(system: string, endpointSlug: string, slug: string): Promise<
   let pending = viewCache.get(key)
   if (!pending) {
     pending = fetch(
-      `/ui/api/catalog/${encodeURIComponent(system)}/${encodeURIComponent(endpointSlug)}/scenarios/${encodeURIComponent(slug)}`,
+      `/api/catalog/${encodeURIComponent(system)}/${encodeURIComponent(endpointSlug)}/scenarios/${encodeURIComponent(slug)}`,
     )
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`http_${res.status}`))))
       .then((data: { view: ScenarioView }) => data.view)
@@ -210,7 +210,7 @@ export function ScenarioDisclosure({
             <ScenarioResponseModalBody
               state={state}
               option={option}
-              catalogHref={`/ui/catalog/${system}/${endpointSlug}`}
+              catalogHref={`/catalog/${system}/${endpointSlug}`}
               endpointDisplayName={endpointDisplayName}
             />
           </DialogContent>

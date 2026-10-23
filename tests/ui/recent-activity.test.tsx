@@ -1,9 +1,9 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-import { RecentActivity } from '../../src/app/ui/profiles/RecentActivity'
-import type { LogSummaryView } from '../../src/app/ui/logs/types'
+import { RecentActivity } from '../../src/app/(ui)/profiles/RecentActivity'
+import type { LogSummaryView } from '../../src/app/(ui)/logs/types'
 
-// Exactly what `GET /ui/api/logs` returns without `include=full`, and what the
+// Exactly what `GET /api/logs` returns without `include=full`, and what the
 // profile page now renders from: no `request`, response reduced to `{ status }`.
 function summary(overrides: Partial<LogSummaryView> = {}): LogSummaryView {
   return {
@@ -46,7 +46,7 @@ describe('RecentActivity', () => {
     const html = renderToStaticMarkup(
       <RecentActivity profileId="customer 123" initialEntries={[summary()]} />,
     )
-    expect(html).toContain('/ui/logs?profile=customer%20123')
+    expect(html).toContain('/logs?profile=customer%20123')
     expect(html).toContain('data-logs-timezone')
     expect(html).toContain('Times in UTC')
   })

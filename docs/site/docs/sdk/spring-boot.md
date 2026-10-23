@@ -116,7 +116,7 @@ against](junit.md#what-withcatalog-resolves-against).
     The constructor argument is a **whole image reference**, so
     `new MockServerContainer("0.18.0")` looks for a repository named `0.18.0`.
     Compose the tag onto `DEFAULT_IMAGE_NAME` as above. The SDK needs server
-    **0.17.0 or newer** — see [Compatibility](index.md#compatibility).
+    **0.19.0 or newer** — see [Compatibility](index.md#compatibility).
 
 Everything the [JUnit 5 guide](junit.md) documents — `serves`, `servesSequence`,
 `verify`, `await`, `@SchemaCheck`, `@UsesGlobalMocks` — works unchanged inside
@@ -307,7 +307,7 @@ opposite directions.
     nothing is listening on and the context fails to load, naming what it tried:
 
     ```text
-    could not reach the mock server at http://localhost:3001/ui/api/catalog (java.net.ConnectException)
+    could not reach the mock server at http://localhost:3001/api/catalog (java.net.ConnectException)
     ```
 
     Point it at an address something *is* listening on — a colleague's server,

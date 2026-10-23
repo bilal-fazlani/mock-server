@@ -25,7 +25,7 @@ export async function saveProfile(formData: FormData): Promise<void> {
 
   await upsertProfile(await getDb(), { profileId, displayName, endpointScenarios })
   await writeAdminLog(await getDb(), profileId, 'profile_saved')
-  redirect('/ui')
+  redirect('/')
 }
 
 export async function deleteProfileAction(formData: FormData): Promise<void> {
@@ -33,7 +33,7 @@ export async function deleteProfileAction(formData: FormData): Promise<void> {
   if (!profileId) throw new Error('profileId is required')
 
   await deleteProfile(await getDb(), profileId)
-  redirect('/ui')
+  redirect('/')
 }
 
 export async function resetScenarioProgressAction(
@@ -47,7 +47,7 @@ export async function resetScenarioProgressAction(
   await resetScenarioProgress(db, profileId, endpointSlug)
   await slideProfileExpiryById(db, profileId)
   await writeAdminLog(db, profileId, 'progress_reset', endpointSlug)
-  revalidatePath(`/ui/profiles/${encodeURIComponent(profileId)}`)
+  revalidatePath(`/profiles/${encodeURIComponent(profileId)}`)
 }
 
 export async function resetDynamicHistoryAction(
@@ -61,5 +61,5 @@ export async function resetDynamicHistoryAction(
   await resetDynamicHistory(db, 'profile', profileId, endpointSlug)
   await slideProfileExpiryById(db, profileId)
   await writeAdminLog(db, profileId, 'progress_reset', endpointSlug)
-  revalidatePath(`/ui/profiles/${encodeURIComponent(profileId)}`)
+  revalidatePath(`/profiles/${encodeURIComponent(profileId)}`)
 }

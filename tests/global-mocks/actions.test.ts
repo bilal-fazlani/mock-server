@@ -73,7 +73,7 @@ vi.mock('../../src/lib/runtime', () => ({
 }))
 
 const { saveGlobalMocks, resetGlobalDynamicHistoryAction } = await import(
-  '../../src/app/ui/global-mocks/actions'
+  '../../src/app/(ui)/global-mocks/actions'
 )
 
 function formData(fields: Record<string, string>): FormData {
@@ -182,7 +182,7 @@ describe('resetGlobalDynamicHistoryAction', () => {
       'hello-system',
       'oauth_token',
     )
-    expect(revalidatePathMock).toHaveBeenCalledWith('/ui/global-mocks')
+    expect(revalidatePathMock).toHaveBeenCalledWith('/global-mocks')
   })
 
   it('rejects a missing system or endpoint', async () => {

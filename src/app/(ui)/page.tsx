@@ -16,7 +16,7 @@ export default async function HomePage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1>Mock profiles</h1>
         <Button asChild>
-          <Link href="/ui/profiles/new">Create new profile</Link>
+          <Link href="/profiles/new">Create new profile</Link>
         </Button>
       </div>
       {profiles.length === 0 ? (
@@ -50,7 +50,7 @@ export default async function HomePage() {
                   <tr key={p.profileId} className="hover:bg-[var(--accent-tint)]">
                     <td className="border-b border-border px-4 py-3">
                       <span className="inline-flex items-center gap-2">
-                        <Link href={`/ui/profiles/${encodeURIComponent(p.profileId)}`}>{p.profileId}</Link>
+                        <Link href={`/profiles/${encodeURIComponent(p.profileId)}`}>{p.profileId}</Link>
                         {needsUpdate && (
                           <span
                             className="inline-flex items-center text-[var(--warning-text)]"

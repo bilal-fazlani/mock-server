@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import type { Catalog } from '../../src/lib/catalog/types'
 import type { GlobalMockScenario } from '../../src/lib/profiles/store'
-import { GlobalMocksForm } from '../../src/app/ui/global-mocks/GlobalMocksForm'
+import { GlobalMocksForm } from '../../src/app/(ui)/global-mocks/GlobalMocksForm'
 
 const catalog: Catalog = {
   systems: [
@@ -138,7 +138,7 @@ describe('GlobalMocksForm scenario field name', () => {
 describe('GlobalMocksForm catalog link', () => {
   it('links each endpoint card to its catalog page', () => {
     const html = render([])
-    expect(html).toContain('href="/ui/catalog/hello-system/oauth_token"')
+    expect(html).toContain('href="/catalog/hello-system/oauth_token"')
     expect(html).toContain('View in catalog')
   })
 

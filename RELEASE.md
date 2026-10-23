@@ -108,7 +108,7 @@ npm view @bilal-fazlani/mock-server version
 npx @bilal-fazlani/mock-server ./catalog                       # boots on embedded Mongo, no deps
 
 docker run --rm -p 3000:3000 ghcr.io/bilal-fazlani/mock-server:X.Y.Z
-curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3000/ui
+curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3000/
 ```
 
 **First release, extra check:** the `linux/amd64` image is built under QEMU in CI and hasn't run

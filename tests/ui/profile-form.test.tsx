@@ -1,8 +1,8 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import type { Catalog } from '../../src/lib/catalog/types'
-import { ProfileForm } from '../../src/app/ui/profiles/ProfileForm'
-import UiLayout from '../../src/app/ui/layout'
+import { ProfileForm } from '../../src/app/(ui)/profiles/ProfileForm'
+import UiLayout from '../../src/app/(ui)/layout'
 
 const catalog: Catalog = {
   systems: [
@@ -211,7 +211,7 @@ describe('ProfileForm', () => {
     const html = renderToStaticMarkup(
       <ProfileForm catalog={catalog} passthroughAsDefault={false} />,
     )
-    expect(html).toContain('href="/ui/catalog/hello-system/hello_world"')
+    expect(html).toContain('href="/catalog/hello-system/hello_world"')
     expect(html).toContain('View in catalog')
   })
 

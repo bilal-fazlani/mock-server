@@ -1,27 +1,26 @@
 ---
-description: "The management dashboard at /ui: profiles, global mocks, catalog browsing, and live log views."
+description: "The management dashboard at /: profiles, global mocks, catalog browsing, and live log views."
 ---
 
 # The dashboard
 
-The management UI at `/ui` on the admin port (`http://localhost:3000/ui` by default) is the human control surface for a running
+The management UI at `/` on the admin port (`http://localhost:3000/` by default) is the human control surface for a running
 mock server — the same operations the [Runtime-control API](api.md) exposes to
-scripts, plus live views the API doesn't render. It is served by the mock server
-itself under the reserved `/ui` namespace, so it can never collide with a mocked
-route, and like the API it is **unauthenticated** — built for local dev and CI,
-not for exposure.
+scripts, plus live views the API doesn't render. That port serves no mocks, so
+the UI can never collide with a mocked route, and like the API it is
+**unauthenticated** — built for local dev and CI, not for exposure.
 
 Five pages, all reachable from the header:
 
 | Page | What it's for |
 | --- | --- |
-| [Profiles](#profiles-ui) (`/ui`) | Create profiles and pick scenarios per caller |
-| [Global mocks](#global-mocks-uiglobal-mocks) (`/ui/global-mocks`) | The shared pick for each profile-less endpoint |
-| [Catalog](#catalog-uicatalog) (`/ui/catalog`) | Browse every declared system, endpoint, and scenario |
-| [Logs](#logs-uilogs) (`/ui/logs`) | The live request log with decision traces |
-| [Environment](#environment-uienvironment) (`/ui/environment`) | The configuration the server is actually running with |
+| [Profiles](#profiles) (`/`) | Create profiles and pick scenarios per caller |
+| [Global mocks](#global-mocks-global-mocks) (`/global-mocks`) | The shared pick for each profile-less endpoint |
+| [Catalog](#catalog-catalog) (`/catalog`) | Browse every declared system, endpoint, and scenario |
+| [Logs](#logs-logs) (`/logs`) | The live request log with decision traces |
+| [Environment](#environment-environment) (`/environment`) | The configuration the server is actually running with |
 
-## Profiles (`/ui`)
+## Profiles (`/`)
 
 The home page lists every stored [profile](../building/profiles.md) — ID,
 display name, last modified, and for a profile created through the API, when it
@@ -61,7 +60,7 @@ resolver or `Passthrough` has no status of its own), and its `summary` when
 one is set. A fixture or resolver card adds a "View full response →"
 (resolver: "View resolver code →") link that opens a modal — closed with
 Escape or its close button, without leaving the page — showing the same
-rendered content the [catalog](#catalog-uicatalog) page shows (the response
+rendered content the [catalog](#catalog-catalog) page shows (the response
 body for a fixture, the resolver's source for a resolver), plus an `Open
 <endpoint> in the catalog` link; `Passthrough`'s card shows its fixed summary
 ("Forwards the request to the live upstream service.") with no link, followed
@@ -69,7 +68,7 @@ by either the resolved upstream URL (`→ http://localhost:9999`) when the
 system's `baseUrlEnv` is set, or a warning naming the unset env var
 (`HELLO_SYSTEM_URL is not set — requests will fail.`) when it isn't — the same
 check (plus one such warning per unset client certificate variable) behind the chip's warning triangle and the [Environment
-page](#environment-uienvironment)'s Upstream group. Opening a step's dropdown
+page](#environment-environment)'s Upstream group. Opening a step's dropdown
 closes that step's card.
 
 The card's link is reachable with a pointer; it isn't in the keyboard tab
@@ -87,12 +86,12 @@ it has an expiry. The page also carries a copy-the-profile-ID button, a
 [request log](request-logs.md)), and **Delete profile**, which cascades to the
 profile's mappings, sequence progress, resolver history, and logs.
 
-## Global mocks (`/ui/global-mocks`)
+## Global mocks (`/global-mocks`)
 
 One form listing every `mockType: "global"` endpoint with its scenario picker —
 the shared selection that applies to **every** caller of that endpoint (see
 [Endpoints](../building/endpoints.md)). The same delta rule, hover cards, and
-response modal from the [Profiles](#profiles-ui) page apply here too: setting
+response modal from the [Profiles](#profiles) page apply here too: setting
 an endpoint back to the implicit scenario clears its stored override, and
 resolver-backed picks get the same `file-code` icon and **Reset resolver
 history** button as on a profile page. Saved selections that no longer match
@@ -105,7 +104,7 @@ PEM, an encrypted key, or a key that does not match the certificate) — in each
 case requests for that endpoint return `500` until it is fixed. The warning
 names the variable at fault, never its value.
 
-## Catalog (`/ui/catalog`)
+## Catalog (`/catalog`)
 
 A read-only view of everything the catalog declares. The page opens with a list
 of systems on the left; each entry shows the
@@ -116,7 +115,7 @@ unset, and the selected system then shows a note naming the variable to set;
 a lock icon marks a system that presents a client certificate when forwarding.
 
 Selecting a system lists its endpoints. The selection lives in the query string
-(`/ui/catalog?system=hello-system`), so it survives a reload and can be shared
+(`/catalog?system=hello-system`), so it survives a reload and can be shared
 as a link; without `system`, or with a slug the catalog doesn't declare, the
 first system is selected. The **← Catalog** link on an endpoint page returns to
 that endpoint's system.
@@ -130,9 +129,9 @@ browsing — including a placeholder `authorization` header when
 the endpoint is profiled by a [Bearer selector](../building/profiles.md).
 
 Use it to answer "what can I even pick?" without reading catalog files — it is
-the browsable form of `GET /ui/api/catalog`.
+the browsable form of `GET /api/catalog`.
 
-## Logs (`/ui/logs`)
+## Logs (`/logs`)
 
 The live request log: every request the server received, streaming in at the
 top, filterable by profile, endpoint, errors-only, or a specific log ID, with
@@ -147,7 +146,7 @@ badge, and lists the offending paths when expanded. An expanded entry shows its 
 detail footer, and beside it the caller's [distributed-trace
 ID](request-logs.md#distributed-trace-correlation) when the request carried one.
 
-## Environment (`/ui/environment`)
+## Environment (`/environment`)
 
 Every [configuration setting](../reference/configuration.md) the server was
 started with, grouped by category, each row showing the live value and a status

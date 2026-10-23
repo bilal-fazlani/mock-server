@@ -4,7 +4,7 @@ import { insertLogEntry, newLogId } from './store'
 
 /**
  * Records an admin action (profile save / progress reset) as a log entry so it
- * shows in the logs view, regardless of whether the UI or the /ui/api routes
+ * shows in the logs view, regardless of whether the UI or the /api routes
  * drove the change. Failures are swallowed — an admin action must not fail
  * because logging failed.
  */

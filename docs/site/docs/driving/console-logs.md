@@ -139,7 +139,7 @@ Three naming choices are deliberate and worth knowing:
 
 `mock.logId` is the bridge back to the full request: it is the same value the
 response returns as `x-mock-log-id`, so a line found in Kibana pastes straight
-into the log-ID filter at `/ui/logs` for the headers and bodies, which the
+into the log-ID filter at `/logs` for the headers and bodies, which the
 console line never carries.
 
 `trace.id` is the bridge in the other direction — from a failing service's log
@@ -147,7 +147,7 @@ line *to* this one. Search the trace ID your caller already logs, and the mock
 server's lines come back alongside every other service's, with
 `mock.scenario` / `mock.scenarioSource` / `mock.outcome` saying what the fake
 upstream returned and why it chose that. Take `mock.logId` from the same line to
-open the full request in `/ui`. Which headers supply it, and what happens when
+open the full request at `/logs`. Which headers supply it, and what happens when
 one is malformed, is covered in
 [Distributed trace correlation](request-logs.md#distributed-trace-correlation).
 
@@ -171,5 +171,5 @@ plus an `event.action` naming what happened (`catalog_warning`,
 ## What is not on the console line
 
 Headers and bodies. Those are stored, redacted, in the
-[request log](request-logs.md) and browsable at `/ui/logs`; the console stays
+[request log](request-logs.md) and browsable at `/logs`; the console stays
 metadata-only in both formats.

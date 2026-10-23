@@ -56,14 +56,14 @@ vi.mock('../../src/lib/runtime', () => ({
   }),
 }))
 
-const listRoute = await import('../../src/app/ui/api/global-mocks/route')
-const detailRoute = await import('../../src/app/ui/api/global-mocks/[system]/[endpoint]/route')
+const listRoute = await import('../../src/app/(ui)/api/global-mocks/route')
+const detailRoute = await import('../../src/app/(ui)/api/global-mocks/[system]/[endpoint]/route')
 
 const params = (system: string, endpoint: string) => ({
   params: Promise.resolve({ system, endpoint }),
 })
 const putReq = (body: unknown) =>
-  new Request('http://x/ui/api/global-mocks/hello-system/oauth_token', {
+  new Request('http://x/api/global-mocks/hello-system/oauth_token', {
     method: 'PUT',
     body: JSON.stringify(body),
   })
@@ -74,7 +74,7 @@ beforeEach(() => {
   clearGlobalMockScenarioMock.mockReset()
 })
 
-describe('GET /ui/api/global-mocks', () => {
+describe('GET /api/global-mocks', () => {
   it('returns the stored overrides', async () => {
     listGlobalMockScenariosMock.mockResolvedValue([
       { system: 'hello-system', endpoint: 'oauth_token', scenario: 'expired' },
@@ -87,7 +87,7 @@ describe('GET /ui/api/global-mocks', () => {
   })
 })
 
-describe('PUT /ui/api/global-mocks/{system}/{endpoint}', () => {
+describe('PUT /api/global-mocks/{system}/{endpoint}', () => {
   it('sets a declared scenario on a global endpoint', async () => {
     const res = await detailRoute.PUT(putReq({ scenario: 'expired' }), params('hello-system', 'oauth_token'))
     expect(res.status).toBe(200)
@@ -162,7 +162,7 @@ describe('PUT /ui/api/global-mocks/{system}/{endpoint}', () => {
   })
 })
 
-describe('DELETE /ui/api/global-mocks/{system}/{endpoint}', () => {
+describe('DELETE /api/global-mocks/{system}/{endpoint}', () => {
   it('clears the override and returns 204', async () => {
     const res = await detailRoute.DELETE(new Request('http://x', { method: 'DELETE' }), params('hello-system', 'oauth_token'))
     expect(res.status).toBe(204)

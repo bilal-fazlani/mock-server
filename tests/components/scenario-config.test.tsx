@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-import { ScenarioConfig, ScenarioOptionRow } from '../../src/app/ui/profiles/ScenarioConfig'
+import { ScenarioConfig, ScenarioOptionRow } from '../../src/app/(ui)/profiles/ScenarioConfig'
 import type { ScenarioOption } from '../../src/lib/scenarios'
 
 const scenarios: Record<string, ScenarioOption> = {

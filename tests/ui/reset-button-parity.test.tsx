@@ -2,8 +2,8 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import type { Catalog } from '../../src/lib/catalog/types'
 import type { GlobalMockScenario } from '../../src/lib/profiles/store'
-import { GlobalMocksForm } from '../../src/app/ui/global-mocks/GlobalMocksForm'
-import { ProfileForm } from '../../src/app/ui/profiles/ProfileForm'
+import { GlobalMocksForm } from '../../src/app/(ui)/global-mocks/GlobalMocksForm'
+import { ProfileForm } from '../../src/app/(ui)/profiles/ProfileForm'
 
 // The two surfaces used to carry their own copy of the reset button's class
 // string, which is how they drifted apart in the first place (#2). Both now go

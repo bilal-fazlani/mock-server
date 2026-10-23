@@ -45,8 +45,8 @@ Eight concepts:
 | --- | --- |
 | **System** | A group of endpoints belonging to one upstream service (e.g. "Hello System"), represented as a directory under `catalog/`. Carries the env var that holds the real upstream base URL. |
 | **Endpoint** | One mockable route: a method + path template, plus whether scenario selection is per-profile or global. Represented as a sub-directory of its system. |
-| **Profile** | A record keyed by a *business ID* (e.g. `customer-123`) that stores, per profiled endpoint, which scenario that caller should receive — but *only where it differs from* the configured implicit scenario. A pick can also be an ordered [scenario sequence](building/scenarios.md#scenario-sequences) served call-by-call. Stored in MongoDB, edited in the UI at `/ui`. |
-| **Global mock selection** | A shared scenario pick for a profile-less endpoint. Stored once in MongoDB, applies to every caller, and is edited on `/ui/global-mocks`. |
+| **Profile** | A record keyed by a *business ID* (e.g. `customer-123`) that stores, per profiled endpoint, which scenario that caller should receive — but *only where it differs from* the configured implicit scenario. A pick can also be an ordered [scenario sequence](building/scenarios.md#scenario-sequences) served call-by-call. Stored in MongoDB, edited in the UI at `/`. |
+| **Global mock selection** | A shared scenario pick for a profile-less endpoint. Stored once in MongoDB, applies to every caller, and is edited on `/global-mocks`. |
 | **Profile key mapping** | A MongoDB lookup from another request key to a profile ID, such as `event-id / evt-123 → customer-123`. Useful when a later callback has an event ID but no profile ID. |
 | **Scenario** | A named outcome for an endpoint, backed by one file per scenario: either a `<scenario>.json` fixture or a `<scenario>.mjs` resolver. Every endpoint must have a `default` (either backing); the special `real` scenario (proxy to the live upstream) is *implicit on every endpoint* and must never have a file. See [Scenarios](building/scenarios.md) and [Code-backed scenario resolvers](building/dynamic.md). |
 | **Fixture** | The canned JSON response (status + headers + body) backing a fixture-backed scenario, with optional request-driven [placeholders](building/templating.md). |
@@ -70,7 +70,7 @@ The full ordered walk is documented in [Request lifecycle](reference/request-lif
     the root of that origin. The catalog `path` *is* the URL path — with
     `"port": 4001`, an endpoint with `"path": "/hello/world"` answers at
     `http://localhost:4001/hello/world`. The dashboard and control API live on a
-    separate admin port (`PORT`, default `3000`) under `/ui`. See [System
+    separate admin port (`PORT`, default `3000`). See [System
     ports](building/endpoints.md#system-ports).
 
 ## The catalog tree

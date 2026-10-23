@@ -299,7 +299,7 @@ function UsageSection({
           return (
             <Link
               key={key}
-              href={`/ui/catalog/${system.slug}/${endpoint.slug}`}
+              href={`/catalog/${system.slug}/${endpoint.slug}`}
               className="group/entry flex items-baseline gap-2 min-w-0 text-secondary-foreground no-underline"
             >
               <code className="flex-none text-muted-foreground text-[0.7rem] font-bold">

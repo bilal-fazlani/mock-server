@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { profileWasMissing } from '../../src/app/ui/logs/profile-presence'
+import { profileWasMissing } from '../../src/app/(ui)/logs/profile-presence'
 
 describe('profileWasMissing', () => {
   it('flags a profile the unmocked-user policy stood in for', () => {

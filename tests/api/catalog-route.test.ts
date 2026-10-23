@@ -66,13 +66,13 @@ vi.mock('../../src/lib/runtime', () => ({
   }),
 }))
 
-const { GET } = await import('../../src/app/ui/api/catalog/route')
+const { GET } = await import('../../src/app/(ui)/api/catalog/route')
 
 beforeEach(() => {
   passthroughAsDefault = false
 })
 
-describe('GET /ui/api/catalog', () => {
+describe('GET /api/catalog', () => {
   it('projects systems and endpoints with mockType and resolverScenarios', async () => {
     const res = await GET()
     expect(res.status).toBe(200)

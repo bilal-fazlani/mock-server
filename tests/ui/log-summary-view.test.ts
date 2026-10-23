@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { LogSummary } from '../../src/lib/logs/store'
-import { toLogSummaryView } from '../../src/app/ui/logs/types'
+import { toLogSummaryView } from '../../src/app/(ui)/logs/types'
 
 describe('toLogSummaryView', () => {
   it('serializes ts to ISO and keeps summary-safe fields', () => {

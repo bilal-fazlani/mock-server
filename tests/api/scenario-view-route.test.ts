@@ -34,14 +34,14 @@ vi.mock('../../src/lib/runtime', () => ({
 }))
 
 const { GET } = await import(
-  '../../src/app/ui/api/catalog/[system]/[endpoint]/scenarios/[slug]/route'
+  '../../src/app/(ui)/api/catalog/[system]/[endpoint]/scenarios/[slug]/route'
 )
 
 function ctx(system: string, endpoint: string, slug: string) {
   return { params: Promise.resolve({ system, endpoint, slug }) }
 }
 
-describe('GET /ui/api/catalog/[system]/[endpoint]/scenarios/[slug]', () => {
+describe('GET /api/catalog/[system]/[endpoint]/scenarios/[slug]', () => {
   it('returns the prepared view for a declared fixture scenario', async () => {
     const res = await GET(new Request('http://mock/x'), ctx('test-system', 'hello_world', 'default'))
     expect(res.status).toBe(200)

@@ -53,7 +53,7 @@ export function LogRow({
   useEffect(() => {
     if (!expanded || detail || detailError) return
     let cancelled = false
-    fetch(`/ui/api/logs/${encodeURIComponent(entry.logId)}`)
+    fetch(`/api/logs/${encodeURIComponent(entry.logId)}`)
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error('not_found'))))
       .then((data: LogDetailResponse) => {
         if (cancelled) return
@@ -117,7 +117,7 @@ export function LogRow({
               systemLabel &&
               (entry.endpoint ? (
                 <Link
-                  href={`/ui/catalog/${encodeURIComponent(entry.system)}/${encodeURIComponent(entry.endpoint)}`}
+                  href={`/catalog/${encodeURIComponent(entry.system)}/${encodeURIComponent(entry.endpoint)}`}
                   className={systemChipClass}
                   title={`Open ${systemLabel} in catalog`}
                   onClick={(e) => e.stopPropagation()}
@@ -172,7 +172,7 @@ export function LogRow({
               </span>
             ) : (
               <Link
-                href={`/ui/profiles/${encodeURIComponent(entry.profileId)}`}
+                href={`/profiles/${encodeURIComponent(entry.profileId)}`}
                 className="font-mono text-[0.75rem] text-secondary-foreground [overflow-wrap:anywhere] hover:text-foreground"
                 onClick={(e) => e.stopPropagation()}
               >

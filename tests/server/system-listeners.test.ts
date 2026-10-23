@@ -105,7 +105,7 @@ describe('system listeners', () => {
     const [alpha] = await listenersFor(admin.port, 'alpha')
     const res = await request(alpha.port, {
       method: 'POST',
-      path: '/ui/orders?x=1',
+      path: '/orders?x=1',
       headers: { 'X-Custom': 'kept', 'content-type': 'application/json' },
       body: '{"a":1}',
     })
@@ -116,7 +116,7 @@ describe('system listeners', () => {
     expect(res.rawHeaders).toEqual(expect.arrayContaining(['x-reply', 'one', 'x-reply', 'two']))
     const [seen] = admin.seen
     expect(seen.method).toBe('POST')
-    expect(seen.url).toBe('/__mock-system__/alpha/ui/orders?x=1')
+    expect(seen.url).toBe('/__mock-system__/alpha/orders?x=1')
     expect(seen.body).toBe('{"a":1}')
     expect(seen.rawHeaders).toEqual(expect.arrayContaining(['X-Custom', 'kept']))
     expect(seen.headers[SYSTEM_TOKEN_HEADER]).toBe(TOKEN)

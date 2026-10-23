@@ -19,7 +19,7 @@ export function ProfilePageHeader({
     <>
       <StickyPageHeader>
         <Button asChild variant="secondary">
-          <Link href="/ui">← All profiles</Link>
+          <Link href="/">← All profiles</Link>
         </Button>
         <div className="flex min-w-0 flex-[1_1_320px] items-center">
           <h1 className="min-w-0 [overflow-wrap:anywhere]">{title}</h1>

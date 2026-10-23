@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { systemOrigin } from '../../src/app/ui/system-origin'
+import { systemOrigin } from '../../src/app/(ui)/system-origin'
 
 afterEach(() => {
   vi.unstubAllGlobals()
