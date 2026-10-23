@@ -31,7 +31,7 @@ async function fakeAdmin(
     res.writeHead(201, 'Made', ['x-reply', 'one', 'x-reply', 'two'])
     res.end('ok')
   },
-): Promise<{ port: number; seen: Seen[] }> {
+): Promise<{ port: number; seen: Seen[]; server: http.Server }> {
   const seen: Seen[] = []
   const server = http.createServer((req, res) => {
     const chunks: Buffer[] = []
@@ -49,7 +49,7 @@ async function fakeAdmin(
   })
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
   open.push(server)
-  return { port: (server.address() as net.AddressInfo).port, seen }
+  return { port: (server.address() as net.AddressInfo).port, seen, server }
 }
 
 async function freePort(): Promise<number> {
@@ -154,6 +154,42 @@ describe('system listeners', () => {
     expect(res.status).toBe(201)
     expect(admin.seen[0].headers.upgrade).toBeUndefined()
     expect(admin.seen[0].body).toBe('x')
+  })
+
+  it('answers every upgrade offer on a kept-alive connection, not just the first', async () => {
+    const admin = await fakeAdmin((_, res) => res.end(`echo:${admin.seen.at(-1)!.body}`))
+    admin.server.on('upgrade', (_, socket: net.Socket) => socket.end())
+    const [alpha] = await listenersFor(admin.port, 'alpha')
+
+    const socket = net.connect(alpha.port, '127.0.0.1')
+    open.push({ close: (cb) => (socket.destroy(), cb()) })
+    let received = ''
+    socket.on('data', (chunk: Buffer) => (received += chunk))
+
+    for (const body of ['req1', 'req2', 'req3']) {
+      socket.write(
+        'POST /hello HTTP/1.1\r\nHost: localhost\r\nConnection: Upgrade, HTTP2-Settings\r\nUpgrade: h2c\r\n' +
+          `HTTP2-Settings: AAMAAABkAAQAoAAAAAIAAAAA\r\nContent-Length: ${body.length}\r\n\r\n${body}`,
+      )
+      await new Promise<void>((resolve, reject) => {
+        const check = () => {
+          if (received.includes(`echo:${body}`)) {
+            socket.off('data', check)
+            socket.off('close', fail)
+            resolve()
+          }
+        }
+        const fail = () => reject(new Error(`connection closed before ${body} was answered:\n${received}`))
+        socket.on('data', check)
+        socket.once('close', fail)
+        check()
+      })
+    }
+
+    expect(received.match(/HTTP\/1\.1 200 /g)).toHaveLength(3)
+    expect(admin.seen.map((s) => s.body)).toEqual(['req1', 'req2', 'req3'])
+    expect(admin.seen.every((s) => s.headers.upgrade === undefined)).toBe(true)
+    expect(socket.destroyed).toBe(false)
   })
 
   it('maps a redirect under the prefix back to the system path', async () => {
