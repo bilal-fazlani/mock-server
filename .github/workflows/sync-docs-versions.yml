@@ -8,7 +8,8 @@ name: Sync docs versions
 #
 #   release           this repo published one — the server version moved
 #   repository_dispatch  the Java SDK published one, sent from that repo's
-#                     release.yml once Central reports PUBLISHED
+#                     release.yml once Central has accepted it (VALIDATED or
+#                     later), so repo1 may not list it yet — the job waits for it
 #   schedule          the backstop. A dispatch that never arrives — a revoked
 #                     token, a failed step, a workflow someone edited — would
 #                     otherwise leave the docs stale with nothing watching,
@@ -51,6 +52,36 @@ jobs:
           # in the Commit step fail — and main is where that commit belongs.
           ref: main
 
+      # The SDK's release job stops waiting once Central has validated the
+      # upload, which is minutes before repo1 lists it. Waiting here instead is
+      # free (this repo is public); waiting there is billed. On timeout this
+      # exits clean and the weekly reconcile catches up.
+      - name: Wait for repo1 to list the SDK version
+        id: wait
+        if: github.event_name == 'repository_dispatch' && github.event.client_payload.version != ''
+        env:
+          EXPECTED: ${{ github.event.client_payload.version }}
+        run: |
+          METADATA=https://repo1.maven.org/maven2/com/bilal-fazlani/mock-server-client/maven-metadata.xml
+          INTERVAL=30
+          TIMEOUT=1800
+          ELAPSED=0
+          while :; do
+            CURRENT=$(curl -fsSL "$METADATA" | sed -n 's:.*<release>\(.*\)</release>.*:\1:p' || true)
+            echo "[${ELAPSED}s] repo1 release=${CURRENT:-<unreadable>}, waiting for $EXPECTED"
+            if [ "$CURRENT" = "$EXPECTED" ]; then
+              echo "ready=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            if [ "$ELAPSED" -ge "$TIMEOUT" ]; then
+              echo "::warning::repo1 still does not list $EXPECTED after ${TIMEOUT}s - the docs will catch up on their weekly reconcile."
+              echo "ready=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            sleep "$INTERVAL"
+            ELAPSED=$((ELAPSED + INTERVAL))
+          done
+
       # Read both versions from where a *user* would get them, not from where we
       # think we put them. The server's from its own GitHub releases, which is
       # what publishes the image tag; the SDK's from repo1's maven-metadata.xml,
@@ -61,6 +92,7 @@ jobs:
       # file is a plain artifact on the CDN. Its <release> element is the newest
       # non-snapshot version, which is precisely the coordinate the docs quote.
       - name: Resolve the published versions
+        if: steps.wait.outputs.ready != 'false'
         id: resolve
         env:
           GH_TOKEN: ${{ github.token }}
@@ -85,21 +117,25 @@ jobs:
           echo "Resolved server=$SERVER sdk_java=$SDK"
 
       - name: Set up Python
+        if: steps.wait.outputs.ready != 'false'
         uses: actions/setup-python@v5
         with:
           # Must match docs/site/Pipfile and netlify.toml's PYTHON_VERSION.
           python-version: '3.14'
 
       - name: Install pipenv
+        if: steps.wait.outputs.ready != 'false'
         run: pipx install pipenv
 
       - name: Install
+        if: steps.wait.outputs.ready != 'false'
         working-directory: docs/site
         run: pipenv install --dev --deploy
 
       # Written with the same parser that reads it, so a malformed edit fails
       # here rather than silently leaving the value unchanged.
       - name: Write versions.toml
+        if: steps.wait.outputs.ready != 'false'
         working-directory: docs/site
         env:
           SERVER: ${{ steps.resolve.outputs.server }}
@@ -127,16 +163,19 @@ jobs:
           PY
 
       - name: Rewrite the guide
+        if: steps.wait.outputs.ready != 'false'
         working-directory: docs/site
         run: pipenv run python sync_versions.py
 
       # The same suite CI runs on a pull request. A bad rewrite must not reach
       # main just because a machine made it.
       - name: Verify
+        if: steps.wait.outputs.ready != 'false'
         working-directory: docs/site
         run: pipenv run pytest -q
 
       - name: Commit
+        if: steps.wait.outputs.ready != 'false'
         env:
           SERVER: ${{ steps.resolve.outputs.server }}
           SDK_JAVA: ${{ steps.resolve.outputs.sdk_java }}
