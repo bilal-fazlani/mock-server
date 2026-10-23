@@ -82,9 +82,19 @@ jobs:
             ELAPSED=$((ELAPSED + INTERVAL))
           done
 
+      # The newest-created release is not necessarily the highest: a backport
+      # takes the badge on publish. Pin it to the highest, on every trigger.
+      - name: Keep the Latest badge on the highest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          highest=$(.github/scripts/release-order.sh none | sed -n 's/^highest=//p')
+          [ -n "$highest" ] && gh release edit "$highest" --repo "$GITHUB_REPOSITORY" --latest
+
       # Read both versions from where a *user* would get them, not from where we
       # think we put them. The server's from its own GitHub releases, which is
-      # what publishes the image tag; the SDK's from repo1's maven-metadata.xml,
+      # what publishes the image tag, taking the highest by semver; the SDK's from repo1's maven-metadata.xml,
       # which is what a Gradle or Maven build actually resolves against.
       #
       # maven-metadata.xml rather than the solrsearch API on purpose: search is
@@ -99,9 +109,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          SERVER=$(gh release list --repo ${{ github.repository }} \
-            --exclude-drafts --exclude-pre-releases --limit 1 \
-            --json tagName --jq '.[0].tagName' | sed 's/^v//')
+          SERVER=$(.github/scripts/release-order.sh none | sed -n 's/^highest=v//p')
 
           METADATA=https://repo1.maven.org/maven2/com/bilal-fazlani/mock-server-client/maven-metadata.xml
           SDK=$(curl -fsSL "$METADATA" | sed -n 's:.*<release>\(.*\)</release>.*:\1:p')

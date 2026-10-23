@@ -76,11 +76,37 @@ type (Features, Bug Fixes, …). To adjust wording before shipping, **edit the r
 
 ## Prereleases
 
-- Marking the GitHub Release as a pre-release skips the `latest` **image** tag (the image still
-  gets its `X.Y.Z` tag).
-- ⚠️ The **npm** workflow always publishes to the `latest` dist-tag. For a prerelease on npm
-  without moving `latest`, publish manually with a dist-tag
-  (`npm publish --provenance --access public --tag next`) or extend `publish-npm.yml`.
+- Marking the GitHub Release as a pre-release skips the `latest` and major **image** tags (the
+  image still gets its `X.Y.Z` and `X.Y` tags).
+- `publish-npm.yml` publishes a prerelease under the `next` dist-tag, so npm `latest` stays put.
+
+## Backports
+
+Every release workflow decides "is this the highest release?" with one script,
+[`.github/scripts/release-order.sh`](.github/scripts/release-order.sh): a semver comparison of the
+tag against every published, non-prerelease release (never creation order). A release that is
+**not** the highest — say `v0.16.1` after `v0.19.0` — moves none of the things users follow:
+
+| Artifact | Highest release | Backport |
+| --- | --- | --- |
+| image `X.Y.Z`, `X.Y` | moved | moved (`0.16` is correctly the newest 0.16) |
+| image `latest`, `X` | moved | **not moved** |
+| npm dist-tag | `latest` | `<major>.<minor>-backport`, e.g. `0.16-backport` |
+| docs' `server` version | follows it | **unchanged** (highest semver release) |
+| GitHub "Latest" badge | on it | **kept on the highest** (`sync-docs-versions.yml` re-pins it) |
+
+To ship a backport:
+
+1. Branch from the tag: `git switch -c release-0.16.x v0.16.0`.
+2. Cherry-pick the fix, plus the workflow files if the tag predates this mechanism
+   (`.github/workflows/publish-*.yml`, `sync-docs-versions.yml`, `.github/scripts/release-order.sh`).
+3. Bump `package.json` and `CHANGELOG.md` to `0.16.1` (release-please only tracks `main`, so
+   this is the one place a version is edited by hand), commit, and push the branch.
+4. Create and publish the GitHub Release `v0.16.1` targeting that branch. Use the UI or
+   `gh release create v0.16.1 --target release-0.16.x --latest=false --notes-file …`.
+5. Check the run summaries: `latest` and the major tag did not move, and
+   `npm view @bilal-fazlani/mock-server dist-tags` shows `latest` unchanged and `0.16-backport`
+   on `0.16.1`. Users opt in with `npx @bilal-fazlani/mock-server@0.16-backport`.
 
 ## Re-running a failed publish
 
@@ -91,8 +117,8 @@ gh workflow run publish-npm.yml   --ref vX.Y.Z
 gh workflow run publish-image.yml --ref vX.Y.Z
 ```
 
-`publish-image.yml` moves the `latest` image tag only when the ref it is building **is** the
-newest non-prerelease release, so re-running an old tag republishes that version's own tags
+`publish-image.yml` moves the `latest` and major image tags only when the ref it is building
+**is** the highest non-prerelease release, so re-running an old tag republishes that version's own tags
 without dragging `latest` backwards. Each run states in its job summary whether `latest`
 moved and why. It also refuses to run against a non-tag ref, since the semver tags are
 derived from the ref and there would be nothing to push.
@@ -130,7 +156,7 @@ embedded `mongod` launches (log shows the embedded-Mongo notice and serves a req
 - **Provenance error** — `publish-npm.yml` needs `id-token: write` (present) and `package.json`
   needs a `repository` field (present); provenance requires a public repo.
 - **Wrong/missing image tags (e.g. no `latest`)** — the Release was marked pre-release, the tag
-  isn't valid `vX.Y.Z` SemVer, or the run built a tag that is not the newest release. The run's
+  isn't valid `vX.Y.Z` SemVer, or the run built a tag that is not the highest release. The run's
   job summary says which. Before #80, a `workflow_dispatch` re-publish skipped `latest`
   unconditionally and said nothing, which left `latest` on 0.9.0 for the whole 0.10.0 line —
   check the summary rather than assuming a green run moved it.
