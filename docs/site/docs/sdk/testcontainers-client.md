@@ -24,8 +24,8 @@ running and nothing needs to start a container.
 
 ```kotlin
 // build.gradle.kts — one of these, not both
-testImplementation("com.bilal-fazlani:mock-server-testcontainers:4.0.0")  // container + client
-testImplementation("com.bilal-fazlani:mock-server-client:4.0.0")          // client alone
+testImplementation("com.bilal-fazlani:mock-server-testcontainers:5.0.0")  // container + client
+testImplementation("com.bilal-fazlani:mock-server-client:5.0.0")          // client alone
 ```
 
 ```xml
@@ -33,7 +33,7 @@ testImplementation("com.bilal-fazlani:mock-server-client:4.0.0")          // cli
 <dependency>
   <groupId>com.bilal-fazlani</groupId>
   <artifactId>mock-server-testcontainers</artifactId>
-  <version>4.0.0</version>
+  <version>5.0.0</version>
   <scope>test</scope>
 </dependency>
 ```

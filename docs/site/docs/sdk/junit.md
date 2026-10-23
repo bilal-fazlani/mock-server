@@ -14,7 +14,7 @@ you have not run a test yet.
 ```kotlin
 // build.gradle.kts
 dependencies {
-    testImplementation("com.bilal-fazlani:mock-server-junit:4.0.0")
+    testImplementation("com.bilal-fazlani:mock-server-junit:5.0.0")
 
     // No versions needed: mock-server-junit exposes the JUnit BOM transitively.
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
@@ -27,7 +27,7 @@ dependencies {
 <dependency>
   <groupId>com.bilal-fazlani</groupId>
   <artifactId>mock-server-junit</artifactId>
-  <version>4.0.0</version>
+  <version>5.0.0</version>
   <scope>test</scope>
 </dependency>
 ```
