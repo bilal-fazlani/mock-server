@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.19.1](https://github.com/bilal-fazlani/mock-server/compare/v0.19.0...v0.19.1) (2026-10-23)
+
+
+### Bug Fixes
+
+* **ci:** stop metadata-action moving latest on old tags and keep the version label unprefixed ([d0b1d61](https://github.com/bilal-fazlani/mock-server/commit/d0b1d61f37933bccdbce6e7d34b7b0e62b038e9a))
+
 ## [0.19.0](https://github.com/bilal-fazlani/mock-server/compare/v0.18.0...v0.19.0) (2026-10-23)
 
 
