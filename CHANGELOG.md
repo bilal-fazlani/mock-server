@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.18.0](https://github.com/bilal-fazlani/mock-server/compare/v0.17.0...v0.18.0) (2026-10-23)
+
+
+### Features
+
+* **ui:** browse the catalog by system, showing its port and base url ([#110](https://github.com/bilal-fazlani/mock-server/issues/110)) ([866b2e7](https://github.com/bilal-fazlani/mock-server/commit/866b2e760449837fb8920d2e4fff85a3a9160028))
+
 ## [0.17.0](https://github.com/bilal-fazlani/mock-server/compare/v0.16.0...v0.17.0) (2026-10-22)
 
 
