@@ -111,8 +111,8 @@ docker run --rm -p 3000:3000 ghcr.io/bilal-fazlani/mock-server:X.Y.Z
 curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3000/ui
 ```
 
-**First release, extra check:** the `linux/amd64` image is built under QEMU in CI and hasn't run
-on native amd64 — after the first release, `docker run --platform linux/amd64 …` and confirm the
+**First release, extra check:** the `linux/amd64` image is built on a native amd64 runner in CI but hasn't
+been run by hand — after the first release, `docker run --platform linux/amd64 …` and confirm the
 embedded `mongod` launches (log shows the embedded-Mongo notice and serves a request).
 
 ## Troubleshooting
