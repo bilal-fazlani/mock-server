@@ -59,7 +59,7 @@ pays for the start.
 | --- | --- | --- |
 | `withCatalog(String \| Path)` | *(none)* | The catalog directory to serve, bind-mounted read-only. A **filesystem path, not a classpath resource** — see [what the path means](#what-withcatalog-resolves-against). The default image contains no catalog, so a container started without one exits, and each test that needs it fails within seconds with a `MockServerExitedException` whose message carries the server's `catalog directory not found` line. Each system's `port` is read from its `_system.json` and exposed. |
 | `withBuiltInCatalog(Consumer<CatalogPorts>)` | *(none)* | Instead of `withCatalog`, for a custom image with the catalog copied in: `ports -> ports.server(3000).system("payments", 9001)`. `server(…)` defaults to 3000; every system's port must be declared, because there is no folder to read them from. Calling both builder methods throws `IllegalStateException` at the second. See [A catalog built into the image](testcontainers-client.md#a-catalog-built-into-the-image). |
-| `withImage(String \| DockerImageName)` | `ghcr.io/bilal-fazlani/mock-server:latest` | The image to run. Parsed as a **whole reference** — `withImage("0.18.0")` looks for a repository named `0.18.0`. For a tag, use `MockServerContainer.DEFAULT_IMAGE_NAME.withTag("0.18.0")`. |
+| `withImage(String \| DockerImageName)` | `ghcr.io/bilal-fazlani/mock-server:latest` | The image to run. Parsed as a **whole reference** — `withImage("0.19.0")` looks for a repository named `0.19.0`. For a tag, use `MockServerContainer.DEFAULT_IMAGE_NAME.withTag("0.19.0")`. |
 | `withStartupTimeout(Duration)` | 2 minutes | How long to wait for `GET /api/health` to answer `200`. Applies only to a server that is still running; one that exits fails at once. |
 | `configure(Consumer<MockServerContainer>)` | no-op | Anything else the container — or `GenericContainer` beneath it — can do: environment variables, networks, log consumers, reuse. Applied before the container starts, and additive across calls. |
 | `schemaCheck(SchemaCheck.Mode)` | `FAILED` | The suite-wide [end-of-test schema check](#the-end-of-test-schema-check). |
@@ -95,7 +95,7 @@ MockServer.container()
 
     ```java
     MockServer.container()
-            .withImage(MockServerContainer.DEFAULT_IMAGE_NAME.withTag("0.18.0"))
+            .withImage(MockServerContainer.DEFAULT_IMAGE_NAME.withTag("0.19.0"))
             .withCatalog("src/test/resources/catalog")
             .build();
     ```
