@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.16.1](https://github.com/bilal-fazlani/mock-server/compare/v0.16.0...v0.16.1) (2026-10-23)
+
+Backport from 0.17.0 for deployments that cannot use per-system ports.
+
+### Features
+
+* **selector:** accept quoted bracket keys in body selectors
+
+### Bug Fixes
+
+* **build:** stop next tracing the whole project into the standalone output
+* **ci:** keep latest, the major tag and the docs on the highest release when publishing a backport
+
 ## [0.16.0](https://github.com/bilal-fazlani/mock-server/compare/v0.15.0...v0.16.0) (2026-10-22)
 
 
